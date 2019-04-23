@@ -144,7 +144,7 @@ namespace Dcomms.SUBT
         }
         JitterBufferElement _lastPlayedJBE = null;
         readonly IirFilterAverage _recentPacketLoss = new IirFilterAverage(SubtLogicConfiguration.RecentPacketLossDecayTimeTicks);
-        internal float RecentPacketLoss => _recentPacketLoss.Output;
+        internal float RecentPacketLoss => Math.Min(_recentPacketLoss.Output, 1);
         void OnPlayed(JitterBufferElement jbe, uint timeNow32)
         {
             if (_lastPlayedJBE != null)
