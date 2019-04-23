@@ -1,0 +1,110 @@
+﻿<UserControl x:Class="StarTrinity.ContinuousSpeedTest.EasyGuiView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="1000">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Visibility="{Binding StartVisibility}" HorizontalAlignment="Center" >
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock  Text="mode: " FontSize="30" HorizontalAlignment="Right" />
+            <ComboBox  Grid.Column="1" VerticalAlignment="Center"  HorizontalAlignment="Center" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" DisplayMemberPath="Description" FontSize="25" MinWidth="150" />
+
+            <Button Grid.Row="1" Grid.ColumnSpan="2" Command="{Binding StartTest}" Content="Start test" FontSize="30" />
+        </Grid>
+        
+        <Grid Visibility="{Binding MeasurementsVisibility}" HorizontalAlignment="Center" >
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Visibility="{Binding ModeVisibility}" Text="mode: " FontSize="30" HorizontalAlignment="Right" />
+            <ComboBox Visibility="{Binding ModeVisibility}"  Grid.Column="1" VerticalAlignment="Center"  HorizontalAlignment="Center" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" DisplayMemberPath="Description" FontSize="25" MinWidth="150" />
+
+            <TextBlock Grid.Row="1" Text="download: " FontSize="30" HorizontalAlignment="Right" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RecentRxBandwidthString}" FontSize="30" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
+            <TextBlock Grid.Row="2" Text="upload: " FontSize="30" HorizontalAlignment="Right" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding RecentTxBandwidthString}" FontSize="30" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
+
+            <TextBlock Grid.Row="3" Text="RTT (ping): " FontSize="30" HorizontalAlignment="Right" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding RecentRttString}" FontSize="30" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
+
+
+            <Button Grid.Row="4" Grid.ColumnSpan="2"  Command="{Binding PauseTest}" Content="Pause" FontSize="25" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
+            <Button Grid.Row="4" Grid.ColumnSpan="2"  Command="{Binding ResumeTest}" Content="Resume" FontSize="25" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        
+        </Grid>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Visibility="{Binding MeasurementsVisibility}">
+            <TextBlock Text="Actual measurements:" />
+            <Button Command="{Binding ClearMeasurements}" Content="clear" />
+            <Button Command="{Binding ExportMeasurements}" Content="export" />
+            <Button  Content="uptimes and downtimes history" />
+            <TextBlock Text="note: it may take 1 minute for the test to allocate bandwidth for you on our servers" />
+        </StackPanel>
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Measurements}" Visibility="{Binding MeasurementsVisibility}" Name="measurementsDataGrid" >
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Time" Binding="{Binding MeasurementPeriodEnd, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></DataGridTextColumn>
+                <DataGridTextColumn Header="Download" Binding="{Binding RxBandwidthString, Mode=OneTime}">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Background" Value="{Binding RxBandwidthColor, Converter={StaticResource ColorToBrushConverter}}" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Packet loss" Binding="{Binding RxPacketLossString, Mode=OneTime}">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Background" Value="{Binding RxPacketLossColor, Converter={StaticResource ColorToBrushConverter}}" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Upload" Binding="{Binding TxBandwidthString, Mode=OneTime}">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Background" Value="{Binding TxBandwidthColor, Converter={StaticResource ColorToBrushConverter}}" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>                    
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Packet loss" Binding="{Binding TxPacketLossString, Mode=OneTime}">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Background" Value="{Binding TxPacketLossColor, Converter={StaticResource ColorToBrushConverter}}" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>                    
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="RTT (ping)" Binding="{Binding BestRttToPeersString, Mode=OneTime}">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Background" Value="{Binding BestRttToPeersColor, Converter={StaticResource ColorToBrushConverter}}" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+
+                
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

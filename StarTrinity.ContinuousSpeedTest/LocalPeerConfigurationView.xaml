@@ -1,0 +1,85 @@
+﻿<UserControl x:Class="StarTrinity.ContinuousSpeedTest.LocalPeerConfigurationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:StarTrinity.ContinuousSpeedTest"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.ColumnSpan="3" Visibility="{Binding Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
+            <StackPanel Orientation="Horizontal" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}">                
+                <TextBlock Text="pre-defined developer mode: "/>
+                <Button  Command="{Binding PredefinedAsvServer}" Content="server" />
+                <!--<Button  Command="{Binding PredefinedAsvClientToUsLa}" Content="client to us-la" />
+                <Button  Command="{Binding PredefinedAsvPassiveClientToUsLa}" Content="passive to us-la" />-->
+                <Button  Command="{Binding PredefinedAsvClientToNeth3}" Content="client to neth3" />
+                <Button  Command="{Binding PredefinedAsvPassiveClientToNeth3}" Content="passive to neth3" />
+                <Button  Command="{Binding PredefinedAsvClientToLocalhost}" Content="client to localhost" />
+                <Button  Command="{Binding PredefinedReleaseMode}" Content="release mode" />
+                
+            </StackPanel>
+        </Grid>
+
+        <TextBlock Grid.Row="1" Text="Roles:"  Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
+        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}">
+            <CheckBox Content="user" IsChecked="{Binding LocalPeerConfigurationRoleAsUser}" IsEnabled="{Binding Initialized, Converter={StaticResource OppositeConverter}}" />
+            <CheckBox Content="shared passive" IsChecked="{Binding LocalPeerConfiguration.RoleAsSharedPassive}" IsEnabled="{Binding Initialized, Converter={StaticResource OppositeConverter}}" />
+            <CheckBox Content="coordinator" IsChecked="{Binding LocalPeerConfiguration.RoleAsCoordinator}" IsEnabled="{Binding Initialized, Converter={StaticResource OppositeConverter}}" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="2" Text="Local UDP ports range start:" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding LocalPeerConfiguration.LocalUdpPortRangeStart}" IsEnabled="{Binding Initialized, Converter={StaticResource OppositeConverter}}" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+        <TextBlock Grid.Row="3" Text="Local UDP ports (sockets) count:" />
+        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding LocalPeerConfiguration.SocketsCount}" IsEnabled="{Binding Initialized, Converter={StaticResource OppositeConverter}}" />
+
+        <TextBlock Grid.Row="4" Text="Coordinator peers:" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding LocalPeerConfiguration.CoordinatorsString}"  IsEnabled="{Binding Initialized, Converter={StaticResource OppositeConverter}}" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+        <TextBlock Grid.Row="5" Text="Bandwidth target:" Visibility="{Binding LocalPeerConfigurationRoleAsUser, Converter={StaticResource BoolToVisibilityConverter}}" />
+        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SubtLocalPeerConfigurationBandwidthTargetMbps, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding LocalPeerConfigurationRoleAsUser, Converter={StaticResource BoolToVisibilityConverter}}" />
+        <TextBlock Grid.Row="5" Grid.Column="2" Text="(Mbps) unlimited if empty" Visibility="{Binding LocalPeerConfigurationRoleAsUser, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+        <TextBlock Grid.Row="6" Text="Sender threads count:" />
+        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding SubtLocalPeerConfiguration.SenderThreadsCount}" IsEnabled="{Binding Initialized, Converter={StaticResource OppositeConverter}}" />
+
+        <TextBlock Grid.Row="7" Text="100ms speed constant:" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
+        <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding SubtLocalPeerConfiguration.Speed100ms}" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+        <TextBlock Grid.Row="8" Text="100ms speed limit:" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+        <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding SubtLocalPeerConfiguration.Speed100msLimit}" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+       
+
+        <TextBlock Grid.Row="9" Text="Developer mode:" />
+        <CheckBox Grid.Row="9" Grid.Column="1" IsChecked="{Binding DeveloperMode}" />
+
+        <Button Grid.Row="10" Command="{Binding Initialize}" Content="Initialize" Visibility="{Binding Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
+        <StackPanel Grid.Row="10" Orientation="Horizontal" Visibility="{Binding Initialized, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Button Command="{Binding ReInitialize}" Content="Reinitialize" />
+            <Button Command="{Binding DeInitialize}" Content="Deinitialize" />            
+        </StackPanel>      
+
+
+
+    </Grid>
+</UserControl>

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>StarTrinity.P2PTP</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="P2PTP\tt\TextTransform.exe" />
+    <None Remove="P2PTP\tt\VersionAndCompiledDateCs.tt" />
+  </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="&quot;$(DevEnvDir)TextTransform.exe&quot; &quot;$(ProjectDir)P2PTP\tt\VersionAndCompiledDateCs.tt&quot;" />
+  </Target>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="&quot;$(SolutionDir)signtool.exe&quot; sign /n &quot;Sergei Vladimirovich Aleshin IP&quot; &quot;$(TargetPath)&quot;" />
+  </Target>
+
+</Project>

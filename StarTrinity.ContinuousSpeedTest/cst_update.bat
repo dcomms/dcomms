@@ -1,0 +1,6 @@
+copy "\\tsclient\C\SVNProjects\StarTrinity.P2PTS\StarTrinity.ContinuousSpeedTest\bin\Release\StarTrinity.ContinuousSpeedTest.exe" ".\"
+copy "\\tsclient\C\SVNProjects\StarTrinity.P2PTS\StarTrinity.ContinuousSpeedTest\bin\Release\StarTrinity.ContinuousSpeedTest.pdb" ".\"
+copy "\\tsclient\C\SVNProjects\StarTrinity.P2PTS\StarTrinity.ContinuousSpeedTest\bin\Release\StarTrinity.P2PTS.Core.dll" ".\"
+copy "\\tsclient\C\SVNProjects\StarTrinity.P2PTS\StarTrinity.ContinuousSpeedTest\bin\Release\StarTrinity.P2PTS.Core.pdb" ".\"
+copy "\\tsclient\C\SVNProjects\StarTrinity.P2PTS\StarTrinity.ContinuousSpeedTest\bin\Release\StarTrinity.P2PTS.SUBT.dll" ".\"
+copy "\\tsclient\C\SVNProjects\StarTrinity.P2PTS\StarTrinity.ContinuousSpeedTest\bin\Release\StarTrinity.P2PTS.SUBT.pdb" ".\"
