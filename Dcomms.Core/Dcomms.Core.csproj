@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="&quot;$(DevEnvDir)TextTransform.exe&quot; &quot;$(ProjectDir)P2PTP\tt\VersionAndCompiledDateCs.tt&quot;" />
+    <Exec Command="if $(ConfigurationName) == Release &quot;$(DevEnvDir)TextTransform.exe&quot; &quot;$(ProjectDir)P2PTP\tt\VersionAndCompiledDateCs.tt&quot;" />
   </Target>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
