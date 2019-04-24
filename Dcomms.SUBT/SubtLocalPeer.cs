@@ -21,7 +21,7 @@ namespace Dcomms.SUBT
     /// </summary>
     public class SubtLocalPeer : ILocalPeerExtension
     {
-        internal readonly SubtLocalPeerConfiguration Configuration;
+        public readonly SubtLocalPeerConfiguration Configuration;
         public SubtLocalPeer(SubtLocalPeerConfiguration configuration, SubtLocalPeer instanceFromPreviousTestAfterPause = null)
         {
             if (configuration.SenderThreadsCount <= 0 || configuration.SenderThreadsCount > 32) throw new ArgumentException(nameof(configuration.SenderThreadsCount));

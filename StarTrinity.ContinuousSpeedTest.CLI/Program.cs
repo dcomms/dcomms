@@ -57,13 +57,14 @@ namespace StarTrinity.ContinuousSpeedTest.CLI
             subtLocalPeer.MeasurementsHistory.OnAddedNewMeasurement += MeasurementsHistory_OnAddedNewMeasurement;
 
             Console.WriteLine("running test...");
+            Console.WriteLine($"target bandwidth: {subtLocalPeer.Configuration.BandwidthTargetString}");
             Console.ReadLine();
             node.Dispose();
         }
 
         private static void MeasurementsHistory_OnAddedNewMeasurement(SubtMeasurement measurement)
         {
-            Console.WriteLine($"measurement: download={measurement.RxBandwidthString}, upload={measurement.TxBandwidthString}");
+            Console.WriteLine($"measurement: download={measurement.RxBandwidthString} (packet loss={measurement.RxPacketLossString}), upload={measurement.TxBandwidthString} (packet loss={measurement.TxPacketLossString})");
         }
     }
 }
