@@ -8,8 +8,4 @@
     <ProjectReference Include="..\Dcomms.Core\Dcomms.Core.csproj" />
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if $(ConfigurationName) == Release &quot;$(SolutionDir)signtool.exe&quot; sign /n &quot;Sergei Vladimirovich Aleshin IP&quot; &quot;$(TargetPath)&quot;" />
-  </Target>
-
 </Project>

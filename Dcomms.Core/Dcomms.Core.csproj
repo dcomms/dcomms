@@ -10,12 +10,4 @@
     <None Remove="P2PTP\tt\VersionAndCompiledDateCs.tt" />
   </ItemGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="if $(ConfigurationName) == Release (&#xD;&#xA;  &quot;$(DevEnvDir)TextTransform.exe&quot; &quot;$(ProjectDir)P2PTP\tt\VersionAndCompiledDateCs.tt&quot;&#xD;&#xA;)" />
-  </Target>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if $(ConfigurationName) == Release (&#xD;&#xA;  &quot;$(SolutionDir)signtool.exe&quot; sign /n &quot;Sergei Vladimirovich Aleshin IP&quot; &quot;$(TargetPath)&quot;&#xD;&#xA;)" />
-  </Target>
-
 </Project>

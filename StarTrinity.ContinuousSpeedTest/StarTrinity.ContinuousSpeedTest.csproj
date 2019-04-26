@@ -162,6 +162,11 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>"$(SolutionDir)signtool.exe" sign /n "Sergei Vladimirovich Aleshin IP" "$(TargetPath)"</PostBuildEvent>
+    <PostBuildEvent>"$(SolutionDir)signtool.exe" sign /n "Sergei Vladimirovich Aleshin IP" "$(TargetDir)Dcomms.Core.dll"
+"$(SolutionDir)signtool.exe" sign /n "Sergei Vladimirovich Aleshin IP" "$(TargetDir)Dcomms.SUBT.dll"
+"$(SolutionDir)signtool.exe" sign /n "Sergei Vladimirovich Aleshin IP" "$(TargetPath)"</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>"$(DevEnvDir)TextTransform.exe" "$(SolutionDir)Dcomms.Core\P2PTP\tt\VersionAndCompiledDateCs.tt"</PreBuildEvent>
   </PropertyGroup>
 </Project>
