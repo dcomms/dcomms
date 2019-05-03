@@ -15,5 +15,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Dcomms.Core\Dcomms.Core.csproj" />
+    <ProjectReference Include="..\..\Dcomms.SUBT\Dcomms.SUBT.csproj" />
   </ItemGroup>
 </Project>

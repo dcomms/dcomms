@@ -3,17 +3,32 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:App2"
              x:Class="App2.MainPage">
+    <ScrollView>        
+        <StackLayout Orientation="Vertical" Padding="10">
+            <Button Text="{Binding StartPauseText}" Command="{Binding StartPause}" />
+            <StackLayout Orientation="Horizontal">
+                <Label FontSize="Large" Text="Download:"  />
+                <Label FontSize="Large" Text="{Binding RecentRxBandwidthString}" />
+            </StackLayout>
+            <StackLayout Orientation="Horizontal">
+                <Label FontSize="Large" Text="Upload:"  />
+                <Label FontSize="Large" Text="{Binding RecentTxBandwidthString}" />
+            </StackLayout>
+            <Label Text="Measurements:" />
+            <ListView ItemsSource="{Binding SubtMeasurements}"
+                      > <!--GroupDisplayBinding="{Binding GroupString}"
+                GroupShortNameBinding="{Binding GroupString}" IsGroupingEnabled="true"-->
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <TextCell Text="{Binding TxBandwidthString}"
+                                  Detail="{Binding RxBandwidthString}"
+                                  TextColor="#f35e20"
+                                  DetailColor="#503026" />
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>     
+        </StackLayout>
 
-    <StackLayout Orientation="Vertical" Padding="10">
-        <Button Text="Start Test" Command="{Binding Start}" />
-        <StackLayout Orientation="Horizontal">
-            <Label Text="Download:"  />
-            <Label  Text="{Binding DownloadString}" />
-        </StackLayout>
-        <StackLayout Orientation="Horizontal">
-            <Label Text="Upload:"  />
-            <Label  Text="{Binding UploadString}" />
-        </StackLayout>
-    </StackLayout>
+    </ScrollView>
 
 </ContentPage>

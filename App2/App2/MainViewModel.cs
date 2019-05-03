@@ -1,19 +1,26 @@
 ﻿
+using Dcomms.P2PTP.Extensibility;
 using Dcomms.P2PTP.LocalLogic;
+using Dcomms.SUBT;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Net;
 using System.Reflection;
 using System.Text;
+using System.Timers;
 using System.Windows.Input;
-
+using Xamarin.Forms;
 
 namespace App2
 {
     public class MainViewModel : BaseNotify
     {
+        ILocalPeer _localPeer;
+        SubtLocalPeer _subtLocalPeer;
+        Timer _timer;
 
         class User : ILocalPeerUser
         {
@@ -24,67 +31,92 @@ namespace App2
             }
         }
 
-
-
-        public string DownloadString { get; set; }
-        public string UploadString { get; set; }
-        public ICommand Start => new DelegateCommand(() =>
+        SubtMeasurement _latestMeasurement;
+        public string RecentRxBandwidthString => _latestMeasurement?.RxBandwidthString;
+        public string RecentTxBandwidthString => _latestMeasurement?.TxBandwidthString;
+        public string StartPauseText => _timer != null ? "Pause Test" : "Start Test";
+        public ICommand StartPause => new DelegateCommand(() =>
         {
-            //var coordinatorServerIp1 = IPAddress.Parse("163.172.210.13");//neth3
-            //var coordinatorServerIp2 = IPAddress.Parse("195.154.173.208");//fra2
-            //var subtLocalPeer = new SubtLocalPeer(new SubtLocalPeerConfiguration
-            //{
-            //    SenderThreadsCount = 4,
-            //    BandwidthTargetMbps = null,
-            //});
-            //var node = new LocalPeer(new LocalPeerConfiguration
-            //{
-            //    RoleAsUser = true,
-            //    LocalPeerUser = new User(),
-            //    LocalUdpPortRangeStart = null,
-            //    SocketsCount = 4,
-            //    Coordinators = new IPEndPoint[]
-            //    {
-            //        new IPEndPoint(coordinatorServerIp1, 10000),
-            //        new IPEndPoint(coordinatorServerIp1, 10001),
-            //        new IPEndPoint(coordinatorServerIp1, 10002),
-            //        new IPEndPoint(coordinatorServerIp1, 10003),
-            //        new IPEndPoint(coordinatorServerIp1, 10004),
-            //        new IPEndPoint(coordinatorServerIp1, 10005),
-            //        new IPEndPoint(coordinatorServerIp1, 10006),
-            //        new IPEndPoint(coordinatorServerIp1, 10007),
-            //        new IPEndPoint(coordinatorServerIp1, 9000),
-            //        new IPEndPoint(coordinatorServerIp1, 9001),
-            //        new IPEndPoint(coordinatorServerIp1, 9002),
-            //        new IPEndPoint(coordinatorServerIp1, 9003),
-            //        new IPEndPoint(coordinatorServerIp2, 9000),
-            //        new IPEndPoint(coordinatorServerIp2, 9001),
-            //        new IPEndPoint(coordinatorServerIp2, 9002),
-            //        new IPEndPoint(coordinatorServerIp2, 9003),
-            //    },
-            //    Extensions = new[]
-            //    {
-            //        subtLocalPeer
-            //    }
-            //});
-            //subtLocalPeer.MeasurementsHistory.OnAddedNewMeasurement += MeasurementsHistory_OnAddedNewMeasurement;
+            if (_timer == null)
+            {
+                var coordinatorServerIp1 = IPAddress.Parse("163.172.210.13");//neth3
+                var coordinatorServerIp2 = IPAddress.Parse("195.154.173.208");//fra2
+                _subtLocalPeer = new SubtLocalPeer(new SubtLocalPeerConfiguration
+                {
+                    SenderThreadsCount = 4,
+                    BandwidthTargetMbps = null,
+                });
+                _localPeer = new LocalPeer(new LocalPeerConfiguration
+                {
+                    RoleAsUser = true,
+                    LocalPeerUser = new User(),
+                    LocalUdpPortRangeStart = null,
+                    SocketsCount = 4,
+                    Coordinators = new IPEndPoint[]
+                    {
+                    new IPEndPoint(coordinatorServerIp1, 10000),
+                    new IPEndPoint(coordinatorServerIp1, 10001),
+                    new IPEndPoint(coordinatorServerIp1, 10002),
+                    new IPEndPoint(coordinatorServerIp1, 10003),
+                    new IPEndPoint(coordinatorServerIp1, 10004),
+                    new IPEndPoint(coordinatorServerIp1, 10005),
+                    new IPEndPoint(coordinatorServerIp1, 10006),
+                    new IPEndPoint(coordinatorServerIp1, 10007),
+                    new IPEndPoint(coordinatorServerIp1, 9000),
+                    new IPEndPoint(coordinatorServerIp1, 9001),
+                    new IPEndPoint(coordinatorServerIp1, 9002),
+                    new IPEndPoint(coordinatorServerIp1, 9003),
+                    new IPEndPoint(coordinatorServerIp2, 9000),
+                    new IPEndPoint(coordinatorServerIp2, 9001),
+                    new IPEndPoint(coordinatorServerIp2, 9002),
+                    new IPEndPoint(coordinatorServerIp2, 9003),
+                    },
+                    Extensions = new[]
+                    {
+                        _subtLocalPeer
+                    }
+                });
+                _subtLocalPeer.MeasurementsHistory.OnAddedNewMeasurement += MeasurementsHistory_OnAddedNewMeasurement;
 
+                _timer = new Timer(100);
+                _timer.Elapsed += _timer_Elapsed;
+                _timer.Start();
 
-
-
-
-
-
-
-
-
-
-
-            DownloadString = "d ersdfgsdh";
-            UploadString = "u dghdghmj";
-            RaisePropertyChanged(() => DownloadString);
-            RaisePropertyChanged(() => UploadString);
+                RaisePropertyChanged(() => StartPauseText);
+            }
         });
+
+        private void _timer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            if (_localPeer != null)
+            {
+                _localPeer.InvokeInManagerThread(() =>
+                {
+                    if (_subtLocalPeer != null)
+                    {
+                        _latestMeasurement = _subtLocalPeer.MeasurementsHistory.Measure(_subtLocalPeer);
+                        Device.BeginInvokeOnMainThread(() =>
+                        {
+                            RaisePropertyChanged(() => RecentRxBandwidthString);
+                            RaisePropertyChanged(() => RecentTxBandwidthString);
+                        });
+                    }
+                });
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private void MeasurementsHistory_OnAddedNewMeasurement(SubtMeasurement subtMeasurement)
+        {
+            Device.BeginInvokeOnMainThread(() =>
+            {
+                _subtMeasurements.Insert(0, subtMeasurement);
+            });
+        }
+
+        ObservableCollection<SubtMeasurement> _subtMeasurements = new ObservableCollection<SubtMeasurement>();
+        public ObservableCollection<SubtMeasurement> SubtMeasurements => _subtMeasurements;
     }
 
 
