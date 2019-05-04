@@ -120,7 +120,7 @@ namespace Dcomms.SUBT
     }
     public class SubtMeasurement
     {
-        public string GroupString => MeasurementPeriodEndUtc.Minute.ToString();
+      //  public string GroupString => MeasurementPeriodEndUtc.Minute.ToString();
 
         public DateTime MeasurementPeriodEndUtc { get; set; }
         public DateTime MeasurementPeriodEnd => MeasurementPeriodEndUtc.ToLocalTime();

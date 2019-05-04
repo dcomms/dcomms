@@ -32,8 +32,7 @@ namespace App2
         }
 
         SubtMeasurement _latestMeasurement;
-        public string RecentRxBandwidthString => _latestMeasurement?.RxBandwidthString;
-        public string RecentTxBandwidthString => _latestMeasurement?.TxBandwidthString;
+        public SubtMeasurement LatestMeasurement => _latestMeasurement;
         public string StartPauseText => _timer != null ? "Pause Test" : "Start Test";
         public ICommand StartPause => new DelegateCommand(() =>
         {
@@ -43,7 +42,7 @@ namespace App2
                 var coordinatorServerIp2 = IPAddress.Parse("195.154.173.208");//fra2
                 _subtLocalPeer = new SubtLocalPeer(new SubtLocalPeerConfiguration
                 {
-                    SenderThreadsCount = 4,
+                    SenderThreadsCount = 3,
                     BandwidthTargetMbps = null,
                 });
                 _localPeer = new LocalPeer(new LocalPeerConfiguration
@@ -51,25 +50,25 @@ namespace App2
                     RoleAsUser = true,
                     LocalPeerUser = new User(),
                     LocalUdpPortRangeStart = null,
-                    SocketsCount = 4,
+                    SocketsCount = 3,
                     Coordinators = new IPEndPoint[]
                     {
                     new IPEndPoint(coordinatorServerIp1, 10000),
                     new IPEndPoint(coordinatorServerIp1, 10001),
                     new IPEndPoint(coordinatorServerIp1, 10002),
-                    new IPEndPoint(coordinatorServerIp1, 10003),
-                    new IPEndPoint(coordinatorServerIp1, 10004),
-                    new IPEndPoint(coordinatorServerIp1, 10005),
-                    new IPEndPoint(coordinatorServerIp1, 10006),
-                    new IPEndPoint(coordinatorServerIp1, 10007),
+                  //  new IPEndPoint(coordinatorServerIp1, 10003),
+                 //   new IPEndPoint(coordinatorServerIp1, 10004),
+                 //   new IPEndPoint(coordinatorServerIp1, 10005),
+                  //  new IPEndPoint(coordinatorServerIp1, 10006),
+                  //  new IPEndPoint(coordinatorServerIp1, 10007),
                     new IPEndPoint(coordinatorServerIp1, 9000),
                     new IPEndPoint(coordinatorServerIp1, 9001),
                     new IPEndPoint(coordinatorServerIp1, 9002),
-                    new IPEndPoint(coordinatorServerIp1, 9003),
+                 //   new IPEndPoint(coordinatorServerIp1, 9003),
                     new IPEndPoint(coordinatorServerIp2, 9000),
                     new IPEndPoint(coordinatorServerIp2, 9001),
                     new IPEndPoint(coordinatorServerIp2, 9002),
-                    new IPEndPoint(coordinatorServerIp2, 9003),
+                 //   new IPEndPoint(coordinatorServerIp2, 9003),
                     },
                     Extensions = new[]
                     {
@@ -97,8 +96,7 @@ namespace App2
                         _latestMeasurement = _subtLocalPeer.MeasurementsHistory.Measure(_subtLocalPeer);
                         Device.BeginInvokeOnMainThread(() =>
                         {
-                            RaisePropertyChanged(() => RecentRxBandwidthString);
-                            RaisePropertyChanged(() => RecentTxBandwidthString);
+                            RaisePropertyChanged(() => LatestMeasurement);
                         });
                     }
                 });
