@@ -15,8 +15,7 @@ namespace StarTrinity.ContinuousSpeedTest
 		/// Raised when a property on this object has a new value.
 		/// </summary>
 		public event PropertyChangedEventHandler PropertyChanged;
-
-		
+        	
 
 		/// <summary>
 		/// Raises this object's PropertyChanged event.
