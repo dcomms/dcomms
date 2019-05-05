@@ -120,7 +120,7 @@ namespace Dcomms.SUBT
     }
     public class SubtMeasurement
     {
-      //  public string GroupString => MeasurementPeriodEndUtc.Minute.ToString();
+        public string GroupString => $"{MeasurementPeriodEndUtc.Hour}:{MeasurementPeriodEndUtc.Minute}";
 
         public DateTime MeasurementPeriodEndUtc { get; set; }
         public DateTime MeasurementPeriodEnd => MeasurementPeriodEndUtc.ToLocalTime();
@@ -138,9 +138,12 @@ namespace Dcomms.SUBT
         public float? RxPacketLoss { get; set; } // 0..1
         public string RxPacketLossString => RxPacketLoss.HasValue ? String.Format("{0:0.00}%", RxPacketLoss * 100) : "";
         public System.Drawing.Color RxPacketLossColor => RxPacketLoss.PacketLossToColor();
+        public System.Drawing.Color RxPacketLossColor_UBw => RxPacketLoss.PacketLossToColor_UBw();
         
+
         public float? TxPacketLoss { get; set; } // 0..1
         public string TxPacketLossString => TxPacketLoss.HasValue ? String.Format("{0:0.00}%", TxPacketLoss * 100) : "";
         public System.Drawing.Color TxPacketLossColor => TxPacketLoss.PacketLossToColor();
+        public System.Drawing.Color TxPacketLossColor_UBw => TxPacketLoss.PacketLossToColor_UBw();
     }
 }

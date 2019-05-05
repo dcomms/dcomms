@@ -98,8 +98,18 @@ namespace Dcomms
                 new Tuple<float, Color>(0.1f, Color.FromArgb(255, 150, 150)),
                 });
         }
-
+        public static Color PacketLossToColor_UBw(this float? packetLoss01)
+        {
+            if (!packetLoss01.HasValue) return Color.Transparent;
+            return ValueToColor(packetLoss01.Value, new[] {
+                new Tuple<float, Color>(0, Color.FromArgb(0, 100, 0)),
+                new Tuple<float, Color>(0.05f, Color.FromArgb(50, 50, 0)),
+                new Tuple<float, Color>(0.3f, Color.FromArgb(150, 50, 0)),
+                });
+        }
         
+
+
         /// <param name="referencePoints">must be sorted by value, ascending</param>
         public static Color ValueToColor(this float value, Tuple<float,Color>[] referencePoints)
         {
