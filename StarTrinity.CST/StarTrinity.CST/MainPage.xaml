@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:StarTrinity.CST"
+             x:Class="StarTrinity.CST.MainPage">
+
+
+    <StackLayout Orientation="Vertical" Padding="5">
+        <Button Text="{Binding StartPauseText}" Command="{Binding StartPause}" />
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="200*" />
+                <ColumnDefinition Width="100*" />
+            </Grid.ColumnDefinitions>
+
+            <Label Grid.Row="0" Grid.Column="1" Text="Bandwidth"   />
+            <Label Grid.Row="0" Grid.Column="2" Text="Packet loss"   />
+
+            <Label Grid.Row="1" FontSize="Large" Text="Download:"  />
+            <Label Grid.Row="1" Grid.Column="1" FontSize="Large" Text="{Binding LatestMeasurement.RxBandwidthString}" />
+            <Label Grid.Row="1" Grid.Column="2" FontSize="Large" Text="{Binding LatestMeasurement.RxPacketLossString}" />
+
+            <Label Grid.Row="2" FontSize="Large" Text="Upload:"  />
+            <Label Grid.Row="2" Grid.Column="1" FontSize="Large" Text="{Binding LatestMeasurement.TxBandwidthString}"  />
+            <Label Grid.Row="2" Grid.Column="2" FontSize="Large" Text="{Binding LatestMeasurement.TxPacketLossString}"  />
+
+            <Label Grid.Row="3" FontSize="Large" Text="RTT (ping):"  />
+            <Label Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" FontSize="Large" Text="{Binding LatestMeasurement.BestRttToPeersString}"  />
+
+            <Label Grid.Row="4" Grid.ColumnSpan="3" Text="Measurements:" />
+            <Grid Grid.Row="5" Grid.ColumnSpan="3">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="100*"></ColumnDefinition>
+                    <ColumnDefinition Width="60*"></ColumnDefinition>
+                    <ColumnDefinition Width="100*"></ColumnDefinition>
+                    <ColumnDefinition Width="60*"></ColumnDefinition>
+                    <ColumnDefinition Width="90*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+
+                <Label Grid.Column="0" Text="Download"  />
+                <Label Grid.Column="1" Text="Loss"  />
+                <Label Grid.Column="2" Text="Upload"  />
+                <Label Grid.Column="3" Text="Loss"  />
+                <Label Grid.Column="4" Text="RTT (ping)" />
+
+                <ListView Grid.Row="1" ItemsSource="{Binding SubtMeasurements}" SeparatorVisibility="None" BackgroundColor="Transparent" HasUnevenRows="True" 
+                        Grid.ColumnSpan="5" >
+                    <!--
+                        GroupShortNameBinding="{Binding GroupString}" IsGroupingEnabled="true"-->
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <ViewCell>
+                                <ViewCell.View>
+                                    <Grid Margin="0,0,0,3" Padding="0" RowSpacing="1" ColumnSpacing="1">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"></RowDefinition>
+                                            <RowDefinition Height="Auto"></RowDefinition>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100*"></ColumnDefinition>
+                                            <ColumnDefinition Width="60*"></ColumnDefinition>
+                                            <ColumnDefinition Width="100*"></ColumnDefinition>
+                                            <ColumnDefinition Width="60*"></ColumnDefinition>
+                                            <ColumnDefinition Width="90*"></ColumnDefinition>
+                                        </Grid.ColumnDefinitions>
+                                        <Label Grid.Row="0" Grid.ColumnSpan="5" Text="{Binding MeasurementPeriodEnd, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></Label>
+                                        <Label Grid.Row="1" Grid.Column="0" Text="{Binding RxBandwidthString, Mode=OneTime}" TextColor="Black" BackgroundColor="{Binding RxBandwidthColor}" />
+                                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding RxPacketLossString, Mode=OneTime}"  TextColor="{Binding RxPacketLossColor_UBw}" />
+                                        <Label Grid.Row="1" Grid.Column="2" Text="{Binding TxBandwidthString, Mode=OneTime}" TextColor="Black"  BackgroundColor="{Binding TxBandwidthColor}" />
+                                        <Label Grid.Row="1" Grid.Column="3" Text="{Binding TxPacketLossString, Mode=OneTime}" TextColor="{Binding TxPacketLossColor_UBw}" />
+                                        <Label Grid.Row="1" Grid.Column="4" Text="{Binding BestRttToPeersString, Mode=OneTime}" TextColor="Black"  BackgroundColor="{Binding BestRttToPeersColor}" />
+                                    </Grid>
+                                </ViewCell.View>
+                            </ViewCell>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+            <Label Grid.Row="6" Grid.ColumnSpan="3" Text="Have a question or suggestion? The software has an error? Write an email to support@startrinity.com in case of any problems" />
+        </Grid>
+    </StackLayout>
+
+</ContentPage>
