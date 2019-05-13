@@ -199,7 +199,7 @@ namespace StarTrinity.ContinuousSpeedTest
             {
                 LocalPeerConfiguration.RoleAsUser = value;
                 RaisePropertyChanged(() => LocalPeerConfigurationRoleAsUser);
-                EasyGuiViewModel.RaisePropertyChanged(() => EasyGuiViewModel.ModeVisibility);
+                EasyGuiViewModel.RaisePropertyChanged(() => EasyGuiViewModel.UserModeVisibility);
             }
         }
 
@@ -211,7 +211,7 @@ namespace StarTrinity.ContinuousSpeedTest
             {
                 SubtLocalPeerConfiguration.BandwidthTargetMbps = value;
                 RaisePropertyChanged(() => SubtLocalPeerConfigurationBandwidthTargetMbps);
-                EasyGuiViewModel.RaisePropertyChanged(() => EasyGuiViewModel.Mode);
+                EasyGuiViewModel.RaisePropertyChanged(() => EasyGuiViewModel.BandwidthTargetString);
             }
         }
         #endregion

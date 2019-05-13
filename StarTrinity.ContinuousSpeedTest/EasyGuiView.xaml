@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="1000">
-    <Grid>
+    <Grid Visibility="{Binding UserModeVisibility}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -22,8 +22,8 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <TextBlock  Text="mode: " FontSize="30" HorizontalAlignment="Right" />
-            <ComboBox  Grid.Column="1" VerticalAlignment="Center"  HorizontalAlignment="Center" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" DisplayMemberPath="Description" FontSize="25" MinWidth="150" />
+            <!--<TextBlock  Text="mode: " FontSize="30" HorizontalAlignment="Right" />
+            <ComboBox  Grid.Column="1" VerticalAlignment="Center"  HorizontalAlignment="Center" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" DisplayMemberPath="Description" FontSize="25" MinWidth="150" />-->
 
             <Button Grid.Row="1" Grid.ColumnSpan="2" Command="{Binding StartTest}" Content="Start test" FontSize="30" />
         </Grid>
@@ -41,8 +41,12 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <TextBlock Visibility="{Binding ModeVisibility}" Text="mode: " FontSize="30" HorizontalAlignment="Right" />
-            <ComboBox Visibility="{Binding ModeVisibility}"  Grid.Column="1" VerticalAlignment="Center"  HorizontalAlignment="Center" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" DisplayMemberPath="Description" FontSize="25" MinWidth="150" />
+            <TextBlock Grid.Row="0" Text="target: " FontSize="30" HorizontalAlignment="Right" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding BandwidthTargetString}" FontSize="30" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
+           
+            
+            <!--<TextBlock Visibility="{Binding ModeVisibility}" Text="mode: " FontSize="30" HorizontalAlignment="Right" />
+            <ComboBox Visibility="{Binding ModeVisibility}"  Grid.Column="1" VerticalAlignment="Center"  HorizontalAlignment="Center" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" DisplayMemberPath="Description" FontSize="25" MinWidth="150" />-->
 
             <TextBlock Grid.Row="1" Text="download: " FontSize="30" HorizontalAlignment="Right" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
             <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RecentRxBandwidthString}" FontSize="30" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>

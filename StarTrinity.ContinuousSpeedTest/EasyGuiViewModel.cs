@@ -12,7 +12,7 @@ namespace StarTrinity.ContinuousSpeedTest
 {
     public class EasyGuiViewModel : BaseNotify, IDisposable
     {
-        public Visibility ModeVisibility => _mainVM.LocalPeerConfigurationRoleAsUser ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility UserModeVisibility => _mainVM.LocalPeerConfigurationRoleAsUser ? Visibility.Visible : Visibility.Collapsed;
         readonly MainViewModel _mainVM;
         public EasyGuiViewModel(MainViewModel mainVM)
         {
@@ -46,26 +46,20 @@ namespace StarTrinity.ContinuousSpeedTest
             _timer.Stop();
         }
 
-        public IEnumerable<EasyGuiTestMode> Modes => ModesS;
-        static readonly EasyGuiTestMode[] ModesS = new[]
-            {
-                new EasyGuiTestMode { Description = "Max. bandwidth", BandwidthTargetMbps = null},
-                new EasyGuiTestMode { Description = "Light monitoring, 50kbps", BandwidthTargetMbps = 50.0 / 1024 },
-                new EasyGuiTestMode { Description = "VoIP, 1 concurrent call", BandwidthTargetMbps = 87.2 / 1024 },
-                new EasyGuiTestMode { Description = "VoIP, 10 concurrent calls", BandwidthTargetMbps = 10 * 87.2 / 1024 },
-                new EasyGuiTestMode { Description = "VoIP, 100 concurrent calls", BandwidthTargetMbps = 100 * 87.2 / 1024 },
-                new EasyGuiTestMode { Description = "Video, 1080p HD", BandwidthTargetMbps = 6},
-                new EasyGuiTestMode { Description = "Video, 720p HD", BandwidthTargetMbps = 3},
-            };
-        public EasyGuiTestMode Mode
-        {
-            get { return ModesS.FirstOrDefault(x => x.BandwidthTargetMbps == _mainVM.SubtLocalPeerConfiguration.BandwidthTargetMbps); }
-            set
-            {
-                if (value == null) throw new ArgumentNullException(nameof(value));
-                _mainVM.SubtLocalPeerConfigurationBandwidthTargetMbps = value.BandwidthTargetMbps;
-            }
-        }
+        public string BandwidthTargetString => _mainVM.SubtLocalPeerConfiguration.BandwidthTargetString;
+
+        //public IEnumerable<EasyGuiTestMode> Modes => ModesS;
+        //static readonly EasyGuiTestMode[] ModesS = new[]
+        //    {
+        //        new EasyGuiTestMode { Description = "Max. bandwidth", BandwidthTargetMbps = null},
+        //        new EasyGuiTestMode { Description = "Light monitoring, 50kbps", BandwidthTargetMbps = 50.0 / 1024 },
+        //        new EasyGuiTestMode { Description = "VoIP, 1 concurrent call", BandwidthTargetMbps = 87.2 / 1024 },
+        //        new EasyGuiTestMode { Description = "VoIP, 10 concurrent calls", BandwidthTargetMbps = 10 * 87.2 / 1024 },
+        //        new EasyGuiTestMode { Description = "VoIP, 100 concurrent calls", BandwidthTargetMbps = 100 * 87.2 / 1024 },
+        //        new EasyGuiTestMode { Description = "Video, 1080p HD", BandwidthTargetMbps = 6},
+        //        new EasyGuiTestMode { Description = "Video, 720p HD", BandwidthTargetMbps = 3},
+        //    };
+       
 
         DispatcherTimer _timer;
         private void Timer_Tick(object sender, EventArgs e)
@@ -114,6 +108,7 @@ namespace StarTrinity.ContinuousSpeedTest
         public Visibility StartVisibility => (_mainVM.Initialized || IsPaused) ? Visibility.Collapsed : Visibility.Visible;
         public ICommand StartTest => new DelegateCommand(() =>
         {
+            _mainVM.SubtLocalPeerConfigurationBandwidthTargetMbps = 50.0 / 1024;
             _mainVM.Initialize.Execute(null);
             RaisePropertyChanged(() => MeasurementsVisibility);
             RaisePropertyChanged(() => StartVisibility);
@@ -129,6 +124,7 @@ namespace StarTrinity.ContinuousSpeedTest
         });
         public ICommand ResumeTest => new DelegateCommand(() =>
         {
+            _mainVM.SubtLocalPeerConfigurationBandwidthTargetMbps = 50.0 / 1024;
             _mainVM.Initialize.Execute(null);
             IsPaused = false;
             RaisePropertyChanged(() => IsPaused);
@@ -162,9 +158,4 @@ namespace StarTrinity.ContinuousSpeedTest
         });
     }
 
-    public class EasyGuiTestMode
-    {
-        public string Description { get; set; }
-        public double? BandwidthTargetMbps { get; set; }
-    }
 }
