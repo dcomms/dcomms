@@ -122,7 +122,7 @@ namespace Dcomms.SUBT
             }
 
             var connectedPeers = ConnectedPeers.ToArray();
-            var localPeerBandwidthTargetConfigured = (float?)Configuration.BandwidthTargetMbps * 1024 * 1024;
+            var localPeerBandwidthTargetConfigured = Configuration.BandwidthTarget;
 
             int nStreams = 0;
             float targetTxBandwidthSum = 0;
@@ -148,24 +148,24 @@ namespace Dcomms.SUBT
                     {
                         var currentTxBwMultiplier = 1.0f;
 
-                        if (s.LatestRemoteStatus.IwantToIncreaseBandwidthUntilHighPacketLoss) // for user: this flag is set from local configuration; for passiveShared: this flag is reflected passively
-                        {
-                            #region meet with max possible bandwidth (and acceptable packet loss)
-                            var recentPacketLoss = Math.Max(s.LatestRemoteStatus.RecentRxPacketLoss, s.RecentPacketLoss); // max of losses in both directions between peers
+                        //if (s.LatestRemoteStatus.IwantToIncreaseBandwidthUntilHighPacketLoss) // for user: this flag is set from local configuration; for passiveShared: this flag is reflected passively
+                        //{
+                        //    #region meet with max possible bandwidth (and acceptable packet loss)
+                        //    var recentPacketLoss = Math.Max(s.LatestRemoteStatus.RecentRxPacketLoss, s.RecentPacketLoss); // max of losses in both directions between peers
 
-                            if (float.IsNaN(recentPacketLoss) || recentPacketLoss < 0.01f)
-                                currentTxBwMultiplier *= 1.4f; // quickly grow bw in the beginning of the test to reach max bandwidth faster
-                            else
-                            {
-                                const float acceptableLoss = 0.03f;
-                                UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, recentPacketLoss, acceptableLoss);
-                            }
-                            #endregion
-                        }                           
+                        //    if (float.IsNaN(recentPacketLoss) || recentPacketLoss < 0.01f)
+                        //        currentTxBwMultiplier *= 1.4f; // quickly grow bw in the beginning of the test to reach max bandwidth faster
+                        //    else
+                        //    {
+                        //        const float acceptableLoss = 0.03f;
+                        //        UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, recentPacketLoss, acceptableLoss);
+                        //    }
+                        //    #endregion
+                        //}                           
 
-                        if (LocalPeer.Configuration.RoleAsUser && localPeerBandwidthTargetConfigured.HasValue)
+                        if (LocalPeer.Configuration.RoleAsUser)
                         {
-                            UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, currentLocalPeerTargetTxBandwidth, localPeerBandwidthTargetConfigured.Value, 4);
+                            UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, currentLocalPeerTargetTxBandwidth, localPeerBandwidthTargetConfigured, 4);
 
                             var recentPacketLoss = Math.Max(s.LatestRemoteStatus.RecentRxPacketLoss, s.RecentPacketLoss); // max of losses in both directions between peers
                             const float acceptableLoss = 0.03f;
@@ -178,7 +178,8 @@ namespace Dcomms.SUBT
                         #region meet with average for all streams
                         if (streamsTargetTxBandwidthAverage > 0)
                         {
-                            UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, s.TargetTxBandwidth, streamsTargetTxBandwidthAverage, localPeerBandwidthTargetConfigured.HasValue ? 1 : 2);
+                            UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, s.TargetTxBandwidth, streamsTargetTxBandwidthAverage, 
+                                1);
                         }
                         #endregion           
                                                     

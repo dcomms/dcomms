@@ -43,7 +43,6 @@ namespace StarTrinity.CST
                 _subtLocalPeer = new SubtLocalPeer(new SubtLocalPeerConfiguration
                 {
                     SenderThreadsCount = 3,
-                    BandwidthTargetMbps = null,
                 });
                 _localPeer = new LocalPeer(new LocalPeerConfiguration
                 {

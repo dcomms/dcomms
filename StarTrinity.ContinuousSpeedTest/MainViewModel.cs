@@ -1,5 +1,6 @@
 ﻿using Dcomms.P2PTP.LocalLogic;
 using Dcomms.SUBT;
+using Dcomms;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,12 +9,15 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace StarTrinity.ContinuousSpeedTest
 {
     public class MainViewModel : BaseNotify, IDisposable, ILocalPeerUser
     {
+        internal const float InitialBandwidthTarget = 30000;
+
         bool _developerMode
 #if DEBUG
             = true;
@@ -39,57 +43,8 @@ namespace StarTrinity.ContinuousSpeedTest
             LocalPeerConfigurationRoleAsUser = false;
             LocalPeerConfiguration.RoleAsSharedPassive = true;
             LocalPeerConfiguration.RoleAsCoordinator = true;
-            LocalPeerConfiguration.LocalUdpPortRangeStart = 10000;
+            LocalPeerConfiguration.LocalUdpPortRangeStart = 10100;
             RaisePropertyChanged(() => LocalPeerConfiguration);
-            SubtLocalPeerConfiguration.BandwidthTargetMbps = null;
-            RaisePropertyChanged(() => SubtLocalPeerConfiguration);
-            Initialize.Execute(null);
-        });
-        public DelegateCommand PredefinedAsvClientToUsLa => new DelegateCommand(() =>
-        {
-            var coordinatorServerIp = IPAddress.Parse("23.249.168.19");
-            LocalPeerConfiguration.Coordinators = new IPEndPoint[]
-                {
-                    new IPEndPoint(coordinatorServerIp, 10000),
-                    new IPEndPoint(coordinatorServerIp, 10001),
-                    new IPEndPoint(coordinatorServerIp, 10002),
-                    new IPEndPoint(coordinatorServerIp, 10003),
-                    new IPEndPoint(coordinatorServerIp, 10004),
-                    new IPEndPoint(coordinatorServerIp, 10005),
-                    new IPEndPoint(coordinatorServerIp, 10006),
-                    new IPEndPoint(coordinatorServerIp, 10007),
-                };
-            LocalPeerConfiguration.SocketsCount = 4;
-            LocalPeerConfiguration.LocalUdpPortRangeStart = null;
-            LocalPeerConfigurationRoleAsUser = true;
-            LocalPeerConfiguration.RoleAsSharedPassive = false;
-            LocalPeerConfiguration.RoleAsCoordinator = false;
-            RaisePropertyChanged(() => LocalPeerConfiguration);
-            //SubtLocalPeerConfiguration.BandwidthLimitMbps = 3;
-            RaisePropertyChanged(() => SubtLocalPeerConfiguration);
-            Initialize.Execute(null);
-        });
-        public DelegateCommand PredefinedAsvPassiveClientToUsLa => new DelegateCommand(() =>
-        {
-            var coordinatorServerIp = IPAddress.Parse("23.249.168.19");
-            LocalPeerConfiguration.Coordinators = new IPEndPoint[]
-                {
-                    new IPEndPoint(coordinatorServerIp, 10000),
-                    new IPEndPoint(coordinatorServerIp, 10001),
-                    new IPEndPoint(coordinatorServerIp, 10002),
-                    new IPEndPoint(coordinatorServerIp, 10003),
-                    new IPEndPoint(coordinatorServerIp, 10004),
-                    new IPEndPoint(coordinatorServerIp, 10005),
-                    new IPEndPoint(coordinatorServerIp, 10006),
-                    new IPEndPoint(coordinatorServerIp, 10007),
-                };
-            LocalPeerConfiguration.SocketsCount = 8;
-            LocalPeerConfiguration.LocalUdpPortRangeStart = null;
-            LocalPeerConfigurationRoleAsUser = false;
-            LocalPeerConfiguration.RoleAsSharedPassive = true;
-            LocalPeerConfiguration.RoleAsCoordinator = false;
-            RaisePropertyChanged(() => LocalPeerConfiguration);
-            RaisePropertyChanged(() => SubtLocalPeerConfiguration);
             Initialize.Execute(null);
         });
                 
@@ -98,14 +53,14 @@ namespace StarTrinity.ContinuousSpeedTest
             var coordinatorServerIp = IPAddress.Parse("163.172.210.13");
             LocalPeerConfiguration.Coordinators = new IPEndPoint[]
                 {
-                    new IPEndPoint(coordinatorServerIp, 10000),
-                    new IPEndPoint(coordinatorServerIp, 10001),
-                    new IPEndPoint(coordinatorServerIp, 10002),
-                    new IPEndPoint(coordinatorServerIp, 10003),
-                    new IPEndPoint(coordinatorServerIp, 10004),
-                    new IPEndPoint(coordinatorServerIp, 10005),
-                    new IPEndPoint(coordinatorServerIp, 10006),
-                    new IPEndPoint(coordinatorServerIp, 10007),
+                    new IPEndPoint(coordinatorServerIp, 10100),
+                    //new IPEndPoint(coordinatorServerIp, 10101),
+                    //new IPEndPoint(coordinatorServerIp, 10102),
+                    //new IPEndPoint(coordinatorServerIp, 10103),
+                    //new IPEndPoint(coordinatorServerIp, 10104),
+                    //new IPEndPoint(coordinatorServerIp, 10105),
+                    //new IPEndPoint(coordinatorServerIp, 10106),
+                    //new IPEndPoint(coordinatorServerIp, 10107),
                 };
             LocalPeerConfiguration.SocketsCount = 4;
             LocalPeerConfiguration.LocalUdpPortRangeStart = null;
@@ -113,8 +68,7 @@ namespace StarTrinity.ContinuousSpeedTest
             LocalPeerConfiguration.RoleAsSharedPassive = false;
             LocalPeerConfiguration.RoleAsCoordinator = false;
             RaisePropertyChanged(() => LocalPeerConfiguration);
-            //SubtLocalPeerConfiguration.BandwidthLimitMbps = 3;
-            RaisePropertyChanged(() => SubtLocalPeerConfiguration);
+            SubtLocalPeerConfigurationBandwidthTarget = InitialBandwidthTarget;
             Initialize.Execute(null);
         });
         public DelegateCommand PredefinedAsvPassiveClientToNeth3 => new DelegateCommand(() =>
@@ -122,14 +76,14 @@ namespace StarTrinity.ContinuousSpeedTest
             var coordinatorServerIp = IPAddress.Parse("163.172.210.13");
             LocalPeerConfiguration.Coordinators = new IPEndPoint[]
                 {
-                    new IPEndPoint(coordinatorServerIp, 10000),
-                    new IPEndPoint(coordinatorServerIp, 10001),
-                    new IPEndPoint(coordinatorServerIp, 10002),
-                    new IPEndPoint(coordinatorServerIp, 10003),
-                    new IPEndPoint(coordinatorServerIp, 10004),
-                    new IPEndPoint(coordinatorServerIp, 10005),
-                    new IPEndPoint(coordinatorServerIp, 10006),
-                    new IPEndPoint(coordinatorServerIp, 10007),
+                    new IPEndPoint(coordinatorServerIp, 10100),
+                    new IPEndPoint(coordinatorServerIp, 10101),
+                    new IPEndPoint(coordinatorServerIp, 10102),
+                    new IPEndPoint(coordinatorServerIp, 10103),
+                    new IPEndPoint(coordinatorServerIp, 10104),
+                    new IPEndPoint(coordinatorServerIp, 10105),
+                    new IPEndPoint(coordinatorServerIp, 10106),
+                    new IPEndPoint(coordinatorServerIp, 10107),
                 };
             LocalPeerConfiguration.SocketsCount = 8;
             LocalPeerConfiguration.LocalUdpPortRangeStart = null;
@@ -145,8 +99,8 @@ namespace StarTrinity.ContinuousSpeedTest
             var coordinatorServerIp = IPAddress.Parse("127.0.0.1");
             LocalPeerConfiguration.Coordinators = new IPEndPoint[]
                 {
-                    new IPEndPoint(coordinatorServerIp, 10000),
-                    new IPEndPoint(coordinatorServerIp, 10001),
+                    new IPEndPoint(coordinatorServerIp, 10100),
+                    new IPEndPoint(coordinatorServerIp, 10101),
                 };
             LocalPeerConfiguration.SocketsCount = 1;
             LocalPeerConfiguration.LocalUdpPortRangeStart = null;
@@ -154,32 +108,31 @@ namespace StarTrinity.ContinuousSpeedTest
             LocalPeerConfiguration.RoleAsSharedPassive = false;
             LocalPeerConfiguration.RoleAsCoordinator = false;
             RaisePropertyChanged(() => LocalPeerConfiguration);
-            SubtLocalPeerConfiguration.BandwidthTargetMbps = 2;
-            RaisePropertyChanged(() => SubtLocalPeerConfiguration);
+            SubtLocalPeerConfigurationBandwidthTarget = InitialBandwidthTarget;
             Initialize.Execute(null);
         });        
-        public DelegateCommand PredefinedReleaseMode => new DelegateCommand(() =>
+        public DelegateCommand PredefinedReleaseMode => new DelegateCommand(() => // multiple initial coordinators
         {
             var coordinatorServerIp1 = IPAddress.Parse("163.172.210.13");//neth3
             var coordinatorServerIp2 = IPAddress.Parse("195.154.173.208");//fra2
             LocalPeerConfiguration.Coordinators = new IPEndPoint[]
                 {
-                    new IPEndPoint(coordinatorServerIp1, 10000),
-                    new IPEndPoint(coordinatorServerIp1, 10001),
-                    new IPEndPoint(coordinatorServerIp1, 10002),
-                    new IPEndPoint(coordinatorServerIp1, 10003),
-                    new IPEndPoint(coordinatorServerIp1, 10004),
-                    new IPEndPoint(coordinatorServerIp1, 10005),
-                    new IPEndPoint(coordinatorServerIp1, 10006),
-                    new IPEndPoint(coordinatorServerIp1, 10007),
-                    new IPEndPoint(coordinatorServerIp1, 9000),
-                    new IPEndPoint(coordinatorServerIp1, 9001),
-                    new IPEndPoint(coordinatorServerIp1, 9002),
-                    new IPEndPoint(coordinatorServerIp1, 9003),
-                    new IPEndPoint(coordinatorServerIp2, 9000),
-                    new IPEndPoint(coordinatorServerIp2, 9001),
-                    new IPEndPoint(coordinatorServerIp2, 9002),
-                    new IPEndPoint(coordinatorServerIp2, 9003),
+                    new IPEndPoint(coordinatorServerIp1, 10100),
+                    new IPEndPoint(coordinatorServerIp1, 10101),
+                    new IPEndPoint(coordinatorServerIp1, 10102),
+                    new IPEndPoint(coordinatorServerIp1, 10103),
+                    new IPEndPoint(coordinatorServerIp1, 10104),
+                    new IPEndPoint(coordinatorServerIp1, 10105),
+                    new IPEndPoint(coordinatorServerIp1, 10106),
+                    new IPEndPoint(coordinatorServerIp1, 10107),
+                    new IPEndPoint(coordinatorServerIp1, 9100),
+                    new IPEndPoint(coordinatorServerIp1, 9101),
+                    new IPEndPoint(coordinatorServerIp1, 9102),
+                    new IPEndPoint(coordinatorServerIp1, 9103),
+                    new IPEndPoint(coordinatorServerIp2, 9100),
+                    new IPEndPoint(coordinatorServerIp2, 9101),
+                    new IPEndPoint(coordinatorServerIp2, 9102),
+                    new IPEndPoint(coordinatorServerIp2, 9103),
                 };
             LocalPeerConfiguration.LocalUdpPortRangeStart = null;
             LocalPeerConfigurationRoleAsUser = true;
@@ -191,7 +144,7 @@ namespace StarTrinity.ContinuousSpeedTest
             RaisePropertyChanged(() => SubtLocalPeerConfiguration);
         });
 
-        public LocalPeerConfiguration LocalPeerConfiguration { get; private set; } = new LocalPeerConfiguration();
+        public LocalPeerConfiguration LocalPeerConfiguration { get; private set; } = new LocalPeerConfiguration() { RoleAsUser = true };
         public bool LocalPeerConfigurationRoleAsUser
         {
             get => LocalPeerConfiguration.RoleAsUser;
@@ -199,21 +152,33 @@ namespace StarTrinity.ContinuousSpeedTest
             {
                 LocalPeerConfiguration.RoleAsUser = value;
                 RaisePropertyChanged(() => LocalPeerConfigurationRoleAsUser);
-                EasyGuiViewModel.RaisePropertyChanged(() => EasyGuiViewModel.UserModeVisibility);
             }
         }
 
-        public SubtLocalPeerConfiguration SubtLocalPeerConfiguration { get; private set; } = new SubtLocalPeerConfiguration();
-        public double? SubtLocalPeerConfigurationBandwidthTargetMbps
+        public SubtLocalPeerConfiguration SubtLocalPeerConfiguration { get; private set; } = new SubtLocalPeerConfiguration() { BandwidthTarget = InitialBandwidthTarget };
+        internal float SubtLocalPeerConfigurationBandwidthTarget
         {
-            get => SubtLocalPeerConfiguration.BandwidthTargetMbps;
+            get
+            {
+                return SubtLocalPeerConfiguration.BandwidthTarget;
+            }
             set
             {
-                SubtLocalPeerConfiguration.BandwidthTargetMbps = value;
-                RaisePropertyChanged(() => SubtLocalPeerConfigurationBandwidthTargetMbps);
-                EasyGuiViewModel.RaisePropertyChanged(() => EasyGuiViewModel.BandwidthTargetString);
+                SubtLocalPeerConfiguration.BandwidthTarget = value;
+                RaisePropertyChanged(() => SubtLocalPeerConfigurationBandwidthTargetString);
             }
         }
+        public string SubtLocalPeerConfigurationBandwidthTargetString => SubtLocalPeerConfiguration.BandwidthTarget.BandwidthToString();
+        
+        public ICommand SubtLocalPeerConfigurationBandwidthTargetIncrease => new DelegateCommand(() =>
+        {
+            SubtLocalPeerConfigurationBandwidthTarget *= 1.2f;
+        });
+        public ICommand SubtLocalPeerConfigurationBandwidthTargetDecrease => new DelegateCommand(() =>
+        {
+            SubtLocalPeerConfigurationBandwidthTarget *= 0.8f;
+        });
+
         #endregion
 
         public LocalPeer LocalPeer { get; private set; }
@@ -300,8 +265,7 @@ namespace StarTrinity.ContinuousSpeedTest
             }
         });
         #endregion
-
-
+        
         #region selected tabs
         public bool TechTabIsSelected { get; set; }
 #if DEBUG

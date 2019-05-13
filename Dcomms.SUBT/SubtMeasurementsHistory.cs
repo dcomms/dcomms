@@ -59,6 +59,7 @@ namespace Dcomms.SUBT
             return new SubtMeasurement
             {
                 MeasurementPeriodEndUtc = subtLocalPeer.LocalPeer.DateTimeNowUtc,
+                TargetBandwidth = subtLocalPeer.Configuration.BandwidthTarget,
                 RxBandwidth = rxBandwidth,
                 TxBandwidth = confirmedTxBandwidth,
                 BestRttToPeers = bestRttToPeers,
@@ -124,13 +125,16 @@ namespace Dcomms.SUBT
 
         public DateTime MeasurementPeriodEndUtc { get; set; }
         public DateTime MeasurementPeriodEnd => MeasurementPeriodEndUtc.ToLocalTime();
+
+        public float TargetBandwidth { get; set; }
+        
         public float RxBandwidth { get; set; } // download
-        public string RxBandwidthString => RxBandwidth.BandwidthToString();
-        public System.Drawing.Color RxBandwidthColor => RxBandwidth.BandwidthToColor();
+        public string RxBandwidthString => RxBandwidth.BandwidthToString(TargetBandwidth);
+        public System.Drawing.Color RxBandwidthColor => RxBandwidth.BandwidthToColor(TargetBandwidth);
         
         public float TxBandwidth { get; set; } // upload
-        public System.Drawing.Color TxBandwidthColor => TxBandwidth.BandwidthToColor();
-        public string TxBandwidthString => TxBandwidth.BandwidthToString();
+        public System.Drawing.Color TxBandwidthColor => TxBandwidth.BandwidthToColor(TargetBandwidth);
+        public string TxBandwidthString => TxBandwidth.BandwidthToString(TargetBandwidth);
         public TimeSpan? BestRttToPeers { get; set; }
         public System.Drawing.Color BestRttToPeersColor => BestRttToPeers.RttToColor();
         public string BestRttToPeersString => MiscProcedures.TimeSpanToString(BestRttToPeers);

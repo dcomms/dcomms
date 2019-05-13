@@ -7,19 +7,27 @@ namespace Dcomms
 {
     public static class MiscProcedures
     {
-        public static string BandwidthToString(this float bandwidth)
+        public static string BandwidthToString(this float bandwidth, float? targetBandwidth = null) => BandwidthToString((float?)bandwidth, targetBandwidth);
+        public static string BandwidthToString(this float? bandwidth, float? targetBandwidth = null)
         {
+            if (bandwidth == null) return "";
             var sb = new StringBuilder();
-            if (bandwidth > 1024 * 1024)
+            if (bandwidth >= 1024 * 1024)
             {
                 sb.AppendFormat("{0:0.00}Mbps", bandwidth / (1024 * 1024));
             }
-            else if (bandwidth > 1024)
+            else if (bandwidth >= 1024)
             {
                 sb.AppendFormat("{0:0.00}kbps", bandwidth / (1024));
             }
             else
                 sb.AppendFormat("{0:0.00}bps", bandwidth);
+
+            if (targetBandwidth.HasValue)
+            {
+                sb.Append("/");
+                sb.Append(targetBandwidth.BandwidthToString());
+            }
 
             return sb.ToString();
         }
@@ -80,14 +88,27 @@ namespace Dcomms
                 });
         }
 
-        public static Color BandwidthToColor(this float bandwidth)
+        public static Color BandwidthToColor(this float bandwidth, float? targetBandwidth = null)
         {
-            return ValueToColor(bandwidth, new[] {
-                new Tuple<float, Color>(0, Color.FromArgb(255, 150, 150)),
-                new Tuple<float, Color>(1024 * 1024, Color.FromArgb(255, 255, 100)),
-                new Tuple<float, Color>(20 * 1024 * 1024, Color.FromArgb(100, 255, 100)),
-                new Tuple<float, Color>(100 * 1024 * 1024, Color.FromArgb(100, 255, 200))
+            if (targetBandwidth == null)
+            {
+                return ValueToColor(bandwidth, new[] {
+                    new Tuple<float, Color>(0, Color.FromArgb(255, 150, 150)),
+                    new Tuple<float, Color>(1024 * 1024, Color.FromArgb(255, 255, 100)),
+                    new Tuple<float, Color>(20 * 1024 * 1024, Color.FromArgb(100, 255, 100)),
+                    new Tuple<float, Color>(100 * 1024 * 1024, Color.FromArgb(100, 255, 200))
                 });
+            }
+            else
+            {
+                var ratio = bandwidth / targetBandwidth.Value;
+                return ValueToColor(ratio, new[] {
+                    new Tuple<float, Color>(0, Color.FromArgb(255, 150, 150)),
+                    new Tuple<float, Color>(0.5f, Color.FromArgb(255, 255, 100)),
+                    new Tuple<float, Color>(1.0f, Color.FromArgb(100, 255, 100)),
+                    new Tuple<float, Color>(1.5f, Color.FromArgb(100, 255, 200))
+                });
+            }
         }
         public static Color PacketLossToColor(this float? packetLoss01)
         {

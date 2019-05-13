@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="1000">
-    <Grid Visibility="{Binding UserModeVisibility}">
+    <Grid Visibility="{Binding MainVM.LocalPeerConfigurationRoleAsUser, Converter={StaticResource BoolToVisibilityConverter}}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -42,8 +42,11 @@
             </Grid.ColumnDefinitions>
 
             <TextBlock Grid.Row="0" Text="target: " FontSize="30" HorizontalAlignment="Right" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
-            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding BandwidthTargetString}" FontSize="30" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
-           
+            <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
+                <TextBlock Text="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetString}" FontSize="30" />
+                <Button Content="increase" Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetIncrease}" FontSize="30" />
+                <Button Content="decrease" Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetDecrease}" FontSize="30" />                
+            </StackPanel>           
             
             <!--<TextBlock Visibility="{Binding ModeVisibility}" Text="mode: " FontSize="30" HorizontalAlignment="Right" />
             <ComboBox Visibility="{Binding ModeVisibility}"  Grid.Column="1" VerticalAlignment="Center"  HorizontalAlignment="Center" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" DisplayMemberPath="Description" FontSize="25" MinWidth="150" />-->

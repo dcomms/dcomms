@@ -31,9 +31,9 @@
                         <TabItem Header="Log" Visibility="{Binding Initialized, Converter={StaticResource BoolToVisibilityConverter}}" >
                             <local:LogView Visibility="{Binding Initialized, Converter={StaticResource BoolToVisibilityConverter}}"/>
                         </TabItem>
-                        <TabItem Header="Measurements" Visibility="{Binding Initialized, Converter={StaticResource BoolToVisibilityConverter}}" >
+                        <!--<TabItem Header="Measurements" Visibility="{Binding Initialized, Converter={StaticResource BoolToVisibilityConverter}}" >
                             <local:MeasurementsView Visibility="{Binding Initialized, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                        </TabItem>
+                        </TabItem>-->
                     </TabControl>
                     <StackPanel Orientation="Horizontal" Grid.Row="1">
                         <CheckBox IsChecked="{Binding RefreshTechGuiOnTimer}" Content="refresh GUI automatically" />

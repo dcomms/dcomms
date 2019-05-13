@@ -30,8 +30,7 @@
             <StackPanel Orientation="Horizontal" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}">                
                 <TextBlock Text="pre-defined developer mode: "/>
                 <Button  Command="{Binding PredefinedAsvServer}" Content="server" />
-                <!--<Button  Command="{Binding PredefinedAsvClientToUsLa}" Content="client to us-la" />
-                <Button  Command="{Binding PredefinedAsvPassiveClientToUsLa}" Content="passive to us-la" />-->
+
                 <Button  Command="{Binding PredefinedAsvClientToNeth3}" Content="client to neth3" />
                 <Button  Command="{Binding PredefinedAsvPassiveClientToNeth3}" Content="passive to neth3" />
                 <Button  Command="{Binding PredefinedAsvClientToLocalhost}" Content="client to localhost" />
@@ -55,11 +54,14 @@
 
         <TextBlock Grid.Row="4" Text="Coordinator peers:" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}" />
         <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding LocalPeerConfiguration.CoordinatorsString}"  IsEnabled="{Binding Initialized, Converter={StaticResource OppositeConverter}}" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
-
+        
         <TextBlock Grid.Row="5" Text="Bandwidth target:" Visibility="{Binding LocalPeerConfigurationRoleAsUser, Converter={StaticResource BoolToVisibilityConverter}}" />
-        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SubtLocalPeerConfigurationBandwidthTargetMbps, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding LocalPeerConfigurationRoleAsUser, Converter={StaticResource BoolToVisibilityConverter}}" />
-        <TextBlock Grid.Row="5" Grid.Column="2" Text="(Mbps) unlimited if empty" Visibility="{Binding LocalPeerConfigurationRoleAsUser, Converter={StaticResource BoolToVisibilityConverter}}" />
-
+        <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Visibility="{Binding LocalPeerConfigurationRoleAsUser, Converter={StaticResource BoolToVisibilityConverter}}" >
+            <TextBlock Text="{Binding SubtLocalPeerConfigurationBandwidthTargetString}"  />
+            <Button Content="increase" Command="{Binding SubtLocalPeerConfigurationBandwidthTargetIncrease}" />
+            <Button Content="decrease" Command="{Binding SubtLocalPeerConfigurationBandwidthTargetDecrease}" />
+        </StackPanel>
+        
         <TextBlock Grid.Row="6" Text="Sender threads count:" />
         <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding SubtLocalPeerConfiguration.SenderThreadsCount}" IsEnabled="{Binding Initialized, Converter={StaticResource OppositeConverter}}" />
 

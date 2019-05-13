@@ -1,5 +1,6 @@
 ﻿using Dcomms.P2PTP.LocalLogic;
 using Dcomms.SUBT;
+using Dcomms;
 using System;
 using System.Net;
 
@@ -22,7 +23,7 @@ namespace StarTrinity.ContinuousSpeedTest.CLI
             var subtLocalPeer = new SubtLocalPeer(new SubtLocalPeerConfiguration
             {
                 SenderThreadsCount = 4,
-                BandwidthTargetMbps = null,
+                BandwidthTarget = 50000,
             });
             var node = new LocalPeer(new LocalPeerConfiguration
             {
@@ -57,7 +58,7 @@ namespace StarTrinity.ContinuousSpeedTest.CLI
             subtLocalPeer.MeasurementsHistory.OnAddedNewMeasurement += MeasurementsHistory_OnAddedNewMeasurement;
 
             Console.WriteLine("running test...");
-            Console.WriteLine($"target bandwidth: {subtLocalPeer.Configuration.BandwidthTargetString}");
+            Console.WriteLine($"target bandwidth: {subtLocalPeer.Configuration.BandwidthTarget.BandwidthToString()}");
             Console.ReadLine();
             node.Dispose();
         }

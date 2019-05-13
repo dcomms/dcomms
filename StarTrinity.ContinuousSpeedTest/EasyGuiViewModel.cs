@@ -1,4 +1,5 @@
 ﻿using Dcomms.SUBT;
+using Dcomms;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,8 +13,8 @@ namespace StarTrinity.ContinuousSpeedTest
 {
     public class EasyGuiViewModel : BaseNotify, IDisposable
     {
-        public Visibility UserModeVisibility => _mainVM.LocalPeerConfigurationRoleAsUser ? Visibility.Visible : Visibility.Collapsed;
         readonly MainViewModel _mainVM;
+        public MainViewModel MainVM => _mainVM;
         public EasyGuiViewModel(MainViewModel mainVM)
         {
             _mainVM = mainVM;
@@ -45,9 +46,7 @@ namespace StarTrinity.ContinuousSpeedTest
         {
             _timer.Stop();
         }
-
-        public string BandwidthTargetString => _mainVM.SubtLocalPeerConfiguration.BandwidthTargetString;
-
+        
         //public IEnumerable<EasyGuiTestMode> Modes => ModesS;
         //static readonly EasyGuiTestMode[] ModesS = new[]
         //    {
@@ -59,8 +58,7 @@ namespace StarTrinity.ContinuousSpeedTest
         //        new EasyGuiTestMode { Description = "Video, 1080p HD", BandwidthTargetMbps = 6},
         //        new EasyGuiTestMode { Description = "Video, 720p HD", BandwidthTargetMbps = 3},
         //    };
-       
-
+        
         DispatcherTimer _timer;
         private void Timer_Tick(object sender, EventArgs e)
         {
@@ -83,20 +81,9 @@ namespace StarTrinity.ContinuousSpeedTest
         SubtMeasurement _latestMeasurement;
 
         public Visibility MeasurementsVisibility => (_mainVM.Initialized || IsPaused) ? Visibility.Visible : Visibility.Collapsed;
-        public string RecentRxBandwidthString
-        {
-            get
-            {
-                return _latestMeasurement?.RxBandwidthString;
-            }
-        }
-        public string RecentTxBandwidthString
-        {
-            get
-            {
-                return _latestMeasurement?.TxBandwidthString;
-            }
-        }
+        public string RecentRxBandwidthString => _latestMeasurement?.RxBandwidth.BandwidthToString();
+        public string RecentTxBandwidthString => _latestMeasurement?.TxBandwidth.BandwidthToString();
+      
         public string RecentRttString
         {
             get
@@ -106,9 +93,10 @@ namespace StarTrinity.ContinuousSpeedTest
         }
 
         public Visibility StartVisibility => (_mainVM.Initialized || IsPaused) ? Visibility.Collapsed : Visibility.Visible;
+        
         public ICommand StartTest => new DelegateCommand(() =>
         {
-            _mainVM.SubtLocalPeerConfigurationBandwidthTargetMbps = 50.0 / 1024;
+            _mainVM.SubtLocalPeerConfigurationBandwidthTarget = MainViewModel.InitialBandwidthTarget;
             _mainVM.Initialize.Execute(null);
             RaisePropertyChanged(() => MeasurementsVisibility);
             RaisePropertyChanged(() => StartVisibility);
@@ -124,7 +112,7 @@ namespace StarTrinity.ContinuousSpeedTest
         });
         public ICommand ResumeTest => new DelegateCommand(() =>
         {
-            _mainVM.SubtLocalPeerConfigurationBandwidthTargetMbps = 50.0 / 1024;
+            _mainVM.SubtLocalPeerConfigurationBandwidthTarget = MainViewModel.InitialBandwidthTarget;
             _mainVM.Initialize.Execute(null);
             IsPaused = false;
             RaisePropertyChanged(() => IsPaused);

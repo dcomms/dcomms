@@ -314,20 +314,9 @@ namespace Dcomms.SUBT
                 _lastTimeSentStatus = timestamp32;
                    var remotePeerId = SubtConnectedPeer.RemotePeerId;
                 if (remotePeerId != null)
-                {
-                    bool iwantToIncreaseBandwidthUntilHighPacketLoss = false;
-                    if (SubtLocalPeer.LocalPeer.Configuration.RoleAsUser)
-                    { // initially this signal comes from user
-                        iwantToIncreaseBandwidthUntilHighPacketLoss = SubtLocalPeer.Configuration.BandwidthTargetMbps == null;
-                    }
-                    else if (SubtLocalPeer.LocalPeer.Configuration.RoleAsSharedPassive)
-                    { // and then gets reflected from sharedPassive peers
-                        iwantToIncreaseBandwidthUntilHighPacketLoss = LatestRemoteStatus?.IwantToIncreaseBandwidthUntilHighPacketLoss == true;
-                    }
-                    
+                {                    
                     var data = new SubtRemoteStatusPacket(_rxMeasurement.RecentBandwidth, _rxMeasurement.RecentPacketLoss,
-                            this.RecentTxBandwidth,
-                            iwantToIncreaseBandwidthUntilHighPacketLoss,
+                            this.RecentTxBandwidth,                         
                             SubtLocalPeer.LocalPeer.Configuration.RoleAsSharedPassive)
                         .Encode(this);
                     _stream.SendPacket(data, data.Length);
@@ -345,8 +334,7 @@ namespace Dcomms.SUBT
         internal SubtRemoteStatusPacket LatestRemoteStatus;
         public string LatestRemoteTxStatusString => LatestRemoteStatus?.RecentTxBandwidth.BandwidthToString();
         public string LatestRemoteRxStatusString => LatestRemoteStatus?.RecentRxBandwidth.BandwidthToString() + " " +
-            LatestRemoteStatus?.RecentRxPacketLoss.PacketLossToString() + 
-            (LatestRemoteStatus?.IwantToIncreaseBandwidthUntilHighPacketLoss == true ? " want unlim" : "");
+            LatestRemoteStatus?.RecentRxPacketLoss.PacketLossToString();
         void IConnectedPeerStreamExtension.OnReceivedSignalingPacket(BinaryReader reader) // manager thread
         {
             // 1 request of adjustment
