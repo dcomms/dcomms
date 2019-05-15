@@ -11,7 +11,7 @@ namespace Dcomms.SUBT
         internal const double RecentPacketLossDecayTimeTicks = TimeSpan.TicksPerMillisecond * 700; // is feed back to sender with delay = RTT + JB length
         internal const double RecenRxBandwidthDecayTimeTicks = TimeSpan.TicksPerMillisecond * 700; // is feed back to sender with delay = RTT + JB length
         internal const double RecentTxBandwidthDecayTimeTicks = TimeSpan.TicksPerMillisecond * 700; // self-test at sender side
-        internal const uint RxMeasurementsTransmissionIntervalTicks = (uint)(TimeSpan.TicksPerMillisecond * 100);
+        internal const uint SubtRemoteStatusPacketTransmissionIntervalTicks = (uint)(TimeSpan.TicksPerMillisecond * 100);
         internal const long MeasurementsIntervalTicks = TimeSpan.TicksPerSecond * 5;
         internal const long MeasurementInitializationTimeTicks = TimeSpan.TicksPerSecond * 10;
 
@@ -23,5 +23,11 @@ namespace Dcomms.SUBT
 
         internal const float PerStreamSoftTxBandwidthLimit = 1024 * 1024 * 10;
         internal const float PerStreamHardTxBandwidthLimit = 1024 * 1024 * 20;
+
+
+
+        internal const float PerStreamMinRecommendedBandwidth = 1024 * 60;
+        internal const float MaxLocalTxBandwidthPerPeer = 1024 * 1024 * 100;
+        internal const long MinimumUser2UserStreamLifetimeBeforeUsage = TimeSpan.TicksPerMinute * 10;
     }
 }

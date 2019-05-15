@@ -17,7 +17,7 @@ namespace Dcomms.P2PTP.Extensibility
         /// </summary>
         PeerId RemotePeerId { get; }
         IDictionary<ILocalPeerExtension, IConnectedPeerExtension> Extensions { get; }
-        string Type { get; }
+        ConnectedPeerType Type { get; }
     }
     /// <summary>
     /// represents extension-specific object linked to connected peer
@@ -29,5 +29,13 @@ namespace Dcomms.P2PTP.Extensibility
         /// adds stream to SUBT transmitter thread
         /// </summary>
         IConnectedPeerStreamExtension OnConnectedPeerStream(IConnectedPeerStream stream);
+    }
+
+
+    public enum ConnectedPeerType
+    {
+        toConfiguredServer,
+        fromPeerAccepted,
+        toPeerShared // made new conenction because received "peersList" packet
     }
 }

@@ -18,8 +18,9 @@ namespace Dcomms.P2PTP.LocalLogic
         internal HashSet<string> LatestReceivedRemoteExtensionIds;
 
         /// <param name="remotePeerId">null for 'pending' peers</param>
-        internal ConnectedPeer(LocalPeer localPeer, PeerId remotePeerId)
+        internal ConnectedPeer(LocalPeer localPeer, PeerId remotePeerId, ConnectedPeerType type)
         {
+            Type = type;
             RemotePeerId = remotePeerId;
             _localPeer = localPeer;
             Extensions = localPeer.Configuration.Extensions.ToDictionary(ext => ext, ext => ext.OnConnectedPeer(this));
@@ -87,7 +88,7 @@ namespace Dcomms.P2PTP.LocalLogic
         internal PeerId RemotePeerId;
 
         // internal ConnectedPeerState State;
-        internal ConnectedPeerType Type;
+        internal readonly ConnectedPeerType Type;
         internal DateTime? LibraryVersion;
         internal ushort? ProtocolVersion;
 
@@ -96,7 +97,7 @@ namespace Dcomms.P2PTP.LocalLogic
         IConnectedPeerStream[] IConnectedPeer.Streams { get { lock (Streams) return Streams.Values.ToArray(); } }
         IDictionary<ILocalPeerExtension, IConnectedPeerExtension> IConnectedPeer.Extensions => Extensions;
         PeerId IConnectedPeer.RemotePeerId => RemotePeerId;
-        string IConnectedPeer.Type => Type.ToString();
+        ConnectedPeerType IConnectedPeer.Type => Type;
 
         public string ToString(LocalPeer localPeer)
         {
@@ -123,12 +124,6 @@ namespace Dcomms.P2PTP.LocalLogic
         {
             return ToString(null);
         }       
-    }
-    internal enum ConnectedPeerType
-    {
-        toConfiguredServer,
-        fromPeerAccepted, 
-        toPeerShared // made new conenction because received "peersList" packet
     }
     //internal enum ConnectedPeerState
     //{

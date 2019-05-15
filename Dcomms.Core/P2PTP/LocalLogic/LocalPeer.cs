@@ -27,6 +27,7 @@ namespace Dcomms.P2PTP.LocalLogic
 
         IConnectedPeer[] ILocalPeer.ConnectedPeers => Manager?.ConnectedPeers;
         uint ILocalPeer.Time32 => Time32;
+        long ILocalPeer.Time64 => _stopwatch.Elapsed.Ticks;
         Random ILocalPeer.Random => Random;
         DateTime ILocalPeer.DateTimeNowUtc => DateTimeNowUtc;
 

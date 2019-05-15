@@ -96,10 +96,7 @@ namespace Dcomms.P2PTP.LocalLogic
         }
         void AddToPendingPeers(ConnectedPeerType type, IPEndPoint remoteEndpoint, SocketWithReceiver socket)
         {
-            var cp = new ConnectedPeer(_localPeer, null)
-            {
-                Type = type,
-            };
+            var cp = new ConnectedPeer(_localPeer, null, type);
             cp.TryAddStream(socket, remoteEndpoint, null, _pendingPeers.Values.Select(x => x.Streams.Values.Single().StreamId));
             // all "pending" streams will have unique local stream ID
 
@@ -249,10 +246,7 @@ namespace Dcomms.P2PTP.LocalLogic
             
             if (!_connectedPeers.TryGetValue(helloPacket.FromPeerId, out var peer))
             {
-                peer = new ConnectedPeer(_localPeer, helloPacket.FromPeerId)
-                {
-                    Type = ConnectedPeerType.fromPeerAccepted
-                };
+                peer = new ConnectedPeer(_localPeer, helloPacket.FromPeerId, ConnectedPeerType.fromPeerAccepted);
                 lock (_connectedPeers)
                     _connectedPeers.Add(helloPacket.FromPeerId, peer);
             }
@@ -591,10 +585,7 @@ namespace Dcomms.P2PTP.LocalLogic
                 if (!_connectedPeers.TryGetValue(receivedSharedPeer.ToPeerId, out var localConnectedPeer))
                 {
                     _localPeer.WriteToLog(LogModules.PeerSharing, $"received shared peer {receivedSharedPeer}) from {connectedPeer}");
-                    localConnectedPeer = new ConnectedPeer(_localPeer, receivedSharedPeer.ToPeerId)
-                    {
-                        Type = ConnectedPeerType.toPeerShared,
-                    };
+                    localConnectedPeer = new ConnectedPeer(_localPeer, receivedSharedPeer.ToPeerId, ConnectedPeerType.toPeerShared);
                     lock (_connectedPeers)
                         _connectedPeers.Add(receivedSharedPeer.ToPeerId, localConnectedPeer);
                 }

@@ -59,6 +59,7 @@ namespace Dcomms.P2PTP.Extensibility
         /// TimeSpan ticks
         /// </summary>
         uint Time32 { get; }
+        long Time64 { get; }
         Random Random { get; }
         PeerId LocalPeerId { get; }
         LocalPeerConfiguration Configuration { get; }

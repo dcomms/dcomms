@@ -14,7 +14,7 @@ namespace Dcomms.SUBT
         readonly SubtLocalPeer _subtLocalPeer;
         readonly IConnectedPeer _connectedPeer;
         public PeerId RemotePeerId => _connectedPeer.RemotePeerId;
-        public string Type => _connectedPeer.Type;
+        public ConnectedPeerType Type => _connectedPeer.Type;
 
         public string LatestRemoteTxStatusString => Streams.Sum(s => s.LatestRemoteStatus?.RecentTxBandwidth ?? 0).BandwidthToString();
         public string LatestRemoteRxStatusString => Streams.Sum(s => s.LatestRemoteStatus?.RecentRxBandwidth ?? 0).BandwidthToString();
@@ -45,7 +45,7 @@ namespace Dcomms.SUBT
             return new SubtConnectedPeerStream(stream, _subtLocalPeer, this);
         }
         public List<SubtConnectedPeerStream> StreamsAsList => Streams.ToList(); // needed to edit values in WPF GUI
-        public IEnumerable<SubtConnectedPeerStream> Streams
+        public IEnumerable<SubtConnectedPeerStream> Streams 
         {
             get
             {

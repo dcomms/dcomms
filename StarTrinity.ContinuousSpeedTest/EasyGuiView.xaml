@@ -44,8 +44,8 @@
             <TextBlock Grid.Row="0" Text="target: " FontSize="30" HorizontalAlignment="Right" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
             <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
                 <TextBlock Text="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetString}" FontSize="30" />
-                <Button Content="increase" Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetIncrease}" FontSize="30" />
-                <Button Content="decrease" Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetDecrease}" FontSize="30" />                
+                <Button Content="increase" Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetIncrease}" FontSize="20" />
+                <Button Content="decrease" Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetDecrease}" FontSize="20" />                
             </StackPanel>           
             
             <!--<TextBlock Visibility="{Binding ModeVisibility}" Text="mode: " FontSize="30" HorizontalAlignment="Right" />
