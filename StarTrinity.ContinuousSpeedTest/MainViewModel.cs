@@ -43,7 +43,7 @@ namespace StarTrinity.ContinuousSpeedTest
             LocalPeerConfigurationRoleAsUser = false;
             LocalPeerConfiguration.RoleAsSharedPassive = true;
             LocalPeerConfiguration.RoleAsCoordinator = true;
-            LocalPeerConfiguration.LocalUdpPortRangeStart = 10100;
+            LocalPeerConfiguration.LocalUdpPortRangeStart = 10000;
             RaisePropertyChanged(() => LocalPeerConfiguration);
             Initialize.Execute(null);
         });
@@ -53,14 +53,14 @@ namespace StarTrinity.ContinuousSpeedTest
             var coordinatorServerIp = IPAddress.Parse("163.172.210.13");
             LocalPeerConfiguration.Coordinators = new IPEndPoint[]
                 {
-                    new IPEndPoint(coordinatorServerIp, 10100),
-                    //new IPEndPoint(coordinatorServerIp, 10101),
-                    //new IPEndPoint(coordinatorServerIp, 10102),
-                    //new IPEndPoint(coordinatorServerIp, 10103),
-                    //new IPEndPoint(coordinatorServerIp, 10104),
-                    //new IPEndPoint(coordinatorServerIp, 10105),
-                    //new IPEndPoint(coordinatorServerIp, 10106),
-                    //new IPEndPoint(coordinatorServerIp, 10107),
+                    new IPEndPoint(coordinatorServerIp, 10000),
+                    new IPEndPoint(coordinatorServerIp, 10001),
+                    new IPEndPoint(coordinatorServerIp, 10002),
+                    new IPEndPoint(coordinatorServerIp, 10003),
+                    new IPEndPoint(coordinatorServerIp, 10004),
+                    new IPEndPoint(coordinatorServerIp, 10005),
+                    new IPEndPoint(coordinatorServerIp, 10006),
+                    new IPEndPoint(coordinatorServerIp, 10007),
                 };
             LocalPeerConfiguration.SocketsCount = 4;
             LocalPeerConfiguration.LocalUdpPortRangeStart = null;
@@ -76,14 +76,14 @@ namespace StarTrinity.ContinuousSpeedTest
             var coordinatorServerIp = IPAddress.Parse("163.172.210.13");
             LocalPeerConfiguration.Coordinators = new IPEndPoint[]
                 {
-                    new IPEndPoint(coordinatorServerIp, 10100),
-                    new IPEndPoint(coordinatorServerIp, 10101),
-                    new IPEndPoint(coordinatorServerIp, 10102),
-                    new IPEndPoint(coordinatorServerIp, 10103),
-                    new IPEndPoint(coordinatorServerIp, 10104),
-                    new IPEndPoint(coordinatorServerIp, 10105),
-                    new IPEndPoint(coordinatorServerIp, 10106),
-                    new IPEndPoint(coordinatorServerIp, 10107),
+                    new IPEndPoint(coordinatorServerIp, 10000),
+                    new IPEndPoint(coordinatorServerIp, 10001),
+                    new IPEndPoint(coordinatorServerIp, 10002),
+                    new IPEndPoint(coordinatorServerIp, 10003),
+                    new IPEndPoint(coordinatorServerIp, 10004),
+                    new IPEndPoint(coordinatorServerIp, 10005),
+                    new IPEndPoint(coordinatorServerIp, 10006),
+                    new IPEndPoint(coordinatorServerIp, 10007),
                 };
             LocalPeerConfiguration.SocketsCount = 8;
             LocalPeerConfiguration.LocalUdpPortRangeStart = null;
@@ -99,8 +99,8 @@ namespace StarTrinity.ContinuousSpeedTest
             var coordinatorServerIp = IPAddress.Parse("127.0.0.1");
             LocalPeerConfiguration.Coordinators = new IPEndPoint[]
                 {
-                    new IPEndPoint(coordinatorServerIp, 10100),
-                    new IPEndPoint(coordinatorServerIp, 10101),
+                    new IPEndPoint(coordinatorServerIp, 10000),
+                    new IPEndPoint(coordinatorServerIp, 10001),
                 };
             LocalPeerConfiguration.SocketsCount = 1;
             LocalPeerConfiguration.LocalUdpPortRangeStart = null;
@@ -117,22 +117,22 @@ namespace StarTrinity.ContinuousSpeedTest
             var coordinatorServerIp2 = IPAddress.Parse("195.154.173.208");//fra2
             LocalPeerConfiguration.Coordinators = new IPEndPoint[]
                 {
-                    new IPEndPoint(coordinatorServerIp1, 10100),
-                    new IPEndPoint(coordinatorServerIp1, 10101),
-                    new IPEndPoint(coordinatorServerIp1, 10102),
-                    new IPEndPoint(coordinatorServerIp1, 10103),
-                    new IPEndPoint(coordinatorServerIp1, 10104),
-                    new IPEndPoint(coordinatorServerIp1, 10105),
-                    new IPEndPoint(coordinatorServerIp1, 10106),
-                    new IPEndPoint(coordinatorServerIp1, 10107),
-                    new IPEndPoint(coordinatorServerIp1, 9100),
-                    new IPEndPoint(coordinatorServerIp1, 9101),
-                    new IPEndPoint(coordinatorServerIp1, 9102),
-                    new IPEndPoint(coordinatorServerIp1, 9103),
-                    new IPEndPoint(coordinatorServerIp2, 9100),
-                    new IPEndPoint(coordinatorServerIp2, 9101),
-                    new IPEndPoint(coordinatorServerIp2, 9102),
-                    new IPEndPoint(coordinatorServerIp2, 9103),
+                    new IPEndPoint(coordinatorServerIp1, 10000),
+                    new IPEndPoint(coordinatorServerIp1, 10001),
+                    new IPEndPoint(coordinatorServerIp1, 10002),
+                    new IPEndPoint(coordinatorServerIp1, 10003),
+                    new IPEndPoint(coordinatorServerIp1, 10004),
+                    new IPEndPoint(coordinatorServerIp1, 10005),
+                    new IPEndPoint(coordinatorServerIp1, 10006),
+                    new IPEndPoint(coordinatorServerIp1, 10007),
+                    new IPEndPoint(coordinatorServerIp1, 9000),
+                    new IPEndPoint(coordinatorServerIp1, 9001),
+                    new IPEndPoint(coordinatorServerIp1, 9002),
+                    new IPEndPoint(coordinatorServerIp1, 9003),
+                    new IPEndPoint(coordinatorServerIp2, 9000),
+                    new IPEndPoint(coordinatorServerIp2, 9001),
+                    new IPEndPoint(coordinatorServerIp2, 9002),
+                    new IPEndPoint(coordinatorServerIp2, 9003),
                 };
             LocalPeerConfiguration.LocalUdpPortRangeStart = null;
             LocalPeerConfigurationRoleAsUser = true;
