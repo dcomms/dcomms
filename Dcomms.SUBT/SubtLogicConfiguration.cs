@@ -16,7 +16,7 @@ namespace Dcomms.SUBT
         internal const long MeasurementInitializationTimeTicks = TimeSpan.TicksPerSecond * 10;
 
 
-        internal const float BandwidthForStreams_UserInitial = 1024 * 20;
+       // internal const float BandwidthForStreams_UserInitial = 1024 * 20;
 
         internal static readonly TimeSpan MaxPeerIdleTime_TxPayload = LocalLogicConfiguration.SendHelloRequestPeriod + TimeSpan.FromSeconds(3);
         internal const int MaxMeasurementsCount = 100000;
@@ -28,6 +28,6 @@ namespace Dcomms.SUBT
 
         internal const float PerStreamMinRecommendedBandwidth = 1024 * 60;
         internal const float MaxLocalTxBandwidthPerPeer = 1024 * 1024 * 100;
-        internal const long MinimumUser2UserStreamLifetimeBeforeUsage = TimeSpan.TicksPerMinute * 10;
+      //  internal const long MinimumUser2UserStreamLifetimeBeforeUsage = TimeSpan.TicksPerMinute * 10;
     }
 }

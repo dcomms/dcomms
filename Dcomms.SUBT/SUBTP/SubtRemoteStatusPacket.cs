@@ -17,12 +17,8 @@ namespace Dcomms.SUBT.SUBTP
         public readonly float _recentRxPacketLoss; 
         public readonly float RecentTxBandwidth; // actual transmitted bandwidth // per connected peer (all connected streams between peers)
         public readonly bool IhavePassiveRole; // no own-set TX bandwidth target
-                                               //   public readonly bool IwantToActivateThisStream; // stream becomes active when both parties confirm the activation
-        public readonly float TargetTxBandwidth0; // stage #0 // per stream // TargetTxBandwidth0=0 means inactive stream
-        public readonly float TargetTxBandwidth; // per stream 
-        public readonly uint RequestId; // for future use, for RTT measurements
-        public readonly uint HealthStatus1; // for future use, to avoid unhealthy peers
-        public readonly uint HealthStatus2; // for future use, to avoid unhealthy peers
+        public readonly bool IwantToIncreaseBandwidth;
+        public readonly bool IwantToDecreaseBandwidth;
 
         static float LimitPacketLoss(float loss)
         {
@@ -30,14 +26,14 @@ namespace Dcomms.SUBT.SUBTP
             else if (loss < 0) loss = 0;
             return loss;
         }
-        public SubtRemoteStatusPacket(float recentRxBandwidth, float recentRxPacketLoss, float recentTxBandwidth, bool ihavePassiveRole, float targetTxBandwidth0, float targetTxBandwidth)
+        public SubtRemoteStatusPacket(float recentRxBandwidth, float recentRxPacketLoss, float recentTxBandwidth, bool ihavePassiveRole, bool iwantToIncreaseBandwidth, bool iwantToDecreaseBandwidth)
         {
             RecentRxBandwidth = recentRxBandwidth;
             _recentRxPacketLoss = LimitPacketLoss(recentRxPacketLoss);
             RecentTxBandwidth = recentTxBandwidth;
             IhavePassiveRole = ihavePassiveRole;
-            TargetTxBandwidth0 = targetTxBandwidth0;
-            TargetTxBandwidth = targetTxBandwidth;
+            IwantToIncreaseBandwidth = iwantToIncreaseBandwidth;
+            IwantToDecreaseBandwidth = iwantToDecreaseBandwidth;
         }
         public override string ToString()
         {
@@ -53,14 +49,9 @@ namespace Dcomms.SUBT.SUBTP
             RecentTxBandwidth = reader.ReadSingle();
             var flags = reader.ReadByte();
             IhavePassiveRole = (flags & 0x02) != 0;
-            var version190515 = (flags & 0x04) != 0; // version190515: new fields StatelessTargetTxBandwidth, TargetTxBandwidth, RequestId, HealthStatus1, HealthStatus2
-            if (version190515)
-            {
-                TargetTxBandwidth = reader.ReadSingle();
-                RequestId = reader.ReadUInt32();
-                HealthStatus1 = reader.ReadUInt32();
-                HealthStatus2 = reader.ReadUInt32();
-            }
+            IwantToIncreaseBandwidth = (flags & 0x04) != 0;
+            IwantToDecreaseBandwidth = (flags & 0x08) != 0;
+
         }
         public byte[] Encode(SubtConnectedPeerStream connectedStream)
         {
@@ -74,13 +65,8 @@ namespace Dcomms.SUBT.SUBTP
                 writer.Write(RecentTxBandwidth);
                 byte flags = 0;
                 if (IhavePassiveRole) flags |= 0x02;
-                flags |= 0x04; // version190515: new fields StatelessTargetTxBandwidth, TargetTxBandwidth, RequestId, HealthStatus1, HealthStatus2
-
-                writer.Write(flags);
-                writer.Write(TargetTxBandwidth);
-                writer.Write(RequestId);
-                writer.Write(HealthStatus1);
-                writer.Write(HealthStatus2);                
+                if (IwantToIncreaseBandwidth) flags |= 0x04;
+                if (IwantToDecreaseBandwidth) flags |= 0x08;
             }
             return ms.ToArray();
         }

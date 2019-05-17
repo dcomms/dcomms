@@ -23,11 +23,8 @@ namespace Dcomms.SUBT
         internal StreamId StreamId => _stream.StreamId;
         internal readonly SubtConnectedPeer SubtConnectedPeer;
         internal readonly SubtLocalPeer SubtLocalPeer;
-        readonly long _createdTime64;
-        internal long GetLifetime(long now64) => now64 - _createdTime64;
         public SubtConnectedPeerStream(IConnectedPeerStream stream, SubtLocalPeer subtLocalPeer, SubtConnectedPeer subtConnectedPeer)
         {
-            _createdTime64 = subtLocalPeer.LocalPeer.Time64;
             SubtConnectedPeer = subtConnectedPeer;
             SubtLocalPeer = subtLocalPeer;
             _stream = stream;
@@ -36,8 +33,8 @@ namespace Dcomms.SUBT
             _txSequence = (ushort)subtLocalPeer.LocalPeer.Random.Next(ushort.MaxValue);
             _rxMeasurement = new RxMeasurement(subtLocalPeer, this);
            
-            if (subtLocalPeer.LocalPeer.Configuration.RoleAsUser)
-                TargetTxBandwidth =  SubtLogicConfiguration.BandwidthForStreams_UserInitial;
+         //   if (subtLocalPeer.LocalPeer.Configuration.RoleAsUser)
+        //        TargetTxBandwidth =  SubtLogicConfiguration.BandwidthForStreams_UserInitial;
 
             _senderThread = subtLocalPeer.SenderThreadForNewStream;
             _senderThread.OnCreatedDestroyedStream(this, true);
@@ -204,7 +201,6 @@ namespace Dcomms.SUBT
             }
         }
 
-        public float TargetTxBandwidth0 { get; set; }
 
         float _targetTxBandwidth;
         public float TargetTxBandwidth
@@ -241,7 +237,7 @@ namespace Dcomms.SUBT
             4   // reflected timestamp
             ;
 
-        internal bool TxIsEnabled => (Stream.RemotePeerRoleIsUser || SubtLocalPeer.LocalPeer.Configuration.RoleAsUser) && IsActiveConfirmed;
+        internal bool TxIsEnabled => (Stream.RemotePeerRoleIsUser || SubtLocalPeer.LocalPeer.Configuration.RoleAsUser);
         internal void SendPayloadPacketsIfNeeded_10ms() // sender thread
         {
             var timeNow32 = SubtLocalPeer.LocalPeer.Time32;
@@ -320,8 +316,7 @@ namespace Dcomms.SUBT
                     var data = new SubtRemoteStatusPacket(_rxMeasurement.RecentBandwidth, _rxMeasurement.RecentPacketLoss,
                             this.RecentTxBandwidth,                         
                             SubtLocalPeer.LocalPeer.Configuration.RoleAsSharedPassive,
-                            this.StatelessTargetTxBandwidth,
-                            this.TargetTxBandwidth)
+                            false, false)
                         .Encode(this);
                     _stream.SendPacket(data, data.Length);
                 }
