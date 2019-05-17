@@ -67,6 +67,7 @@ namespace Dcomms.SUBT.SUBTP
                 if (IhavePassiveRole) flags |= 0x02;
                 if (IwantToIncreaseBandwidth) flags |= 0x04;
                 if (IwantToDecreaseBandwidth) flags |= 0x08;
+                writer.Write(flags);
             }
             return ms.ToArray();
         }

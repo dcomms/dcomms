@@ -86,29 +86,29 @@ namespace Dcomms.SUBT
             }
         }
       
-        /// <param name="currentDependentMeasuredValue">some measurement (M) that depends on the TX bandwidth (T), and dM/dT > 0</param>
-        /// <param name="targetDependentMeasuredValue">target value for the dependent measurement (M)</param>
-        void UpdateTxBandwidth_100msApprox(ref float currentTxBwMultiplier, float currentDependentMeasuredValue, float targetDependentMeasuredValue, float speedCoefficient = 1.0f)
-        {
+        ///// <param name="currentDependentMeasuredValue">some measurement (M) that depends on the TX bandwidth (T), and dM/dT > 0</param>
+        ///// <param name="targetDependentMeasuredValue">target value for the dependent measurement (M)</param>
+        //void UpdateTxBandwidth_100msApprox(ref float currentTxBwMultiplier, float currentDependentMeasuredValue, float targetDependentMeasuredValue, float speedCoefficient = 1.0f)
+        //{
 
-            var div = (targetDependentMeasuredValue + currentDependentMeasuredValue);
-            if (div == 0) return;
-            float a = (targetDependentMeasuredValue - currentDependentMeasuredValue) / div;
-            a *= Configuration.Speed100ms * speedCoefficient;
+        //    var div = (targetDependentMeasuredValue + currentDependentMeasuredValue);
+        //    if (div == 0) return;
+        //    float a = (targetDependentMeasuredValue - currentDependentMeasuredValue) / div;
+        //    a *= Configuration.Speed100ms * speedCoefficient;
 
 
-            var maxA = Configuration.Speed100msLimit;
-            if (a < -maxA) a = -maxA; else if (a > maxA) a = maxA;
-            currentTxBwMultiplier *= 1.0f + a;
-            if (currentTxBwMultiplier < 1.0f - maxA) currentTxBwMultiplier = 1.0f - maxA; else if (currentTxBwMultiplier > 1.0f + maxA) currentTxBwMultiplier = 1.0f + maxA;
-        }
+        //    var maxA = Configuration.Speed100msLimit;
+        //    if (a < -maxA) a = -maxA; else if (a > maxA) a = maxA;
+        //    currentTxBwMultiplier *= 1.0f + a;
+        //    if (currentTxBwMultiplier < 1.0f - maxA) currentTxBwMultiplier = 1.0f - maxA; else if (currentTxBwMultiplier > 1.0f + maxA) currentTxBwMultiplier = 1.0f + maxA;
+        //}
         static void LimitHigh(ref float value, float limit)
         {
             if (value > limit) value = limit;
         }
         static float LimitSubtRemoteStatusPacketRemoteBandwidth(float remoteTargetBandwidth)
         {
-            LimitHigh(ref remoteTargetBandwidth, 1024 * 1024 * 1);
+            LimitHigh(ref remoteTargetBandwidth, SubtLogicConfiguration.MaxLocalTxBandwidthPerStream);
             return remoteTargetBandwidth;
         }
         //static bool StreamIsGoodForSubt(SubtConnectedPeerStream s, long now64)

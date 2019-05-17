@@ -346,7 +346,7 @@ namespace Dcomms.SUBT
             {
                 case SubtPacketType.RemoteStatus:
                     var p = new SubtRemoteStatusPacket(reader);
-                //    SubtLocalPeer.WriteToLog($"received measurement: {rxm}");
+                 //   SubtLocalPeer.WriteToLog($"received SubtPacketType.RemoteStatus: {p}");
                     LatestRemoteStatus = p;
                     _stream.MarkAsActiveByExtension();
 
