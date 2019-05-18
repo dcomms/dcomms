@@ -241,6 +241,8 @@ namespace Dcomms.SUBT
         internal void SendPayloadPacketsIfNeeded_10ms() // sender thread
         {
             var timeNow32 = SubtLocalPeer.LocalPeer.Time32;
+            SendStatusIfNeeded(timeNow32);
+
             lock (_rxBwBeforeJB)
                 _rxBwBeforeJB.OnTimeObserved(timeNow32);
 
@@ -296,7 +298,6 @@ namespace Dcomms.SUBT
                 if (Stream.Debug)
                     Debugger.Break();
 
-                SendStatusIfNeeded(timestampNow32);
             }
         }
         #endregion
@@ -346,7 +347,7 @@ namespace Dcomms.SUBT
             {
                 case SubtPacketType.RemoteStatus:
                     var p = new SubtRemoteStatusPacket(reader);
-                 //   SubtLocalPeer.WriteToLog($"received SubtPacketType.RemoteStatus: {p}");
+                    SubtLocalPeer.WriteToLog($"received from peer {SubtConnectedPeer.RemotePeerId}: SUBT status packet: {p}");
                     LatestRemoteStatus = p;
                     _stream.MarkAsActiveByExtension();
 

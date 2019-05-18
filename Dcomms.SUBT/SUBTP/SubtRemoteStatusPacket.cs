@@ -38,7 +38,7 @@ namespace Dcomms.SUBT.SUBTP
         public override string ToString()
         {
             var sb = new StringBuilder();
-            sb.AppendFormat("rxBwS={0};rxLossS={1:0.0}%;txBwP={2}", RecentRxBandwidth.BandwidthToString(), RecentRxPacketLoss * 100, RecentTxBandwidth.BandwidthToString());          
+            sb.AppendFormat("rxBwS={0};rxLossS={1:0.0}%;txBwP={2};passive={3}", RecentRxBandwidth.BandwidthToString(), RecentRxPacketLoss * 100, RecentTxBandwidth.BandwidthToString(), IhavePassiveRole);          
             return sb.ToString();
         }
 
