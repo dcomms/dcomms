@@ -13,8 +13,8 @@ namespace Dcomms.SUBT.SUBTP
     internal class SubtRemoteStatusPacket
     {
         public readonly float RecentRxBandwidth; // per stream
-        public float RecentRxPacketLoss => _recentRxPacketLoss; // per stream
-        public readonly float _recentRxPacketLoss; 
+        public float RecentRxPacketLoss => _recentRxPacketLoss; // per stream // 0..1
+        public readonly float _recentRxPacketLoss;  // 0..1
         public readonly float RecentTxBandwidth; // actual transmitted bandwidth // per connected peer (all connected streams between peers)
         public readonly bool IhavePassiveRole; // no own-set TX bandwidth target
         public readonly bool IwantToIncreaseBandwidth;

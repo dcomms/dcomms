@@ -135,10 +135,12 @@ namespace StarTrinity.ContinuousSpeedTest
                 
                 var sb = new StringBuilder();
                 var delimiter = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
-                sb.AppendFormat("Time{0}Download bandwidth (bps){0}Download bandwidth{0}Upload bandwidth (bps){0}Upload bandwidth{0}RTT (ping) (ms)\r\n", delimiter);
+                sb.AppendFormat("Time{0}Download bandwidth (bps){0}Download bandwidth{0}Download packet loss (percent){0}Upload bandwidth (bps){0}Upload bandwidth{0}Upload packet loss{0}RTT (ping) (ms)\r\n", delimiter);
                 foreach (var m in Measurements.ToList())
                 {
-                    sb.AppendFormat("{1}{0:yyyy-MM-DD HH:mm:ss}{2}{0}{3}{0}{4}{0}{5}{0}{6}\r\n", delimiter, m.MeasurementPeriodEnd, m.RxBandwidth, m.RxBandwidthString, m.TxBandwidth, m.TxBandwidthString, m.BestRttToPeers?.TotalMilliseconds);
+                    sb.AppendFormat("{1}{0:yyyy-MM-DD HH:mm:ss}{2}{0}{3}{0}{4}{0}{5}{0}{6}{0}{7}{0}{8}\r\n", delimiter, 
+                        m.MeasurementPeriodEnd, m.RxBandwidth, m.RxBandwidthString, m.RxPacketLoss * 100, m.TxBandwidth, m.TxBandwidthString, m.TxPacketLoss * 100, m.BestRttToPeers?.TotalMilliseconds
+                        );
                 }
                 sb.Append("The file is generated with StarTrinity Continuous Speed Test software. Write an email to support@startrinity.com in case of any problems");
                 System.IO.File.WriteAllText(dlg.FileName, sb.ToString());               

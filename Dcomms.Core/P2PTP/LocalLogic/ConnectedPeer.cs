@@ -91,6 +91,7 @@ namespace Dcomms.P2PTP.LocalLogic
         internal readonly ConnectedPeerType Type;
         internal DateTime? LibraryVersion;
         internal ushort? ProtocolVersion;
+        DateTime? IConnectedPeer.RemoteLibraryVersion => LibraryVersion;
 
         internal int TotalHelloAcceptedPacketsReceived;
 

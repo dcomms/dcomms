@@ -6,7 +6,7 @@
 
 
     <StackLayout Orientation="Vertical" Padding="5">
-        <Button Text="{Binding StartPauseText}" Command="{Binding StartPause}" />
+        <Button Text="Start (target=100kbps)" Command="{Binding Start}" IsEnabled="{Binding StartEnabled}" />
 
         <Grid>
             <Grid.RowDefinitions>

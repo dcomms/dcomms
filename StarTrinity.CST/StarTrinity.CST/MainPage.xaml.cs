@@ -9,9 +9,12 @@ namespace StarTrinity.CST
 {
     public partial class MainPage : ContentPage
     {
+        MainViewModel _mainVM;
         public MainPage()
         {
             InitializeComponent();
+            _mainVM = new MainViewModel();
+            this.BindingContext = _mainVM;
         }
     }
 }

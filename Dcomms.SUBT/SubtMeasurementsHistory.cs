@@ -24,11 +24,12 @@ namespace Dcomms.SUBT
             TimeSpan? bestRttToPeers = null;
             float? averageTxLossG = null;
             float? averageRxLossG = null;
-            foreach (var cp in subtLocalPeer.ConnectedPeers)
+            foreach (var connectedPeer in subtLocalPeer.ConnectedPeers)
             {
+
                 AverageSingle averageTxLoss = new AverageSingle();
                 AverageSingle averageRxLoss = new AverageSingle();
-                foreach (var s in cp.Streams)
+                foreach (var s in connectedPeer.Streams)
                 {
                     rxBandwidth += s.RecentRxBandwidth;
                     var st = s.LatestRemoteStatus;
@@ -37,9 +38,12 @@ namespace Dcomms.SUBT
                         confirmedTxBandwidth += st.RecentRxBandwidth;
                         if (bestRttToPeers == null || s.RecentRtt < bestRttToPeers.Value)
                             bestRttToPeers = s.RecentRtt;
-                        averageTxLoss.Input(st.RecentRxPacketLoss);
+
+                        if (st.RecentRxBandwidth > SubtLogicConfiguration.MinBandwidthPerStreamForPacketLossMeasurement)
+                            averageTxLoss.Input(st.RecentRxPacketLoss);
                     }
-                    averageRxLoss.Input(s.RecentPacketLoss);
+                    if (s.RecentRxBandwidth > SubtLogicConfiguration.MinBandwidthPerStreamForPacketLossMeasurement)
+                        averageRxLoss.Input(s.RecentPacketLoss);
                 }
                 var averageRxLossAverage = averageRxLoss.Average;
                 if (averageRxLossAverage.HasValue)

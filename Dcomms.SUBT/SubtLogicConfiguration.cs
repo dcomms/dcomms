@@ -24,7 +24,7 @@ namespace Dcomms.SUBT
         internal const float PerStreamSoftTxBandwidthLimit = 1024 * 1024 * 10;
         internal const float PerStreamHardTxBandwidthLimit = 1024 * 1024 * 20;
 
-
+        internal const float MinBandwidthPerStreamForPacketLossMeasurement = 1024 * 10;
 
         internal const float PerStreamMinRecommendedBandwidth = 1024 * 60;
         internal const float MaxLocalTxBandwidthPerPeer = 1024 * 1024 * 100;

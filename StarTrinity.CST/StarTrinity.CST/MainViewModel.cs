@@ -33,8 +33,9 @@ namespace StarTrinity.CST
 
         SubtMeasurement _latestMeasurement;
         public SubtMeasurement LatestMeasurement => _latestMeasurement;
-        public string StartPauseText => _timer != null ? "Pause Test" : "Start Test";
-        public ICommand StartPause => new DelegateCommand(() =>
+      
+        public bool StartEnabled { get; set; } = true;
+        public ICommand Start => new DelegateCommand(() =>
         {
             if (_timer == null)
             {
@@ -43,6 +44,7 @@ namespace StarTrinity.CST
                 _subtLocalPeer = new SubtLocalPeer(new SubtLocalPeerConfiguration
                 {
                     SenderThreadsCount = 3,
+                    BandwidthTarget = 1024 * 100
                 });
                 _localPeer = new LocalPeer(new LocalPeerConfiguration
                 {
@@ -80,7 +82,8 @@ namespace StarTrinity.CST
                 _timer.Elapsed += _timer_Elapsed;
                 _timer.Start();
 
-                RaisePropertyChanged(() => StartPauseText);
+                StartEnabled = false;
+                RaisePropertyChanged(() => StartEnabled);
             }
         });
 

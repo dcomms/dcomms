@@ -54,7 +54,7 @@ namespace Dcomms.SUBT
         public string RecentRttString => MiscProcedures.TimeSpanToString(RecentRtt);
         internal float RecentRxBandwidth => _rxMeasurement.RecentBandwidth;
         public string RecentRxBandwidthString => $"{_rxBwBeforeJB.OutputPerUnit.BandwidthToString()}/{_rxMeasurement.RecentBandwidth.BandwidthToString()}";
-        internal float RecentPacketLoss => _rxMeasurement.RecentPacketLoss;
+        internal float RecentPacketLoss => _rxMeasurement.RecentPacketLoss; // 0..1
         public string RecentPacketLossString => String.Format("{0:0.00}%", RecentPacketLoss*100);
 
         IirFilterCounter _rxBwBeforeJB = new IirFilterCounter(TimeSpan.TicksPerMillisecond * 500, TimeSpan.TicksPerSecond); // locked
@@ -347,7 +347,7 @@ namespace Dcomms.SUBT
             {
                 case SubtPacketType.RemoteStatus:
                     var p = new SubtRemoteStatusPacket(reader);
-                    SubtLocalPeer.WriteToLog($"received from peer {SubtConnectedPeer.RemotePeerId}: SUBT status packet: {p}");
+                 //   SubtLocalPeer.WriteToLog($"received from peer {SubtConnectedPeer.RemotePeerId}: SUBT status packet: {p}");
                     LatestRemoteStatus = p;
                     _stream.MarkAsActiveByExtension();
 

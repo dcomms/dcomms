@@ -14,6 +14,7 @@ namespace Dcomms.SUBT
         readonly SubtLocalPeer _subtLocalPeer;
         readonly IConnectedPeer _connectedPeer;
         public PeerId RemotePeerId => _connectedPeer.RemotePeerId;
+        public DateTime? RemoteLibraryVersion => _connectedPeer.RemoteLibraryVersion;
         public ConnectedPeerType Type => _connectedPeer.Type;
 
         public string LatestRemoteTxStatusString => Streams.Sum(s => s.LatestRemoteStatus?.RecentTxBandwidth ?? 0).BandwidthToString();

@@ -29,6 +29,10 @@
                                     <TextBlock Text="{Binding TargetTxBandwidthString}" />
                                     <TextBlock Text="Remote RX:" />
                                     <TextBlock Text="{Binding LatestRemoteRxStatusString}" />
+                                    <TextBlock Text="Version:" />
+                                    <TextBlock Text="{Binding RemoteLibraryVersion, StringFormat='\{0:yyyy-MM-dd\}'}" />
+                                    
+
                                 </StackPanel>
                                 <DataGrid ItemsSource="{Binding StreamsAsList}" HorizontalScrollBarVisibility="Visible" >
                                     <DataGrid.Columns>
