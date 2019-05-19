@@ -146,8 +146,27 @@ namespace Dcomms
                 new Tuple<float, Color>(0.3f, Color.FromArgb(150, 50, 0)),
                 });
         }
-        
 
+        public static Color UptimeDurationToColor(this TimeSpan duration)
+        {
+            return ValueToColor(duration.Ticks, new[] {
+                new Tuple<float, Color>(0, Color.FromArgb(220, 255, 200)),
+                new Tuple<float, Color>(TimeSpan.TicksPerMinute * 30.0f, Color.FromArgb(180, 255, 180)),
+                new Tuple<float, Color>(TimeSpan.TicksPerDay * 2.0f, Color.FromArgb(180, 255, 150)),
+                });
+
+        }
+        public static Color DowntimeDurationToColor(this TimeSpan duration)
+        {
+            return ValueToColor(duration.Ticks, new[] {
+                new Tuple<float, Color>(0, Color.FromArgb(255, 220, 220)),
+                new Tuple<float, Color>(TimeSpan.TicksPerSecond * 10.0f, Color.FromArgb(255, 180, 180)),
+                new Tuple<float, Color>(TimeSpan.TicksPerMinute * 1.0f, Color.FromArgb(255, 120, 120)),
+                new Tuple<float, Color>(TimeSpan.TicksPerMinute * 10.0f, Color.FromArgb(255, 50, 50)),
+                new Tuple<float, Color>(TimeSpan.TicksPerMinute * 60.0f, Color.FromArgb(200, 0, 0)),
+                });
+
+        }
 
         /// <param name="referencePoints">must be sorted by value, ascending</param>
         public static Color ValueToColor(this float value, Tuple<float,Color>[] referencePoints)

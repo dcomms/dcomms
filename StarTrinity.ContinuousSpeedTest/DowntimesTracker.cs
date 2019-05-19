@@ -6,6 +6,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Input;
+using System.Drawing;
 
 namespace StarTrinity.ContinuousSpeedTest
 {
@@ -16,6 +18,12 @@ namespace StarTrinity.ContinuousSpeedTest
         {
             _mainVM = mainVM;
         }
+
+        public ICommand Clear => new DelegateCommand(() =>
+        {
+            _currentFragment = null;
+            _fragments = new LinkedList<UpDownTimeFragment>(); // locked
+        });
 
         DateTime? _lastTimeUpdatedFragmentsGui;
         internal void UpdateGui()
@@ -57,7 +65,8 @@ namespace StarTrinity.ContinuousSpeedTest
             get
             {
                 GetDurations(out var uptimeDuration, out var downtimeDuration, out var numberOfDowntimes);
-                return String.Format("{0} ({1:0.000}%)", uptimeDuration.TimeSpanToStringHMS(), 100.0 * uptimeDuration.Ticks / (uptimeDuration.Ticks + downtimeDuration.Ticks));
+                if (uptimeDuration.Ticks == 0) return "";
+                return String.Format("{0} ({1:0.0000}%)", uptimeDuration.TimeSpanToStringHMS(), 100.0 * uptimeDuration.Ticks / (uptimeDuration.Ticks + downtimeDuration.Ticks));
             }
         }
         public string TabHeaderString
@@ -66,7 +75,7 @@ namespace StarTrinity.ContinuousSpeedTest
             {
                 GetDurations(out var uptimeDuration, out var downtimeDuration, out var numberOfDowntimes);
                 if (uptimeDuration.Ticks == 0) return "";
-                return String.Format("{0:0.000}%/{1}", 100.0 * uptimeDuration.Ticks / (uptimeDuration.Ticks + downtimeDuration.Ticks), numberOfDowntimes);
+                return String.Format("{0:0.00}%({1})", 100.0 * uptimeDuration.Ticks / (uptimeDuration.Ticks + downtimeDuration.Ticks), numberOfDowntimes);
             }
         }
         public string DowntimeDurationString
@@ -74,7 +83,8 @@ namespace StarTrinity.ContinuousSpeedTest
             get
             {
                 GetDurations(out var uptimeDuration, out var downtimeDuration, out var numberOfDowntimes);
-                return String.Format("{0} ({1:0.000}%). {2} downtime(s)", downtimeDuration.TimeSpanToStringHMS(), 100.0 * downtimeDuration.Ticks / (uptimeDuration.Ticks + downtimeDuration.Ticks), numberOfDowntimes);
+                if (uptimeDuration.Ticks == 0) return "";
+                return String.Format("{0} ({1:0.0000}%). {2} downtime(s)", downtimeDuration.TimeSpanToStringHMS(), 100.0 * downtimeDuration.Ticks / (uptimeDuration.Ticks + downtimeDuration.Ticks), numberOfDowntimes);
             }
         }
         LinkedList<UpDownTimeFragment> _fragments = new LinkedList<UpDownTimeFragment>(); // locked
@@ -150,8 +160,11 @@ namespace StarTrinity.ContinuousSpeedTest
     {
         public DateTime StartTime { get; set; }
         public DateTime? StopTime { get; set; } // is null only for current fragment
+        TimeSpan Duration => ((StopTime ?? DateTime.Now) - StartTime);
+        public string DurationString => Duration.TimeSpanToStringHMS();
+        public Color DurationColor => UpOrDown ? MiscProcedures.UptimeDurationToColor(Duration) : MiscProcedures.DowntimeDurationToColor(Duration);
         public bool UpOrDown { get; set; }
         public string UpOrDownString => UpOrDown ? "up" : "down";
-        public System.Drawing.Color UpOrDownColor => UpOrDown ? System.Drawing.Color.FromArgb(255, 150, 255, 150) : System.Drawing.Color.FromArgb(255, 255, 150, 150);
+        public Color UpOrDownColor => UpOrDown ? Color.FromArgb(255, 150, 255, 150) : Color.FromArgb(255, 255, 150, 150);
     }
 }

@@ -143,6 +143,7 @@
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
@@ -150,13 +151,19 @@
                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding MainVM.DowntimesTracker.UptimeDurationString}" FontSize="20" />
                     <TextBlock Grid.Row="1" Text="downtime:" FontSize="20" />
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MainVM.DowntimesTracker.DowntimeDurationString}" FontSize="20" />
-
-
-
-                    <DataGrid Grid.Row="2" Grid.ColumnSpan="2"  ItemsSource="{Binding MainVM.DowntimesTracker.Fragments}" >
+                    <Button Grid.Row="0" Grid.Column="2" Command="{Binding MainVM.DowntimesTracker.Clear}" Content="clear" HorizontalAlignment="Left" />
+                    
+                    <DataGrid Grid.Row="2" Grid.ColumnSpan="3"  ItemsSource="{Binding MainVM.DowntimesTracker.Fragments}" >
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Start" Binding="{Binding StartTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></DataGridTextColumn>
                             <DataGridTextColumn Header="Stop" Binding="{Binding StopTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}'}"></DataGridTextColumn>
+                            <DataGridTextColumn Header="Duration" Binding="{Binding DurationString}">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style TargetType="DataGridCell">
+                                        <Setter Property="Background" Value="{Binding DurationColor, Converter={StaticResource ColorToBrushConverter}}" />
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>                                
+                            </DataGridTextColumn>
                             <DataGridTextColumn Header="State" Binding="{Binding UpOrDownString}">
                                 <DataGridTextColumn.CellStyle>
                                     <Style TargetType="DataGridCell">
