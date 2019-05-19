@@ -5,6 +5,9 @@ using System.Text;
 
 namespace Dcomms.SUBT
 {
+    /// <summary>
+    /// stores SUBT measurements
+    /// </summary>
     public class SubtMeasurementsHistory
     {
         LinkedList<SubtMeasurement> _measurements = new LinkedList<SubtMeasurement>(); // locked
@@ -62,7 +65,7 @@ namespace Dcomms.SUBT
 
             return new SubtMeasurement
             {
-                MeasurementPeriodEndUtc = subtLocalPeer.LocalPeer.DateTimeNowUtc,
+                MeasurementTime = subtLocalPeer.LocalPeer.DateTimeNow,
                 TargetBandwidth = subtLocalPeer.Configuration.BandwidthTarget,
                 RxBandwidth = rxBandwidth,
                 TxBandwidth = confirmedTxBandwidth,
@@ -103,7 +106,7 @@ namespace Dcomms.SUBT
                             _measurements.RemoveFirst();
                     }
 
-                    OnAddedNewMeasurement?.Invoke(m);
+                    OnMeasured?.Invoke(m);
                 }
             }
             catch (Exception exc)
@@ -112,7 +115,7 @@ namespace Dcomms.SUBT
             }
         }
 
-        public event Action<SubtMeasurement> OnAddedNewMeasurement;
+        public event Action<SubtMeasurement> OnMeasured;
         public void Clear()
         {
             _measurements = new LinkedList<SubtMeasurement>();
@@ -125,11 +128,7 @@ namespace Dcomms.SUBT
     }
     public class SubtMeasurement
     {
-        public string GroupString => $"{MeasurementPeriodEndUtc.Hour}:{MeasurementPeriodEndUtc.Minute}";
-
-        public DateTime MeasurementPeriodEndUtc { get; set; }
-        public DateTime MeasurementPeriodEnd => MeasurementPeriodEndUtc.ToLocalTime();
-
+        public DateTime MeasurementTime { get; set; } // measurements from the past are passed via IIR filter      
         public float TargetBandwidth { get; set; }
         
         public float RxBandwidth { get; set; } // download

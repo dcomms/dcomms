@@ -55,7 +55,7 @@ namespace StarTrinity.ContinuousSpeedTest.CLI
                     subtLocalPeer
                 }
             });
-            subtLocalPeer.MeasurementsHistory.OnAddedNewMeasurement += MeasurementsHistory_OnAddedNewMeasurement;
+            subtLocalPeer.MeasurementsHistory.OnMeasured += MeasurementsHistory_OnAddedNewMeasurement;
 
             Console.WriteLine("running test...");
             Console.WriteLine($"target bandwidth: {subtLocalPeer.Configuration.BandwidthTarget.BandwidthToString()}");

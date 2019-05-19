@@ -44,8 +44,8 @@
             <TextBlock Grid.Row="0" Text="target: " FontSize="30" HorizontalAlignment="Right" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
             <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
                 <TextBlock Text="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetString}" FontSize="30" />
-                <Button Content="increase" Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetIncrease}" FontSize="20" />
-                <Button Content="decrease" Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetDecrease}" FontSize="20" />                
+                <Button Content="&#9195;" Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetIncrease}" FontSize="20" />
+                <Button Content="&#9196;"  Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetDecrease}" FontSize="20" />                
             </StackPanel>           
             
             <!--<TextBlock Visibility="{Binding ModeVisibility}" Text="mode: " FontSize="30" HorizontalAlignment="Right" />
@@ -64,54 +64,112 @@
             <Button Grid.Row="4" Grid.ColumnSpan="2"  Command="{Binding ResumeTest}" Content="Resume" FontSize="25" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}" />
                         
         </Grid>
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Visibility="{Binding MeasurementsVisibility}">
-            <TextBlock Text="Actual measurements:" />
-            <Button Command="{Binding ClearMeasurements}" Content="clear" />
-            <Button Command="{Binding ExportMeasurements}" Content="export" />
+        <!--<StackPanel Grid.Row="1" Orientation="Horizontal" Visibility="{Binding MeasurementsVisibility}">
+         
             <Button  Content="uptimes and downtimes history" />
-            <TextBlock Text="note: it may take 1 minute for the test to allocate bandwidth for you on our servers" />
-        </StackPanel>
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Measurements}" Visibility="{Binding MeasurementsVisibility}" Name="measurementsDataGrid" >
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Time" Binding="{Binding MeasurementPeriodEnd, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></DataGridTextColumn>
-                <DataGridTextColumn Header="Download" Binding="{Binding RxBandwidthString, Mode=OneTime}">
-                    <DataGridTextColumn.CellStyle>
-                        <Style TargetType="DataGridCell">
-                            <Setter Property="Background" Value="{Binding RxBandwidthColor, Converter={StaticResource ColorToBrushConverter}}" />
-                        </Style>
-                    </DataGridTextColumn.CellStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Packet loss" Binding="{Binding RxPacketLossString, Mode=OneTime}">
-                    <DataGridTextColumn.CellStyle>
-                        <Style TargetType="DataGridCell">
-                            <Setter Property="Background" Value="{Binding RxPacketLossColor, Converter={StaticResource ColorToBrushConverter}}" />
-                        </Style>
-                    </DataGridTextColumn.CellStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Upload" Binding="{Binding TxBandwidthString, Mode=OneTime}">
-                    <DataGridTextColumn.CellStyle>
-                        <Style TargetType="DataGridCell">
-                            <Setter Property="Background" Value="{Binding TxBandwidthColor, Converter={StaticResource ColorToBrushConverter}}" />
-                        </Style>
-                    </DataGridTextColumn.CellStyle>                    
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Packet loss" Binding="{Binding TxPacketLossString, Mode=OneTime}">
-                    <DataGridTextColumn.CellStyle>
-                        <Style TargetType="DataGridCell">
-                            <Setter Property="Background" Value="{Binding TxPacketLossColor, Converter={StaticResource ColorToBrushConverter}}" />
-                        </Style>
-                    </DataGridTextColumn.CellStyle>                    
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="RTT (ping)" Binding="{Binding BestRttToPeersString, Mode=OneTime}">
-                    <DataGridTextColumn.CellStyle>
-                        <Style TargetType="DataGridCell">
-                            <Setter Property="Background" Value="{Binding BestRttToPeersColor, Converter={StaticResource ColorToBrushConverter}}" />
-                        </Style>
-                    </DataGridTextColumn.CellStyle>
-                </DataGridTextColumn>
+        </StackPanel>-->
+
+        <TabControl Grid.Row="2" >
+            <TabItem IsSelected="{Binding MeasurementsTabIsSelected}">
+                <TabItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal"  DataContext="{Binding Source={StaticResource EasyGuiViewModel}}">
+                            <TextBlock Text="Measurements" VerticalAlignment="Bottom" Margin="3"/>
+                            <Button Command="{Binding ClearMeasurements}" Content="clear" />
+                            <Button Command="{Binding ExportMeasurements}" Content="export" />
+                            <!--<TextBlock Text="note: it may take 1 minute for the test to allocate bandwidth for you on our servers" />-->
+                        </StackPanel>
+                    </DataTemplate>
+                </TabItem.HeaderTemplate>                
+                <DataGrid ItemsSource="{Binding Measurements}" Visibility="{Binding MeasurementsVisibility}" Name="measurementsDataGrid" >
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Time" Binding="{Binding MeasurementTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></DataGridTextColumn>
+                        <DataGridTextColumn Header="Download" Binding="{Binding RxBandwidthString, Mode=OneTime}">
+                            <DataGridTextColumn.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Background" Value="{Binding RxBandwidthColor, Converter={StaticResource ColorToBrushConverter}}" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Packet loss" Binding="{Binding RxPacketLossString, Mode=OneTime}">
+                            <DataGridTextColumn.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Background" Value="{Binding RxPacketLossColor, Converter={StaticResource ColorToBrushConverter}}" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Upload" Binding="{Binding TxBandwidthString, Mode=OneTime}">
+                            <DataGridTextColumn.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Background" Value="{Binding TxBandwidthColor, Converter={StaticResource ColorToBrushConverter}}" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>                    
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Packet loss" Binding="{Binding TxPacketLossString, Mode=OneTime}">
+                            <DataGridTextColumn.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Background" Value="{Binding TxPacketLossColor, Converter={StaticResource ColorToBrushConverter}}" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>                    
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="RTT (ping)" Binding="{Binding BestRttToPeersString, Mode=OneTime}">
+                            <DataGridTextColumn.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Background" Value="{Binding BestRttToPeersColor, Converter={StaticResource ColorToBrushConverter}}" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
 
                 
-            </DataGrid.Columns>
-        </DataGrid>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+            <TabItem IsSelected="{Binding UptimeStatisticsTabIsSelected}">
+                <TabItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" DataContext="{Binding Source={StaticResource EasyGuiViewModel}}">
+                            <TextBlock Text="Uptime" VerticalAlignment="Bottom" Margin="3"/>
+                            <TextBlock Text="{Binding MainVM.DowntimesTracker.TabHeaderString}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </TabItem.HeaderTemplate>
+                
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="uptime:" FontSize="20" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding MainVM.DowntimesTracker.UptimeDurationString}" FontSize="20" />
+                    <TextBlock Grid.Row="1" Text="downtime:" FontSize="20" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MainVM.DowntimesTracker.DowntimeDurationString}" FontSize="20" />
+
+
+
+                    <DataGrid Grid.Row="2" Grid.ColumnSpan="2"  ItemsSource="{Binding MainVM.DowntimesTracker.Fragments}" >
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Start" Binding="{Binding StartTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></DataGridTextColumn>
+                            <DataGridTextColumn Header="Stop" Binding="{Binding StopTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}'}"></DataGridTextColumn>
+                            <DataGridTextColumn Header="State" Binding="{Binding UpOrDownString}">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style TargetType="DataGridCell">
+                                        <Setter Property="Background" Value="{Binding UpOrDownColor, Converter={StaticResource ColorToBrushConverter}}" />
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>    
+                </Grid>                
+            </TabItem>
+        </TabControl>
+        
+        
     </Grid>
 </UserControl>

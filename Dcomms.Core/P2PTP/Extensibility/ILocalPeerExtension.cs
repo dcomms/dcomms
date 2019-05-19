@@ -64,6 +64,7 @@ namespace Dcomms.P2PTP.Extensibility
         PeerId LocalPeerId { get; }
         LocalPeerConfiguration Configuration { get; }
         DateTime DateTimeNowUtc { get; }
+        DateTime DateTimeNow { get; }
         void InvokeInManagerThread(Action a);
     }
 }

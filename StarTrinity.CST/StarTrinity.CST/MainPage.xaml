@@ -78,7 +78,7 @@
                                             <ColumnDefinition Width="60*"></ColumnDefinition>
                                             <ColumnDefinition Width="90*"></ColumnDefinition>
                                         </Grid.ColumnDefinitions>
-                                        <Label Grid.Row="0" Grid.ColumnSpan="5" Text="{Binding MeasurementPeriodEnd, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></Label>
+                                        <Label Grid.Row="0" Grid.ColumnSpan="5" Text="{Binding MeasurementTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></Label>
                                         <Label Grid.Row="1" Grid.Column="0" Text="{Binding RxBandwidthString, Mode=OneTime}" TextColor="Black" BackgroundColor="{Binding RxBandwidthColor}" />
                                         <Label Grid.Row="1" Grid.Column="1" Text="{Binding RxPacketLossString, Mode=OneTime}"  TextColor="{Binding RxPacketLossColor_UBw}" />
                                         <Label Grid.Row="1" Grid.Column="2" Text="{Binding TxBandwidthString, Mode=OneTime}" TextColor="Black"  BackgroundColor="{Binding TxBandwidthColor}" />

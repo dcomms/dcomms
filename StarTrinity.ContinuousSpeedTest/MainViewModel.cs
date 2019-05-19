@@ -184,7 +184,7 @@ namespace StarTrinity.ContinuousSpeedTest
         public LocalPeer LocalPeer { get; private set; }
         public SubtLocalPeer SubtLocalPeer { get; private set; }
         public EasyGuiViewModel EasyGuiViewModel { get; private set; }
-
+        public DowntimesTracker DowntimesTracker { get; private set; }
         static MainViewModel _instance;
         public MainViewModel()
         {
@@ -195,6 +195,7 @@ namespace StarTrinity.ContinuousSpeedTest
             _timer.Tick += Timer_Tick_1sec;
             _timer.Start();
             EasyGuiViewModel = new EasyGuiViewModel(this);
+            DowntimesTracker = new DowntimesTracker(this);
         }
         public DelegateCommand Initialize => new DelegateCommand(() =>
                 {
@@ -213,7 +214,10 @@ namespace StarTrinity.ContinuousSpeedTest
                     }
                     EasyGuiViewModel.OnInitialized();
                     CanHandleException = true;
-                }); 
+
+                    SubtLocalPeer.MeasurementsHistory.OnMeasured += DowntimesTracker.MeasurementsHistory_OnMeasured;
+                });
+        
         public bool Initialized => LocalPeer != null;
         internal static bool CanHandleException = false;
         public void Dispose()
@@ -239,6 +243,11 @@ namespace StarTrinity.ContinuousSpeedTest
                 LocalPeer = null;
             }
         });
+
+        internal void InvokeInGuiThread(Action a)
+        {
+            Dispatcher.CurrentDispatcher.Invoke(a);
+        }
 
         #region refresh GUI on timer
         DispatcherTimer _timer;

@@ -77,7 +77,25 @@ namespace Dcomms
             else return String.Format("{0:0.0}h", ts.Value.TotalHours);
         }
 
-       
+
+        public static string TimeSpanToStringHMS(this TimeSpan ts)
+        {
+            var r = new StringBuilder();
+            var d = (int)Math.Floor(ts.TotalDays);
+            if (d != 0)
+                r.AppendFormat("{0}d ", d);
+
+            if (r.Length != 0 || ts.Hours != 0)
+                r.AppendFormat("{0}h ", ts.Hours);
+
+            if (r.Length != 0 || ts.Minutes != 0)
+                r.AppendFormat("{0}m ", ts.Minutes);
+
+            r.AppendFormat("{0}s", ts.Seconds);
+
+            return r.ToString();
+        }
+
         public static Color RttToColor(this TimeSpan? rtt)
         {
             if (!rtt.HasValue) return Color.Transparent;

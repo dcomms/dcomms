@@ -76,7 +76,7 @@ namespace StarTrinity.CST
                         _subtLocalPeer
                     }
                 });
-                _subtLocalPeer.MeasurementsHistory.OnAddedNewMeasurement += MeasurementsHistory_OnAddedNewMeasurement;
+                _subtLocalPeer.MeasurementsHistory.OnMeasured += MeasurementsHistory_OnAddedNewMeasurement;
 
                 _timer = new Timer(100);
                 _timer.Elapsed += _timer_Elapsed;

@@ -17,6 +17,7 @@ namespace StarTrinity.ContinuousSpeedTest
         public MainViewModel MainVM => _mainVM;
         public EasyGuiViewModel(MainViewModel mainVM)
         {
+            if (Application.Current != null) Application.Current.Resources.Add("EasyGuiViewModel", this);
             _mainVM = mainVM;
 
             _timer = new DispatcherTimer(DispatcherPriority.SystemIdle);
@@ -26,14 +27,16 @@ namespace StarTrinity.ContinuousSpeedTest
         }
         internal void OnInitialized()
         {
-            _mainVM.SubtLocalPeer.MeasurementsHistory.OnAddedNewMeasurement += MeasurementsHistory_OnAddedNewMeasurement;
+            _mainVM.SubtLocalPeer.MeasurementsHistory.OnMeasured += MeasurementsHistory_OnMeasured;
         }
+        public bool MeasurementsTabIsSelected { get; set; } = true;
+        public bool UptimeStatisticsTabIsSelected { get; set; }
 
-        private void MeasurementsHistory_OnAddedNewMeasurement(SubtMeasurement m) // manager thread
+        private void MeasurementsHistory_OnMeasured(SubtMeasurement m) // manager thread
         {
-            if (_mainVM.EasyGuiTabIsSelected)
+            if (_mainVM.EasyGuiTabIsSelected && MeasurementsTabIsSelected)
             {
-                Dispatcher.CurrentDispatcher.Invoke(() =>
+                _mainVM.InvokeInGuiThread(() =>
                 {
                     RaisePropertyChanged(() => Measurements);
                     OnAddedNewMeasurement?.Invoke(m);
@@ -62,24 +65,31 @@ namespace StarTrinity.ContinuousSpeedTest
         DispatcherTimer _timer;
         private void Timer_Tick(object sender, EventArgs e)
         {
-            var subtLocalPeer = _mainVM.SubtLocalPeer;
-            if (subtLocalPeer != null)
+            if (_mainVM.EasyGuiTabIsSelected)
             {
-                subtLocalPeer.LocalPeer.InvokeInManagerThread(() =>
-                {
-                    _latestMeasurement = subtLocalPeer.MeasurementsHistory.Measure(_mainVM.SubtLocalPeer);
-                });
-            }
 
-            RaisePropertyChanged(() => RecentRxBandwidthString);
-            RaisePropertyChanged(() => RecentTxBandwidthString);
-            RaisePropertyChanged(() => RecentRttString);
-            RaisePropertyChanged(() => MeasurementsVisibility);
-            RaisePropertyChanged(() => StartVisibility);
+                var subtLocalPeer = _mainVM.SubtLocalPeer;
+                if (subtLocalPeer != null)
+                {
+                    subtLocalPeer.LocalPeer.InvokeInManagerThread(() =>
+                    {
+                        _latestMeasurement = subtLocalPeer.MeasurementsHistory.Measure(_mainVM.SubtLocalPeer);
+                    });
+                }
+
+                RaisePropertyChanged(() => RecentRxBandwidthString);
+                RaisePropertyChanged(() => RecentTxBandwidthString);
+                RaisePropertyChanged(() => RecentRttString);
+                RaisePropertyChanged(() => MeasurementsVisibility);
+                RaisePropertyChanged(() => StartVisibility);
+
+              
+                _mainVM.DowntimesTracker.UpdateGui();
+              
+            }
         }
 
         SubtMeasurement _latestMeasurement;
-
         public Visibility MeasurementsVisibility => (_mainVM.Initialized || IsPaused) ? Visibility.Visible : Visibility.Collapsed;
         public string RecentRxBandwidthString => _latestMeasurement?.RxBandwidth.BandwidthToString();
         public string RecentTxBandwidthString => _latestMeasurement?.TxBandwidth.BandwidthToString();
@@ -97,6 +107,7 @@ namespace StarTrinity.ContinuousSpeedTest
         public ICommand StartTest => new DelegateCommand(() =>
         {
             _mainVM.SubtLocalPeerConfigurationBandwidthTarget = MainViewModel.InitialBandwidthTarget;
+            _mainVM.PredefinedReleaseMode.Execute(null);
             _mainVM.Initialize.Execute(null);
             RaisePropertyChanged(() => MeasurementsVisibility);
             RaisePropertyChanged(() => StartVisibility);
@@ -119,7 +130,6 @@ namespace StarTrinity.ContinuousSpeedTest
         });
 
         public IEnumerable<SubtMeasurement> Measurements => _mainVM.SubtLocalPeer?.MeasurementsHistory?.Measurements;
-
         public ICommand ClearMeasurements => new DelegateCommand(() =>
         {
             _mainVM.SubtLocalPeer?.MeasurementsHistory?.Clear();
@@ -139,10 +149,10 @@ namespace StarTrinity.ContinuousSpeedTest
                 foreach (var m in Measurements.ToList())
                 {
                     sb.AppendFormat("{1}{0:yyyy-MM-DD HH:mm:ss}{2}{0}{3}{0}{4}{0}{5}{0}{6}{0}{7}{0}{8}\r\n", delimiter, 
-                        m.MeasurementPeriodEnd, m.RxBandwidth, m.RxBandwidthString, m.RxPacketLoss * 100, m.TxBandwidth, m.TxBandwidthString, m.TxPacketLoss * 100, m.BestRttToPeers?.TotalMilliseconds
+                        m.MeasurementTime, m.RxBandwidth, m.RxBandwidthString, m.RxPacketLoss * 100, m.TxBandwidth, m.TxBandwidthString, m.TxPacketLoss * 100, m.BestRttToPeers?.TotalMilliseconds
                         );
                 }
-                sb.Append("The file is generated with StarTrinity Continuous Speed Test software. Write an email to support@startrinity.com in case of any problems");
+                sb.Append("The file is generated by StarTrinity Continuous Speed Test software. Write an email to support@startrinity.com in case of any problems");
                 System.IO.File.WriteAllText(dlg.FileName, sb.ToString());               
             }
         });

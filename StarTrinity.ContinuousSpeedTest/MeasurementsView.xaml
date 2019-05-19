@@ -9,7 +9,7 @@
     <Grid>
         <!--<DataGrid ItemsSource="{Binding SubtLocalPeer.MeasurementsHistory.Measurements}"  >
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Time (UTC)" Binding="{Binding MeasurementPeriodEndUtc, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></DataGridTextColumn>
+                <DataGridTextColumn Header="Time" Binding="{Binding MeasurementTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></DataGridTextColumn>
                 <DataGridTextColumn Header="Downstream bandwidth" Binding="{Binding RxBandwidthString, Mode=OneTime}">
                     <DataGridTextColumn.CellStyle>
                         <Style TargetType="DataGridCell">

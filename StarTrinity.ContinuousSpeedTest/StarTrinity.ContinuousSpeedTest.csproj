@@ -59,6 +59,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="DowntimesTracker.cs" />
     <Compile Include="EasyGuiView.xaml.cs">
       <DependentUpon>EasyGuiView.xaml</DependentUpon>
     </Compile>

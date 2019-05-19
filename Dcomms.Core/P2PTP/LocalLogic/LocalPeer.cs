@@ -30,7 +30,8 @@ namespace Dcomms.P2PTP.LocalLogic
         long ILocalPeer.Time64 => _stopwatch.Elapsed.Ticks;
         Random ILocalPeer.Random => Random;
         DateTime ILocalPeer.DateTimeNowUtc => DateTimeNowUtc;
-
+        public DateTime DateTimeNow => DateTimeNowUtc.ToLocalTime();
+     
         internal List<SocketWithReceiver> Receivers; // list is not modified after startup // is read by many threads
         public IEnumerable<SocketWithReceiver> SocketWithReceivers => Receivers?.ToList(); // need to copy list here to make WPF GUI updated
         internal Manager Manager; // set by Manager in ctor, intentionally
