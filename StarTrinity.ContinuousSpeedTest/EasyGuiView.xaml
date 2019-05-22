@@ -59,15 +59,19 @@
             <TextBlock Grid.Row="3" Text="RTT (ping): " FontSize="30" HorizontalAlignment="Right" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
             <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding RecentRttString}" FontSize="30" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
 
+            <Button Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding PauseTest}" Content="Pause" FontSize="25" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
+            <Button Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding ResumeTest}" Content="Resume" FontSize="25" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}" />
 
-            <Button Grid.Row="4" Grid.ColumnSpan="2"  Command="{Binding PauseTest}" Content="Pause" FontSize="25" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
-            <Button Grid.Row="4" Grid.ColumnSpan="2"  Command="{Binding ResumeTest}" Content="Resume" FontSize="25" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}" />
-                        
         </Grid>
-        <!--<StackPanel Grid.Row="1" Orientation="Horizontal" Visibility="{Binding MeasurementsVisibility}">
-         
-            <Button  Content="uptimes and downtimes history" />
-        </StackPanel>-->
+        <Grid Grid.Row="1">
+            <StackPanel Orientation="Horizontal" Visibility="{Binding MainVM.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
+                <Button Content="Install" Command="{Binding MainVM.InstallOnThisPC}" FontSize="20" />
+                <CheckBox Content="start with windows" IsChecked="{Binding MainVM.InstallOnThisPC_AddToAutoStart}" FontSize="15" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Visibility="{Binding MainVM.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Button Content="Uninstall" Command="{Binding MainVM.UninstallOnThisPc}" FontSize="15" />
+            </StackPanel>         
+        </Grid>
 
         <TabControl Grid.Row="2" >
             <TabItem IsSelected="{Binding MeasurementsTabIsSelected}">

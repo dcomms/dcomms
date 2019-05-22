@@ -25,3 +25,4 @@
 /StarTrinity.CST/StarTrinity.CST/bin/Debug/netstandard2.0
 /.vs
 /Dcomms.Core/P2PTP/tt/VersionAndCompiledDateCs.cs
+*.user

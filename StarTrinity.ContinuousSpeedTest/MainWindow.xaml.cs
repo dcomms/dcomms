@@ -18,18 +18,60 @@ namespace StarTrinity.ContinuousSpeedTest
 {
     public partial class MainWindow : Window
     {
+        private System.Windows.Forms.NotifyIcon _notifyIcon;
+
         readonly MainViewModel _mainVM = new MainViewModel();
+
+
         public MainWindow()
         {
-         //   MessageBox.Show("mainwindow 01");
             this.DataContext = _mainVM;
             InitializeComponent();
             this.Title += " version " + CompilationInfo.CompilationDateTimeUtcStr;
+          
+            if (_mainVM.AutoStartedInTrayMode)
+            {
+                _notifyIcon = new System.Windows.Forms.NotifyIcon();
+                _notifyIcon.Text = this.Title;
+                var iconStream = Application.GetResourceStream(new Uri("pack://application:,,,/StarTrinity.ContinuousSpeedTest;component/icon.ico")).Stream;
+                _notifyIcon.Icon = new System.Drawing.Icon(iconStream);
+                _notifyIcon.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(NotifyIcon_MouseDoubleClick);
+                this.WindowState = WindowState.Minimized;
+                this.Hide();
+                _notifyIcon.Visible = true;
+                this.ShowInTaskbar = false;
+            }
         }
 
         private void Window_Closed(object sender, EventArgs e)
         {
             _mainVM.Dispose();
+        }
+
+        void NotifyIcon_MouseDoubleClick(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            this.WindowState = WindowState.Normal;
+            this.Show();
+            this.Activate();
+            this.ShowInTaskbar = true;
+        }
+
+        private void Window_StateChanged(object sender, EventArgs e)
+        {
+            if (_mainVM.AutoStartedInTrayMode)
+            {
+                if (this.WindowState == WindowState.Minimized)
+                {
+                    this.ShowInTaskbar = false;
+                    _notifyIcon.BalloonTipTitle = this.Title;
+                    _notifyIcon.BalloonTipText = "running in background";
+                    _notifyIcon.ShowBalloonTip(400);
+                }
+                else
+                {
+                    this.ShowInTaskbar = true;
+                }
+            }
         }
     }
 }

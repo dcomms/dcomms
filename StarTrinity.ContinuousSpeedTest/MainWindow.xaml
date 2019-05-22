@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:StarTrinity.ContinuousSpeedTest"
         mc:Ignorable="d" WindowStartupLocation="CenterScreen"
-        Title="StarTrinity Continuous Speed Test" Height="700" Width="1100" Closed="Window_Closed" Icon="icon.ico">
+        Title="StarTrinity Continuous Speed Test" Height="700" Width="1100" Closed="Window_Closed" Icon="icon.ico" StateChanged="Window_StateChanged">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
