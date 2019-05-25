@@ -12,19 +12,33 @@ namespace StarTrinity.ContinuousSpeedTest
     {
         protected override void OnStartup(StartupEventArgs e)
         {
-            var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
-            string currentProcessFileName = currentProcess.MainModule.FileName;
-            foreach (var runningProcess in System.Diagnostics.Process.GetProcessesByName(currentProcess.ProcessName))
+            try
             {
-                if (runningProcess.Id != currentProcess.Id)
+                var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
+                string currentProcessFileName = currentProcess.MainModule.FileName;
+                foreach (var runningProcess in System.Diagnostics.Process.GetProcessesByName(currentProcess.ProcessName))
                 {
-                    if (runningProcess.MainModule.FileName == currentProcessFileName)
+                    try
                     {
-                        MessageBox.Show($"The application is already running from {currentProcessFileName}.\r\n\r\nPlease open the running application in Windows tray bar", "StarTrinity CST", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK);     
-                        Environment.Exit(0);
-                        return;
+                        if (runningProcess.Id != currentProcess.Id)
+                        {
+                            if (runningProcess.MainModule.FileName == currentProcessFileName)
+                            {
+                                MessageBox.Show($"The application is already running from {currentProcessFileName}.\r\n\r\nPlease open the running application in Windows tray bar", "StarTrinity CST", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK);
+                                Environment.Exit(0);
+                                return;
+                            }
+                        }
+                    }
+                    catch (Exception exc)
+                    {
+                        HandleException(exc);
                     }
                 }
+            }
+            catch (Exception exc)
+            {
+                HandleException(exc);
             }
 
             AppDomain currentDomain = AppDomain.CurrentDomain;

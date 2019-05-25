@@ -66,7 +66,7 @@
         <Grid Grid.Row="1">
             <StackPanel Orientation="Horizontal" Visibility="{Binding MainVM.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
                 <Button Content="Install" Command="{Binding MainVM.InstallOnThisPC}" FontSize="20" />
-                <CheckBox Content="start with windows" IsChecked="{Binding MainVM.InstallOnThisPC_AddToAutoStart}" FontSize="15" />
+                <CheckBox Content="start with windows" IsChecked="{Binding MainVM.InstallOnThisPC_AddToAutoStart}" FontSize="15" VerticalAlignment="Center" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Visibility="{Binding MainVM.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Button Content="Uninstall" Command="{Binding MainVM.UninstallOnThisPc}" FontSize="15" />
