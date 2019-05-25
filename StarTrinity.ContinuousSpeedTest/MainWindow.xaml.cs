@@ -21,7 +21,7 @@ namespace StarTrinity.ContinuousSpeedTest
         private System.Windows.Forms.NotifyIcon _notifyIcon;
 
         readonly MainViewModel _mainVM = new MainViewModel();
-
+        bool _exitMenuItemClicked;
 
         public MainWindow()
         {
@@ -43,7 +43,7 @@ namespace StarTrinity.ContinuousSpeedTest
                     Index = 0,
                     Text = "E&xit"
                 };
-                menuItem1.Click += (s, e) => this.Close();
+                menuItem1.Click += (s, e) => { _exitMenuItemClicked = true; this.Close(); };
                 contextMenu.MenuItems.AddRange(new [] { menuItem1 });
 
 
@@ -89,6 +89,15 @@ namespace StarTrinity.ContinuousSpeedTest
                 {
                     this.ShowInTaskbar = true;
                 }
+            }
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (_mainVM.AutoStartedInTrayMode && _exitMenuItemClicked == false)
+            {
+                e.Cancel = true;
+                this.WindowState = WindowState.Minimized;
             }
         }
     }

@@ -7,7 +7,7 @@ namespace Dcomms.P2PTP
 			{
 				get
 				{
-					return 12474816;
+					return 12476411;
 				}
 			}
 			public static System.DateTime ToDateTime(uint seconds)

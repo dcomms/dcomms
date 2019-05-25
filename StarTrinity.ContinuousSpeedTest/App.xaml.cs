@@ -30,15 +30,15 @@ namespace StarTrinity.ContinuousSpeedTest
                             }
                         }
                     }
-                    catch (Exception exc)
-                    {
-                        HandleException(exc);
+                    catch// (Exception exc)
+                    { // ignore: can do nothing, dont annoy user
+                     //   HandleException(exc);
                     }
                 }
             }
-            catch (Exception exc)
-            {
-                HandleException(exc);
+            catch// (Exception exc)
+            {// ignore: can do nothing, dont annoy user
+             //   HandleException(exc);
             }
 
             AppDomain currentDomain = AppDomain.CurrentDomain;
