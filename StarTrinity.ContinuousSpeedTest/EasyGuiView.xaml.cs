@@ -21,34 +21,34 @@ namespace StarTrinity.ContinuousSpeedTest
         public EasyGuiView()
         {
             InitializeComponent();
-            DataContextChanged += EasyGuiView_DataContextChanged;
+         //   DataContextChanged += EasyGuiView_DataContextChanged;
         }
 
-        private void EasyGuiView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
-        {
-            var vm = e.NewValue as EasyGuiViewModel;
-            if (vm != null)
-                vm.OnAddedNewMeasurement += EasyGuiView_OnAddedNewMeasurement;
-        }
+        //private void EasyGuiView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        //{
+        //    var vm = e.NewValue as EasyGuiViewModel;
+        //    if (vm != null)
+        //        vm.OnAddedNewMeasurement += EasyGuiView_OnAddedNewMeasurement;
+        //}
 
-        private void EasyGuiView_OnAddedNewMeasurement(SubtMeasurement m)
-        {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                if (VisualTreeHelper.GetChildrenCount(measurementsDataGrid) != 0)
-                {
-                    var border = VisualTreeHelper.GetChild(measurementsDataGrid, 0) as Decorator;
-                    if (border != null)
-                    {
-                        var scroll = border.Child as ScrollViewer;
-                        if (scroll != null) scroll.ScrollToEnd();
-                    }
-                }
+        //private void EasyGuiView_OnAddedNewMeasurement(SubtMeasurement m)
+        //{
+        //    Dispatcher.BeginInvoke(new Action(() =>
+        //    {
+        //        if (VisualTreeHelper.GetChildrenCount(measurementsDataGrid) != 0)
+        //        {
+        //            var border = VisualTreeHelper.GetChild(measurementsDataGrid, 0) as Decorator;
+        //            if (border != null)
+        //            {
+        //                var scroll = border.Child as ScrollViewer;
+        //                if (scroll != null) scroll.ScrollToEnd();
+        //            }
+        //        }
 
 
-               // measurementsDataGrid.ScrollIntoView(m);
-            }));
+        //       // measurementsDataGrid.ScrollIntoView(m);
+        //    }));
 
-        }
+       // }
     }
 }

@@ -12,6 +12,21 @@ namespace StarTrinity.ContinuousSpeedTest
     {
         protected override void OnStartup(StartupEventArgs e)
         {
+            var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
+            string currentProcessFileName = currentProcess.MainModule.FileName;
+            foreach (var runningProcess in System.Diagnostics.Process.GetProcessesByName(currentProcess.ProcessName))
+            {
+                if (runningProcess.Id != currentProcess.Id)
+                {
+                    if (runningProcess.MainModule.FileName == currentProcessFileName)
+                    {
+                        MessageBox.Show($"The application is already running from {currentProcessFileName}.\r\n\r\nPlease open the running application in Windows tray bar", "StarTrinity CST", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK);     
+                        Environment.Exit(0);
+                        return;
+                    }
+                }
+            }
+
             AppDomain currentDomain = AppDomain.CurrentDomain;
             currentDomain.UnhandledException += new UnhandledExceptionEventHandler(UnhandledExceptionEventHandler);
 

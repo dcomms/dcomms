@@ -387,23 +387,30 @@ namespace StarTrinity.ContinuousSpeedTest
         }
         public DelegateCommand Initialize => new DelegateCommand(() =>
                 {
-                    if (DeveloperMode == false)
-                        PredefinedReleaseMode.Execute(null);
-
-                    SubtLocalPeer = new SubtLocalPeer(SubtLocalPeerConfiguration, SubtLocalPeer);
-                    LocalPeerConfiguration.Extensions = new[] { SubtLocalPeer };                 
-                    LocalPeerConfiguration.LocalPeerUser = this;
-                    LocalPeer = new LocalPeer(LocalPeerConfiguration);
-                    RaisePropertyChanged(() => Initialized);
-                    if (DeveloperMode)
+                    try
                     {
-                        ConnectedPeersTabIsSelected = true;
-                        RaisePropertyChanged(() => ConnectedPeersTabIsSelected);
-                    }
-                    EasyGuiViewModel.OnInitialized();
-                    CanHandleException = true;
+                        if (DeveloperMode == false)
+                            PredefinedReleaseMode.Execute(null);
 
-                    SubtLocalPeer.MeasurementsHistory.OnMeasured += DowntimesTracker.MeasurementsHistory_OnMeasured;
+                        SubtLocalPeer = new SubtLocalPeer(SubtLocalPeerConfiguration, SubtLocalPeer);
+                        LocalPeerConfiguration.Extensions = new[] { SubtLocalPeer };
+                        LocalPeerConfiguration.LocalPeerUser = this;
+                        LocalPeer = new LocalPeer(LocalPeerConfiguration);
+                        RaisePropertyChanged(() => Initialized);
+                        if (DeveloperMode)
+                        {
+                            ConnectedPeersTabIsSelected = true;
+                            RaisePropertyChanged(() => ConnectedPeersTabIsSelected);
+                        }
+                        EasyGuiViewModel.OnInitialized();
+                        CanHandleException = true;
+
+                        SubtLocalPeer.MeasurementsHistory.OnMeasured += DowntimesTracker.MeasurementsHistory_OnMeasured;
+                    }
+                    catch (Exception exc)
+                    {
+                        HandleException(exc, true);
+                    }
                 });
         
         public bool Initialized => LocalPeer != null;
@@ -434,7 +441,7 @@ namespace StarTrinity.ContinuousSpeedTest
 
         internal void InvokeInGuiThread(Action a)
         {
-            Dispatcher.CurrentDispatcher.Invoke(a);
+            App.Current.Dispatcher.Invoke(a);
         }
 
         #region refresh GUI on timer
@@ -465,13 +472,13 @@ namespace StarTrinity.ContinuousSpeedTest
         
         #region selected tabs
         public bool TechTabIsSelected { get; set; }
-#if DEBUG
+#if DEBUG2
             = true;
 #else
             = false;
 #endif
         public bool EasyGuiTabIsSelected { get; set; }
-#if DEBUG
+#if DEBUG2
             = false;
 #else
             = true;
@@ -480,13 +487,15 @@ namespace StarTrinity.ContinuousSpeedTest
 #endregion
 
 #region logging
-        internal static void HandleException(Exception exc)
+        internal static void HandleException(Exception exc, bool showMessageBox = false)
         {
             if (_instance != null && _instance.LocalPeer != null)
             {
                 _instance.LocalPeer.HandleGuiException(exc);
+                if (showMessageBox)
+                    MessageBox.Show("Error: " + exc.Message);
             }
-            else System.Windows.MessageBox.Show("Error: " + exc.ToString());
+            else MessageBox.Show("Error: " + exc.ToString());
         }
         public int LogMessagesMaxRamCount { get; set; } = 100000;
         int _logMessagesMaxDisplayCount = 1000;

@@ -17,40 +17,31 @@ namespace StarTrinity.ContinuousSpeedTest
         public DowntimesTracker(MainViewModel mainVM)
         {
             _mainVM = mainVM;
+            Clear.Execute(null);
         }
 
         public ICommand Clear => new DelegateCommand(() =>
-        {
+        {           
+            Fragments.Clear();
             _currentFragment = null;
-            _fragments = new LinkedList<UpDownTimeFragment>(); // locked
+            UpdateGui();           
         });
 
-        DateTime? _lastTimeUpdatedFragmentsGui;
-        internal void UpdateGui()
+        internal void UpdateGui() // 100ms
         {
             RaisePropertyChanged(() => TabHeaderString);
-
-            if (_mainVM.EasyGuiViewModel.UptimeStatisticsTabIsSelected)
+            if (_mainVM.LocalPeer != null)
             {
-                if (_mainVM.LocalPeer != null)
-                {
-                    RaisePropertyChanged(() => UptimeDurationString);
-                    RaisePropertyChanged(() => DowntimeDurationString);
-
-                    var dt = _mainVM.LocalPeer.DateTimeNowUtc;
-
-                    if (_lastTimeUpdatedFragmentsGui == null || dt > _lastTimeUpdatedFragmentsGui.Value.AddSeconds(2))
-                    {
-                        _lastTimeUpdatedFragmentsGui = dt;
-                        _mainVM.InvokeInGuiThread(() => { RaisePropertyChanged(() => Fragments); });
-                    }
-                }
+                if (_currentFragment != null)
+                    _currentFragment.SetStopTime(_mainVM.LocalPeer.DateTimeNow);              
+                RaisePropertyChanged(() => UptimeDurationString);
+                RaisePropertyChanged(() => DowntimeDurationString);
             }
         }
 
         UpDownTimeFragment _currentFragment = null; // accessed by manager thread
 
-        static bool IsItUptime(SubtMeasurement m)
+        public static bool IsItUptime(SubtMeasurement m)
         {
             if (m.RxBandwidth < m.TargetBandwidth * 0.1f) return false;
             if (m.TxBandwidth < m.TargetBandwidth * 0.1f) return false;
@@ -87,80 +78,79 @@ namespace StarTrinity.ContinuousSpeedTest
                 return String.Format("{0} ({1:0.0000}%). {2} downtime(s)", downtimeDuration.TimeSpanToStringHMS(), 100.0 * downtimeDuration.Ticks / (uptimeDuration.Ticks + downtimeDuration.Ticks), numberOfDowntimes);
             }
         }
-        LinkedList<UpDownTimeFragment> _fragments = new LinkedList<UpDownTimeFragment>(); // locked
-        public List<UpDownTimeFragment> Fragments
-        {
-            get
-            {
-                lock (_fragments)
-                { 
-                    var r = _fragments.ToList();
-                    if (_currentFragment != null)
-                    {
-                        _currentFragment.StopTime = _mainVM.LocalPeer.DateTimeNow;
-                        r.Add(_currentFragment);
-                    }
-                    return r;
-                }
-            }
-        }
-        void GetDurations(out TimeSpan uptimeDuration, out TimeSpan downtimeDuration, out int numberOfDowntimes)
+        public ObservableCollection<UpDownTimeFragment> Fragments { get; private set; } = new ObservableCollection<UpDownTimeFragment>(); // newest first
+      
+        void GetDurations(out TimeSpan uptimeDuration, out TimeSpan downtimeDuration, out int numberOfDowntimes) // gui thead
         {
             uptimeDuration = TimeSpan.Zero;
             downtimeDuration = TimeSpan.Zero;
             numberOfDowntimes = 0;
-            lock (_fragments)
+           
+            foreach (var f in Fragments)
             {
-                foreach (var f in Fragments)
+                var duration = (f.StopTime - f.StartTime);
+                if (f.UpOrDown)
+                    uptimeDuration += duration;
+                else
                 {
-                    var duration = (f.StopTime.Value - f.StartTime);
-                    if (f.UpOrDown)
-                        uptimeDuration += duration;
-                    else
-                    {
-                        downtimeDuration += duration;
-                        numberOfDowntimes++;
-                    }
-                }              
-            }
+                    downtimeDuration += duration;
+                    numberOfDowntimes++;
+                }
+            }  
         }
 
         internal void MeasurementsHistory_OnMeasured(SubtMeasurement m) // manager thread
         {
-            if (_currentFragment == null)
+            _mainVM.InvokeInGuiThread(() =>
             {
-                if (IsItUptime(m))
+                if (_currentFragment == null)
                 {
-                    _currentFragment = new UpDownTimeFragment
+                    if (IsItUptime(m))
                     {
-                        StartTime = m.MeasurementTime,
-                        UpOrDown = true,
-                    };
+                        _currentFragment = new UpDownTimeFragment
+                        {
+                            StartTime = m.MeasurementTime,
+                            StopTime = m.MeasurementTime,
+                            UpOrDown = true,
+                        };
+                        Fragments.Insert(0, _currentFragment);
+                    }
                 }
-            }
-            else
-            {
-                var up = IsItUptime(m);
-                if (_currentFragment.UpOrDown ^ up)
+                else
                 {
-                    _currentFragment.StopTime = m.MeasurementTime;
-                    lock (_fragments)
-                        _fragments.AddLast(_currentFragment);
-                    
-                    _currentFragment = new UpDownTimeFragment
+                    var up = IsItUptime(m);
+                    if (_currentFragment.UpOrDown ^ up)
                     {
-                        StartTime = m.MeasurementTime,
-                        UpOrDown = up,
-                    };
+                        _currentFragment.SetStopTime(m.MeasurementTime); 
+                        _currentFragment = new UpDownTimeFragment
+                        {
+                            StartTime = m.MeasurementTime,
+                            StopTime = m.MeasurementTime,
+                            UpOrDown = up,
+                        };
+                        Fragments.Insert(0, _currentFragment);
+                    }
                 }
-            }
+            });
         }
     }
-    public class UpDownTimeFragment
+    public class UpDownTimeFragment: BaseNotify
     {
+        public override string ToString() => $"{UpOrDownString} [{StartTime}-{StopTime}] ({DurationString})";
+
         public DateTime StartTime { get; set; }
-        public DateTime? StopTime { get; set; } // is null only for current fragment
-        TimeSpan Duration => ((StopTime ?? DateTime.Now) - StartTime);
+        public DateTime StopTime { get; set; } // is nulllable only for current fragment
+
+        internal void SetStopTime(DateTime stopTime)
+        {
+            StopTime = stopTime;
+            RaisePropertyChanged(() => StopTime);
+            RaisePropertyChanged(() => StartTime);
+            RaisePropertyChanged(() => DurationString);
+            RaisePropertyChanged(() => DurationColor);
+        }
+
+        TimeSpan Duration => StopTime - StartTime;
         public string DurationString => Duration.TimeSpanToStringHMS();
         public Color DurationColor => UpOrDown ? MiscProcedures.UptimeDurationToColor(Duration) : MiscProcedures.DowntimeDurationToColor(Duration);
         public bool UpOrDown { get; set; }

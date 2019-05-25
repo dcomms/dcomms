@@ -48,8 +48,6 @@ namespace Dcomms.P2PTP.LocalLogic
         static LocalPeer _instance;
         public LocalPeer(LocalPeerConfiguration configuration)
         {
-            if (_instance != null) throw new InvalidOperationException();
-            _instance = this;
             if (configuration.LocalPeerUser == null) throw new ArgumentNullException(nameof(configuration.LocalPeerUser));
             if (configuration.Extensions == null) configuration.Extensions = new ILocalPeerExtension[0];
             User = configuration.LocalPeerUser;
@@ -57,7 +55,7 @@ namespace Dcomms.P2PTP.LocalLogic
             if (configuration.RoleAsUser)
             { // client
                 if (configuration.RoleAsSharedPassive || configuration.RoleAsCoordinator) throw new ArgumentException(nameof(configuration.RoleAsUser));
-                if (configuration.Coordinators == null || configuration.Coordinators.Length < 1) throw new ArgumentException(nameof(configuration.Coordinators));
+                if (configuration.Coordinators == null || configuration.Coordinators.Length < 1) throw new ArgumentException("Please enter coordinator server(s) details: IP addresses and ports");
                 //  if (configuration.SubtUserTargetBandwidthBps == null) throw new ArgumentException(nameof(configuration.SubtUserTargetBandwidthBps));
             }
             else if (configuration.RoleAsCoordinator)
@@ -74,6 +72,8 @@ namespace Dcomms.P2PTP.LocalLogic
 
             ExtensionsById = configuration.Extensions.ToDictionary(ext => ext.ExtensionId, ext => ext);
             Initialize();
+            if (_instance != null) throw new InvalidOperationException();
+            _instance = this;
         }
         void Initialize() // can be called twice, after previous disposing
         {

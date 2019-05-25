@@ -10,15 +10,97 @@ namespace Dcomms.SUBT
     /// </summary>
     public class SubtMeasurementsHistory
     {
-        LinkedList<SubtMeasurement> _measurements = new LinkedList<SubtMeasurement>(); // locked
-        public IEnumerable<SubtMeasurement> Measurements
+        LinkedList<SubtMeasurement> _measurementsInRam = new LinkedList<SubtMeasurement>(); // locked // newest first
+        public int MeasurementsCountInRam { get { lock (_measurementsInRam) return _measurementsInRam.Count; } }
+
+        public DateTime? DisplayMeasurementsMostRecentDateTime { get; set; } // null if = now
+        public int DisplayMeasurementsMaxCount { get; set; } = 20; // = page size
+        public IEnumerable<SubtMeasurement> DisplayedMeasurements // newest first
         {
             get
             {
-                lock (_measurements)
-                    return _measurements.ToList();
+                lock (_measurementsInRam)
+                {
+                    int returnedCount = 0;
+                    foreach (var m in _measurementsInRam)
+                    {
+                        if (DisplayMeasurementsMostRecentDateTime != null && m.MeasurementTime > DisplayMeasurementsMostRecentDateTime.Value)
+                            continue;
+
+                        yield return m;
+                        returnedCount++;
+                        if (returnedCount >= DisplayMeasurementsMaxCount)
+                            break;
+                    }
+                }
             }
         }
+        public void DisplayMeasurementsMostRecentDateTime_GotoEarlierMeasurements()
+        {
+            var oldestDisplayedM = DisplayedMeasurements.LastOrDefault();
+            if (oldestDisplayedM != null)
+            {
+                DisplayMeasurementsMostRecentDateTime = oldestDisplayedM.MeasurementTime;
+            }
+        }
+        public void DisplayMeasurementsMostRecentDateTime_GotoLaterMeasurements()
+        {
+            if (DisplayMeasurementsMostRecentDateTime == null) return;
+            lock (_measurementsInRam)
+            {
+                // enumerate measurements starting from tail (oldest)
+                // note when MeasurementTime is GREATER than DisplayMeasurementsMostRecentDateTime
+                // count, until DisplayMeasurementsMaxCount
+                // set new value to DisplayMeasurementsMostRecentDateTime
+
+                int counter = 0;
+                var item = _measurementsInRam.Last;
+                for (; ; )
+                {
+                    if (item == null) break;
+                    if (item.Value.MeasurementTime >= DisplayMeasurementsMostRecentDateTime.Value)
+                    {
+                        DisplayMeasurementsMostRecentDateTime = item.Value.MeasurementTime;
+                        counter++;
+                        if (counter >= DisplayMeasurementsMaxCount)
+                        {
+                            break;
+                        }
+                    }
+                    item = item.Previous;
+                }
+            }
+        }
+        public bool GotoPreviousDisplayedMeasurement(Func<SubtMeasurement,bool> gotoThisMeasurement)
+        {
+            lock (_measurementsInRam)
+            {
+                foreach (var m in _measurementsInRam)
+                {
+                    if (DisplayMeasurementsMostRecentDateTime != null && m.MeasurementTime >= DisplayMeasurementsMostRecentDateTime.Value)
+                        continue;
+
+                    if (gotoThisMeasurement(m) == true)
+                    {
+                        DisplayMeasurementsMostRecentDateTime = m.MeasurementTime;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        public List<SubtMeasurement> RamMeasurements
+        {
+            get
+            {
+                lock (_measurementsInRam)
+                {
+                    return _measurementsInRam.ToList();
+                }
+            }
+        }
+
+
         public SubtMeasurement Measure(SubtLocalPeer subtLocalPeer) // manager thread // used by easyGui
         {
             // measure
@@ -29,7 +111,6 @@ namespace Dcomms.SUBT
             float? averageRxLossG = null;
             foreach (var connectedPeer in subtLocalPeer.ConnectedPeers)
             {
-
                 AverageSingle averageTxLoss = new AverageSingle();
                 AverageSingle averageRxLoss = new AverageSingle();
                 foreach (var s in connectedPeer.Streams)
@@ -61,9 +142,8 @@ namespace Dcomms.SUBT
                         averageTxLossG = averageTxLossAverage;
                 }
             }
-
-
-            return new SubtMeasurement
+            
+            var r = new SubtMeasurement
             {
                 MeasurementTime = subtLocalPeer.LocalPeer.DateTimeNow,
                 TargetBandwidth = subtLocalPeer.Configuration.BandwidthTarget,
@@ -73,6 +153,7 @@ namespace Dcomms.SUBT
                 TxPacketLoss = averageTxLossG,
                 RxPacketLoss = averageRxLossG
             };
+            return r;
         }
       
         internal void OnReinitialized(SubtLocalPeer subtLocalPeer)
@@ -89,9 +170,7 @@ namespace Dcomms.SUBT
                 var now = subtLocalPeer.LocalPeer.DateTimeNowUtc;
                 if (_initializedTime == null) return;
                 if (now < _initializedTime.Value.AddTicks(SubtLogicConfiguration.MeasurementInitializationTimeTicks)) return;
-
-
-
+                               
                 if (_lastTimeMeasured == null || _lastTimeMeasured.Value.AddTicks(SubtLogicConfiguration.MeasurementsIntervalTicks) < now)
                 {
                     _lastTimeMeasured = now;
@@ -99,11 +178,11 @@ namespace Dcomms.SUBT
                     // measure
                     var m = Measure(subtLocalPeer);
 
-                    lock (_measurements)
+                    lock (_measurementsInRam)
                     {
-                        _measurements.AddLast(m);
-                        if (_measurements.Count > SubtLogicConfiguration.MaxMeasurementsCount)
-                            _measurements.RemoveFirst();
+                        _measurementsInRam.AddFirst(m);
+                        if (_measurementsInRam.Count > SubtLogicConfiguration.MaxMeasurementsCountInRAM)
+                            _measurementsInRam.RemoveLast();
                     }
 
                     OnMeasured?.Invoke(m);
@@ -118,12 +197,13 @@ namespace Dcomms.SUBT
         public event Action<SubtMeasurement> OnMeasured;
         public void Clear()
         {
-            _measurements = new LinkedList<SubtMeasurement>();
+            _measurementsInRam = new LinkedList<SubtMeasurement>();
         }
         internal void CopyFrom(SubtMeasurementsHistory previousInstanceBeforePause)
         {
-            foreach (var m in previousInstanceBeforePause._measurements)
-                _measurements.AddLast(m);
+            lock (previousInstanceBeforePause._measurementsInRam)
+                foreach (var m in previousInstanceBeforePause._measurementsInRam)
+                    _measurementsInRam.AddLast(m);
         }
     }
     public class SubtMeasurement
@@ -152,5 +232,8 @@ namespace Dcomms.SUBT
         public string TxPacketLossString => TxPacketLoss.HasValue ? String.Format("{0:0.00}%", TxPacketLoss * 100) : "";
         public System.Drawing.Color TxPacketLossColor => TxPacketLoss.PacketLossToColor();
         public System.Drawing.Color TxPacketLossColor_UBw => TxPacketLoss.PacketLossToColor_UBw();
+
+        public byte AppFlags0; // CST: 0x01 = up/down
+
     }
 }
