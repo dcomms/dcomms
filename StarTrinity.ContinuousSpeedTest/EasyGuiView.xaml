@@ -149,10 +149,15 @@
                             <ComboBox SelectedItem="{Binding DisplayMeasurementsMaxCount}" VerticalAlignment="Center" Padding="3 0" ItemsSource="{Binding DisplayMeasurementsMaxCounts}" Width="60" />
                             <TextBlock Text="latest measurements" VerticalAlignment="Center" />
 
-                            <Button Content="&#9195;" Height="22"  Command="{Binding DisplayMeasurementsGotoMostRecentMeasurements}" ToolTip="Go to most recent (newest) measurements" FontSize="20" Padding="-3" />
-                            <Button Content="&#9650;" Height="22"  Command="{Binding DisplayMeasurementsGotoLaterMeasurements}" ToolTip="Go to more recent (next) measurements" FontSize="15" />
-                            <Button Content="&#9660;" Height="22"  Command="{Binding DisplayMeasurementsGotoEarlierMeasurements}" ToolTip="Go to earlier (previous) measurements" FontSize="15" />
-                            <Button Content="&#9660;" Height="22" Foreground="#700"  Command="{Binding DisplayMeasurementsGotoPreviousDowntime}" ToolTip="Go to previous downtime" FontSize="15"  />
+                            <Button Height="22" Width="26" Command="{Binding DisplayMeasurementsGotoMostRecentMeasurements}" ToolTip="Go to most recent (newest) measurements">
+                                <Grid>
+                                    <TextBlock Text="&#9650;" FontSize="12" Margin="0 4 0 0" />
+                                    <TextBlock Text="&#9650;" FontSize="12" Margin="0 -8 0 0" />
+                                </Grid>
+                            </Button>
+                            <Button Content="&#9650;" Height="22" Width="26"  Command="{Binding DisplayMeasurementsGotoLaterMeasurements}" ToolTip="Go to more recent (next) measurements" FontSize="15" />
+                            <Button Content="&#9660;" Height="22" Width="26"  Command="{Binding DisplayMeasurementsGotoEarlierMeasurements}" ToolTip="Go to earlier (previous) measurements" FontSize="15" />
+                            <Button Content="&#9660;" Height="22" Width="26" Foreground="#700"  Command="{Binding DisplayMeasurementsGotoPreviousDowntime}" ToolTip="Go to previous downtime" FontSize="15"  />
 
 
                             <CheckBox IsChecked="{Binding DisplayMeasurementsMostRecentDateHasValue}" VerticalAlignment="Center" />
