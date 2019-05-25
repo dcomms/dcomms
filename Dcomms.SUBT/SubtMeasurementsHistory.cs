@@ -14,7 +14,7 @@ namespace Dcomms.SUBT
         public int MeasurementsCountInRam { get { lock (_measurementsInRam) return _measurementsInRam.Count; } }
 
         public DateTime? DisplayMeasurementsMostRecentDateTime { get; set; } // null if = now
-        public int DisplayMeasurementsMaxCount { get; set; } = 20; // = page size
+        public int DisplayMeasurementsMaxCount { get; set; } = 10; // = page size
         public IEnumerable<SubtMeasurement> DisplayedMeasurements // newest first
         {
             get

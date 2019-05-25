@@ -18,18 +18,30 @@ namespace StarTrinity.ContinuousSpeedTest
 {
     public partial class EasyGuiView : UserControl
     {
+        EasyGuiViewModel _vm;
         public EasyGuiView()
         {
             InitializeComponent();
-         //   DataContextChanged += EasyGuiView_DataContextChanged;
+            DataContextChanged += EasyGuiView_DataContextChanged;
         }
 
-        //private void EasyGuiView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
-        //{
-        //    var vm = e.NewValue as EasyGuiViewModel;
-        //    if (vm != null)
-        //        vm.OnAddedNewMeasurement += EasyGuiView_OnAddedNewMeasurement;
-        //}
+        private void GotoMeasurementButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = (Button)sender;
+            var f = (UpDownTimeFragment)button.DataContext;
+            _vm.MeasurementsTabIsSelected = true;
+            _vm.GoToMeasurement(f.StartTime);
+        }
+
+        private void EasyGuiView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            var vm = e.NewValue as EasyGuiViewModel;
+            if (vm != null)
+            {
+                _vm = vm;
+             //   vm.OnAddedNewMeasurement += EasyGuiView_OnAddedNewMeasurement;
+            }
+        }
 
         //private void EasyGuiView_OnAddedNewMeasurement(SubtMeasurement m)
         //{
@@ -49,6 +61,6 @@ namespace StarTrinity.ContinuousSpeedTest
         //       // measurementsDataGrid.ScrollIntoView(m);
         //    }));
 
-       // }
+        // }
     }
 }

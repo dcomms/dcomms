@@ -29,7 +29,16 @@ namespace StarTrinity.ContinuousSpeedTest
         {
             _mainVM.SubtLocalPeer.MeasurementsHistory.OnMeasured += MeasurementsHistory_OnMeasured;
         }
-        public bool MeasurementsTabIsSelected { get; set; } = true;
+        bool _measurementsTabIsSelected = true;
+        public bool MeasurementsTabIsSelected
+        {
+            get => _measurementsTabIsSelected;
+            set
+            {
+                _measurementsTabIsSelected = value;
+                RaisePropertyChanged(() => MeasurementsTabIsSelected);
+            }
+        }
         public bool UptimeStatisticsTabIsSelected { get; set; }
 
         private void MeasurementsHistory_OnMeasured(SubtMeasurement m) // manager thread
@@ -156,7 +165,20 @@ namespace StarTrinity.ContinuousSpeedTest
                 RaisePropertyChanged(() => DisplayedMeasurements);
             }
         }
+        internal void GoToMeasurement(DateTime dt)
+        {
+            var mh = _mainVM.SubtLocalPeer?.MeasurementsHistory;
+            if (mh != null)
+            {               
+                mh.DisplayMeasurementsMostRecentDateTime = dt;
 
+                RaisePropertyChanged(() => DisplayMeasurementsMostRecentDateHasValue);
+                RaisePropertyChanged(() => DisplayMeasurementsMostRecentDate);
+                RaisePropertyChanged(() => DisplayMeasurementsMostRecentTimeH);
+                RaisePropertyChanged(() => DisplayMeasurementsMostRecentTimeM);
+                RaisePropertyChanged(() => DisplayedMeasurements);
+            }
+        }
 
         public bool DisplayMeasurementsMostRecentDateHasValue
         {

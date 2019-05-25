@@ -196,7 +196,17 @@
                     
                     <DataGrid Grid.Row="2" Grid.ColumnSpan="3"  ItemsSource="{Binding MainVM.DowntimesTracker.Fragments}" >
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Start" Binding="{Binding StartTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></DataGridTextColumn>
+                            <DataGridTemplateColumn Header="Start">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding StartTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}" />
+                                            <Button Content="go to" ToolTip="Go to measurement at this time" Name="gotoMeasurementButton" Click="GotoMeasurementButton_Click" Style="{StaticResource Link}" Margin="3 0" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            
                             <DataGridTextColumn Header="Stop" Binding="{Binding StopTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}'}"></DataGridTextColumn>
                             <DataGridTextColumn Header="Duration" Binding="{Binding DurationString}">
                                 <DataGridTextColumn.CellStyle>
