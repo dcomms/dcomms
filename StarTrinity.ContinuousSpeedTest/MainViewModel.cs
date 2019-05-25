@@ -377,6 +377,12 @@ namespace StarTrinity.ContinuousSpeedTest
             _timer.Interval = TimeSpan.FromSeconds(1);
             _timer.Tick += Timer_Tick_1sec;
             _timer.Start();
+            
+            _timer50ms = new DispatcherTimer(DispatcherPriority.SystemIdle);
+            _timer50ms.Interval = TimeSpan.FromMilliseconds(50);
+            _timer50ms.Tick += Timer_Tick_50ms;
+            _timer50ms.Start();
+
             EasyGuiViewModel = new EasyGuiViewModel(this);
             DowntimesTracker = new DowntimesTracker(this);
             AutoStartedInTrayMode = Environment.GetCommandLineArgs().Contains(TrayCliParameter);
@@ -424,6 +430,7 @@ namespace StarTrinity.ContinuousSpeedTest
                 LocalPeer = null;
             }
             _timer.Stop();
+            _timer50ms.Stop();
         }
         public DelegateCommand ReInitialize => new DelegateCommand(() =>
         {
@@ -439,9 +446,15 @@ namespace StarTrinity.ContinuousSpeedTest
             }
         });
 
-        internal void InvokeInGuiThread(Action a)
+        ActionsQueue _guiThreadQueue = new ActionsQueue(e => MainViewModel.HandleException(e));
+        DispatcherTimer _timer50ms;
+        internal void BeginInvokeInGuiThread(Action a)
         {
-            App.Current.Dispatcher.Invoke(a);
+            _guiThreadQueue.Enqueue(a);
+        }
+        private void Timer_Tick_50ms(object sender, EventArgs e)
+        {
+            _guiThreadQueue.ExecuteQueued();
         }
 
         #region refresh GUI on timer

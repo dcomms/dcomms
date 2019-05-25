@@ -143,16 +143,20 @@
                         <Button Command="{Binding ClearMeasurements}" Content="clear" />
                         <Button Command="{Binding ExportMeasurements}" Content="export" />
 
-                        <TextBlock Text="go to: " />
-                        <Button Content="&#8656;" Height="22"  Command="{Binding DisplayMeasurementsGotoLaterMeasurements}" ToolTip="previous page (more recent, next measurements)" FontSize="20" />
-                        <Button Content="&#8658;" Height="22"  Command="{Binding DisplayMeasurementsGotoEarlierMeasurements}" ToolTip="next page (earlier, previous measurements)" FontSize="20" />
-                        <Button Content="previous downtime" Command="{Binding DisplayMeasurementsGotoPreviousDowntime}" />
                         
                         <StackPanel Orientation="Horizontal" Background="#CCC">
                             <TextBlock Text="display" VerticalAlignment="Center" />
                             <ComboBox SelectedItem="{Binding DisplayMeasurementsMaxCount}" VerticalAlignment="Center" Padding="3 0" ItemsSource="{Binding DisplayMeasurementsMaxCounts}" Width="60" />
-                            <TextBlock Text="latest measurements," VerticalAlignment="Center" />
-                            <CheckBox Content="until" IsChecked="{Binding DisplayMeasurementsMostRecentDateHasValue}" VerticalAlignment="Center" />
+                            <TextBlock Text="latest measurements" VerticalAlignment="Center" />
+
+                            <Button Content="&#9195;" Height="22"  Command="{Binding DisplayMeasurementsGotoMostRecentMeasurements}" ToolTip="Go to most recent (newest) measurements" FontSize="20" Padding="-3" />
+                            <Button Content="&#9650;" Height="22"  Command="{Binding DisplayMeasurementsGotoLaterMeasurements}" ToolTip="Go to more recent (next) measurements" FontSize="15" />
+                            <Button Content="&#9660;" Height="22"  Command="{Binding DisplayMeasurementsGotoEarlierMeasurements}" ToolTip="Go to earlier (previous) measurements" FontSize="15" />
+                            <Button Content="&#9660;" Height="22" Foreground="#700"  Command="{Binding DisplayMeasurementsGotoPreviousDowntime}" ToolTip="Go to previous downtime" FontSize="15"  />
+
+
+                            <CheckBox IsChecked="{Binding DisplayMeasurementsMostRecentDateHasValue}" VerticalAlignment="Center" />
+                            <TextBlock Text="until" VerticalAlignment="Center" />
                             <StackPanel Orientation="Horizontal" Visibility="{Binding DisplayMeasurementsMostRecentDateHasValue, Converter={StaticResource BoolToVisibilityConverter}}">                                
                                 <DatePicker SelectedDate="{Binding DisplayMeasurementsMostRecentDate}" VerticalAlignment="Center" />
                                 <ComboBox SelectedItem="{Binding DisplayMeasurementsMostRecentTimeH}" ItemsSource="{Binding HoursList}" Padding="3 0" VerticalAlignment="Center" />

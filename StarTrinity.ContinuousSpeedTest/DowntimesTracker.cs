@@ -101,7 +101,7 @@ namespace StarTrinity.ContinuousSpeedTest
 
         internal void MeasurementsHistory_OnMeasured(SubtMeasurement m) // manager thread
         {
-            _mainVM.InvokeInGuiThread(() =>
+            _mainVM.BeginInvokeInGuiThread(() =>
             {
                 if (_currentFragment == null)
                 {

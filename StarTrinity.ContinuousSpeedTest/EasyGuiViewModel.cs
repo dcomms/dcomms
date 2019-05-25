@@ -51,7 +51,7 @@ namespace StarTrinity.ContinuousSpeedTest
 
            // if (_mainVM.EasyGuiTabIsSelected && MeasurementsTabIsSelected)
             {
-                _mainVM.InvokeInGuiThread(() =>
+                _mainVM.BeginInvokeInGuiThread(() =>
                 {
                     RaisePropertyChanged(() => DisplayedMeasurements);
                     RaisePropertyChanged(() => MeasurementsCountInRamString);
@@ -277,6 +277,16 @@ namespace StarTrinity.ContinuousSpeedTest
                 RaisePropertyChanged(() => DisplayMeasurementsMostRecentDate);
                 RaisePropertyChanged(() => DisplayMeasurementsMostRecentTimeH);
                 RaisePropertyChanged(() => DisplayMeasurementsMostRecentTimeM);
+                RaisePropertyChanged(() => DisplayedMeasurements);
+            }
+        });
+        public ICommand DisplayMeasurementsGotoMostRecentMeasurements => new DelegateCommand(() =>
+        {
+            var mh = _mainVM.SubtLocalPeer?.MeasurementsHistory;
+            if (mh != null)
+            {
+                mh.DisplayMeasurementsMostRecentDateTime = null;
+                RaisePropertyChanged(() => DisplayMeasurementsMostRecentDateHasValue);
                 RaisePropertyChanged(() => DisplayedMeasurements);
             }
         });
