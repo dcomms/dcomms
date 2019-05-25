@@ -66,7 +66,8 @@
         <Grid Grid.Row="1">
             <StackPanel Orientation="Horizontal" Visibility="{Binding MainVM.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
                 <Button Content="Install" Command="{Binding MainVM.InstallOnThisPC}" FontSize="20" />
-                <CheckBox Content="start with windows" IsChecked="{Binding MainVM.InstallOnThisPC_AddToAutoStart}" FontSize="15" VerticalAlignment="Center" />
+                <CheckBox IsChecked="{Binding MainVM.InstallOnThisPC_AddToAutoStart}" FontSize="15" VerticalAlignment="Center" />
+                <TextBlock Text="start with windows" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Visibility="{Binding MainVM.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Button Content="Uninstall" Command="{Binding MainVM.UninstallOnThisPc}" FontSize="15" />
@@ -139,7 +140,6 @@
                         </DataGrid.Columns>
                     </DataGrid>
                     <StackPanel Orientation="Horizontal" Grid.Row="1">
-
                         <Button Command="{Binding ClearMeasurements}" Content="clear" />
                         <Button Command="{Binding ExportMeasurements}" Content="export" />
 
@@ -161,7 +161,6 @@
                                 <TextBlock Text="m" />
                             </StackPanel>
                         </StackPanel>
-
                     </StackPanel>
                 </Grid>
             </TabItem>
@@ -199,9 +198,10 @@
                             <DataGridTemplateColumn Header="Start">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding StartTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}" />
-                                            <Button Content="go to" ToolTip="Go to measurement at this time" Name="gotoMeasurementButton" Click="GotoMeasurementButton_Click" Style="{StaticResource Link}" Margin="3 0" />
+                                        <StackPanel Orientation="Horizontal" Margin="0 -4" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StartTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}" Margin="3 0" />
+                                            <Button Content="go to" ToolTip="Go to measurement at this time" Name="gotoMeasurementButton" Click="GotoMeasurementButton_Click" 
+                                                    Style="{StaticResource Link}" Margin="3 0" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
