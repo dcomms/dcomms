@@ -4,7 +4,7 @@
 uint seconds = (uint)(DateTime.UtcNow - new DateTime(2019,01,01)).TotalSeconds;
  #>
  
-namespace Dcomms.P2PTP
+namespace StarTrinity.ContinuousSpeedTest
 {	
 		public static class CompilationInfo
 		{
@@ -15,15 +15,11 @@ namespace Dcomms.P2PTP
 					return <#= seconds #>;
 				}
 			}
-			public static System.DateTime ToDateTime(uint seconds)
-			{				
-				return new System.DateTime(2019,01,01).AddSeconds(seconds);				
-			}
 			public static System.DateTime CompilationDateTimeUtc
 			{
 				get
 				{
-					return ToDateTime(CompilationDateTimeUtc_uint32);
+					return Dcomms.MiscProcedures.ToDateTime(CompilationDateTimeUtc_uint32);
 				}
 			}
 			public static string CompilationDateTimeUtcStr

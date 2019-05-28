@@ -14,6 +14,34 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <TabControl>
+            <TabItem Header="How it works" IsSelected="{Binding HowItWorksTabIsSelected}">
+                <TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Stretch" TextWrapping="Wrap" FontSize="18">
+                    Assumption: you experience bad internet quality when you use an <Italic>application: web site in browser, messenger, trading terminal, etc</Italic>, you want to fix the problem, and 
+                    you want to know what exactly happens - 
+                    is it problem of internet provider, your device, wifi router, antenna location, or the app itself          
+                        
+                    <LineBreak/>
+                    <LineBreak/>
+                    <Bold>Instructions</Bold>                  
+                    <LineBreak/>
+                    
+                    &#8226; Run this Continuous Speed Test, install it<LineBreak/>
+                    &#8226; Use your <Italic>application</Italic>, with this test running in background<LineBreak/>
+                    &#8226; When you experience a problem with the <Italic>application</Italic> - look into results of this test<LineBreak/>
+                    &#8226; If the test detects a downtime - it is problem of internet provider or hardware. If no downtime is detected - it is a problem of the application<LineBreak/>
+                    &#8226; Run the same test on another hardware: another device or another wifi router, or change location of antenna.
+                     You can run test on multiple devices at same time to see difference<LineBreak/>
+                    
+                    &#8226; If the test reports downtimes on multiple different devices - it is exactly problem of internet provider: 
+                    send the results to the provider and let them fix the problem.
+                    If they are not able to fix it - use another internet provider<LineBreak/>
+                    
+                    &#8226; Contact us by email: support@startrinity.com if you need an advice how to fix internet issues. 
+                     We maintain a database of known issues with providers and hardware vendors 
+                                      
+                    <!--<Run>For long internet quality test, with limited duration:-->
+                </TextBlock>
+            </TabItem>
             <TabItem Header="Advanced, for tech. people" IsSelected="{Binding TechTabIsSelected}">
                 <Grid>
                     <Grid.RowDefinitions>

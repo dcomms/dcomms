@@ -395,7 +395,7 @@ namespace Dcomms.P2PTP.LocalLogic
             stream.LatestHelloRtt = TimeSpan.FromTicks(unchecked(_localPeer.Time32 - helloPacket.RequestTime32));
             stream.LastTimeReceivedAccepted = _localPeer.DateTimeNowUtc; 
             connectedPeer.ProtocolVersion = helloPacket.ProtocolVersion;
-            connectedPeer.LibraryVersion = CompilationInfo.ToDateTime(helloPacket.LibraryVersion);
+            connectedPeer.LibraryVersion = MiscProcedures.ToDateTime(helloPacket.LibraryVersion);
             connectedPeer.TotalHelloAcceptedPacketsReceived++;
             stream.TotalHelloAcceptedPacketsReceived++;
             stream.RemotePeerRoleIsUser = helloPacket.RoleFlagIsUser;

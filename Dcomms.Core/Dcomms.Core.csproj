@@ -1,13 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <RootNamespace>StarTrinity.P2PTP</RootNamespace>
+    <RootNamespace>Dcomms</RootNamespace>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="P2PTP\tt\TextTransform.exe" />
-    <None Remove="P2PTP\tt\VersionAndCompiledDateCs.tt" />
-  </ItemGroup>
 
 </Project>

@@ -26,3 +26,5 @@
 /.vs
 /Dcomms.Core/P2PTP/tt/VersionAndCompiledDateCs.cs
 *.user
+/StarTrinity.ContinuousSpeedTest/tt/VersionAndCompiledDateCs.cs
+/StarTrinity.CST/StarTrinity.CST/tt/VersionAndCompiledDateCs.cs

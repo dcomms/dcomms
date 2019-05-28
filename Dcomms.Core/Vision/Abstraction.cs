@@ -40,7 +40,7 @@ namespace Dcomms.Vision
 
     /// <summary>
     /// provides link from executing code to developer
-    /// sends various signals to developer: pain
+    /// sends various signals to developer
     /// </summary>
     public class DevelopersVisionChannel
     {

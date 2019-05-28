@@ -71,6 +71,7 @@
     <Compile Include="SocketWithReceiversView.xaml.cs">
       <DependentUpon>SocketWithReceiversView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="tt\VersionAndCompiledDateCs.cs" />
     <Page Include="ConnectedPeersView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -161,6 +162,7 @@
       <Name>Dcomms.SUBT</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>"$(SolutionDir)signtool.exe" sign /n "Sergei Vladimirovich Aleshin IP" "$(TargetDir)Dcomms.Core.dll"
@@ -168,6 +170,6 @@
 "$(SolutionDir)signtool.exe" sign /n "Sergei Vladimirovich Aleshin IP" "$(TargetPath)"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PreBuildEvent>"$(DevEnvDir)TextTransform.exe" "$(SolutionDir)Dcomms.Core\P2PTP\tt\VersionAndCompiledDateCs.tt"</PreBuildEvent>
+    <PreBuildEvent>"$(DevEnvDir)TextTransform.exe" "$(ProjectDir)tt\VersionAndCompiledDateCs.tt"</PreBuildEvent>
   </PropertyGroup>
 </Project>

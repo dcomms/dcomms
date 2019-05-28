@@ -39,7 +39,7 @@ namespace Dcomms.P2PTP
         /// <param name="stream">destination</param>
         public PeerHelloPacket(LocalPeer localPeer, ConnectedPeer connectedPeer, ConnectedPeerStream stream, PeerHelloRequestStatus status)
         {
-            LibraryVersion = CompilationInfo.CompilationDateTimeUtc_uint32;
+            LibraryVersion = MiscProcedures.CompilationDateTimeUtc_uint32;
             ProtocolVersion = P2ptpCommon.ProtocolVersion;
             FromPeerId = localPeer.LocalPeerId;
             ExtensionIds = localPeer.Configuration.Extensions?.Select(x => x.ExtensionId).ToArray();
@@ -55,7 +55,7 @@ namespace Dcomms.P2PTP
         /// </summary>
         private PeerHelloPacket(PeerHelloPacket requestPacket, PeerHelloRequestStatus status, PeerId localPeerId, bool thisPeerRoleAsUser)
         {
-            LibraryVersion = CompilationInfo.CompilationDateTimeUtc_uint32;
+            LibraryVersion = MiscProcedures.CompilationDateTimeUtc_uint32;
             ProtocolVersion = P2ptpCommon.ProtocolVersion;
             FromPeerId = localPeerId ?? requestPacket.ToPeerId; 
             ToPeerId = requestPacket.FromPeerId;

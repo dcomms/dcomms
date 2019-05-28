@@ -81,15 +81,22 @@ namespace StarTrinity.ContinuousSpeedTest
         DispatcherTimer _timer;
         private void Timer_Tick(object sender, EventArgs e)
         {
-         //   if (_mainVM.EasyGuiTabIsSelected)
-         //   {
-                var localPeer = _mainVM.SubtLocalPeer?.LocalPeer;
-                if (localPeer != null)
+            try
+            { 
+                try
                 {
-                    localPeer.InvokeInManagerThread(() =>
+                    var localPeer = _mainVM.SubtLocalPeer?.LocalPeer;
+                    if (localPeer != null)
                     {
-                        _latestMeasurement = _mainVM.SubtLocalPeer?.MeasurementsHistory.Measure(_mainVM.SubtLocalPeer);
-                    });
+                        localPeer.InvokeInManagerThread(() =>
+                        {
+                            _latestMeasurement = _mainVM.SubtLocalPeer?.MeasurementsHistory.Measure(_mainVM.SubtLocalPeer);
+                        });
+                    }
+                }
+                catch (Exception exc)
+                {
+                    MainViewModel.HandleException(exc);
                 }
 
                 RaisePropertyChanged(() => RecentRxBandwidthString);
@@ -98,8 +105,12 @@ namespace StarTrinity.ContinuousSpeedTest
                 RaisePropertyChanged(() => MeasurementsVisibility);
                 RaisePropertyChanged(() => StartVisibility);
                        
-                _mainVM.DowntimesTracker.UpdateGui();              
-          //  }
+                _mainVM.DowntimesTracker.UpdateGui();
+            }
+            catch (Exception exc)
+            {
+                MainViewModel.HandleException(exc);
+            }
         }
 
         SubtMeasurement _latestMeasurement;

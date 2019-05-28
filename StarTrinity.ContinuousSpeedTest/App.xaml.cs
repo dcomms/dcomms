@@ -41,6 +41,8 @@ namespace StarTrinity.ContinuousSpeedTest
              //   HandleException(exc);
             }
 
+            Dcomms.MiscProcedures.Initialize(CompilationInfo.CompilationDateTimeUtc);
+
             AppDomain currentDomain = AppDomain.CurrentDomain;
             currentDomain.UnhandledException += new UnhandledExceptionEventHandler(UnhandledExceptionEventHandler);
 

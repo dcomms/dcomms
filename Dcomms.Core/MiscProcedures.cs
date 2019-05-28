@@ -7,6 +7,29 @@ namespace Dcomms
 {
     public static class MiscProcedures
     {
+        static DateTime? _compilationDateTimeUtc;
+        public static void AssertIsInitialized()
+        {
+            if (!_compilationDateTimeUtc.HasValue) throw new InvalidOperationException("Dcomms module is not initialized");            
+        }
+        public static DateTime CompilationDateTimeUtc
+        {
+            get
+            {
+                AssertIsInitialized();
+                return _compilationDateTimeUtc.Value;
+            }
+        }
+        public static void Initialize(DateTime compilationDateTimeUtc)
+        {
+            _compilationDateTimeUtc = compilationDateTimeUtc;
+        }
+        public static DateTime ToDateTime(uint seconds)
+        {
+            return new DateTime(2019, 01, 01).AddSeconds(seconds);
+        }
+        public static uint CompilationDateTimeUtc_uint32 => (uint)(CompilationDateTimeUtc - new DateTime(2019, 01, 01)).TotalSeconds;
+
         public static string BandwidthToString(this float bandwidth, float? targetBandwidth = null) => BandwidthToString((float?)bandwidth, targetBandwidth);
         public static string BandwidthToString(this float? bandwidth, float? targetBandwidth = null)
         {
@@ -67,7 +90,6 @@ namespace Dcomms
 
             return t1 < t2;
         }
-
         public static string TimeSpanToString(this TimeSpan? ts)
         {
             if (ts == null) return "N/A";
@@ -75,9 +97,7 @@ namespace Dcomms
             else if (ts.Value.Ticks < TimeSpan.TicksPerMinute) return String.Format("{0:0.0}s", ts.Value.TotalSeconds);
             else if (ts.Value.Ticks < TimeSpan.TicksPerHour) return String.Format("{0:0.0}m", ts.Value.TotalMinutes);
             else return String.Format("{0:0.0}h", ts.Value.TotalHours);
-        }
-
-
+        }        
         public static string TimeSpanToStringHMS(this TimeSpan ts)
         {
             var r = new StringBuilder();

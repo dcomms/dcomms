@@ -177,13 +177,26 @@ namespace StarTrinity.ContinuousSpeedTest
                 }
 
                 // delete shortcut on desktop
-                if (File.Exists(DesktopShortcutFileName))
-                    File.Delete(DesktopShortcutFileName);
+                try
+                {
+                    if (File.Exists(DesktopShortcutFileName))
+                        File.Delete(DesktopShortcutFileName);
+                }
+                catch (Exception exc)
+                {
+                    HandleException(exc);
+                }
 
                 // delete folder in start menu
-                if (File.Exists(StartMenuShortcutFileName))
-                    File.Delete(StartMenuShortcutFileName);
-
+                try
+                {
+                    if (File.Exists(StartMenuShortcutFileName))
+                        File.Delete(StartMenuShortcutFileName);
+                }
+                catch (Exception exc)
+                {
+                    HandleException(exc);
+                }
 
                 // create bat               
                 // remove files from current folder
@@ -390,6 +403,13 @@ namespace StarTrinity.ContinuousSpeedTest
             {
                 EasyGuiViewModel.StartTest.Execute(null);
             }
+
+
+            if (AutoStartedInTrayMode || RunningInstalledOnThisPC)
+                EasyGuiTabIsSelected = true;
+            else
+                HowItWorksTabIsSelected = true;
+
         }
         public DelegateCommand Initialize => new DelegateCommand(() =>
                 {
@@ -485,17 +505,9 @@ namespace StarTrinity.ContinuousSpeedTest
         
         #region selected tabs
         public bool TechTabIsSelected { get; set; }
-#if DEBUG2
-            = true;
-#else
-            = false;
-#endif
         public bool EasyGuiTabIsSelected { get; set; }
-#if DEBUG2
-            = false;
-#else
-            = true;
-#endif
+        public bool HowItWorksTabIsSelected { get; set; }
+
         public bool ConnectedPeersTabIsSelected { get; set; }
 #endregion
 

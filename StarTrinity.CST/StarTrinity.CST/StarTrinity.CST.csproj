@@ -17,4 +17,30 @@
     <ProjectReference Include="..\..\Dcomms.Core\Dcomms.Core.csproj" />
     <ProjectReference Include="..\..\Dcomms.SUBT\Dcomms.SUBT.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="tt\VersionAndCompiledDateCs.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>VersionAndCompiledDateCs.cs</LastGenOutput>
+    </None>
+    <None Update="VersionAndCompiledDateCs.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="tt\VersionAndCompiledDateCs.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>VersionAndCompiledDateCs.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="&quot;$(DevEnvDir)TextTransform.exe&quot; &quot;$(ProjectDir)tt\VersionAndCompiledDateCs.tt&quot;" />
+  </Target>
 </Project>
