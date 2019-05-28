@@ -30,7 +30,7 @@ namespace StarTrinity.ContinuousSpeedTest
             var button = (Button)sender;
             var f = (UpDownTimeFragment)button.DataContext;
             _vm.MeasurementsTabIsSelected = true;
-            _vm.GoToMeasurement(f.StartTime);
+            _vm.GoToMeasurement(f.StopTime);
         }
 
         private void EasyGuiView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)

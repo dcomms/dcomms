@@ -209,6 +209,12 @@ namespace Dcomms.P2PTP.LocalLogic
                 }
             });
         }
+
+        bool RemoteVersionIsAcceptableForNewConnection(PeerHelloPacket remoteHello)
+        {
+            return MiscProcedures.ToDateTime(remoteHello.LibraryVersion) > MiscProcedures.MinPeerCompilationDateTimeUtc;
+        }
+
         /// <summary>
         /// for both coordinatorServer and userPeer
         /// accepts connection, adds peer and/or stream to lists, responds with 'accepted'
@@ -239,6 +245,12 @@ namespace Dcomms.P2PTP.LocalLogic
                 if (_connectedPeers.Count > LocalLogicConfiguration.UserPeer_MaxConnectedPeersToAccept)
                 {
                     _localPeer.WriteToLog(LogModules.Hello, $"rejecting request from {remoteEndpoint}: _connectedPeers.Count={_connectedPeers.Count} > LocalLogicConfiguration.UserPeer_MaxConnectedPeersToAccept");
+                    PeerHelloPacket.Respond(helloPacket, PeerHelloRequestStatus.rejected_dontTryLater, null, socket, remoteEndpoint);
+                    return;
+                }
+                if (!RemoteVersionIsAcceptableForNewConnection(helloPacket))
+                {
+                    _localPeer.WriteToLog(LogModules.Hello, $"rejecting request from {remoteEndpoint}: old version");
                     PeerHelloPacket.Respond(helloPacket, PeerHelloRequestStatus.rejected_dontTryLater, null, socket, remoteEndpoint);
                     return;
                 }
@@ -310,6 +322,14 @@ namespace Dcomms.P2PTP.LocalLogic
             }
 
             // current situation: we got connectedPeer, stream.  we handle request or response
+            if (!RemoteVersionIsAcceptableForNewConnection(helloPacket))
+            {
+                _localPeer.WriteToLog(LogModules.Hello, $"peer {connectedPeer} got response with too old version");
+                connectedPeer.RemoveStream(stream);
+                _connectedPeers.Remove(connectedPeer.RemotePeerId);
+                return;
+            }
+
             switch (helloPacket.Status)
             {
                 case PeerHelloRequestStatus.setup:
@@ -574,10 +594,7 @@ namespace Dcomms.P2PTP.LocalLogic
                 _localPeer.Firewall.OnUnauthenticatedReceivedPacket(remoteEndpoint);
                 return;
             }
-
-
-
-
+            
             foreach (var receivedSharedPeer in peersListPacket.SharedPeers)
             {
                 if (receivedSharedPeer.ToPeerId.Equals(_localPeer.LocalPeerId)) continue; // dont connect to this peer

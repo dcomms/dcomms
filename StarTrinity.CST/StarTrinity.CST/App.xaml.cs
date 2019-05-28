@@ -10,7 +10,7 @@ namespace StarTrinity.CST
         public App()
         {
             InitializeComponent();
-            Dcomms.MiscProcedures.Initialize(CompilationInfo.CompilationDateTimeUtc);
+            Dcomms.MiscProcedures.Initialize(CompilationInfo.CompilationDateTimeUtc, new DateTime(2019, 05, 01));
 
             MainPage = new MainPage();
         }

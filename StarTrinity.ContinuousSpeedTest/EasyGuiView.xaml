@@ -204,11 +204,12 @@
                     
                     <DataGrid Grid.Row="2" Grid.ColumnSpan="3"  ItemsSource="{Binding MainVM.DowntimesTracker.Fragments}" >
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="Start">
+                            <DataGridTextColumn Header="Since" Binding="{Binding StartTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}'}"></DataGridTextColumn>
+                            <DataGridTemplateColumn Header="Till">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="0 -4" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding StartTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}" Margin="3 0" />
+                                            <TextBlock Text="{Binding StopTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}" Margin="3 0" />
                                             <Button Content="go to" ToolTip="Go to measurement at this time" Name="gotoMeasurementButton" Click="GotoMeasurementButton_Click" 
                                                     Style="{StaticResource Link}" Margin="3 0" />
                                         </StackPanel>
@@ -216,7 +217,6 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTextColumn Header="Stop" Binding="{Binding StopTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}'}"></DataGridTextColumn>
                             <DataGridTextColumn Header="Duration" Binding="{Binding DurationString}">
                                 <DataGridTextColumn.CellStyle>
                                     <Style TargetType="DataGridCell">

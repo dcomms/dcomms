@@ -12,6 +12,7 @@ namespace Dcomms
         {
             if (!_compilationDateTimeUtc.HasValue) throw new InvalidOperationException("Dcomms module is not initialized");            
         }
+        public static DateTime MinPeerCompilationDateTimeUtc = DateTime.MinValue;
         public static DateTime CompilationDateTimeUtc
         {
             get
@@ -20,8 +21,9 @@ namespace Dcomms
                 return _compilationDateTimeUtc.Value;
             }
         }
-        public static void Initialize(DateTime compilationDateTimeUtc)
+        public static void Initialize(DateTime compilationDateTimeUtc, DateTime minPeerCompilationDateTimeUtc)
         {
+            MinPeerCompilationDateTimeUtc = minPeerCompilationDateTimeUtc;
             _compilationDateTimeUtc = compilationDateTimeUtc;
         }
         public static DateTime ToDateTime(uint seconds)

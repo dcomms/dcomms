@@ -97,7 +97,7 @@ namespace Dcomms.P2PTP.LocalLogic
         {
             WriteToLog(module, "error: " + exc);
         }
-        public void HandleGuiException( Exception exc)
+        public void HandleGuiException(Exception exc)
         {
             WriteToLog(LogModules.Gui, "error: " + exc);
         }
