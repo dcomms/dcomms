@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Dcomms.SUBT.GUI;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -63,8 +64,8 @@ namespace StarTrinity.ContinuousSpeedTest
 
         static void HandleException(Exception exc)
         {
-            if (MainViewModel.CanHandleException) // when GUI for log is ready
-                MainViewModel.HandleException(exc);
+            if (CstApp.CanHandleException) // when GUI for log is ready
+                CstApp.HandleException(exc);
             else
             {
                 var excString = exc.ToString();

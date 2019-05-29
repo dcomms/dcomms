@@ -8,7 +8,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>StarTrinity.ContinuousSpeedTest</RootNamespace>
     <AssemblyName>StarTrinity.ContinuousSpeedTest</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -60,11 +60,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="DowntimesTracker.cs" />
     <Compile Include="EasyGuiView.xaml.cs">
       <DependentUpon>EasyGuiView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="EasyGuiViewModel.cs" />
     <Compile Include="MeasurementsView.xaml.cs">
       <DependentUpon>MeasurementsView.xaml</DependentUpon>
     </Compile>
@@ -96,20 +94,16 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="BaseNotify.cs" />
     <Compile Include="ConnectedPeersView.xaml.cs">
       <DependentUpon>ConnectedPeersView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Converters.cs" />
-    <Compile Include="DelegateCommand.cs" />
     <Compile Include="LocalPeerConfigurationView.xaml.cs">
       <DependentUpon>LocalPeerConfigurationView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="LogMessage.cs" />
     <Compile Include="LogView.xaml.cs">
       <DependentUpon>LogView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="MainViewModel.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

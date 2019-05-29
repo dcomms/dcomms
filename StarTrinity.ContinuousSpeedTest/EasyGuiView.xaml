@@ -5,14 +5,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="1000">
-    <Grid Visibility="{Binding MainVM.LocalPeerConfigurationRoleAsUser, Converter={StaticResource BoolToVisibilityConverter}}">
+    <Grid Visibility="{Binding CstApp.LocalPeerConfigurationRoleAsUser, Converter={StaticResource BoolToVisibilityConverter}}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid Visibility="{Binding StartVisibility}" HorizontalAlignment="Center" >
+        <Grid Visibility="{Binding StartVisible, Converter={StaticResource BoolToVisibilityConverter}}" HorizontalAlignment="Center" >
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -27,8 +27,8 @@
 
             <Button Grid.Row="1" Grid.ColumnSpan="2" Command="{Binding StartTest}" Content="Start test" FontSize="30" />
         </Grid>
-        
-        <Grid Visibility="{Binding MeasurementsVisibility}" HorizontalAlignment="Center" >
+
+        <Grid Visibility="{Binding MeasurementsVisible, Converter={StaticResource BoolToVisibilityConverter}}" HorizontalAlignment="Center" >
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -43,9 +43,9 @@
 
             <TextBlock Grid.Row="0" Text="target: " FontSize="30" HorizontalAlignment="Right" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}"/>
             <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
-                <TextBlock Text="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetString}" FontSize="30" />
-                <Button Content="&#8657;" Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetIncrease}" FontSize="30" />
-                <Button Content="&#8659;"  Command="{Binding MainVM.SubtLocalPeerConfigurationBandwidthTargetDecrease}" FontSize="30" />                
+                <TextBlock Text="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetString}" FontSize="30" />
+                <Button Content="&#8657;" Command="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetIncrease}" FontSize="30" />
+                <Button Content="&#8659;"  Command="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetDecrease}" FontSize="30" />                
             </StackPanel>           
             
             <!--<TextBlock Visibility="{Binding ModeVisibility}" Text="mode: " FontSize="30" HorizontalAlignment="Right" />
@@ -64,13 +64,13 @@
 
         </Grid>
         <Grid Grid.Row="1">
-            <StackPanel Orientation="Horizontal" Visibility="{Binding MainVM.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
-                <Button Content="Install" Command="{Binding MainVM.InstallOnThisPC}" FontSize="20" />
-                <CheckBox IsChecked="{Binding MainVM.InstallOnThisPC_AddToAutoStart}" FontSize="15" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Visibility="{Binding CstApp.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
+                <Button Content="Install" Command="{Binding CstApp.InstallOnThisPC}" FontSize="20" />
+                <CheckBox IsChecked="{Binding CstApp.InstallOnThisPC_AddToAutoStart}" FontSize="15" VerticalAlignment="Center" />
                 <TextBlock Text="start with windows" />
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Visibility="{Binding MainVM.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityConverter}}">
-                <Button Content="Uninstall" Command="{Binding MainVM.UninstallOnThisPc}" FontSize="15" />
+            <StackPanel Orientation="Horizontal" Visibility="{Binding CstApp.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Button Content="Uninstall" Command="{Binding CstApp.UninstallOnThisPc}" FontSize="15" />
             </StackPanel>         
         </Grid>
 
@@ -86,7 +86,7 @@
                         </StackPanel>
                     </DataTemplate>
                 </TabItem.HeaderTemplate>
-                <Grid Visibility="{Binding MeasurementsVisibility}">
+                <Grid Visibility="{Binding MeasurementsVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
@@ -178,7 +178,7 @@
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal" DataContext="{Binding Source={StaticResource EasyGuiViewModel}}">
                             <TextBlock Text="Uptime" VerticalAlignment="Bottom" Margin="3"/>
-                            <TextBlock Text="{Binding MainVM.DowntimesTracker.TabHeaderString}" />
+                            <TextBlock Text="{Binding CstApp.DowntimesTracker.TabHeaderString}" />
                         </StackPanel>
                     </DataTemplate>
                 </TabItem.HeaderTemplate>
@@ -197,12 +197,12 @@
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Row="0" Text="uptime:" FontSize="20" />
-                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding MainVM.DowntimesTracker.UptimeDurationString}" FontSize="20" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.UptimeDurationString}" FontSize="20" />
                     <TextBlock Grid.Row="1" Text="downtime:" FontSize="20" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MainVM.DowntimesTracker.DowntimeDurationString}" FontSize="20" />
-                    <Button Grid.Row="0" Grid.Column="2" Command="{Binding MainVM.DowntimesTracker.Clear}" Content="clear" HorizontalAlignment="Left" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.DowntimeDurationString}" FontSize="20" />
+                    <Button Grid.Row="0" Grid.Column="2" Command="{Binding CstApp.DowntimesTracker.Clear}" Content="clear" HorizontalAlignment="Left" />
                     
-                    <DataGrid Grid.Row="2" Grid.ColumnSpan="3"  ItemsSource="{Binding MainVM.DowntimesTracker.Fragments}" >
+                    <DataGrid Grid.Row="2" Grid.ColumnSpan="3"  ItemsSource="{Binding CstApp.DowntimesTracker.Fragments}" >
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Since" Binding="{Binding StartTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}'}"></DataGridTextColumn>
                             <DataGridTemplateColumn Header="Till">
