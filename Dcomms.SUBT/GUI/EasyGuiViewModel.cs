@@ -324,14 +324,12 @@ namespace Dcomms.SUBT.GUI
                     _cstApp.User.ShowMessageToUser("Previous downtime is not found");
             }
         });
-
-
+        
         public ICommand ClearMeasurements => new DelegateCommand(() =>
         {
             _cstApp.SubtLocalPeer?.MeasurementsHistory?.Clear();
             RaisePropertyChanged(() => DisplayedMeasurements);
         });
-
         public ICommand ExportMeasurements => new DelegateCommand(() =>
         {
             if (_cstApp.User.ShowSaveFileDialog("csv", out var fileName))

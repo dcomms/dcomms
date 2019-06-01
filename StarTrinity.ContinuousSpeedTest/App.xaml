@@ -110,10 +110,7 @@
                                   TrueValue="Collapsed" />
         <local:OppositeConverter x:Key="OppositeConverter" />
         <local:LogScaleConverter x:Key="LogScaleConverter" />
-        <local:ColorToBrushConverter x:Key="ColorToBrushConverter" />
-        <local:SubtMeasurementToUpDownBrushConverter x:Key="SubtMeasurementToUpDownBrushConverter" />
-        <local:SubtMeasurementToUpDownTextConverter x:Key="SubtMeasurementToUpDownTextConverter" />
-        
+        <local:ColorToBrushConverter x:Key="ColorToBrushConverter" />        
 
     </Application.Resources>
 </Application>

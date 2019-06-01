@@ -1,0 +1,184 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<TabbedPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:d="http://xamarin.com/schemas/2014/forms/design"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="StarTrinity.CST.XamarinMainPage">
+    <ContentPage Title="How it works" >
+        <ScrollView>
+            <StackLayout Padding="10" >
+                <Label LineBreakMode="WordWrap" >
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span FontSize="16" Text="Assumption: you experience " />
+                            <Span FontSize="16" Text="bad internet quality when you use an application: a website in browser, messenger, instagram, facebook, etc" FontAttributes="Bold" />
+                            <Span FontSize="16" Text="; you want to fix the problem, and you want to know what exactly happens - is it problem of internet provider, your mobile device, wifi router, antenna location, or the application itself" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+
+                <Label FontSize="30" FontAttributes="Bold" LineBreakMode="WordWrap" Text="Instructions" />
+
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Run this Continuous Speed Test" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Use your application, with this test running in background" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; When you experience a problem with the application - look into results of this test" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; If the test detects a downtime - it is problem of internet provider or hardware. If no downtime is detected - it is a problem of the application" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Run the same test on another hardware: another device or another wifi router, or change location of antenna. You can run test on multiple devices at same time to see difference" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; If the test reports downtimes on multiple different devices - it is exactly problem of internet provider: send the results to the provider and let them fix the problem. If they are not able to fix it - use another internet provider" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Contact us by email: support@startrinity.com if you need an advice how to fix internet issues. We maintain a database of known issues with providers and hardware vendors" />
+            </StackLayout>
+        </ScrollView>
+    </ContentPage>
+    <ContentPage Title="Test">
+        <StackLayout BindingContext="{Binding EasyGuiViewModel}" Padding="10">
+            <Grid IsVisible="{Binding StartVisible}" >
+                <Button FontSize="Large" Command="{Binding StartTest}" Text="Start test" />
+            </Grid>
+            <Grid IsVisible="{Binding MeasurementsVisible}" HorizontalOptions="Center" >
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Label Grid.Row="0" Text="target: " FontSize="Large" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}" VerticalOptions="Center" HorizontalOptions="End"/>
+                <StackLayout Orientation="Horizontal" Grid.Row="0" Grid.Column="1" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}">
+                    <Label FontSize="Large" VerticalOptions="Center" Text="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetString}" />
+                    <Button Text="&#8657;" Command="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetIncrease}" FontSize="Large" WidthRequest="30"  />
+                    <Button Text="&#8659;" Command="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetDecrease}" FontSize="Large" WidthRequest="30"  />
+                </StackLayout>
+
+                <Label FontSize="Large" Grid.Row="1" Text="download: " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="1" Grid.Column="1" Text="{Binding RecentRxBandwidthString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="2" Text="upload: "  IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}" HorizontalOptions="End"/>
+                <Label FontSize="Large" Grid.Row="2" Grid.Column="1" Text="{Binding RecentTxBandwidthString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+
+                <Label FontSize="Large" Grid.Row="3" Text="RTT (ping): " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="3" Grid.Column="1" Text="{Binding RecentRttString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+
+                <Button FontSize="Large" Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding PauseTest}" Text="Pause" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}" />
+                <Button FontSize="Large" Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding ResumeTest}" Text="Resume" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused}" />
+                        
+            </Grid>
+        </StackLayout>
+    </ContentPage>
+    <ContentPage Title="Measurements" IsVisible="{Binding MeasurementsVisible}" Padding="10">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="*"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100*"></ColumnDefinition>
+                <ColumnDefinition Width="60*"></ColumnDefinition>
+                <ColumnDefinition Width="100*"></ColumnDefinition>
+                <ColumnDefinition Width="60*"></ColumnDefinition>
+                <ColumnDefinition Width="90*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+
+            <Label Grid.Column="0" Text="Download"  />
+            <Label Grid.Column="1" Text="Loss"  />
+            <Label Grid.Column="2" Text="Upload"  />
+            <Label Grid.Column="3" Text="Loss"  />
+            <Label Grid.Column="4" Text="RTT (ping)" />
+
+            <ListView Grid.Row="1" ItemsSource="{Binding DisplayedMeasurements}" SeparatorVisibility="None" BackgroundColor="Transparent" HasUnevenRows="True" 
+                    Grid.ColumnSpan="5" >
+                <!--
+                    GroupShortNameBinding="{Binding GroupString}" IsGroupingEnabled="true"-->
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <ViewCell.View>
+                                <Grid Margin="0,0,0,3" Padding="0" RowSpacing="1" ColumnSpacing="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"></RowDefinition>
+                                        <RowDefinition Height="Auto"></RowDefinition>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100*"></ColumnDefinition>
+                                        <ColumnDefinition Width="60*"></ColumnDefinition>
+                                        <ColumnDefinition Width="100*"></ColumnDefinition>
+                                        <ColumnDefinition Width="60*"></ColumnDefinition>
+                                        <ColumnDefinition Width="90*"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>
+                                    <Label Grid.Row="0" Grid.ColumnSpan="4" Text="{Binding MeasurementTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></Label>
+                                    <Label Grid.Row="0" Grid.Column="4" Text="{Binding MeasurementTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></Label>
+                                    <Label Grid.Row="1" Grid.Column="0" Text="{Binding RxBandwidthString, Mode=OneTime}" TextColor="Black" BackgroundColor="{Binding RxBandwidthColor}" />
+                                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding RxPacketLossString, Mode=OneTime}" TextColor="Black"  BackgroundColor="{Binding RxPacketLossColor}" />
+                                    <Label Grid.Row="1" Grid.Column="2" Text="{Binding TxBandwidthString, Mode=OneTime}" TextColor="Black"  BackgroundColor="{Binding TxBandwidthColor}" />
+                                    <Label Grid.Row="1" Grid.Column="3" Text="{Binding TxPacketLossString, Mode=OneTime}" TextColor="Black" BackgroundColor="{Binding TxPacketLossColor}" />
+                                    <Label Grid.Row="1" Grid.Column="4" Text="{Binding BestRttToPeersString, Mode=OneTime}" TextColor="Black"  BackgroundColor="{Binding BestRttToPeersColor}" />
+                                </Grid>
+                            </ViewCell.View>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <StackLayout Grid.Row="2" Grid.ColumnSpan="5">
+                <Button Command="{Binding Test1}" Text="t1" />
+
+                
+                <Button Command="{Binding ClearMeasurements}" Text="clear" />   <Label Text="display" />
+                <Picker SelectedItem="{Binding DisplayMeasurementsMaxCount}" ItemsSource="{Binding DisplayMeasurementsMaxCounts}" />
+                <Label Text="latest measurements"  />
+
+                <!--<Button Command="{Binding DisplayMeasurementsGotoMostRecentMeasurements}" Text="&#9650;">
+                    ToolTip="Go to most recent (newest) measurements">
+                    <Grid>
+                        <TextBlock Text="&#9650;" FontSize="12" Margin="0 4 0 0" />
+                        <TextBlock Text="&#9650;" FontSize="12" Margin="0 -8 0 0" />
+                    </Grid>
+                </Button>
+                <Button Text="&#9650;" Height="22" Width="26"  Command="{Binding DisplayMeasurementsGotoLaterMeasurements}" 
+                       FontSize="15" /> ToolTip="Go to more recent (next) measurements"
+                <Button Text="&#9660;" Height="22" Width="26"  Command="{Binding DisplayMeasurementsGotoEarlierMeasurements}"
+                        FontSize="15" /> ToolTip="Go to earlier (previous) measurements"
+                <Button Text="&#9660;" Height="22" Width="26" TextColor="#700"  Command="{Binding DisplayMeasurementsGotoPreviousDowntime}" 
+                       FontSize="15"  /> ToolTip="Go to previous downtime"-->
+
+            </StackLayout>
+                
+
+            <!--<StackPanel Orientation="Horizontal" Grid.Row="1">
+                <Button Command="{Binding ExportMeasurements}" Content="export" />
+
+
+                <StackPanel Orientation="Horizontal" Background="#CCC">
+                  
+                   
+
+                    <CheckBox IsChecked="{Binding DisplayMeasurementsMostRecentDateHasValue}" VerticalAlignment="Center" />
+                    <TextBlock Text="until" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding DisplayMeasurementsMostRecentDateHasValue, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <DatePicker SelectedDate="{Binding DisplayMeasurementsMostRecentDate}" VerticalAlignment="Center" />
+                        <ComboBox SelectedItem="{Binding DisplayMeasurementsMostRecentTimeH}" ItemsSource="{Binding HoursList}" Padding="3 0" VerticalAlignment="Center" />
+                        <TextBlock Text="h" VerticalAlignment="Center" />
+                        <ComboBox SelectedItem="{Binding DisplayMeasurementsMostRecentTimeM}" ItemsSource="{Binding MinutesList}" Padding="3 0" VerticalAlignment="Center" />
+                        <TextBlock Text="m" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>-->
+
+
+     
+        </Grid>
+
+    </ContentPage>
+    <ContentPage Title="Uptime" IsVisible="{Binding MeasurementsVisible}">
+
+    </ContentPage>
+    <ContentPage Title="About" Padding="10">
+
+            <Label Text="Have a question or suggestion? The software has an error? Write an email to support@startrinity.com in case of any problems" />
+    </ContentPage>
+</TabbedPage>

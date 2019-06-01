@@ -12,7 +12,8 @@ namespace StarTrinity.CST
             InitializeComponent();
             Dcomms.MiscProcedures.Initialize(CompilationInfo.CompilationDateTimeUtc, new DateTime(2019, 05, 01));
 
-            MainPage = new MainPage();
+            MainPage = new XamarinMainPage();
+
         }
 
         protected override void OnStart()

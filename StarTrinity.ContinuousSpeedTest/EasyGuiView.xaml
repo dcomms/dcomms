@@ -130,10 +130,10 @@
                                 </DataGridTextColumn.CellStyle>
                             </DataGridTextColumn>
 
-                            <DataGridTextColumn Header="" Binding="{Binding Converter={StaticResource SubtMeasurementToUpDownTextConverter}, Mode=OneTime}">
+                            <DataGridTextColumn Header="" Binding="{Binding CstUpDownString, Mode=OneTime}">
                                 <DataGridTextColumn.CellStyle>
                                     <Style TargetType="DataGridCell">
-                                        <Setter Property="Background" Value="{Binding Converter={StaticResource SubtMeasurementToUpDownBrushConverter}, Mode=OneTime}" />
+                                        <Setter Property="Background" Value="{Binding CstUpDownColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
                                     </Style>
                                 </DataGridTextColumn.CellStyle>
                             </DataGridTextColumn>

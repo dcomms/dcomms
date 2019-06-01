@@ -172,16 +172,17 @@ namespace Dcomms
         public static Color UptimeDurationToColor(this TimeSpan duration)
         {
             return ValueToColor(duration.Ticks, new[] {
-                new Tuple<float, Color>(0, Color.FromArgb(220, 255, 200)),
-                new Tuple<float, Color>(TimeSpan.TicksPerMinute * 30.0f, Color.FromArgb(180, 255, 180)),
-                new Tuple<float, Color>(TimeSpan.TicksPerDay * 2.0f, Color.FromArgb(180, 255, 150)),
+                new Tuple<float, Color>(0, Color.FromArgb(210, 255, 200)),
+                new Tuple<float, Color>(TimeSpan.TicksPerMinute * 30.0f, Color.FromArgb(170, 255, 170)),
+                new Tuple<float, Color>(TimeSpan.TicksPerDay * 2.0f, Color.FromArgb(170, 255, 140)),
                 });
 
         }
         public static Color DowntimeDurationToColor(this TimeSpan duration)
         {
             return ValueToColor(duration.Ticks, new[] {
-                new Tuple<float, Color>(0, Color.FromArgb(255, 220, 220)),
+                new Tuple<float, Color>(0, Color.FromArgb(255, 240, 230)),
+                new Tuple<float, Color>(5, Color.FromArgb(255, 220, 220)),
                 new Tuple<float, Color>(TimeSpan.TicksPerSecond * 10.0f, Color.FromArgb(255, 180, 180)),
                 new Tuple<float, Color>(TimeSpan.TicksPerMinute * 1.0f, Color.FromArgb(255, 120, 120)),
                 new Tuple<float, Color>(TimeSpan.TicksPerMinute * 10.0f, Color.FromArgb(255, 50, 50)),

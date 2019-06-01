@@ -25,9 +25,21 @@ namespace StarTrinity.ContinuousSpeedTest
                         {
                             if (runningProcess.MainModule.FileName == currentProcessFileName)
                             {
-                                MessageBox.Show($"The application is already running from {currentProcessFileName}.\r\n\r\nPlease open the running application in Windows tray bar", "StarTrinity CST", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK);
-                                Environment.Exit(0);
-                                return;
+                                if (MessageBox.Show($"The application is already running from {currentProcessFileName}.\r\n\r\n" +
+                                    $"Please open the running application in Windows tray bar.\r\n" +
+                                    $"Do you want to run new instance instead of currently running instance?",
+                                    "StarTrinity CST", MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.No) == MessageBoxResult.No)
+                                {
+                                    // terminate this instance
+                                    Environment.Exit(0);
+                                    return;
+                                }
+                                else
+                                {
+                                    // terminate another instance
+                                    runningProcess.Kill();
+                                    goto _start;
+                                }
                             }
                         }
                     }
@@ -42,6 +54,7 @@ namespace StarTrinity.ContinuousSpeedTest
              //   HandleException(exc);
             }
 
+     _start:
             Dcomms.MiscProcedures.Initialize(CompilationInfo.CompilationDateTimeUtc, new DateTime(2019, 05, 01));
 
             AppDomain currentDomain = AppDomain.CurrentDomain;

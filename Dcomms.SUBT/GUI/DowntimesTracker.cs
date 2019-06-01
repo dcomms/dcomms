@@ -155,6 +155,6 @@ namespace Dcomms.SUBT.GUI
         public Color DurationColor => UpOrDown ? MiscProcedures.UptimeDurationToColor(Duration) : MiscProcedures.DowntimeDurationToColor(Duration);
         public bool UpOrDown { get; set; }
         public string UpOrDownString => UpOrDown ? "up" : "down";
-        public Color UpOrDownColor => UpOrDown ? Color.FromArgb(255, 150, 255, 150) : Color.FromArgb(255, 255, 150, 150);
+        public Color UpOrDownColor => UpOrDown ? MiscProcedures.UptimeDurationToColor(Duration) : MiscProcedures.DowntimeDurationToColor(Duration);
     }
 }

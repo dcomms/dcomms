@@ -235,5 +235,7 @@ namespace Dcomms.SUBT
 
         public byte AppFlags0; // CST: 0x01 = up/down
 
+        public string CstUpDownString => ((AppFlags0 & 0x01) != 0) ? "up" : "down";
+        public System.Drawing.Color CstUpDownColor => ((AppFlags0 & 0x01) != 0) ? System.Drawing.Color.FromArgb(255, 150, 255, 150) : System.Drawing.Color.FromArgb(255, 255, 150, 150);
     }
 }
