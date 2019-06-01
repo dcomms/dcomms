@@ -52,5 +52,14 @@ namespace StarTrinity.CST
         void ICstAppUser.UninstallOnThisPC()
         {
         }
+
+        private void GotoMeasurement_Clicked(object sender, EventArgs e)
+        {
+            var button = (Button)sender;
+            var f = (UpDownTimeFragment)button.BindingContext;
+            this.SelectedItem = measurementsContentPage;
+            _cstApp.EasyGuiViewModel.GoToMeasurement(f.StopTime);
+
+        }
     }
 }

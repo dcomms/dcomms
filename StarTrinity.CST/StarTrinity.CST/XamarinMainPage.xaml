@@ -51,8 +51,8 @@
                 <Label Grid.Row="0" Text="target: " FontSize="Large" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}" VerticalOptions="Center" HorizontalOptions="End"/>
                 <StackLayout Orientation="Horizontal" Grid.Row="0" Grid.Column="1" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}">
                     <Label FontSize="Large" VerticalOptions="Center" Text="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetString}" />
-                    <Button Text="&#8657;" Command="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetIncrease}" FontSize="Large" WidthRequest="30"  />
-                    <Button Text="&#8659;" Command="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetDecrease}" FontSize="Large" WidthRequest="30"  />
+                    <Button Text="&#8657;" Command="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetIncrease}" FontSize="35" WidthRequest="50"  />
+                    <Button Text="&#8659;" Command="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetDecrease}" FontSize="35" WidthRequest="50"  />
                 </StackLayout>
 
                 <Label FontSize="Large" Grid.Row="1" Text="download: " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
@@ -64,13 +64,13 @@
                 <Label FontSize="Large" Grid.Row="3" Grid.Column="1" Text="{Binding RecentRttString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
 
                 <Button FontSize="Large" Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding PauseTest}" Text="Pause" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}" />
-                <Button FontSize="Large" Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding ResumeTest}" Text="Resume" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused}" />
+                <Button FontSize="Large" Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding ResumeTest}" Text="Resume" VerticalOptions="Start" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused}" />
                         
             </Grid>
         </StackLayout>
     </ContentPage>
-    <ContentPage Title="Measurements" IsVisible="{Binding MeasurementsVisible}" Padding="10">
-        <Grid>
+    <ContentPage BindingContext="{Binding EasyGuiViewModel}" Title="Measurements" x:Name="measurementsContentPage" Padding="10">
+        <Grid IsVisible="{Binding MeasurementsVisible}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"></RowDefinition>
                 <RowDefinition Height="*"></RowDefinition>
@@ -111,7 +111,7 @@
                                         <ColumnDefinition Width="90*"></ColumnDefinition>
                                     </Grid.ColumnDefinitions>
                                     <Label Grid.Row="0" Grid.ColumnSpan="4" Text="{Binding MeasurementTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></Label>
-                                    <Label Grid.Row="0" Grid.Column="4" Text="{Binding MeasurementTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"></Label>
+                                    <Label Grid.Row="0" Grid.Column="4" Text="{Binding CstUpDownString, Mode=OneTime}" TextColor="Black" BackgroundColor="{Binding CstUpDownColor}" />
                                     <Label Grid.Row="1" Grid.Column="0" Text="{Binding RxBandwidthString, Mode=OneTime}" TextColor="Black" BackgroundColor="{Binding RxBandwidthColor}" />
                                     <Label Grid.Row="1" Grid.Column="1" Text="{Binding RxPacketLossString, Mode=OneTime}" TextColor="Black"  BackgroundColor="{Binding RxPacketLossColor}" />
                                     <Label Grid.Row="1" Grid.Column="2" Text="{Binding TxBandwidthString, Mode=OneTime}" TextColor="Black"  BackgroundColor="{Binding TxBandwidthColor}" />
@@ -125,38 +125,36 @@
             </ListView>
 
             <StackLayout Grid.Row="2" Grid.ColumnSpan="5">
-                <Button Command="{Binding Test1}" Text="t1" />
-
-                
-                <Button Command="{Binding ClearMeasurements}" Text="clear" />   <Label Text="display" />
-                <Picker SelectedItem="{Binding DisplayMeasurementsMaxCount}" ItemsSource="{Binding DisplayMeasurementsMaxCounts}" />
-                <Label Text="latest measurements"  />
-
-                <!--<Button Command="{Binding DisplayMeasurementsGotoMostRecentMeasurements}" Text="&#9650;">
-                    ToolTip="Go to most recent (newest) measurements">
-                    <Grid>
-                        <TextBlock Text="&#9650;" FontSize="12" Margin="0 4 0 0" />
-                        <TextBlock Text="&#9650;" FontSize="12" Margin="0 -8 0 0" />
-                    </Grid>
-                </Button>
-                <Button Text="&#9650;" Height="22" Width="26"  Command="{Binding DisplayMeasurementsGotoLaterMeasurements}" 
-                       FontSize="15" /> ToolTip="Go to more recent (next) measurements"
-                <Button Text="&#9660;" Height="22" Width="26"  Command="{Binding DisplayMeasurementsGotoEarlierMeasurements}"
-                        FontSize="15" /> ToolTip="Go to earlier (previous) measurements"
-                <Button Text="&#9660;" Height="22" Width="26" TextColor="#700"  Command="{Binding DisplayMeasurementsGotoPreviousDowntime}" 
-                       FontSize="15"  /> ToolTip="Go to previous downtime"-->
-
+                <StackLayout Orientation="Horizontal">                    
+                    <Label Text="display: " VerticalOptions="End" />
+                    <Picker SelectedItem="{Binding DisplayMeasurementsMaxCount}" ItemsSource="{Binding DisplayMeasurementsMaxCounts}" WidthRequest="60"  />
+                    <Label Text="latest measurements" VerticalOptions="End" />
+                </StackLayout>
+                <StackLayout Orientation="Horizontal">
+                    <Label Text="go to:   "  VerticalOptions="Center"/>
+                    <Button Command="{Binding DisplayMeasurementsGotoMostRecentMeasurements}" Text="&#9650;&#9650;" WidthRequest="60">
+                        <!--ToolTip="Go to most recent (newest) measurements">
+                        <Grid>
+                            <TextBlock Text="&#9650;" FontSize="12" Margin="0 4 0 0" />
+                            <TextBlock Text="&#9650;" FontSize="12" Margin="0 -8 0 0" />
+                        </Grid>-->
+                    </Button>
+                    <Button Text="&#9650;"  Command="{Binding DisplayMeasurementsGotoLaterMeasurements}"  WidthRequest="50"
+                           FontSize="15" /> <!--ToolTip="Go to more recent (next) measurements"-->
+                    <Button Text="&#9660;"   Command="{Binding DisplayMeasurementsGotoEarlierMeasurements}" WidthRequest="50"
+                            FontSize="15" /> <!--ToolTip="Go to earlier (previous) measurements"-->
+                    <Button Text="&#9660;" TextColor="#700"  Command="{Binding DisplayMeasurementsGotoPreviousDowntime}"  WidthRequest="50"
+                           FontSize="15"  /> <!--ToolTip="Go to previous downtime"-->
+                </StackLayout>
             </StackLayout>
                 
 
             <!--<StackPanel Orientation="Horizontal" Grid.Row="1">
+            
+                <Button Command="{Binding ClearMeasurements}" Text="clear" FontSize="Small"  WidthRequest="30"/> 
+            
                 <Button Command="{Binding ExportMeasurements}" Content="export" />
-
-
                 <StackPanel Orientation="Horizontal" Background="#CCC">
-                  
-                   
-
                     <CheckBox IsChecked="{Binding DisplayMeasurementsMostRecentDateHasValue}" VerticalAlignment="Center" />
                     <TextBlock Text="until" VerticalAlignment="Center" />
                     <StackPanel Orientation="Horizontal" Visibility="{Binding DisplayMeasurementsMostRecentDateHasValue, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -168,17 +166,74 @@
                     </StackPanel>
                 </StackPanel>
             </StackPanel>-->
-
-
      
         </Grid>
 
     </ContentPage>
-    <ContentPage Title="Uptime" IsVisible="{Binding MeasurementsVisible}">
+    <ContentPage BindingContext="{Binding DowntimesTracker}" Title="Uptime" Padding="5">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="*"></RowDefinition>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100*"></ColumnDefinition>
+                <ColumnDefinition Width="50*"></ColumnDefinition>
+                <ColumnDefinition Width="40*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
 
+            <StackLayout Grid.Row="0"  Grid.ColumnSpan="4" >
+                <StackLayout Orientation="Horizontal">
+                    <Label Grid.Row="0" Text="uptime:" FontSize="15" />
+                    <Label Grid.Row="0" Grid.Column="1" Text="{Binding UptimeDurationString}" FontSize="15" />
+                </StackLayout>
+                <StackLayout Orientation="Horizontal">
+                    <Label Grid.Row="1" Text="downtime:" FontSize="15" />
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding DowntimeDurationString}" FontSize="15" />                    
+                </StackLayout>
+                <Button Command="{Binding Clear}" Text="clear history" />
+            </StackLayout>
+
+            <Label Grid.Row="1" Grid.Column="0" Text="Since"  />
+            <Label Grid.Row="1" Grid.Column="1" Text="Duration"  />
+            <Label Grid.Row="1" Grid.Column="2" Text="State"  />
+
+            <ListView Grid.Row="2" ItemsSource="{Binding Fragments}" SeparatorVisibility="None" BackgroundColor="Transparent" HasUnevenRows="True" 
+                    Grid.ColumnSpan="4" >
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <ViewCell.View>
+                                <Grid Margin="0,0,0,3" Padding="0" RowSpacing="1" ColumnSpacing="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"></RowDefinition>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100*"></ColumnDefinition>
+                                        <ColumnDefinition Width="50*"></ColumnDefinition>
+                                        <ColumnDefinition Width="40*"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>
+                                    <StackLayout Orientation="Horizontal">
+                                        <Label Text="{Binding StartTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}', Mode=OneTime}"  VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand"></Label>
+                                        <Button BorderWidth="0"  Text="go to" Clicked="GotoMeasurement_Clicked" ></Button>                                        
+                                    </StackLayout>
+
+                                    <Label Grid.Column="1" Text="{Binding DurationString}" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand" XAlign="Center" YAlign="Center"
+                                           TextColor="Black" BackgroundColor="{Binding DurationColor}" FontSize="18" />
+                                    <Label Grid.Column="2" Text="{Binding UpOrDownString}" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand" XAlign="Center" YAlign="Center"
+                                           TextColor="Black" BackgroundColor="{Binding UpOrDownColor}" FontSize="18"/>
+                                </Grid>
+                            </ViewCell.View>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+
+        </Grid>
     </ContentPage>
-    <ContentPage Title="About" Padding="10">
-
+    <!--<ContentPage Title="About" Padding="10">
             <Label Text="Have a question or suggestion? The software has an error? Write an email to support@startrinity.com in case of any problems" />
-    </ContentPage>
+    </ContentPage>-->
 </TabbedPage>
