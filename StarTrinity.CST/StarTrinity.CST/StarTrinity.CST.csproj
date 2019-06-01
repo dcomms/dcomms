@@ -33,9 +33,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="MainPageObs.xaml.cs">
-      <DependentUpon>MainPageObs.xaml</DependentUpon>
-    </Compile>
     <Compile Update="tt\VersionAndCompiledDateCs.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
