@@ -30,6 +30,8 @@ namespace Dcomms.P2PTP
         private readonly byte Flags;
         public bool RoleFlagIsUser => (Flags & (byte)0x01) != 0;
         public bool FlagIdontNeedMoreSharedPeers => (Flags & (byte)0x02) != 0;
+        public bool FlagIwantToGetYourIpLocation => (Flags & (byte)0x04) != 0; //request
+        public bool FlagIshareMyIpLocation => (Flags & (byte)0x08) != 0;       //response .   
         public readonly uint RequestTime32;
         public readonly string[] ExtensionIds; // nullable  // not null only for requests
         public readonly ushort? RequestSequenceNumber; // not null after version 190608
@@ -39,7 +41,8 @@ namespace Dcomms.P2PTP
         /// known minimal delay between received request and transmitted response. does not include delays in NIC drivers, in windows UDP/IP stack, in UDP receiver queue
         /// </summary>
         public readonly ushort? ResponseCpuDelayMs;
-
+        public readonly string RequestedFromIp; // is set in responses
+        public IpLocationData IpLocationData { get; private set; } // not null if FlagIshareMyIpLocation == true
 
         /// <summary>
         /// creates request, for transmission to peer
@@ -62,7 +65,7 @@ namespace Dcomms.P2PTP
         /// <summary>
         /// creates packet for response
         /// </summary>
-        private PeerHelloPacket(PeerHelloPacket requestPacket, PeerHelloRequestStatus status, PeerId localPeerId, bool thisPeerRoleAsUser, ushort? responseCpuDelayMs)
+        private PeerHelloPacket(PeerHelloPacket requestPacket, PeerHelloRequestStatus status, PeerId localPeerId, bool thisPeerRoleAsUser, ushort? responseCpuDelayMs, string requestedFromIp)
         {
             LibraryVersion = MiscProcedures.CompilationDateTimeUtc_uint32;
             ProtocolVersion = P2ptpCommon.ProtocolVersion;
@@ -74,6 +77,7 @@ namespace Dcomms.P2PTP
             Flags = thisPeerRoleAsUser ? (byte)0x01 : (byte)0x00;
             RequestSequenceNumber = requestPacket.RequestSequenceNumber;
             ResponseCpuDelayMs = responseCpuDelayMs;
+            RequestedFromIp = requestedFromIp;
         } 
         /// <summary>
         /// creates response to request and sends the response
@@ -82,7 +86,7 @@ namespace Dcomms.P2PTP
         internal static void Respond(PeerHelloPacket requestPacket, PeerHelloRequestStatus status, PeerId localPeerId, 
             SocketWithReceiver socket, IPEndPoint remoteEndPoint, ushort? responseCpuDelayMs = null, bool thisPeerRoleAsUser = false)
         {
-            var responseData = new PeerHelloPacket(requestPacket, status, localPeerId, thisPeerRoleAsUser, responseCpuDelayMs).Encode();
+            var responseData = new PeerHelloPacket(requestPacket, status, localPeerId, thisPeerRoleAsUser, responseCpuDelayMs, remoteEndPoint.Address.ToString()).Encode();
             socket.UdpSocket.Send(responseData, responseData.Length, remoteEndPoint);
         }
 
@@ -106,6 +110,7 @@ namespace Dcomms.P2PTP
             { // after version 190608
                 RequestSequenceNumber = P2ptpCommon.DecodeUInt16(packetUdpPayloadData, ref index);
                 ResponseCpuDelayMs = P2ptpCommon.DecodeUInt16(packetUdpPayloadData, ref index);
+                RequestedFromIp = P2ptpCommon.DecodeString1ASCII(packetUdpPayloadData, ref index);
             }
         }
         const int MinEncodedSize = P2ptpCommon.HeaderSize +
@@ -117,14 +122,16 @@ namespace Dcomms.P2PTP
                 1 + // role flags
                 1; // extensions length
         const int OptionalEncodedSize = 2 + // RequestSequenceNumber
-            2; //ResponseCpuDelayMs
+            2 +//ResponseCpuDelayMs
+            1; // RequestedFromIp length
         public byte[] Encode()
         {
             var size = MinEncodedSize;
             if (ExtensionIds != null)
                 foreach (var extensionId in ExtensionIds)
                     size += 1 + extensionId.Length;
-            size += OptionalEncodedSize;
+            var requestedFromIp = RequestedFromIp ?? "";
+            size += OptionalEncodedSize + requestedFromIp.Length;
 
             byte[] data = new byte[size];
             P2ptpCommon.EncodeHeader(data, PacketType.hello);
@@ -144,6 +151,7 @@ namespace Dcomms.P2PTP
 
             P2ptpCommon.EncodeUInt16(data, ref index, RequestSequenceNumber ?? 0);
             P2ptpCommon.EncodeUInt16(data, ref index, ResponseCpuDelayMs ?? 0);
+            P2ptpCommon.EncodeString1ASCII(data, ref index, requestedFromIp);
 
             return data;
         }
