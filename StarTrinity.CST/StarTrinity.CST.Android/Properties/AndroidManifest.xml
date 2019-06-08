@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="20190601" android:versionName="2019.06.01" package="StarTrinity.CST" android:installLocation="auto">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="201906022" android:versionName="2019.06.02.2" package="com.StarTrinity.CST" android:installLocation="auto">
 	<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="27" />
-	<application android:label="StarTrinity CST" android:icon="@mipmap/icon"></application>
+	<application android:label="Continuous Speed Test" android:icon="@mipmap/icon"></application>
 </manifest>

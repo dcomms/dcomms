@@ -56,7 +56,7 @@ namespace Dcomms.SUBT.GUI
             get
             {
                 GetDurations(out var uptimeDuration, out var downtimeDuration, out var numberOfDowntimes);
-                if (uptimeDuration.Ticks == 0) return "";
+                if (uptimeDuration.Ticks == 0) return "[not ready]";
                 return String.Format("{0} ({1:0.0000}%)", uptimeDuration.TimeSpanToStringHMS(), 100.0 * uptimeDuration.Ticks / (uptimeDuration.Ticks + downtimeDuration.Ticks));
             }
         }
@@ -74,7 +74,7 @@ namespace Dcomms.SUBT.GUI
             get
             {
                 GetDurations(out var uptimeDuration, out var downtimeDuration, out var numberOfDowntimes);
-                if (uptimeDuration.Ticks == 0) return "";
+                if (uptimeDuration.Ticks == 0) return "[not ready]";
                 return String.Format("{0} ({1:0.0000}%). {2} downtime(s)", downtimeDuration.TimeSpanToStringHMS(), 100.0 * downtimeDuration.Ticks / (uptimeDuration.Ticks + downtimeDuration.Ticks), numberOfDowntimes);
             }
         }
@@ -148,6 +148,8 @@ namespace Dcomms.SUBT.GUI
             RaisePropertyChanged(() => StartTime);
             RaisePropertyChanged(() => DurationString);
             RaisePropertyChanged(() => DurationColor);
+            RaisePropertyChanged(() => UpOrDownColor);
+            
         }
 
         TimeSpan Duration => StopTime - StartTime;

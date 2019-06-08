@@ -210,10 +210,10 @@ namespace Dcomms.SUBT.GUI
             }
 
 
-            if (AutoStartedInTrayMode || User.RunningInstalledOnThisPC)
+         //   if (AutoStartedInTrayMode || User.RunningInstalledOnThisPC)
                 EasyGuiTabIsSelected = true;
-            else
-                HowItWorksTabIsSelected = true;
+     //       else
+        //        HowItWorksTabIsSelected = true;
 
         }
         public DelegateCommand Initialize => new DelegateCommand(() =>

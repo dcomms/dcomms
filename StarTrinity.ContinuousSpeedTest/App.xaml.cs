@@ -13,6 +13,7 @@ namespace StarTrinity.ContinuousSpeedTest
     {
         protected override void OnStartup(StartupEventArgs e)
         {
+#if !DEBUG
             try
             {
                 var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
@@ -53,6 +54,7 @@ namespace StarTrinity.ContinuousSpeedTest
             {// ignore: can do nothing, dont annoy user
              //   HandleException(exc);
             }
+#endif
 
      _start:
             Dcomms.MiscProcedures.Initialize(CompilationInfo.CompilationDateTimeUtc, new DateTime(2019, 05, 01));

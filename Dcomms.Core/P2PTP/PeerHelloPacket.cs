@@ -27,13 +27,22 @@ namespace Dcomms.P2PTP
         public readonly uint LibraryVersion; // of sender peer // see CompilationInfo.ToDateTime()
         public readonly ushort ProtocolVersion; // of sender peer
         public readonly PeerHelloRequestStatus Status; // byte; indicates if it is request or response
-        public readonly byte RoleFlags;
-        public bool RoleFlagIsUser => (RoleFlags & (byte)0x01) != 0;
+        private readonly byte Flags;
+        public bool RoleFlagIsUser => (Flags & (byte)0x01) != 0;
+        public bool FlagIdontNeedMoreSharedPeers => (Flags & (byte)0x02) != 0;
         public readonly uint RequestTime32;
         public readonly string[] ExtensionIds; // nullable  // not null only for requests
-        
+        public readonly ushort? RequestSequenceNumber; // not null after version 190608
         /// <summary>
-        /// creates packet for transmission to peer
+        /// not null after version 190608
+        /// is non-zero only for "accepted" responses
+        /// known minimal delay between received request and transmitted response. does not include delays in NIC drivers, in windows UDP/IP stack, in UDP receiver queue
+        /// </summary>
+        public readonly ushort? ResponseCpuDelayMs;
+
+
+        /// <summary>
+        /// creates request, for transmission to peer
         /// </summary>
         /// <param name="connectedPeer">destination</param>
         /// <param name="stream">destination</param>
@@ -47,13 +56,13 @@ namespace Dcomms.P2PTP
             ToPeerId = connectedPeer.RemotePeerId;
             Status = status;
             RequestTime32 = localPeer.Time32;
-            RoleFlags = localPeer.Configuration.RoleAsUser ? (byte)0x01 : (byte)0x00;
+            Flags = localPeer.Configuration.RoleAsUser ? (byte)0x01 : (byte)0x00;
         }
 
         /// <summary>
         /// creates packet for response
         /// </summary>
-        private PeerHelloPacket(PeerHelloPacket requestPacket, PeerHelloRequestStatus status, PeerId localPeerId, bool thisPeerRoleAsUser)
+        private PeerHelloPacket(PeerHelloPacket requestPacket, PeerHelloRequestStatus status, PeerId localPeerId, bool thisPeerRoleAsUser, ushort? responseCpuDelayMs)
         {
             LibraryVersion = MiscProcedures.CompilationDateTimeUtc_uint32;
             ProtocolVersion = P2ptpCommon.ProtocolVersion;
@@ -62,35 +71,42 @@ namespace Dcomms.P2PTP
             StreamId = requestPacket.StreamId;
             Status = status;
             RequestTime32 = requestPacket.RequestTime32;
-            RoleFlags = thisPeerRoleAsUser ? (byte)0x01 : (byte)0x00;
+            Flags = thisPeerRoleAsUser ? (byte)0x01 : (byte)0x00;
+            RequestSequenceNumber = requestPacket.RequestSequenceNumber;
+            ResponseCpuDelayMs = responseCpuDelayMs;
         } 
         /// <summary>
         /// creates response to request and sends the response
         /// </summary>
         /// <param name="localPeerId">optional local test node ID, is sent by server to new peers who dont know server's PeerId</param>
         internal static void Respond(PeerHelloPacket requestPacket, PeerHelloRequestStatus status, PeerId localPeerId, 
-            SocketWithReceiver socket, IPEndPoint remoteEndPoint, bool thisPeerRoleAsUser = false)
+            SocketWithReceiver socket, IPEndPoint remoteEndPoint, ushort? responseCpuDelayMs = null, bool thisPeerRoleAsUser = false)
         {
-            var responseData = new PeerHelloPacket(requestPacket, status, localPeerId, thisPeerRoleAsUser).Encode();
+            var responseData = new PeerHelloPacket(requestPacket, status, localPeerId, thisPeerRoleAsUser, responseCpuDelayMs).Encode();
             socket.UdpSocket.Send(responseData, responseData.Length, remoteEndPoint);
         }
 
-        public PeerHelloPacket(byte[] data)
+        public PeerHelloPacket(byte[] packetUdpPayloadData)
         {
-            if (data.Length < MinEncodedSize) throw new ArgumentException(nameof(data));
+            if (packetUdpPayloadData.Length < MinEncodedSize) throw new ArgumentException(nameof(packetUdpPayloadData));
             var index = P2ptpCommon.HeaderSize;
-            FromPeerId = PeerId.Decode(data, ref index);
-            StreamId = StreamId.Decode(data, ref index);
-            ToPeerId = PeerId.Decode(data, ref index);         
-            LibraryVersion = P2ptpCommon.DecodeUInt32(data, ref index);
-            ProtocolVersion = P2ptpCommon.DecodeUInt16(data, ref index);
-            Status = (PeerHelloRequestStatus)data[index++];
-            RequestTime32 = P2ptpCommon.DecodeUInt32(data, ref index);
-            RoleFlags = data[index++];
-            var extensionIdsLength = data[index++];
+            FromPeerId = PeerId.Decode(packetUdpPayloadData, ref index);
+            StreamId = StreamId.Decode(packetUdpPayloadData, ref index);
+            ToPeerId = PeerId.Decode(packetUdpPayloadData, ref index);         
+            LibraryVersion = P2ptpCommon.DecodeUInt32(packetUdpPayloadData, ref index);
+            ProtocolVersion = P2ptpCommon.DecodeUInt16(packetUdpPayloadData, ref index);
+            Status = (PeerHelloRequestStatus)packetUdpPayloadData[index++];
+            RequestTime32 = P2ptpCommon.DecodeUInt32(packetUdpPayloadData, ref index);
+            Flags = packetUdpPayloadData[index++];
+            var extensionIdsLength = packetUdpPayloadData[index++];
             ExtensionIds = new string[extensionIdsLength];
             for (byte i = 0; i < extensionIdsLength; i++)
-                ExtensionIds[i] = P2ptpCommon.DecodeString1ASCII(data, ref index);
+                ExtensionIds[i] = P2ptpCommon.DecodeString1ASCII(packetUdpPayloadData, ref index);
+            if (index < packetUdpPayloadData.Length)
+            { // after version 190608
+                RequestSequenceNumber = P2ptpCommon.DecodeUInt16(packetUdpPayloadData, ref index);
+                ResponseCpuDelayMs = P2ptpCommon.DecodeUInt16(packetUdpPayloadData, ref index);
+            }
         }
         const int MinEncodedSize = P2ptpCommon.HeaderSize +
                 PeerId.EncodedSize + StreamId.EncodedSize +
@@ -100,12 +116,15 @@ namespace Dcomms.P2PTP
                 4 + // requesttime
                 1 + // role flags
                 1; // extensions length
+        const int OptionalEncodedSize = 2 + // RequestSequenceNumber
+            2; //ResponseCpuDelayMs
         public byte[] Encode()
         {
             var size = MinEncodedSize;
             if (ExtensionIds != null)
                 foreach (var extensionId in ExtensionIds)
                     size += 1 + extensionId.Length;
+            size += OptionalEncodedSize;
 
             byte[] data = new byte[size];
             P2ptpCommon.EncodeHeader(data, PacketType.hello);
@@ -117,11 +136,15 @@ namespace Dcomms.P2PTP
             P2ptpCommon.EncodeUInt16(data, ref index, ProtocolVersion);
             data[index++] = (byte)Status;
             P2ptpCommon.EncodeUInt32(data, ref index, RequestTime32);
-            data[index++] = RoleFlags;
+            data[index++] = Flags;
             data[index++] = (byte)(ExtensionIds?.Length ?? 0);
             if (ExtensionIds != null)
                 foreach (var extensionId in ExtensionIds)
-                    P2ptpCommon.EncodeString1ASCII(data, ref index, extensionId);                        
+                    P2ptpCommon.EncodeString1ASCII(data, ref index, extensionId);
+
+            P2ptpCommon.EncodeUInt16(data, ref index, RequestSequenceNumber ?? 0);
+            P2ptpCommon.EncodeUInt16(data, ref index, ResponseCpuDelayMs ?? 0);
+
             return data;
         }
     }

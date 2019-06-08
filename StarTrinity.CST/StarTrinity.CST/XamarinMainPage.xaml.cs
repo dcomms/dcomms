@@ -57,6 +57,10 @@ namespace StarTrinity.CST
         {
             var button = (Button)sender;
             var f = (UpDownTimeFragment)button.BindingContext;
+            if (this.SelectedItem == measurementsContentPage)
+            { // a bug in xamarin, workaround
+                this.SelectedItem = uptimeContentPage;
+            }
             this.SelectedItem = measurementsContentPage;
             _cstApp.EasyGuiViewModel.GoToMeasurement(f.StopTime);
 

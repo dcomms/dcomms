@@ -120,8 +120,9 @@ namespace Dcomms.SUBT
                     if (st != null)
                     {
                         confirmedTxBandwidth += st.RecentRxBandwidth;
-                        if (bestRttToPeers == null || s.RecentRtt < bestRttToPeers.Value)
-                            bestRttToPeers = s.RecentRtt;
+                        var rtt = s.RecentRttConsideringP2ptp;
+                        if (bestRttToPeers == null || rtt < bestRttToPeers.Value)
+                            bestRttToPeers = rtt;
 
                         if (st.RecentRxBandwidth > SubtLogicConfiguration.MinBandwidthPerStreamForPacketLossMeasurement)
                             averageTxLoss.Input(st.RecentRxPacketLoss);

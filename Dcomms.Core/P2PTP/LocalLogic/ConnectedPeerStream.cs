@@ -64,6 +64,7 @@ namespace Dcomms.P2PTP.LocalLogic
         }
         void IConnectedPeerStream.MarkAsActiveByExtension() => _lastTimeMarkedActiveByExtension = _localPeer.DateTimeNowUtc;
         bool IConnectedPeerStream.IsIdle(DateTime now, TimeSpan maxIdleTime) => IsIdle(now, maxIdleTime);
+        TimeSpan? IConnectedPeerStream.LatestHelloRtt => LatestHelloRtt;
 
         /// <summary>
         /// read by receiver thread, initialized by manager thread

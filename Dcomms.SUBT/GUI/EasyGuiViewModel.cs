@@ -329,6 +329,7 @@ namespace Dcomms.SUBT.GUI
         {
             _cstApp.SubtLocalPeer?.MeasurementsHistory?.Clear();
             RaisePropertyChanged(() => DisplayedMeasurements);
+            RaisePropertyChanged(() => MeasurementsCountInRamString);            
         });
         public ICommand ExportMeasurements => new DelegateCommand(() =>
         {

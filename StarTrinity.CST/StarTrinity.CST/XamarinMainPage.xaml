@@ -5,42 +5,6 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              x:Class="StarTrinity.CST.XamarinMainPage">
-    <ContentPage Title="How it works" >
-        <ScrollView>
-            <StackLayout Padding="10" >
-                <Label LineBreakMode="WordWrap" >
-                    <Label.FormattedText>
-                        <FormattedString>
-                            <Span FontSize="16" Text="Assumption: you experience " />
-                            <Span FontSize="16" Text="bad internet quality when you use an application: a website in browser, messenger, instagram, facebook, etc" FontAttributes="Bold" />
-                            <Span FontSize="16" Text="; you want to fix the problem, and you want to know what exactly happens - is it problem of internet provider, your mobile device, wifi router, antenna location, or the application itself" />
-                        </FormattedString>
-                    </Label.FormattedText>
-                </Label>
-
-                <Label FontSize="30" FontAttributes="Bold" LineBreakMode="WordWrap" Text="Instructions" />
-
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Run this Continuous Speed Test" />
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Use your application, with this test running in background" />
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; When you experience a problem with the application - look into results of this test" />
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; If the test detects a downtime - it is problem of internet provider or hardware. If no downtime is detected - it is a problem of the application" />
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Run the same test on another hardware: another device or another wifi router, or change location of antenna. You can run test on multiple devices at same time to see difference" />
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; If the test reports downtimes on multiple different devices - it is exactly problem of internet provider: send the results to the provider and let them fix the problem. If they are not able to fix it - use another internet provider" />
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Contact us by email: support@startrinity.com if you need an advice how to fix internet issues. We maintain a database of known issues with providers and hardware vendors" />
-
-
-
-                <Label FontSize="30" FontAttributes="Bold" LineBreakMode="WordWrap" Text="How it works" />
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; The continuous speed test sets up multiple connections with test nodes" />
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; It continuously sends and receives UDP/IP packets according to target bandwidth (set by user)" />
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; It measures quality of connection: packet loss, jitter, round trip delay" />
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; If quality is bad, it considers connection as 'down' and tracks it" />
-                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; It generates reports with measurements, uptimes and downtimes" />
-                
-
-            </StackLayout>
-        </ScrollView>
-    </ContentPage>
     <ContentPage Title="Test">
         <StackLayout BindingContext="{Binding EasyGuiViewModel}" Padding="10">
             <Grid IsVisible="{Binding StartVisible}" >
@@ -48,6 +12,8 @@
             </Grid>
             <Grid IsVisible="{Binding MeasurementsVisible}" HorizontalOptions="Center" >
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -74,9 +40,15 @@
                 <Label FontSize="Large" Grid.Row="3" Text="RTT (ping): " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
                 <Label FontSize="Large" Grid.Row="3" Grid.Column="1" Text="{Binding RecentRttString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
 
-                <Button FontSize="Large" Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding PauseTest}" Text="Pause" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}" />
-                <Button FontSize="Large" Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding ResumeTest}" Text="Resume" VerticalOptions="Start" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused}" />
-                        
+
+                <Label FontSize="Large" Grid.Row="4" Text="uptime: " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="4" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.UptimeDurationString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+
+                <Label FontSize="Large" Grid.Row="5" Text="downtime: " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="5" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.DowntimeDurationString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+              
+                <Button FontSize="Large" Grid.Row="6" Grid.ColumnSpan="2" Command="{Binding PauseTest}" Text="Pause" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}" />
+                <Button FontSize="Large" Grid.Row="6" Grid.ColumnSpan="2" Command="{Binding ResumeTest}" Text="Resume" VerticalOptions="Start" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused}" />
             </Grid>
         </StackLayout>
     </ContentPage>
@@ -181,7 +153,7 @@
         </Grid>
 
     </ContentPage>
-    <ContentPage BindingContext="{Binding DowntimesTracker}" Title="Uptime" Padding="5">
+    <ContentPage BindingContext="{Binding DowntimesTracker}" Title="Uptime" x:Name="uptimeContentPage" Padding="5">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"></RowDefinition>
@@ -243,6 +215,42 @@
 
 
         </Grid>
+    </ContentPage>
+    <ContentPage Title="How it works" >
+        <ScrollView>
+            <StackLayout Padding="10" >
+                <Label LineBreakMode="WordWrap" >
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span FontSize="16" Text="Assumption: you experience " />
+                            <Span FontSize="16" Text="bad internet quality when you use an application: a website in browser, messenger, instagram, facebook, etc" FontAttributes="Bold" />
+                            <Span FontSize="16" Text="; you want to fix the problem, and you want to know what exactly happens - is it problem of internet provider, your mobile device, wifi router, antenna location, or the application itself" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+
+                <Label FontSize="30" FontAttributes="Bold" LineBreakMode="WordWrap" Text="Instructions" />
+
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Run this Continuous Speed Test" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Use your application, with this test running in background" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; When you experience a problem with the application - look into results of this test" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; If the test detects a downtime - it is problem of internet provider or hardware. If no downtime is detected - it is a problem of the application" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Run the same test on another hardware: another device or another wifi router, or change location of antenna. You can run test on multiple devices at same time to see difference" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; If the test reports downtimes on multiple different devices - it is exactly problem of internet provider: send the results to the provider and let them fix the problem. If they are not able to fix it - use another internet provider" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Contact us by email: support@startrinity.com if you need an advice how to fix internet issues. We maintain a database of known issues with providers and hardware vendors" />
+
+
+
+                <Label FontSize="30" FontAttributes="Bold" LineBreakMode="WordWrap" Text="How it works" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; The continuous speed test sets up multiple connections with test nodes" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; It continuously sends and receives UDP/IP packets according to target bandwidth (set by user)" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; It measures quality of connection: packet loss, jitter, round trip delay" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; If quality is bad, it considers connection as 'down' and tracks it" />
+                <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; It generates reports with measurements, uptimes and downtimes" />
+
+
+            </StackLayout>
+        </ScrollView>
     </ContentPage>
     <!--<ContentPage Title="About" Padding="10">
             <Label Text="Have a question or suggestion? The software has an error? Write an email to support@startrinity.com in case of any problems" />

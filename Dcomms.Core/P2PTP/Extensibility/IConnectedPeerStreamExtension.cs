@@ -21,6 +21,7 @@ namespace Dcomms.P2PTP.Extensibility
         bool Debug { get; set; }
         bool RemotePeerRoleIsUser { get; }
         bool IsIdle(DateTime now, TimeSpan maxIdleTime);
+        TimeSpan? LatestHelloRtt { get; }
     }
     /// <summary>
     /// extension-specofoc object linked to connetced peer stream

@@ -51,7 +51,17 @@ namespace Dcomms.SUBT
         /// tx payload packets   transmitted with timestamp32  ---> remote peer reflects it to "receivedTimestamp32" --> sends back to this peer --> we have the difference
         /// </summary>
         internal TimeSpan? RecentRtt { get; private set; }
-        public string RecentRttString => MiscProcedures.TimeSpanToString(RecentRtt);
+        internal TimeSpan? RecentRttConsideringP2ptp
+        {
+            get
+            {
+                var r = _stream.LatestHelloRtt;
+                if (r == null || RecentRtt < r.Value)
+                    r = RecentRtt;
+                return r;
+            }
+        }
+        public string RecentRttString => MiscProcedures.TimeSpanToString(RecentRttConsideringP2ptp);
         internal float RecentRxBandwidth => _rxMeasurement.RecentBandwidth;
         public string RecentRxBandwidthString => $"{_rxBwBeforeJB.OutputPerUnit.BandwidthToString()}/{_rxMeasurement.RecentBandwidth.BandwidthToString()}";
         internal float RecentPacketLoss => _rxMeasurement.RecentPacketLoss; // 0..1

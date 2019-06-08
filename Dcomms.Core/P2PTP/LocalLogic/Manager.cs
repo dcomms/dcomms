@@ -163,18 +163,18 @@ namespace Dcomms.P2PTP.LocalLogic
         /// receiver thread
         /// changes state of connected peer
         /// </summary>
-        internal void ProcessReceivedHello(byte[] data, IPEndPoint remoteEndpoint, SocketWithReceiver socket)
+        internal void ProcessReceivedHello(byte[] udpPayloadData, IPEndPoint remoteEndpoint, SocketWithReceiver socket, uint packetReceivedTimestamp32)
         {
             // enqueue into manager thread // reduce load of the receiver thread
             _actionsQueue.Enqueue(() =>
             {
-                var helloPacket = new PeerHelloPacket(data);
+                var helloPacket = new PeerHelloPacket(udpPayloadData);
                 if (helloPacket.ToPeerId == null)
                 {
                     if (helloPacket.Status.IsSetupOrPing())
                     {
                         if (_localPeer.Configuration.RoleAsCoordinator)
-                            ProcessReceivedHello_SetupRequestFromNewPeer(helloPacket, remoteEndpoint, socket, _localPeer.LocalPeerId);
+                            ProcessReceivedHello_SetupRequestFromNewPeer(helloPacket, remoteEndpoint, socket, _localPeer.LocalPeerId, packetReceivedTimestamp32);
                         else
                         {
                             _localPeer.Firewall.OnUnauthenticatedReceivedPacket(remoteEndpoint);
@@ -194,17 +194,17 @@ namespace Dcomms.P2PTP.LocalLogic
                 }
                 else if (_pendingPeers.ContainsKey(remoteEndpoint))
                 {// correct ToPeerId and remote endpoint is in _initiallyNotRespondedServers
-                    ProcessReceivedHello_FromPendingPeer(helloPacket, remoteEndpoint);
+                    ProcessReceivedHello_FromPendingPeer(helloPacket, remoteEndpoint, packetReceivedTimestamp32);
                 }
                 else
                 {// correct ToPeerId
                     if (_connectedPeers.TryGetValue(helloPacket.FromPeerId, out var connectedPeer))
                     { // packet from already connected peer
-                        ProcessReceivedHello_FromExistingPeer(helloPacket, remoteEndpoint, socket, connectedPeer);
+                        ProcessReceivedHello_FromExistingPeer(helloPacket, remoteEndpoint, socket, connectedPeer, packetReceivedTimestamp32);
                     }
                     else if (helloPacket.Status.IsSetupOrPing())
                     { // FromPeerId is unknown, ToPeerId is this one // request to set up connection from new peer
-                        ProcessReceivedHello_SetupRequestFromNewPeer(helloPacket, remoteEndpoint, socket, null);
+                        ProcessReceivedHello_SetupRequestFromNewPeer(helloPacket, remoteEndpoint, socket, null, packetReceivedTimestamp32);
                     }
                 }
             });
@@ -219,7 +219,7 @@ namespace Dcomms.P2PTP.LocalLogic
         /// for both coordinatorServer and userPeer
         /// accepts connection, adds peer and/or stream to lists, responds with 'accepted'
         /// </summary>
-        void ProcessReceivedHello_SetupRequestFromNewPeer(PeerHelloPacket helloPacket, IPEndPoint remoteEndpoint, SocketWithReceiver socket, PeerId localPeerIdForResponse) 
+        void ProcessReceivedHello_SetupRequestFromNewPeer(PeerHelloPacket helloPacket, IPEndPoint remoteEndpoint, SocketWithReceiver socket, PeerId localPeerIdForResponse, uint requestReceivedTimestamp32) 
         {           
             if (_localPeer.Configuration.RoleAsCoordinator)
             {
@@ -273,10 +273,13 @@ namespace Dcomms.P2PTP.LocalLogic
                 var stream = peer.TryAddStream(socket, remoteEndpoint, helloPacket.StreamId);
                 _localPeer.WriteToLog(LogModules.Hello, $"created new stream {stream} from new peer {peer}");
 
-                PeerHelloPacket.Respond(helloPacket, PeerHelloRequestStatus.accepted, localPeerIdForResponse, socket, remoteEndpoint, _localPeer.Configuration.RoleAsUser);
+                var responseCpuDelayMs = (ushort)Math.Round(TimeSpan.FromTicks(unchecked(_localPeer.Time32 - requestReceivedTimestamp32)).TotalMilliseconds);
+                PeerHelloPacket.Respond(helloPacket, PeerHelloRequestStatus.accepted, localPeerIdForResponse, socket, remoteEndpoint,
+                    responseCpuDelayMs,
+                    _localPeer.Configuration.RoleAsUser);
             }
         }
-        void ProcessReceivedHello_FromExistingPeer(PeerHelloPacket helloPacket, IPEndPoint remoteEndpoint, SocketWithReceiver socket, ConnectedPeer connectedPeer)
+        void ProcessReceivedHello_FromExistingPeer(PeerHelloPacket helloPacket, IPEndPoint remoteEndpoint, SocketWithReceiver socket, ConnectedPeer connectedPeer, uint packetReceivedTimestamp32)
         {
             // current situation:
             // received hello packet; this peer wants to accept connection
@@ -334,10 +337,11 @@ namespace Dcomms.P2PTP.LocalLogic
             {
                 case PeerHelloRequestStatus.setup:
                 case PeerHelloRequestStatus.ping:
-                    PeerHelloPacket.Respond(helloPacket, PeerHelloRequestStatus.accepted, null, socket, remoteEndpoint, _localPeer.Configuration.RoleAsUser);
+                    var responseCpuDelayMs = (ushort)Math.Round(TimeSpan.FromTicks(unchecked(_localPeer.Time32 - packetReceivedTimestamp32)).TotalMilliseconds);
+                    PeerHelloPacket.Respond(helloPacket, PeerHelloRequestStatus.accepted, null, socket, remoteEndpoint, responseCpuDelayMs, _localPeer.Configuration.RoleAsUser);
                     break;
                 case PeerHelloRequestStatus.accepted:
-                    ProcessReceivedAcceptedHello_UpdateHelloLevelFields(connectedPeer, stream, helloPacket);
+                    ProcessReceivedAcceptedHello_UpdateHelloLevelFields(connectedPeer, stream, helloPacket, packetReceivedTimestamp32);
                     break;
                 case PeerHelloRequestStatus.rejected_tryCleanSetup:
                     _localPeer.WriteToLog(LogModules.Hello, $"peer {connectedPeer} received {helloPacket.Status} from stream {stream}");
@@ -354,7 +358,7 @@ namespace Dcomms.P2PTP.LocalLogic
                     break;
             }
         }        
-        void ProcessReceivedHello_FromPendingPeer(PeerHelloPacket helloPacket, IPEndPoint remoteEndpoint)
+        void ProcessReceivedHello_FromPendingPeer(PeerHelloPacket helloPacket, IPEndPoint remoteEndpoint, uint packetReceivedTime32)
         {
             var pendingPeer = _pendingPeers[remoteEndpoint];
             var stream = pendingPeer.Streams.Values.Single(); // must be only 1 stream in the ConnectedPeer (as initially configured)
@@ -376,7 +380,7 @@ namespace Dcomms.P2PTP.LocalLogic
                             _localPeer.WriteToLog(LogModules.Hello, $"received initial hello response from pending peer {pendingPeer}");
                             lock (_connectedPeers)
                                 _connectedPeers.Add(helloPacket.FromPeerId, pendingPeer);
-                            ProcessReceivedAcceptedHello_UpdateHelloLevelFields(pendingPeer, stream, helloPacket);
+                            ProcessReceivedAcceptedHello_UpdateHelloLevelFields(pendingPeer, stream, helloPacket, packetReceivedTime32);
                         }
                         else
                         { // secondary streams response: move ConnectedPeerStream
@@ -389,7 +393,7 @@ namespace Dcomms.P2PTP.LocalLogic
                                 //  alreadyRespondedPeer.Streams.Add(stream.StreamId, stream);
                                 //  foreach (var sx in stream.Extensions)
                                 //       sx.Value.OnMovedToConnectedPeer();
-                                ProcessReceivedAcceptedHello_UpdateHelloLevelFields(alreadyRespondedPeer, stream, helloPacket);
+                                ProcessReceivedAcceptedHello_UpdateHelloLevelFields(alreadyRespondedPeer, stream, helloPacket, packetReceivedTime32);
                             }
                             else throw new Exception("alreadyRespondedPeer.Streams.ContainsKey(stream.StreamId)");
                         }
@@ -410,18 +414,21 @@ namespace Dcomms.P2PTP.LocalLogic
                     break;
             }
         }
-        void ProcessReceivedAcceptedHello_UpdateHelloLevelFields(ConnectedPeer connectedPeer, ConnectedPeerStream stream, PeerHelloPacket helloPacket)
+        void ProcessReceivedAcceptedHello_UpdateHelloLevelFields(ConnectedPeer connectedPeer, ConnectedPeerStream stream, PeerHelloPacket helloResponsePacket, uint responseReceivedTime32)
         {
-            stream.LatestHelloRtt = TimeSpan.FromTicks(unchecked(_localPeer.Time32 - helloPacket.RequestTime32));
+            var rtt = TimeSpan.FromTicks(unchecked(responseReceivedTime32 - helloResponsePacket.RequestTime32)) - TimeSpan.FromMilliseconds(helloResponsePacket.ResponseCpuDelayMs ?? 0);
+            if (rtt < TimeSpan.Zero) rtt = TimeSpan.Zero; // avoid abnormal measurements
+            stream.LatestHelloRtt = rtt;
+            
             stream.LastTimeReceivedAccepted = _localPeer.DateTimeNowUtc; 
-            connectedPeer.ProtocolVersion = helloPacket.ProtocolVersion;
-            connectedPeer.LibraryVersion = MiscProcedures.ToDateTime(helloPacket.LibraryVersion);
+            connectedPeer.ProtocolVersion = helloResponsePacket.ProtocolVersion;
+            connectedPeer.LibraryVersion = MiscProcedures.ToDateTime(helloResponsePacket.LibraryVersion);
             connectedPeer.TotalHelloAcceptedPacketsReceived++;
             stream.TotalHelloAcceptedPacketsReceived++;
-            stream.RemotePeerRoleIsUser = helloPacket.RoleFlagIsUser;
+            stream.RemotePeerRoleIsUser = helloResponsePacket.RoleFlagIsUser; 
 
-            if (helloPacket.ExtensionIds != null && helloPacket.ExtensionIds.Length != 0)
-                connectedPeer.LatestReceivedRemoteExtensionIds = new HashSet<string>(helloPacket.ExtensionIds.Distinct());
+            if (helloResponsePacket.ExtensionIds != null && helloResponsePacket.ExtensionIds.Length != 0)
+                connectedPeer.LatestReceivedRemoteExtensionIds = new HashSet<string>(helloResponsePacket.ExtensionIds.Distinct());
         }
         #endregion
 
