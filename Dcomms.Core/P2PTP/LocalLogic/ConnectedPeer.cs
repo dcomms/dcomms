@@ -16,10 +16,13 @@ namespace Dcomms.P2PTP.LocalLogic
         readonly LocalPeer _localPeer;
         internal readonly Dictionary<ILocalPeerExtension, IConnectedPeerExtension> Extensions;
         internal HashSet<string> LatestReceivedRemoteExtensionIds;
+        internal IpLocationData RemoteIpLocationData;
+        internal readonly string RemoteIp;
 
         /// <param name="remotePeerId">null for 'pending' peers</param>
-        internal ConnectedPeer(LocalPeer localPeer, PeerId remotePeerId, ConnectedPeerType type)
+        internal ConnectedPeer(LocalPeer localPeer, PeerId remotePeerId, ConnectedPeerType type, IPAddress remoteIp)
         {
+            RemoteIp = remoteIp.ToString();
             Type = type;
             RemotePeerId = remotePeerId;
             _localPeer = localPeer;
@@ -99,27 +102,30 @@ namespace Dcomms.P2PTP.LocalLogic
         IDictionary<ILocalPeerExtension, IConnectedPeerExtension> IConnectedPeer.Extensions => Extensions;
         PeerId IConnectedPeer.RemotePeerId => RemotePeerId;
         ConnectedPeerType IConnectedPeer.Type => Type;
-
+        IpLocationData IConnectedPeer.RemoteIpLocationData => RemoteIpLocationData;
+        string IConnectedPeer.RemoteIp => RemoteIp;
+        
         public string ToString(LocalPeer localPeer)
         {
-            var sb = new StringBuilder();
-            sb.AppendFormat("{0}_{1}(", Type, RemotePeerId);
-            foreach (var stream in Streams.Values)
-            {
-                sb.Append(stream.ToString());
-                if (localPeer != null)
-                    sb.AppendFormat(" hr/c: {0:0.0}sec ago", (localPeer.DateTimeNowUtc - (stream.LastTimeReceivedAccepted ?? stream.Created)).TotalSeconds);
-                sb.Append(";");
-            }
+            return RemoteIp;
 
-            sb.Append(")");
-            if (LibraryVersion != null)
-                sb.AppendFormat("lib:{0:yyMMdd-HH:mm}", LibraryVersion);
-            if (ProtocolVersion != null)
-                sb.AppendFormat("p:{0}", ProtocolVersion);
+            //var sb = new StringBuilder();
+            //sb.AppendFormat("{0}_{1}(", Type, RemotePeerId);
+            //foreach (var stream in Streams.Values)
+            //{
+            //    sb.Append(stream.ToString());
+            //    if (localPeer != null)
+            //        sb.AppendFormat(" hr/c: {0:0.0}sec ago", (localPeer.DateTimeNowUtc - (stream.LastTimeReceivedAccepted ?? stream.Created)).TotalSeconds);
+            //    sb.Append(";");
+            //}
 
-
-            return sb.ToString();
+            //sb.Append(")");
+            //if (LibraryVersion != null)
+            //    sb.AppendFormat("lib:{0:yyMMdd-HH:mm}", LibraryVersion);
+            //if (ProtocolVersion != null)
+            //    sb.AppendFormat("p:{0}", ProtocolVersion);
+            
+            //return sb.ToString();
         }
         public override string ToString()
         {

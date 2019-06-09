@@ -27,11 +27,22 @@ namespace Dcomms.P2PTP
         public readonly uint LibraryVersion; // of sender peer // see CompilationInfo.ToDateTime()
         public readonly ushort ProtocolVersion; // of sender peer
         public readonly PeerHelloRequestStatus Status; // byte; indicates if it is request or response
-        private readonly byte Flags;
+        private byte Flags;
         public bool RoleFlagIsUser => (Flags & (byte)0x01) != 0;
         public bool FlagIdontNeedMoreSharedPeers => (Flags & (byte)0x02) != 0;
-        public bool FlagIwantToGetYourIpLocation => (Flags & (byte)0x04) != 0; //request
-        public bool FlagIshareMyIpLocation => (Flags & (byte)0x08) != 0;       //response .   
+        public bool FlagIwantToGetYourIpLocation => (Flags & (byte)0x04) != 0; // request
+        public bool FlagIshareMyIpLocation // response // the flag is set automatically when packet is encoded, from (IpLocationData != null)
+        {
+            get
+            {
+                return (Flags & (byte)0x08) != 0;
+            }
+            set
+            {
+                if (value) Flags |= 0x08;
+                else Flags &= 0xF7;
+            }
+        }
         public readonly uint RequestTime32;
         public readonly string[] ExtensionIds; // nullable  // not null only for requests
         public readonly ushort? RequestSequenceNumber; // not null after version 190608
@@ -49,7 +60,7 @@ namespace Dcomms.P2PTP
         /// </summary>
         /// <param name="connectedPeer">destination</param>
         /// <param name="stream">destination</param>
-        public PeerHelloPacket(LocalPeer localPeer, ConnectedPeer connectedPeer, ConnectedPeerStream stream, PeerHelloRequestStatus status)
+        public PeerHelloPacket(LocalPeer localPeer, ConnectedPeer connectedPeer, ConnectedPeerStream stream, PeerHelloRequestStatus status, bool requestIpLocation)
         {
             LibraryVersion = MiscProcedures.CompilationDateTimeUtc_uint32;
             ProtocolVersion = P2ptpCommon.ProtocolVersion;
@@ -59,7 +70,8 @@ namespace Dcomms.P2PTP
             ToPeerId = connectedPeer.RemotePeerId;
             Status = status;
             RequestTime32 = localPeer.Time32;
-            Flags = localPeer.Configuration.RoleAsUser ? (byte)0x01 : (byte)0x00;
+            if (localPeer.Configuration.RoleAsUser) Flags |= (byte)0x01;
+            if (requestIpLocation) Flags |= (byte)0x04;
         }
 
         /// <summary>
@@ -84,15 +96,18 @@ namespace Dcomms.P2PTP
         /// </summary>
         /// <param name="localPeerId">optional local test node ID, is sent by server to new peers who dont know server's PeerId</param>
         internal static void Respond(PeerHelloPacket requestPacket, PeerHelloRequestStatus status, PeerId localPeerId, 
-            SocketWithReceiver socket, IPEndPoint remoteEndPoint, ushort? responseCpuDelayMs = null, bool thisPeerRoleAsUser = false)
+            SocketWithReceiver socket, IPEndPoint remoteEndPoint, ushort? responseCpuDelayMs = null, bool thisPeerRoleAsUser = false, IpLocationData localIpLocationData = null)
         {
-            var responseData = new PeerHelloPacket(requestPacket, status, localPeerId, thisPeerRoleAsUser, responseCpuDelayMs, remoteEndPoint.Address.ToString()).Encode();
+            var responsePacket = new PeerHelloPacket(requestPacket, status, localPeerId, thisPeerRoleAsUser, responseCpuDelayMs, remoteEndPoint.Address.ToString());
+            if (localIpLocationData != null && requestPacket.FlagIwantToGetYourIpLocation)
+                responsePacket.IpLocationData = localIpLocationData;
+            var responseData = responsePacket.Encode();
             socket.UdpSocket.Send(responseData, responseData.Length, remoteEndPoint);
         }
 
         public PeerHelloPacket(byte[] packetUdpPayloadData)
         {
-            if (packetUdpPayloadData.Length < MinEncodedSize) throw new ArgumentException(nameof(packetUdpPayloadData));
+          //  if (packetUdpPayloadData.Length < MinEncodedSize) throw new ArgumentException(nameof(packetUdpPayloadData));
             var index = P2ptpCommon.HeaderSize;
             FromPeerId = PeerId.Decode(packetUdpPayloadData, ref index);
             StreamId = StreamId.Decode(packetUdpPayloadData, ref index);
@@ -111,49 +126,57 @@ namespace Dcomms.P2PTP
                 RequestSequenceNumber = P2ptpCommon.DecodeUInt16(packetUdpPayloadData, ref index);
                 ResponseCpuDelayMs = P2ptpCommon.DecodeUInt16(packetUdpPayloadData, ref index);
                 RequestedFromIp = P2ptpCommon.DecodeString1ASCII(packetUdpPayloadData, ref index);
+                var reader = P2ptpCommon.CreateBinaryReader(packetUdpPayloadData, index);
+                if (FlagIshareMyIpLocation)
+                    IpLocationData = IpLocationData.Decode(reader);
             }
         }
-        const int MinEncodedSize = P2ptpCommon.HeaderSize +
-                PeerId.EncodedSize + StreamId.EncodedSize +
-                PeerId.EncodedSize + 
-                4 + 2 + // library, protocol version
-                1 + // status
-                4 + // requesttime
-                1 + // role flags
-                1; // extensions length
-        const int OptionalEncodedSize = 2 + // RequestSequenceNumber
-            2 +//ResponseCpuDelayMs
-            1; // RequestedFromIp length
+        //const int MinEncodedSize = P2ptpCommon.HeaderSize +
+        //        PeerId.EncodedSize + StreamId.EncodedSize +
+        //        PeerId.EncodedSize + 
+        //        4 + 2 + // library, protocol version
+        //        1 + // status
+        //        4 + // requesttime
+        //        1 + // role flags
+        //        1; // extensions length
+        //const int OptionalEncodedSize = 2 + // RequestSequenceNumber
+        //    2 +//ResponseCpuDelayMs
+        //    1; // RequestedFromIp length
         public byte[] Encode()
         {
-            var size = MinEncodedSize;
-            if (ExtensionIds != null)
-                foreach (var extensionId in ExtensionIds)
-                    size += 1 + extensionId.Length;
+          //  var size = MinEncodedSize;
+        //    if (ExtensionIds != null)
+        //        foreach (var extensionId in ExtensionIds)
+         //           size += 1 + extensionId.Length;
             var requestedFromIp = RequestedFromIp ?? "";
-            size += OptionalEncodedSize + requestedFromIp.Length;
+            FlagIshareMyIpLocation = (IpLocationData != null);
+            //    size += OptionalEncodedSize + requestedFromIp.Length;
 
-            byte[] data = new byte[size];
-            P2ptpCommon.EncodeHeader(data, PacketType.hello);
-            int index = P2ptpCommon.HeaderSize;
-            PeerId.Encode(FromPeerId, data, ref index);
-            StreamId.Encode(StreamId, data, ref index);
-            PeerId.Encode(ToPeerId, data, ref index);
-            P2ptpCommon.EncodeUInt32(data, ref index, LibraryVersion);
-            P2ptpCommon.EncodeUInt16(data, ref index, ProtocolVersion);
-            data[index++] = (byte)Status;
-            P2ptpCommon.EncodeUInt32(data, ref index, RequestTime32);
-            data[index++] = Flags;
-            data[index++] = (byte)(ExtensionIds?.Length ?? 0);
+            //  byte[] data = new byte[size];
+            P2ptpCommon.CreateBinaryWriter(out var ms, out var writer);
+            P2ptpCommon.EncodeHeader(writer, PacketType.hello);
+          //  int index = P2ptpCommon.HeaderSize;
+            PeerId.Encode(writer, FromPeerId);
+            StreamId.Encode(writer, StreamId);
+            PeerId.Encode(writer, ToPeerId);
+            writer.Write(LibraryVersion);
+            writer.Write(ProtocolVersion);
+            writer.Write((byte)Status);
+            writer.Write(RequestTime32);
+            writer.Write(Flags);
+            writer.Write((byte)(ExtensionIds?.Length ?? 0));
             if (ExtensionIds != null)
                 foreach (var extensionId in ExtensionIds)
-                    P2ptpCommon.EncodeString1ASCII(data, ref index, extensionId);
+                    P2ptpCommon.EncodeString1ASCII(writer, extensionId);
 
-            P2ptpCommon.EncodeUInt16(data, ref index, RequestSequenceNumber ?? 0);
-            P2ptpCommon.EncodeUInt16(data, ref index, ResponseCpuDelayMs ?? 0);
-            P2ptpCommon.EncodeString1ASCII(data, ref index, requestedFromIp);
+            writer.Write(RequestSequenceNumber ?? 0);
+            writer.Write(ResponseCpuDelayMs ?? 0);
+            P2ptpCommon.EncodeString1ASCII(writer, requestedFromIp);
 
-            return data;
+            if (FlagIshareMyIpLocation)
+                IpLocationData.Encode(writer);
+            
+            return ms.ToArray();
         }
     }
 

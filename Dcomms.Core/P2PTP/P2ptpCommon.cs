@@ -64,8 +64,12 @@ namespace Dcomms.P2PTP
             Array.Copy(valueBytes, 0, data, index, valueBytes.Length);
             index += valueBytes.Length;
         }
+        /// <summary>
+        /// encodes null value as empty string
+        /// </summary>
         public static void EncodeString1ASCII(BinaryWriter writer, string value)
         {
+            if (value == null) value = "";
             if (value.Length > 255) throw new ArgumentException(nameof(value));
             var valueBytes = Encoding.ASCII.GetBytes(value);
             writer.Write((byte)valueBytes.Length);
@@ -82,6 +86,10 @@ namespace Dcomms.P2PTP
         public static ushort DecodeUInt16(byte[] data, ref int index)
         {
             return (ushort)(((ushort)data[index++]) | ((ushort)data[index++] << 8));
+        }
+        public static byte DecodeByte(byte[] data, ref int index)
+        {
+            return data[index++];
         }
 
 
@@ -112,6 +120,15 @@ namespace Dcomms.P2PTP
             data[index++] = (byte)(value & 0xFF); value >>= 8;
             data[index++] = (byte)(value & 0xFF); value >>= 8;
             data[index++] = (byte)(value & 0xFF);
+        }
+        public static BinaryReader CreateBinaryReader(byte[] data, int index)
+        {
+            return new BinaryReader(new MemoryStream(data, index, data.Length - index), Encoding.UTF8);
+        }
+        public static void CreateBinaryWriter(out MemoryStream ms, out BinaryWriter writer)
+        {
+            ms = new MemoryStream();
+            writer = new BinaryWriter(ms, Encoding.UTF8);
         }
         public static Int64 DecodeInt64(byte[] data, ref int index)
         {

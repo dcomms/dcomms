@@ -96,7 +96,7 @@ namespace Dcomms.P2PTP.LocalLogic
         }
         void AddToPendingPeers(ConnectedPeerType type, IPEndPoint remoteEndpoint, SocketWithReceiver socket)
         {
-            var cp = new ConnectedPeer(_localPeer, null, type);
+            var cp = new ConnectedPeer(_localPeer, null, type, remoteEndpoint.Address);
             cp.TryAddStream(socket, remoteEndpoint, null, _pendingPeers.Values.Select(x => x.Streams.Values.Single().StreamId));
             // all "pending" streams will have unique local stream ID
 
@@ -143,8 +143,14 @@ namespace Dcomms.P2PTP.LocalLogic
                 try
                 {
                     foreach (var peer in _pendingPeers.Values.Union(_connectedPeers.Values))
+                    {
+                        bool itIsFirstStream = true;
                         foreach (var stream in peer.Streams.Values)
-                            SendHelloRequestToPeer(now, peer, stream);
+                        {
+                            SendHelloRequestToPeer(now, peer, stream, itIsFirstStream && (peer.RemoteIpLocationData == null));
+                            itIsFirstStream = false;
+                        }
+                    }
                 }
                 catch (Exception exc)
                 {
@@ -152,9 +158,9 @@ namespace Dcomms.P2PTP.LocalLogic
                 }
             }
         }
-        void SendHelloRequestToPeer(DateTime now, ConnectedPeer peer, ConnectedPeerStream stream)
+        void SendHelloRequestToPeer(DateTime now, ConnectedPeer peer, ConnectedPeerStream stream, bool requestIpLocation)
         {
-            var data = new PeerHelloPacket(_localPeer, peer, stream, stream.LastTimeReceivedAccepted.HasValue ? PeerHelloRequestStatus.ping : PeerHelloRequestStatus.setup).Encode();
+            var data = new PeerHelloPacket(_localPeer, peer, stream, stream.LastTimeReceivedAccepted.HasValue ? PeerHelloRequestStatus.ping : PeerHelloRequestStatus.setup, requestIpLocation).Encode();
             stream.LastTimeSentRequest = now;
             stream.Socket.UdpSocket.Send(data, data.Length, stream.RemoteEndPoint); // send from all local sockets to all remote sockets to open P2P connection in the NAT
         }
@@ -169,6 +175,12 @@ namespace Dcomms.P2PTP.LocalLogic
             _actionsQueue.Enqueue(() =>
             {
                 var helloPacket = new PeerHelloPacket(udpPayloadData);
+                
+                if (_localPeer.IpLocationScraper == null && !String.IsNullOrEmpty(helloPacket.RequestedFromIp))
+                {
+                    _localPeer.IpLocationScraper = new IpLocationScraper(helloPacket.RequestedFromIp, _localPeer);
+                }
+
                 if (helloPacket.ToPeerId == null)
                 {
                     if (helloPacket.Status.IsSetupOrPing())
@@ -258,7 +270,8 @@ namespace Dcomms.P2PTP.LocalLogic
             
             if (!_connectedPeers.TryGetValue(helloPacket.FromPeerId, out var peer))
             {
-                peer = new ConnectedPeer(_localPeer, helloPacket.FromPeerId, ConnectedPeerType.fromPeerAccepted);
+                peer = new ConnectedPeer(_localPeer, helloPacket.FromPeerId, ConnectedPeerType.fromPeerAccepted, remoteEndpoint.Address);
+                _localPeer.WriteToLog(LogModules.Hello, $"accepted initial hello from peer {peer}");
                 lock (_connectedPeers)
                     _connectedPeers.Add(helloPacket.FromPeerId, peer);
             }
@@ -289,7 +302,7 @@ namespace Dcomms.P2PTP.LocalLogic
             // it could be packet to new stream, or to existing stream
             // it could be packet from changed remote endpoint to same stream ID
             // it could be packet from wrong remote endpoint to new (non-existing locally) stream ID   ???????????????????????
-                        
+            
             if (!connectedPeer.Streams.TryGetValue(helloPacket.StreamId, out var stream))
             { // received packet in new streamId
                 if (helloPacket.Status.IsSetupOrPing())
@@ -301,7 +314,7 @@ namespace Dcomms.P2PTP.LocalLogic
                         return;
                     }
                     stream = connectedPeer.TryAddStream(socket, remoteEndpoint, helloPacket.StreamId);
-                     _localPeer.WriteToLog(LogModules.Hello, $"peer {connectedPeer} received hello from new stream {stream}");
+                  //   _localPeer.WriteToLog(LogModules.Hello, $"peer {connectedPeer} received hello from new stream {stream}");
                     if (stream == null) throw new InvalidOperationException();
                 }
                 else
@@ -338,7 +351,7 @@ namespace Dcomms.P2PTP.LocalLogic
                 case PeerHelloRequestStatus.setup:
                 case PeerHelloRequestStatus.ping:
                     var responseCpuDelayMs = (ushort)Math.Round(TimeSpan.FromTicks(unchecked(_localPeer.Time32 - packetReceivedTimestamp32)).TotalMilliseconds);
-                    PeerHelloPacket.Respond(helloPacket, PeerHelloRequestStatus.accepted, null, socket, remoteEndpoint, responseCpuDelayMs, _localPeer.Configuration.RoleAsUser);
+                    PeerHelloPacket.Respond(helloPacket, PeerHelloRequestStatus.accepted, null, socket, remoteEndpoint, responseCpuDelayMs, _localPeer.Configuration.RoleAsUser, _localPeer.IpLocationScraper?.IpLocationData);
                     break;
                 case PeerHelloRequestStatus.accepted:
                     ProcessReceivedAcceptedHello_UpdateHelloLevelFields(connectedPeer, stream, helloPacket, packetReceivedTimestamp32);
@@ -367,7 +380,7 @@ namespace Dcomms.P2PTP.LocalLogic
                 _localPeer.Firewall.OnUnauthenticatedReceivedPacket(remoteEndpoint);
                 return;
             }
-
+            
             switch (helloPacket.Status)
             {
                 case PeerHelloRequestStatus.accepted:
@@ -419,13 +432,19 @@ namespace Dcomms.P2PTP.LocalLogic
             var rtt = TimeSpan.FromTicks(unchecked(responseReceivedTime32 - helloResponsePacket.RequestTime32)) - TimeSpan.FromMilliseconds(helloResponsePacket.ResponseCpuDelayMs ?? 0);
             if (rtt < TimeSpan.Zero) rtt = TimeSpan.Zero; // avoid abnormal measurements
             stream.LatestHelloRtt = rtt;
-            
+            stream.LocalPeerPublicIp = helloResponsePacket.RequestedFromIp;
             stream.LastTimeReceivedAccepted = _localPeer.DateTimeNowUtc; 
             connectedPeer.ProtocolVersion = helloResponsePacket.ProtocolVersion;
             connectedPeer.LibraryVersion = MiscProcedures.ToDateTime(helloResponsePacket.LibraryVersion);
             connectedPeer.TotalHelloAcceptedPacketsReceived++;
             stream.TotalHelloAcceptedPacketsReceived++;
-            stream.RemotePeerRoleIsUser = helloResponsePacket.RoleFlagIsUser; 
+            stream.RemotePeerRoleIsUser = helloResponsePacket.RoleFlagIsUser;
+
+            if (helloResponsePacket.IpLocationData != null && connectedPeer.RemoteIpLocationData == null)
+            {
+                _localPeer.WriteToLog(LogModules.Hello, $"got IP location from peer {connectedPeer}: {helloResponsePacket.IpLocationData}");
+                connectedPeer.RemoteIpLocationData = helloResponsePacket.IpLocationData;
+            }
 
             if (helloResponsePacket.ExtensionIds != null && helloResponsePacket.ExtensionIds.Length != 0)
                 connectedPeer.LatestReceivedRemoteExtensionIds = new HashSet<string>(helloResponsePacket.ExtensionIds.Distinct());
@@ -459,7 +478,7 @@ namespace Dcomms.P2PTP.LocalLogic
                 lock (_connectedPeers)
                     foreach (var idlePeer in idlePeers)
                     {
-                        _localPeer.WriteToLog(LogModules.Hello, $"removing idle peer {idlePeer}");
+                       // _localPeer.WriteToLog(LogModules.Hello, $"removing idle peer {idlePeer}");
                         _connectedPeers.Remove(idlePeer.RemotePeerId);
                     }
 
@@ -609,7 +628,7 @@ namespace Dcomms.P2PTP.LocalLogic
                 if (!_connectedPeers.TryGetValue(receivedSharedPeer.ToPeerId, out var localConnectedPeer))
                 {
                     _localPeer.WriteToLog(LogModules.PeerSharing, $"received shared peer {receivedSharedPeer}) from {connectedPeer}");
-                    localConnectedPeer = new ConnectedPeer(_localPeer, receivedSharedPeer.ToPeerId, ConnectedPeerType.toPeerShared);
+                    localConnectedPeer = new ConnectedPeer(_localPeer, receivedSharedPeer.ToPeerId, ConnectedPeerType.toPeerShared, receivedSharedPeer.ToEndPoint.Address);
                     lock (_connectedPeers)
                         _connectedPeers.Add(receivedSharedPeer.ToPeerId, localConnectedPeer);
                 }

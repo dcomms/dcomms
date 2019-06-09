@@ -19,6 +19,8 @@ namespace Dcomms.P2PTP.Extensibility
         IDictionary<ILocalPeerExtension, IConnectedPeerExtension> Extensions { get; }
         ConnectedPeerType Type { get; }
         DateTime? RemoteLibraryVersion { get; }
+        IpLocationData RemoteIpLocationData { get; }
+        string RemoteIp { get; }
     }
     /// <summary>
     /// represents extension-specific object linked to connected peer

@@ -35,6 +35,7 @@ namespace Dcomms.P2PTP.LocalLogic
         internal DateTime? LastTimeSentRequest; // ping or setup
         internal DateTime? LastTimeReceivedAccepted;
         internal TimeSpan? LatestHelloRtt;
+        internal string LocalPeerPublicIp { get; set; }
         DateTime? _lastTimeMarkedActiveByExtension;    
         internal DateTime LastTimeActiveNotIdle
         {
@@ -77,8 +78,9 @@ namespace Dcomms.P2PTP.LocalLogic
 
         internal int TotalHelloAcceptedPacketsReceived;
         public bool RemotePeerRoleIsUser { get; internal set; }
-        public string P2ptpActivityString => String.Format("RTT: {0}; hR/c: -{1}, {2}",
+        public string P2ptpActivityString => String.Format("RTT: {0}; LocalPublicIP: {1}; hR/c: -{2}, {3}",
             MiscProcedures.TimeSpanToString(LatestHelloRtt),
+            LocalPeerPublicIp,
             MiscProcedures.TimeSpanToString(_localPeer.DateTimeNowUtc - (LastTimeReceivedAccepted ?? Created)),
             TotalHelloAcceptedPacketsReceived);
         /// <summary>

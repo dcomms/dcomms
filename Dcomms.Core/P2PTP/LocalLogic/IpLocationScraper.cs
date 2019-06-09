@@ -19,6 +19,9 @@ namespace Dcomms.P2PTP.LocalLogic
         {
             _localPeer = localPeer;
             _localPublicIp = localPublicIp;
+#if DEBUG
+            if (_localPublicIp == "127.0.0.1") _localPublicIp = "8.8.8.8";
+#endif
             try
             {
                 SendHttpRequestsAsync();

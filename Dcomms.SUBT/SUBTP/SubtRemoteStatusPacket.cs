@@ -55,20 +55,19 @@ namespace Dcomms.SUBT.SUBTP
         }
         public byte[] Encode(SubtConnectedPeerStream connectedStream)
         {
-            var ms = new MemoryStream();
-            using (var writer = new BinaryWriter(ms))
-            {
-                ExtensionProcedures.InitializeExtensionSignalingPacket(writer, connectedStream.SubtLocalPeer.LocalPeer.LocalPeerId, connectedStream.SubtConnectedPeer.RemotePeerId, connectedStream.StreamId, connectedStream.SubtLocalPeer.ExtensionId);
-                writer.Write((byte)SubtPacketType.RemoteStatus);
-                writer.Write(RecentRxBandwidth);
-                writer.Write(RecentRxPacketLoss);
-                writer.Write(RecentTxBandwidth);
-                byte flags = 0;
-                if (IhavePassiveRole) flags |= 0x02;
-                if (IwantToIncreaseBandwidth) flags |= 0x04;
-                if (IwantToDecreaseBandwidth) flags |= 0x08;
-                writer.Write(flags);
-            }
+            P2ptpCommon.CreateBinaryWriter(out var ms, out var writer);           
+            
+            ExtensionProcedures.InitializeExtensionSignalingPacket(writer, connectedStream.SubtLocalPeer.LocalPeer.LocalPeerId, connectedStream.SubtConnectedPeer.RemotePeerId, connectedStream.StreamId, connectedStream.SubtLocalPeer.ExtensionId);
+            writer.Write((byte)SubtPacketType.RemoteStatus);
+            writer.Write(RecentRxBandwidth);
+            writer.Write(RecentRxPacketLoss);
+            writer.Write(RecentTxBandwidth);
+            byte flags = 0;
+            if (IhavePassiveRole) flags |= 0x02;
+            if (IwantToIncreaseBandwidth) flags |= 0x04;
+            if (IwantToDecreaseBandwidth) flags |= 0x08;
+            writer.Write(flags);
+            
             return ms.ToArray();
         }
     }

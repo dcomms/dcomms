@@ -17,6 +17,8 @@ namespace Dcomms.P2PTP.LocalLogic
     /// </summary>
     public partial class LocalPeer: IDisposable, ILocalPeer
     {
+        internal IpLocationScraper IpLocationScraper { get; set; }
+
         readonly DateTime _startTimeUtc = DateTime.UtcNow;
         readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         public DateTime DateTimeNowUtc { get { return _startTimeUtc + _stopwatch.Elapsed; } }
@@ -93,9 +95,9 @@ namespace Dcomms.P2PTP.LocalLogic
             if (Manager != null) throw new InvalidOperationException();
             new Manager(this);
         }
-        internal void HandleException(string module, Exception exc)
+        internal void HandleException(string module, Exception exc, string prefixInLog = "error: ")
         {
-            WriteToLog(module, "error: " + exc);
+            WriteToLog(module, prefixInLog + exc);
         }
         public void HandleGuiException(Exception exc)
         {
@@ -163,5 +165,6 @@ namespace Dcomms.P2PTP.LocalLogic
         internal static string Hello = "hello";
         internal static string PeerSharing = "peerSharing";
         internal static string Gui = "gui";
+        internal static string IpLocationScraper = "ipls";
     }
 }

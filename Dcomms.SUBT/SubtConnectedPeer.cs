@@ -15,6 +15,16 @@ namespace Dcomms.SUBT
         readonly IConnectedPeer _connectedPeer;
         public PeerId RemotePeerId => _connectedPeer.RemotePeerId;
         public DateTime? RemoteLibraryVersion => _connectedPeer.RemoteLibraryVersion;
+        public string RemoteIpLocationString
+        {
+            get
+            {
+                var l = _connectedPeer.RemoteIpLocationData;
+                if (l == null) return "";
+                return $"{l.Country}, {l.State}, {l.City}";
+            }
+        }
+        public string RemoteIp => _connectedPeer.RemoteIp;
         public ConnectedPeerType Type => _connectedPeer.Type;
 
         public string LatestRemoteTxStatusString => Streams.Sum(s => s.LatestRemoteStatus?.RecentTxBandwidth ?? 0).BandwidthToString();
@@ -57,6 +67,7 @@ namespace Dcomms.SUBT
                 }
             }
         }
+        public bool StreamsExpanded { get; set; }
 
     }
 }

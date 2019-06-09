@@ -17,6 +17,11 @@
                         <Border  Background="#EEEEEE" Margin="1"  BorderBrush="#DDDDDD"  BorderThickness="1">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="ver:" />
+                                    <TextBlock Text="{Binding RemoteLibraryVersion, StringFormat='\{0:yyyy-MM-dd\}'}" />                                 
+                                    <TextBlock Text="{Binding RemoteIp}" />
+                                    <TextBlock Text="{Binding RemoteIpLocationString}" />
+                                    
                                     <TextBlock Text="{Binding Type}" />
                                     <TextBlock Text="{Binding RemotePeerId.GuidString}" />
                                     <TextBlock Text="Remote TX:" Margin="50 3 3 3" />
@@ -29,26 +34,24 @@
                                     <TextBlock Text="{Binding TargetTxBandwidthString}" />
                                     <TextBlock Text="Remote RX:" />
                                     <TextBlock Text="{Binding LatestRemoteRxStatusString}" />
-                                    <TextBlock Text="Version:" />
-                                    <TextBlock Text="{Binding RemoteLibraryVersion, StringFormat='\{0:yyyy-MM-dd\}'}" />
-                                    
-
                                 </StackPanel>
-                                <DataGrid ItemsSource="{Binding StreamsAsList}" HorizontalScrollBarVisibility="Visible" >
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Stream ID" Binding="{Binding Stream.StreamId}"></DataGridTextColumn>
-                                        <DataGridTextColumn Header="Local-remote endpoint" Binding="{Binding Stream.LocalRemoteEndPointString}"></DataGridTextColumn>
-                                        <DataGridTextColumn Header="Remote TX" Binding="{Binding LatestRemoteTxStatusString}"></DataGridTextColumn>
-                                        <DataGridTextColumn Header="RX before/after JB" Binding="{Binding RecentRxBandwidthString}"></DataGridTextColumn>
-                                        <DataGridTextColumn Header="RX loss" Binding="{Binding RecentPacketLossString}"></DataGridTextColumn>
-                                        <DataGridTextColumn Header="TX self-test/target/increment100ms" Binding="{Binding TxBandwidthString}" ></DataGridTextColumn>
-                                        <DataGridTextColumn Header="Remote RX status" Binding="{Binding LatestRemoteRxStatusString}"></DataGridTextColumn>
-                                        <DataGridTextColumn Header="RTT (ping)" Binding="{Binding RecentRttString}"></DataGridTextColumn>
-                                        <DataGridTextColumn Header="P2PTP activity" Binding="{Binding Stream.P2ptpActivityString}"></DataGridTextColumn>
+                                <Expander Header="streams" IsExpanded="{Binding StreamsExpanded, Mode=TwoWay}">
+                                    <DataGrid ItemsSource="{Binding StreamsAsList}" HorizontalScrollBarVisibility="Visible" >
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Stream ID" Binding="{Binding Stream.StreamId}"></DataGridTextColumn>
+                                            <DataGridTextColumn Header="Local-remote endpoint" Binding="{Binding Stream.LocalRemoteEndPointString}"></DataGridTextColumn>
+                                            <DataGridTextColumn Header="Remote TX" Binding="{Binding LatestRemoteTxStatusString}"></DataGridTextColumn>
+                                            <DataGridTextColumn Header="RX before/after JB" Binding="{Binding RecentRxBandwidthString}"></DataGridTextColumn>
+                                            <DataGridTextColumn Header="RX loss" Binding="{Binding RecentPacketLossString}"></DataGridTextColumn>
+                                            <DataGridTextColumn Header="TX self-test/target/increment100ms" Binding="{Binding TxBandwidthString}" ></DataGridTextColumn>
+                                            <DataGridTextColumn Header="Remote RX status" Binding="{Binding LatestRemoteRxStatusString}"></DataGridTextColumn>
+                                            <DataGridTextColumn Header="RTT (ping)" Binding="{Binding RecentRttString}"></DataGridTextColumn>
+                                            <DataGridTextColumn Header="P2PTP activity" Binding="{Binding Stream.P2ptpActivityString}"></DataGridTextColumn>
 
-                                        <!--<DataGridCheckBoxColumn Header="Debug" Binding="{Binding Stream.Debug, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />-->
-                                    </DataGrid.Columns>
-                                </DataGrid>
+                                            <!--<DataGridCheckBoxColumn Header="Debug" Binding="{Binding Stream.Debug, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />-->
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Expander>
                             </StackPanel>
                         </Border>
                     
