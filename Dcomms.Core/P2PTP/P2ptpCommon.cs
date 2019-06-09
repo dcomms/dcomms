@@ -75,6 +75,17 @@ namespace Dcomms.P2PTP
             writer.Write((byte)valueBytes.Length);
             writer.Write(valueBytes);
         }
+        /// <summary>
+        /// encodes null value as empty string
+        /// </summary>
+        public static void EncodeString1UTF8(BinaryWriter writer, string value)
+        {
+            if (value == null) value = "";
+            var valueBytes = Encoding.UTF8.GetBytes(value);
+            if (valueBytes.Length > 255) throw new ArgumentException(nameof(value));
+            writer.Write((byte)valueBytes.Length);
+            writer.Write(valueBytes);
+        }
         public static uint DecodeUInt32(byte[] data, ref int index)
         {
             return ((uint)data[index++]) | ((uint)data[index++] << 8) | ((uint)data[index++] << 16) | ((uint)data[index++] << 24);
@@ -147,6 +158,12 @@ namespace Dcomms.P2PTP
             var length = reader.ReadByte();
             var stringData = reader.ReadBytes(length);
             return Encoding.ASCII.GetString(stringData);
+        }
+        public static string DecodeString1UTF8(BinaryReader reader)
+        {
+            var length = reader.ReadByte();
+            var stringData = reader.ReadBytes(length);
+            return Encoding.UTF8.GetString(stringData);
         }
 
 
