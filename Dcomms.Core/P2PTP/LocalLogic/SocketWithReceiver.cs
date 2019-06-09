@@ -54,7 +54,10 @@ namespace Dcomms.P2PTP.LocalLogic
             _actionsQueue.Enqueue(() =>
             {
                 if (createdOrDestroyed)
-                    _streams.Add(stream.StreamId, stream); // todo can be exception of duplicate key in rare cases?
+                {
+                    if (!_streams.ContainsKey(stream.StreamId))
+                        _streams.Add(stream.StreamId, stream); // todo can be exception of duplicate key in rare cases?
+                }
                 else
                     _streams.Remove(stream.StreamId);
             });

@@ -284,7 +284,7 @@ namespace Dcomms.P2PTP.LocalLogic
             else
             {
                 var stream = peer.TryAddStream(socket, remoteEndpoint, helloPacket.StreamId);
-                _localPeer.WriteToLog(LogModules.Hello, $"created new stream {stream} from new peer {peer}");
+              //  _localPeer.WriteToLog(LogModules.Hello, $"created new stream {stream} from new peer {peer}");
 
                 var responseCpuDelayMs = (ushort)Math.Round(TimeSpan.FromTicks(unchecked(_localPeer.Time32 - requestReceivedTimestamp32)).TotalMilliseconds);
                 PeerHelloPacket.Respond(helloPacket, PeerHelloRequestStatus.accepted, localPeerIdForResponse, socket, remoteEndpoint,

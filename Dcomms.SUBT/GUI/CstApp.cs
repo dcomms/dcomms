@@ -226,6 +226,11 @@ namespace Dcomms.SUBT.GUI
                         SubtLocalPeer = new SubtLocalPeer(SubtLocalPeerConfiguration, SubtLocalPeer);
                         LocalPeerConfiguration.Extensions = new[] { SubtLocalPeer };
                         LocalPeerConfiguration.LocalPeerUser = this;
+
+                        if (LocalPeerConfiguration.RoleAsUser)
+                            MiscProcedures.MinPeerCompilationDateTimeUtc = new DateTime(2019, 05, 01);
+
+
                         LocalPeer = new LocalPeer(LocalPeerConfiguration);
                         RaisePropertyChanged(() => Initialized);
                         if (DeveloperMode)

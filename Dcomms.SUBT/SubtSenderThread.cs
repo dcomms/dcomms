@@ -87,7 +87,11 @@ namespace Dcomms.SUBT
         {
             _actionsQueue.Enqueue(() =>
             {
-                if (createdOrDestroyed) _streams.Add(stream.StreamId, stream);
+                if (createdOrDestroyed)
+                {
+                    if (!_streams.ContainsKey(stream.StreamId))
+                        _streams.Add(stream.StreamId, stream); // todo why does it insert duplicate keys sometimes?
+                }
                 else _streams.Remove(stream.StreamId);
             });
 

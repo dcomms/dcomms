@@ -21,9 +21,8 @@ namespace Dcomms
                 return _compilationDateTimeUtc.Value;
             }
         }
-        public static void Initialize(DateTime compilationDateTimeUtc, DateTime minPeerCompilationDateTimeUtc)
+        public static void Initialize(DateTime compilationDateTimeUtc)
         {
-            MinPeerCompilationDateTimeUtc = minPeerCompilationDateTimeUtc;
             _compilationDateTimeUtc = compilationDateTimeUtc;
         }
         public static DateTime ToDateTime(uint seconds)
