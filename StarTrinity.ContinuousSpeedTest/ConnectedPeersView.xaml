@@ -20,7 +20,7 @@
                                     <TextBlock Text="ver:" />
                                     <TextBlock Text="{Binding RemoteLibraryVersion, StringFormat='\{0:yyyy-MM-dd\}'}" />                                 
                                     <TextBlock Text="{Binding RemoteIp}" />
-                                    <TextBlock Text="{Binding RemoteIpLocationString}" />
+                                    <TextBlock Text="{Binding RemoteIpLocationString}" FontWeight="Bold" />
                                     
                                     <TextBlock Text="{Binding Type}" />
                                     <TextBlock Text="{Binding RemotePeerId.GuidString}" />
