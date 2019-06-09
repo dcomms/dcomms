@@ -27,15 +27,15 @@ namespace Dcomms.P2PTP
                 Flags = reader.ReadByte(),
                 Longitude = reader.ReadDouble(),
                 Latitude = reader.ReadDouble(),
-                Country = P2ptpCommon.DecodeString1ASCII(reader),
-                CountryCode = P2ptpCommon.DecodeString1ASCII(reader),
-                City = P2ptpCommon.DecodeString1ASCII(reader),
-                State = P2ptpCommon.DecodeString1ASCII(reader),
-                StateCode = P2ptpCommon.DecodeString1ASCII(reader),
-                ZIP = P2ptpCommon.DecodeString1ASCII(reader),
-                Organization_ISP = P2ptpCommon.DecodeString1ASCII(reader),
-                AS = P2ptpCommon.DecodeString1ASCII(reader),
-                ASname = P2ptpCommon.DecodeString1ASCII(reader),
+                Country = P2ptpCommon.DecodeString1UTF8(reader),
+                CountryCode = P2ptpCommon.DecodeString1UTF8(reader),
+                City = P2ptpCommon.DecodeString1UTF8(reader),
+                State = P2ptpCommon.DecodeString1UTF8(reader),
+                StateCode = P2ptpCommon.DecodeString1UTF8(reader),
+                ZIP = P2ptpCommon.DecodeString1UTF8(reader),
+                Organization_ISP = P2ptpCommon.DecodeString1UTF8(reader),
+                AS = P2ptpCommon.DecodeString1UTF8(reader),
+                ASname = P2ptpCommon.DecodeString1UTF8(reader),
             };
         }
         public void Encode(BinaryWriter writer)
@@ -43,15 +43,15 @@ namespace Dcomms.P2PTP
             writer.Write(Flags);
             writer.Write(Longitude);
             writer.Write(Latitude);
-            P2ptpCommon.EncodeString1ASCII(writer, Country);
-            P2ptpCommon.EncodeString1ASCII(writer, CountryCode);
-            P2ptpCommon.EncodeString1ASCII(writer, City);
-            P2ptpCommon.EncodeString1ASCII(writer, State);
-            P2ptpCommon.EncodeString1ASCII(writer, StateCode);
-            P2ptpCommon.EncodeString1ASCII(writer, ZIP);
-            P2ptpCommon.EncodeString1ASCII(writer, Organization_ISP);
-            P2ptpCommon.EncodeString1ASCII(writer, AS);
-            P2ptpCommon.EncodeString1ASCII(writer, ASname);
+            P2ptpCommon.EncodeString1UTF8(writer, Country);
+            P2ptpCommon.EncodeString1UTF8(writer, CountryCode);
+            P2ptpCommon.EncodeString1UTF8(writer, City);
+            P2ptpCommon.EncodeString1UTF8(writer, State);
+            P2ptpCommon.EncodeString1UTF8(writer, StateCode);
+            P2ptpCommon.EncodeString1UTF8(writer, ZIP);
+            P2ptpCommon.EncodeString1UTF8(writer, Organization_ISP);
+            P2ptpCommon.EncodeString1UTF8(writer, AS);
+            P2ptpCommon.EncodeString1UTF8(writer, ASname);
         }
     }
 }
