@@ -25,6 +25,21 @@ namespace Dcomms.SUBT
             }
         }
         public string RemoteIp => _connectedPeer.RemoteIp;
+        public string BestStreamsRttString
+        {
+            get
+            {
+                TimeSpan? bestRtt = null;
+                foreach (var s in Streams)
+                {
+                    var rtt = s.RecentRttConsideringP2ptp;
+                    if (bestRtt == null || rtt < bestRtt.Value)
+                        bestRtt = rtt;
+                }
+                if (bestRtt == null) return "";
+                return MiscProcedures.TimeSpanToString(bestRtt);
+            }
+        }
         public ConnectedPeerType Type => _connectedPeer.Type;
 
         public string LatestRemoteTxStatusString => Streams.Sum(s => s.LatestRemoteStatus?.RecentTxBandwidth ?? 0).BandwidthToString();

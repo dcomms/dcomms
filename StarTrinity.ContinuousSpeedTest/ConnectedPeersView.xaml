@@ -21,7 +21,10 @@
                                     <TextBlock Text="{Binding RemoteLibraryVersion, StringFormat='\{0:yyyy-MM-dd\}'}" />                                 
                                     <TextBlock Text="{Binding RemoteIp}" />
                                     <TextBlock Text="{Binding RemoteIpLocationString}" FontWeight="Bold" />
-                                    
+
+                                    <TextBlock Text="RTT:" />
+                                    <TextBlock Text="{Binding BestStreamsRttString}" />                                    
+
                                     <TextBlock Text="{Binding Type}" />
                                     <TextBlock Text="{Binding RemotePeerId.GuidString}" />
                                     <TextBlock Text="Remote TX:" Margin="50 3 3 3" />
