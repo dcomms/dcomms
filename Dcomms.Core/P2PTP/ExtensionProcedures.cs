@@ -51,7 +51,7 @@ namespace Dcomms.P2PTP
             var fromPeerId = PeerId.Decode(reader);
             var toPeerId = PeerId.Decode(reader);
             var streamId = StreamId.Decode(reader);
-            var extensionId = P2ptpCommon.DecodeString1ASCII(reader);
+            var extensionId = PacketProcedures.DecodeString1ASCII(reader);
             return (fromPeerId, toPeerId, streamId, extensionId);
         }
         public static void InitializeExtensionSignalingPacket(BinaryWriter writer, PeerId fromPeerId, PeerId toPeerId, StreamId streamId, string extensionId)
@@ -63,7 +63,7 @@ namespace Dcomms.P2PTP
             PeerId.Encode(writer, fromPeerId);
             PeerId.Encode(writer, toPeerId);
             StreamId.Encode(writer, streamId);
-            P2ptpCommon.EncodeString1ASCII(writer, extensionId);
+            PacketProcedures.EncodeString1ASCII(writer, extensionId);
         }
     }
 }

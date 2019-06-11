@@ -102,7 +102,7 @@ namespace Dcomms.P2PTP.LocalLogic
                                     manager.ProcessReceivedSharedPeers(udpPayloadData, remoteEndpoint);
                                     break;
                                 case PacketType.extensionSignaling:
-                                    manager.ProcessReceivedExtensionSignalingPacket(P2ptpCommon.CreateBinaryReader(udpPayloadData, P2ptpCommon.HeaderSize), remoteEndpoint);
+                                    manager.ProcessReceivedExtensionSignalingPacket(PacketProcedures.CreateBinaryReader(udpPayloadData, P2ptpCommon.HeaderSize), remoteEndpoint);
                                     break;
                             }
                         }

@@ -80,10 +80,10 @@ namespace Dcomms.SUBT
                 _rxBwBeforeJB.OnTimeObserved(timeNow32);
             }
 
-            var timestamp32 = P2ptpCommon.DecodeUInt32(data, ref index);
+            var timestamp32 = PacketProcedures.DecodeUInt32(data, ref index);
             _timestamp32ToReflect = timestamp32;
-            var sequence = P2ptpCommon.DecodeUInt16(data, ref index);
-            var reflectedTimestamp32 = P2ptpCommon.DecodeUInt32(data, ref index);
+            var sequence = PacketProcedures.DecodeUInt16(data, ref index);
+            var reflectedTimestamp32 = PacketProcedures.DecodeUInt32(data, ref index);
             if (reflectedTimestamp32 != 0)
             {
                 RecentRtt = TimeSpan.FromTicks(unchecked(SubtLocalPeer.LocalPeer.Time32 - reflectedTimestamp32));
@@ -298,9 +298,9 @@ namespace Dcomms.SUBT
             {
                 _txSequence++;
                 var index = _payloadPacketIndex;
-                P2ptpCommon.EncodeUInt32(_payloadPacket, ref index, timestampNow32);
-                P2ptpCommon.EncodeUInt16(_payloadPacket, ref index, _txSequence);
-                P2ptpCommon.EncodeUInt32(_payloadPacket, ref index, _timestamp32ToReflect);
+                PacketProcedures.EncodeUInt32(_payloadPacket, ref index, timestampNow32);
+                PacketProcedures.EncodeUInt16(_payloadPacket, ref index, _txSequence);
+                PacketProcedures.EncodeUInt32(_payloadPacket, ref index, _timestamp32ToReflect);
                 _stream.SendPacket(_payloadPacket, length);
 
                 _recentTxBandwidth.Input(LocalLogicConfiguration.IpAndUdpHeadersSizeBits + length * 8);
