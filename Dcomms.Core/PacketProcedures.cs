@@ -47,6 +47,17 @@ namespace Dcomms
             writer.Write((byte)valueBytes.Length);
             writer.Write(valueBytes);
         }
+        public static void EncodeByteArray256(BinaryWriter writer, byte[] value)
+        {
+            if (value == null) throw new ArgumentNullException();
+            if (value.Length > 255) throw new ArgumentException(nameof(value));          
+            writer.Write((byte)value.Length);
+            writer.Write(value);
+        }
+
+
+
+
         /// <summary>
         /// encodes null value as empty string
         /// </summary>
@@ -136,6 +147,11 @@ namespace Dcomms
             var length = reader.ReadByte();
             var stringData = reader.ReadBytes(length);
             return Encoding.UTF8.GetString(stringData);
+        }
+        public static byte[] DecodeByteArray256(BinaryReader reader)
+        {
+            var length = reader.ReadByte();
+            return reader.ReadBytes(length);
         }
 
     }

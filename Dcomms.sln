@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.329
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28922.388
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StarTrinity.ContinuousSpeedTest", "StarTrinity.ContinuousSpeedTest\StarTrinity.ContinuousSpeedTest.csproj", "{0BC6BFB9-7E70-414E-B831-454BD962493A}"
 EndProject
@@ -15,7 +15,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StarTrinity.CST.Android", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StarTrinity.CST.iOS", "StarTrinity.CST\StarTrinity.CST.iOS\StarTrinity.CST.iOS.csproj", "{73C9712C-DD0A-4A3D-9E1D-EF48688B54E3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StarTrinity.CST", "StarTrinity.CST\StarTrinity.CST\StarTrinity.CST.csproj", "{F832B5A3-6D66-4C6B-AADF-0C214C44DD5C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StarTrinity.CST", "StarTrinity.CST\StarTrinity.CST\StarTrinity.CST.csproj", "{F832B5A3-6D66-4C6B-AADF-0C214C44DD5C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcomms.CryptographyTester", "Dcomms.CryptographyTester\Dcomms.CryptographyTester.csproj", "{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -209,12 +211,36 @@ Global
 		{F832B5A3-6D66-4C6B-AADF-0C214C44DD5C}.Release|iPhone.Build.0 = Release|Any CPU
 		{F832B5A3-6D66-4C6B-AADF-0C214C44DD5C}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
 		{F832B5A3-6D66-4C6B-AADF-0C214C44DD5C}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Ad-Hoc|Any CPU.ActiveCfg = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Ad-Hoc|Any CPU.Build.0 = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Ad-Hoc|iPhone.ActiveCfg = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Ad-Hoc|iPhone.Build.0 = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Ad-Hoc|iPhoneSimulator.ActiveCfg = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Ad-Hoc|iPhoneSimulator.Build.0 = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.AppStore|Any CPU.ActiveCfg = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.AppStore|Any CPU.Build.0 = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.AppStore|iPhone.ActiveCfg = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.AppStore|iPhone.Build.0 = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.AppStore|iPhoneSimulator.ActiveCfg = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.AppStore|iPhoneSimulator.Build.0 = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Debug|iPhone.ActiveCfg = Debug|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Debug|iPhone.Build.0 = Debug|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Debug|iPhoneSimulator.ActiveCfg = Debug|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Debug|iPhoneSimulator.Build.0 = Debug|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Release|iPhone.ActiveCfg = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Release|iPhone.Build.0 = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
+		{12507FEB-36A7-4753-BC0A-A86ABE3ADE42}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {6370019C-E92B-4E94-AFB8-10842408C7EC}
 		VisualSVNWorkingCopyRoot = .
+		SolutionGuid = {6370019C-E92B-4E94-AFB8-10842408C7EC}
 	EndGlobalSection
 EndGlobal

@@ -28,3 +28,5 @@
 *.user
 /StarTrinity.ContinuousSpeedTest/tt/VersionAndCompiledDateCs.cs
 /StarTrinity.CST/StarTrinity.CST/tt/VersionAndCompiledDateCs.cs
+/Dcomms.CryptographyTester/bin
+/Dcomms.CryptographyTester/obj
