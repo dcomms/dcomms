@@ -81,8 +81,8 @@ namespace Dcomms.CryptographyTester
         });
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
         {
-            var t = new UniqueDataTracker();
-            t.TryInputData(null);
+           // var t = new UniqueDataTracker();
+         //   t.TryInputData(null);
         });
     }
 }

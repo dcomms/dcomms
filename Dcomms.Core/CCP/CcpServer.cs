@@ -16,11 +16,16 @@ namespace Dcomms.CCP
         readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         public DateTime DateTimeNowUtc { get { return _startTimeUtc + _stopwatch.Elapsed; } }
         uint TimeSec32UTC => MiscProcedures.DateTimeToUint32(DateTimeNowUtc);
-
-
         readonly ICryptoLibrary _cryptoLibrary = CryptoLibraries.Library;
+        readonly UniqueDataTracker _recentUniquePowData;
 
-        void ProcessUdpPacket(UdpClient udpSocket, IPEndPoint remoteEndpoint, byte[] payloadData)
+        public CcpServer()
+        {
+            _recentUniquePowData = new UniqueDataTracker(TimeSec32UTC);
+        }
+
+
+        void ProcessUdpPacket(UdpClient udpSocket, IPEndPoint remoteEndpoint, byte[] payloadData) // multi-threaded, receiver threads
         {
             try
             {
@@ -64,9 +69,6 @@ namespace Dcomms.CCP
             ////todo
         }
 
-        UniqueDataTracker _uniquePowDataForCurrentPeriod = new UniqueDataTracker();
-        UniqueDataTracker _uniquePowDataForPreviousPeriod = new UniqueDataTracker();
-
         bool PassStatelessPoWfilter(UdpClient udpSocket, IPEndPoint remoteEndpoint, ClientHelloPacket0 packet) // sends responses 
         {
             switch (packet.StatelessProofOfWorkType)
@@ -88,9 +90,9 @@ namespace Dcomms.CCP
                     }
                     var localTimeSec32 = TimeSec32UTC;
                     var diffSec = Math.Abs((int)unchecked(localTimeSec32 - receivedTimeSec32));
-                    if (diffSec > 3600)
+                    if (diffSec > CcpServerLogic.StatelessPoW_MaxClockDifferenceS)
                     {
-                        // respond with error "try again with valid clock"
+                        // respond with error "try again with valid clock" - legitimate user has to get valid clock from some time server and synchronize itself with the server
                         RespondToHello0(udpSocket, remoteEndpoint, ServerHello0Status.ErrorBadStatelessProofOfWork_BadClock, packet.ClientHelloToken);
                         return false;
                     }
@@ -104,8 +106,17 @@ namespace Dcomms.CCP
                         return false;
                     }
 
-                    // pass the hash to UniqueDataTracker  of current period or previous period (if it is still "previous persiod" at client)
-                    if (_uniquePowDataForCurrentPeriod.TryInputData(hash))
+
+                   
+
+                    // check if hash is unique
+                    bool dataIsUnique;
+                    lock (_recentUniquePowData)
+                    {                        
+                        dataIsUnique = _recentUniquePowData.TryInputData(hash, localTimeSec32);
+                    }
+
+                    if (dataIsUnique)
                     {
                         return true;
                     }
@@ -119,11 +130,22 @@ namespace Dcomms.CCP
                     throw new CcpBadPacketException();
             }
         }
-
-
     }
+
+    class CcpServerLogic
+    {
+        public const int StatelessPoW_MaxClockDifferenceS = 20 * 60;
+        public const int StatelessPoW_RecentUniqueDataResetPeriodS = 10 * 60;
+    }
+
     /// <summary>
     /// element of PoW validation (anti-DDoS) subsystem
+    /// 
+    /// still possible DoS attack#1: attacker precalculates hashes for some [future] period and sends a burst of hello0 packets, and for this time there will be 
+    /// LESS unique (free) hashes for legitimate users
+    /// 
+    /// still possible attack #2: attacker re-sends previously sent valid PoW
+    /// 
     /// stores hashes, results of SHA, previous N _valid_ PoW's
     /// provides a fast routine that checks "if the new valid PoW unique?", and this routine can return false positives (intentionally designed, to get fastest performance)
     /// contains the unique quadruples (dwords)   for previous "time unit" ("10min") (when new "time unit" comes, this container becomes reset)
@@ -132,7 +154,7 @@ namespace Dcomms.CCP
     /// 
     /// server can check 400K hashes per sec
     /// client can send unique PoW every 200ms (average)
-    /// keep previous N valid requests (hashes)
+    /// keep previous valid requests (hashes) for periodK
     /// </summary>
     public class UniqueDataTracker
     {
@@ -140,25 +162,44 @@ namespace Dcomms.CCP
         /// consider loop for every group of 4 bytes in input data: bytes A,B,C,D  (quadruple, double word, DWORD)
         /// if the ABCD value exists in this container, a bit is set to 1 at element index [A*65536+B*256+C], bit index [D mod 8]
         /// where 5 bits of D are ignored (they can be non-unique in this container)
+        ///  
+        /// having capacity of 256**4 = 4.3E9 unique values, it can accept 7.15M unique values per second
+        /// takes 16MB of RAM, not too big for modern devices, but 
+        /// 
+        /// against (precalculated) attack #1: if reset period is 10 minutes,
+        /// then for a 10-minute-duration attack it needs 4.3E9 valid and unique PoW values. if it takes 300ms to calculate PoW, 
+        /// it requires 1.3E9 seconds of single-core CPU time = 466 days using 32-core CPU
+        /// 
+        /// counter-measure against attack #1: if server sees that it is under attack (too many unique values filled) - then it automatically resets the unique values
+        /// 
         /// </summary>
-        byte[] _previousDwordFlagBits = new byte[256 * 256 * 256]; // takes 16MB of RAM, not too big for modern devices
-
-        const int MaxElementsInPreviousInputData = 65536 * 8; // max 16 MB
-        Queue<byte[]> _previousInputData = new Queue<byte[]>(); // first input last output
+        byte[] _dwordFlagBits = new byte[256 * 256 * 256];
+        uint _uniqueValuesCount, _uniqueValuesOverflowCount;
+        bool UniqueValuesCapacityOverflowFlag => _uniqueValuesCount > _uniqueValuesOverflowCount;
         
-        public void Reset()
+        uint _latestResetTimeSec32UTC;
+        public UniqueDataTracker(uint timeSec32UTC)
         {
-            _previousDwordFlagBits.Initialize();
-            _previousInputData.Clear();
+            _uniqueValuesOverflowCount = (uint)((double)_dwordFlagBits.Length * 256 * 0.3);
+            Reset(timeSec32UTC, false);
         }
-        public unsafe bool TryInputData(byte[] inputData)
+        void Reset(uint timeSec32UTC, bool resetDwordFlagBits = true)
+        {
+            _latestResetTimeSec32UTC = timeSec32UTC;
+            if (resetDwordFlagBits) _dwordFlagBits.Initialize();
+            _uniqueValuesCount = 0;
+        }
+        public unsafe bool TryInputData(byte[] inputData, uint timeSec32UTC)
         {
             if (inputData == null) throw new ArgumentNullException(nameof(inputData));
             if (inputData.Length % 4 != 0) throw new ArgumentException(nameof(inputData)); // must be of size N*4
-
+            
+            if (unchecked(timeSec32UTC - _latestResetTimeSec32UTC) > CcpServerLogic.StatelessPoW_RecentUniqueDataResetPeriodS)
+                Reset(timeSec32UTC);
+            
             int numberOfDwords = inputData.Length << 2;
 
-            fixed (byte *previousDwordFlagBitsPtr = _previousDwordFlagBits)
+            fixed (byte *dwordFlagBitsPtr = _dwordFlagBits)
             {
                 fixed (byte* inputDataPtr = inputData)
                 {
@@ -166,11 +207,11 @@ namespace Dcomms.CCP
                     for (int i = 0; i < numberOfDwords; i++, inputDataPtr32++)
                     {
                         uint dword = *inputDataPtr32;
-                        uint previousDwordFlagsIndex = dword & 0x00FFFFFF;
-                        var previousDwordFlagBitIndex = (byte)(((dword & 0xFF000000) >> 24) & 0b00000111);
-                        var previousDwordFlagBitMask = (byte)(1 << previousDwordFlagBitIndex);
-                        byte *previousDwordFlagBits = previousDwordFlagBitsPtr + previousDwordFlagsIndex;
-                        if (((*previousDwordFlagBits) & previousDwordFlagBitMask) != 0)
+                        uint dwordFlagsIndex = dword & 0x00FFFFFF;
+                        var dwordFlagBitIndex = (byte)(((dword & 0xFF000000) >> 24) & 0b00000111);
+                        var dwordFlagBitMask = (byte)(1 << dwordFlagBitIndex);
+                        byte *dwordFlagBits = dwordFlagBitsPtr + dwordFlagsIndex;
+                        if (((*dwordFlagBits) & dwordFlagBitMask) != 0)
                         { // DWORD is not unique
                             { // unset flags for previously enumerated dword's (mark as "unused") , i.e. clean bits set in current procedure call                               
                                 for (int j = i; ;)
@@ -180,47 +221,29 @@ namespace Dcomms.CCP
                                     inputDataPtr32--;
                                                                        
                                     dword = *inputDataPtr32;
-                                    previousDwordFlagsIndex = dword & 0x00FFFFFF;
-                                    previousDwordFlagBitIndex = (byte)(((dword & 0xFF000000) >> 24) & 0b00000111);
-                                    previousDwordFlagBitMask = (byte)(1 << previousDwordFlagBitIndex);                                                                       
+                                    dwordFlagsIndex = dword & 0x00FFFFFF;
+                                    dwordFlagBitIndex = (byte)(((dword & 0xFF000000) >> 24) & 0b00000111);
+                                    dwordFlagBitMask = (byte)(1 << dwordFlagBitIndex);                                                                       
 
-                                    previousDwordFlagBits = previousDwordFlagBitsPtr + previousDwordFlagsIndex;
+                                    dwordFlagBits = dwordFlagBitsPtr + dwordFlagsIndex;
 
                                     // set bit back to 0
-                                    *previousDwordFlagBits &= (byte)(~previousDwordFlagBitMask);
+                                    *dwordFlagBits &= (byte)(~dwordFlagBitMask);
                                 }
                             }
                             return false;
                         }
-                        *previousDwordFlagBits |= previousDwordFlagBitMask; // mark this dword as "used"
+                        *dwordFlagBits |= dwordFlagBitMask; // mark this dword as "used"
                     }
                 }
             }
-                       
-            _previousInputData.Enqueue(inputData);
 
-            if (_previousInputData.Count > MaxElementsInPreviousInputData)
+            _uniqueValuesCount++;
+            if (UniqueValuesCapacityOverflowFlag)
             {
-                var oldInputData = _previousInputData.Dequeue();
-                numberOfDwords = oldInputData.Length << 2;
-                fixed (byte* previousDwordFlagBitsPtr = _previousDwordFlagBits)
-                {
-                    fixed (byte* oldInputDataPtr = oldInputData)
-                    {
-                        uint* oldInputDataPtr32 = (uint*)oldInputDataPtr;
-                        for (int i = 0; i < numberOfDwords; i++, oldInputDataPtr32++)
-                        {
-                            uint dword = *oldInputDataPtr32;
-                            uint previousDwordFlagsIndex = dword & 0x00FFFFFF;
-                            var previousDwordFlagBitIndex = (byte)(((dword & 0xFF000000) >> 24) & 0b00000111);
-                            var previousDwordFlagBitMask = (byte)(1 << previousDwordFlagBitIndex);
-                            byte* previousDwordFlagBits = previousDwordFlagBitsPtr + previousDwordFlagsIndex;                           
-                            *previousDwordFlagBits |= (byte)(~previousDwordFlagBitMask); // mark this dword as "unused"
-                        }
-                    }
-                }
+                // counter-measure against attack #1: if server sees that it is under attack (too many unique values filled) - then it automatically resets the unique values
+                Reset(timeSec32UTC);
             }
-
             return true;
         }
     }
