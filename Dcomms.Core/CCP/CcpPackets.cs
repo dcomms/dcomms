@@ -25,7 +25,7 @@ namespace Dcomms.CCP
         public ushort Flags; // reserved // cipher suites
         public byte[] ClientHelloToken; // acts as cnonce and Diffie-Hellman exchange data  // to avoid conflicts between instances // to avoid server spoofing, source for server's signature
         public StatelessProofOfWorkType StatelessProofOfWorkType;
-        byte[] StatelessProofOfWorkData;
+        public byte[] StatelessProofOfWorkData;
         byte[] ClientSessionPublicKey;
         byte[] ClientCertificate; 
         byte[] ClientSignature; // set if client is registered
@@ -40,19 +40,23 @@ namespace Dcomms.CCP
             writer.Write(Flags);
             PacketProcedures.EncodeByteArray256(writer, ClientHelloToken);
             writer.Write((byte)StatelessProofOfWorkType);
+            PacketProcedures.EncodeByteArray256(writer, StatelessProofOfWorkData);
             return ms.ToArray();
         }
-        public ClientHelloPacket0(BinaryReader reader) // after first byte = packet type
+        public readonly byte[] OriginalPacketPayload;
+        public ClientHelloPacket0(BinaryReader reader, byte[] originalPacketPayload) // after first byte = packet type
         {
+            OriginalPacketPayload = originalPacketPayload;
             Flags = reader.ReadUInt16();
             ClientHelloToken = PacketProcedures.DecodeByteArray256(reader);
             StatelessProofOfWorkType = (StatelessProofOfWorkType)reader.ReadByte();
+            StatelessProofOfWorkData = PacketProcedures.DecodeByteArray256(reader);
         }
     }
     enum StatelessProofOfWorkType
     {
         none = 0,
-        _2019_05 = 1, // sha256(result||client_public_ip||time_now) has N MSB set to zero;  data is: result||client_public_ip||time_now
+        _2019_06 = 1, // sha256(pow_data||rest_packet_data||time_now) has bytes 4..6 set to 7;  al
     }
 
     /// <summary> 
@@ -83,7 +87,12 @@ namespace Dcomms.CCP
             writer.Write(Flags);
             writer.Write((byte)Status);
             PacketProcedures.EncodeByteArray256(writer, ClientHelloToken);
-            writer.Write((byte)StatefulProofOfWorkType);
+
+            if (Status == ServerHello0Status.OK)
+            {
+                writer.Write((byte)StatefulProofOfWorkType);
+                PacketProcedures.EncodeByteArray256(writer, StatefulProofOfWorkRequestData);
+            }
             return ms.ToArray();
         }
         public ServerHelloPacket0(BinaryReader reader) // after first byte = packet type
@@ -91,7 +100,11 @@ namespace Dcomms.CCP
             Flags = reader.ReadUInt16();
             Status = (ServerHello0Status)reader.ReadByte();
             ClientHelloToken = PacketProcedures.DecodeByteArray256(reader);
-            StatefulProofOfWorkType = (StatefulProofOfWorkType)reader.ReadByte();
+            if (Status == ServerHello0Status.OK)
+            {
+                StatefulProofOfWorkType = (StatefulProofOfWorkType)reader.ReadByte();
+                StatefulProofOfWorkRequestData = PacketProcedures.DecodeByteArray256(reader);
+            }
         }
 
     }
@@ -100,9 +113,12 @@ namespace Dcomms.CCP
         OK = 0, // continue to "stateful PoW" stage
         ErrorWeakStatelessProofOfWorkType = 3,
         ErrorBadStatelessProofOfWork = 4,
-        ErrorNeedToRegister = 5,
-        ErrorTryLaterWithThisServer = 6, // temporary overload
-        ErrorTryWithAnotherServer = 7, // with another server that is preconfigured at client side
+        ErrorBadStatelessProofOfWork_BadClock = 5,
+        ErrorNeedToRegister = 10,
+        ErrorTryAgainRightNowWithThisServer = 11, // non-unique stateless PoW
+        ErrorTryLaterWithThisServer = 12, // temporary overload
+        ErrorTryWithAnotherServer = 13, // with another server that is preconfigured at client side
+        ErrorBadPacket = 14,
     }
     
     // ======================================================================= hello1 stage

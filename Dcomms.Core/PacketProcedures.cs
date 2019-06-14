@@ -49,7 +49,12 @@ namespace Dcomms
         }
         public static void EncodeByteArray256(BinaryWriter writer, byte[] value)
         {
-            if (value == null) throw new ArgumentNullException();
+            if (value == null)
+            {
+                writer.Write((byte)0);
+                return;
+            }
+            if (value.Length == 0) throw new ArgumentNullException();
             if (value.Length > 255) throw new ArgumentException(nameof(value));          
             writer.Write((byte)value.Length);
             writer.Write(value);
@@ -151,6 +156,7 @@ namespace Dcomms
         public static byte[] DecodeByteArray256(BinaryReader reader)
         {
             var length = reader.ReadByte();
+            if (length == 0) return null;
             return reader.ReadBytes(length);
         }
 

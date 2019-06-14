@@ -25,11 +25,16 @@ namespace Dcomms
         {
             _compilationDateTimeUtc = compilationDateTimeUtc;
         }
-        public static DateTime ToDateTime(uint seconds)
+        static DateTime _baseDateTime = new DateTime(2019, 01, 01);
+        public static DateTime Uint32ToDateTime(uint seconds)
         {
-            return new DateTime(2019, 01, 01).AddSeconds(seconds);
+            return _baseDateTime.AddSeconds(seconds);
         }
-        public static uint CompilationDateTimeUtc_uint32 => (uint)(CompilationDateTimeUtc - new DateTime(2019, 01, 01)).TotalSeconds;
+        public static uint DateTimeToUint32(DateTime dt) //enough for 136 years
+        {
+            return (uint)(dt - _baseDateTime).TotalSeconds;
+        }
+        public static uint CompilationDateTimeUtc_uint32 => DateTimeToUint32(CompilationDateTimeUtc); 
 
         public static string BandwidthToString(this float bandwidth, float? targetBandwidth = null) => BandwidthToString((float?)bandwidth, targetBandwidth);
         public static string BandwidthToString(this float? bandwidth, float? targetBandwidth = null)

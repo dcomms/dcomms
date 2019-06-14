@@ -1,4 +1,5 @@
-﻿using Dcomms.Cryptography;
+﻿using Dcomms.CCP;
+using Dcomms.Cryptography;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -72,8 +73,16 @@ namespace Dcomms.CryptographyTester
                 if (ok) break;
             }
             sw.Stop();
-         
+
             MessageBox.Show($"{i} loops; {sw.Elapsed.TotalMilliseconds}ms");
+
+
+
+        });
+        public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
+        {
+            var t = new UniqueDataTracker();
+            t.TryInputData(null);
         });
     }
 }
