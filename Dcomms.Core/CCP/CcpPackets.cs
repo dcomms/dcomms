@@ -114,6 +114,7 @@ namespace Dcomms.CCP
         ErrorWeakStatelessProofOfWorkType = 3,
         ErrorBadStatelessProofOfWork = 4,
         ErrorBadStatelessProofOfWork_BadClock = 5,
+        ErrorBadStatelessProofOfWork_BadSourceIp = 6,
         ErrorNeedToRegister = 10,
         ErrorTryAgainRightNowWithThisServer = 11, // non-unique stateless PoW
         ErrorTryLaterWithThisServer = 12, // temporary overload

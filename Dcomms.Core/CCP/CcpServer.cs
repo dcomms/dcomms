@@ -11,7 +11,6 @@ namespace Dcomms.CCP
 {
     class CcpServer
     {
-
         readonly DateTime _startTimeUtc = DateTime.UtcNow;
         readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         public DateTime DateTimeNowUtc { get { return _startTimeUtc + _stopwatch.Elapsed; } }
@@ -75,19 +74,34 @@ namespace Dcomms.CCP
             {
                 case StatelessProofOfWorkType._2019_06:
                     // verify size of PoW data
-                    if (packet.StatelessProofOfWorkData.Length < 8 || packet.StatelessProofOfWorkData.Length > 64)
+                    if (packet.StatelessProofOfWorkData.Length < 12 || packet.StatelessProofOfWorkData.Length > 64)
                         throw new CcpBadPacketException();
 
                     // verify datetime ("period")
                     // return err code if time is wrong, with correct server's UTC time
                     uint receivedTimeSec32;
+                
                     unsafe
                     {
                         fixed (byte* statelessProofOfWorkDataPtr = packet.StatelessProofOfWorkData)
                         {
-                            receivedTimeSec32 = *((uint*)statelessProofOfWorkDataPtr);
+                            fixed (byte* addressBytesPtr = remoteEndpoint.Address.GetAddressBytes())
+                            {
+                                receivedTimeSec32 = *((uint*)statelessProofOfWorkDataPtr);                                
+                                if (addressBytesPtr[0] != statelessProofOfWorkDataPtr[4] ||
+                                    addressBytesPtr[1] != statelessProofOfWorkDataPtr[5] ||
+                                    addressBytesPtr[2] != statelessProofOfWorkDataPtr[6] ||
+                                    addressBytesPtr[3] != statelessProofOfWorkDataPtr[7]
+                                    )
+                                {
+                                    RespondToHello0(udpSocket, remoteEndpoint, ServerHello0Status.ErrorBadStatelessProofOfWork_BadSourceIp, packet.ClientHelloToken);
+                                    return false;
+                                }
+                            }
                         }
                     }
+
+
                     var localTimeSec32 = TimeSec32UTC;
                     var diffSec = Math.Abs((int)unchecked(localTimeSec32 - receivedTimeSec32));
                     if (diffSec > CcpServerLogic.StatelessPoW_MaxClockDifferenceS)
