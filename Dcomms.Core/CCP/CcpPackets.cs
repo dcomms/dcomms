@@ -20,10 +20,11 @@ namespace Dcomms.CCP
     /// <summary>
     /// very first packet sent from client to server
     /// </summary>
-    class ClientHelloPacket0
+    public class ClientHelloPacket0
     {
         public ushort Flags; // reserved // cipher suites
         public byte[] ClientHelloToken; // acts as cnonce and Diffie-Hellman exchange data  // to avoid conflicts between instances // to avoid server spoofing, source for server's signature
+        public const int ClientHelloTokenSupportedSize = 8; // only 1 size now - 201906
         public StatelessProofOfWorkType StatelessProofOfWorkType;
         public byte[] StatelessProofOfWorkData;
         byte[] ClientSessionPublicKey;
@@ -36,12 +37,19 @@ namespace Dcomms.CCP
         public byte[] Encode()
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            Encode(writer);
+            return ms.ToArray();
+        }
+        public int Encode(BinaryWriter writer)
+        {
             writer.Write((byte)CcpPacketType.ClientHelloPacket0);
             writer.Write(Flags);
+            if (ClientHelloToken.Length != ClientHelloTokenSupportedSize) throw new CcpBadPacketException();
             PacketProcedures.EncodeByteArray256(writer, ClientHelloToken);
             writer.Write((byte)StatelessProofOfWorkType);
+          
             PacketProcedures.EncodeByteArray256(writer, StatelessProofOfWorkData);
-            return ms.ToArray();
+            return 2 + 1 + ClientHelloToken.Length + 1;
         }
         public readonly byte[] OriginalPacketPayload;
         public ClientHelloPacket0(BinaryReader reader, byte[] originalPacketPayload) // after first byte = packet type
@@ -49,11 +57,12 @@ namespace Dcomms.CCP
             OriginalPacketPayload = originalPacketPayload;
             Flags = reader.ReadUInt16();
             ClientHelloToken = PacketProcedures.DecodeByteArray256(reader);
+            if (ClientHelloToken.Length != ClientHelloTokenSupportedSize) throw new CcpBadPacketException();
             StatelessProofOfWorkType = (StatelessProofOfWorkType)reader.ReadByte();
             StatelessProofOfWorkData = PacketProcedures.DecodeByteArray256(reader);
         }
     }
-    enum StatelessProofOfWorkType
+    public enum StatelessProofOfWorkType
     {
         none = 0,
         _2019_06 = 1, // sha256(pow_data||rest_packet_data||time_now) has bytes 4..6 set to 7;  al
@@ -68,6 +77,7 @@ namespace Dcomms.CCP
         public ushort Flags; //reserved
         public ServerHello0Status Status;
         public byte[] ClientHelloToken; // must be reflected by server
+
         // following fields are set if status = OK 
         public StatefulProofOfWorkType StatefulProofOfWorkType;
         public byte[] StatefulProofOfWorkRequestData; 
@@ -142,6 +152,9 @@ namespace Dcomms.CCP
         byte[] ClientHelloToken; // set if status = OKready
         string[] Servers;
         byte[] ServerSignature;
+
+        StatefulProofOfWorkType PowType { get; set; } // pow for next ping request, against stateful DoS attacks
+        byte[] PoWrequestData { get; set; }
     }
     enum ServerHello1Status
     {
@@ -160,17 +173,23 @@ namespace Dcomms.CCP
         byte Flags; //reserved
         byte[] ServerSessionToken { get; set; }
         byte[] EncryptedPayload { get; set; }
-        byte[] Signature { get; set; }
+        byte[] PoWresponseData { get; set; }
+        byte[] ClientSignature { get; set; }
     }
     class ServerPingResponsePacket
     {
         byte Flags; //reserved
         ServerPingResponseStatus Status;
         byte[] Payload { get; set; }
+        StatefulProofOfWorkType PowType { get; set; }
+        byte[] PoWrequestData { get; set; } // pow for next ping request, against stateful DoS attacks
+        byte[] ServerSignature { get; set; }
     }
     enum ServerPingResponseStatus
     {
         OK = 0,
-        ErrorGotoHello0 = 2, // server restarted and lost session token
+        ErrorGotoHello0withThisServer = 2, // server restarted and lost session token
+        ErrorOverloadedTryConnectToAnotherServer = 3,
+        ErrorOverloadedTryLaterWithThisServer = 4,
     }
 }

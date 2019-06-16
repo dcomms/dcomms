@@ -114,7 +114,7 @@ namespace Dcomms.CCP
                     var hash = _cryptoLibrary.GetHashSHA256(packet.OriginalPacketPayload);
                     // calculate hash, considering entire packet data (including stateless PoW result)
                     // verify hash result
-                    if (hash[4] != 7 || hash[5] != 7 || hash[6] != 7)
+                    if (!StatelessPowHashIsOK(hash))
                     {
                         HandleBadStatelessPowPacket(remoteEndpoint);
                         return false;
@@ -143,6 +143,14 @@ namespace Dcomms.CCP
                 default:
                     throw new CcpBadPacketException();
             }
+        }
+        internal static bool StatelessPowHashIsOK(byte[] hash)
+        {
+            if (hash[4] != 7 || hash[5] != 7
+                || hash[6] > 100
+                )
+                return false;
+            else return true;
         }
     }
 
@@ -264,11 +272,18 @@ namespace Dcomms.CCP
 
     class CcpBadPacketException: Exception
     {
-
     }
 
-    enum CcpSecurityLevel
+    class CcpServerSideSession
     {
+        uint LatestActivityTime32S { get; set; } // to remove it on timeout
+        byte[] ServerSessionToken;
+        byte[] ClientHelloToken;
 
+        IPEndPoint ClientEndpoint { get; set; }
+        
+        StatefulProofOfWorkType PowType { get; set; }
+        byte[] PoWrequestData { get; set; } // pow for ping request, against stateful DoS attacks
     }
+
 }

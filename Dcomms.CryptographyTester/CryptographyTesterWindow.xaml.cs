@@ -17,10 +17,10 @@ namespace Dcomms.CryptographyTester
 {
     public partial class CryptographyTesterMainWindow : Window
     {
-        readonly CryptographyTester _tester;
+        readonly CCP.CryptographyTester _tester;
         public CryptographyTesterMainWindow()
         {
-            _tester = new CryptographyTester();
+            _tester = new CCP.CryptographyTester((msg) => MessageBox.Show(msg));
             InitializeComponent();
             this.DataContext = _tester;
         }

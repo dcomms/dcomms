@@ -11,7 +11,7 @@ using System.Windows;
 
 namespace Dcomms.CCP
 {
-    class CryptographyTester
+    public class CryptographyTester
     {
         readonly Action<string> _wtl;
         public CryptographyTester(Action<string> wtl)
@@ -57,37 +57,26 @@ namespace Dcomms.CCP
 
         public DelegateCommand TestPoW_CCP_hello0 => new DelegateCommand(() =>
         {
-            var sw = Stopwatch.StartNew();
+            int n = 50;
+            var sb = new StringBuilder();
+            double totalMs = 0;
+            double maxMs = 0;
+            for (int i = 0; i < n; i++)
+            {
+                var sw = Stopwatch.StartNew();
+                var helloToken = new byte[ClientHelloPacket0.ClientHelloTokenSupportedSize];
+                var rnd = new Random();
+                rnd.NextBytes(helloToken);
+                var addressBytes = new byte[4]; rnd.NextBytes(addressBytes);
+                CcpClient.GenerateNewClientHelloPacket0(addressBytes, MiscProcedures.DateTimeToUint32(DateTime.UtcNow), helloToken);
+                sw.Stop();
 
-            var helloToken = new byte[ClientHelloPacket0.ClientHelloTokenSupportedSize];
-            var rnd = new Random();
-            rnd.NextBytes(helloToken);
-            CcpClient.GenerateNewClientHelloPacket0(IPAddress.Parse("12.23.34.45").GetAddressBytes(), MiscProcedures.DateTimeToUint32(DateTime.UtcNow), helloToken);
+                sb.AppendFormat("{0:0} ", sw.Elapsed.TotalMilliseconds);
+                totalMs += sw.Elapsed.TotalMilliseconds;
+                if (sw.Elapsed.TotalMilliseconds > maxMs) maxMs = sw.Elapsed.TotalMilliseconds;
+            }
 
-            //var input = new byte[32];
-            //var rnd = new Random();
-
-            //const int indexStart = 4;
-            //const int indexEnd = 6;
-            //const byte value = 7;
-
-            //int i = 0;
-            //for (; ; i++)
-            //{
-            //    rnd.NextBytes(input);
-            //    var r = _cryptoLibrary.GetHashSHA512(input);
-            //    bool ok = true;
-            //    for (int j = indexStart; j < indexEnd; j++)
-            //        if (r[j] != value)
-            //        {
-            //            ok = false;
-            //            break;
-            //        }
-            //    if (ok) break;
-            //}
-            sw.Stop();
-
-            _wtl($"hello is generated in {sw.Elapsed.TotalMilliseconds}ms");
+            _wtl($"delays: {sb}.\r\nmax: {maxMs}ms\r\naverage: {totalMs/n}ms");
 
         });
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>

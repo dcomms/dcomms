@@ -7,17 +7,22 @@ namespace Dcomms.CCP
     /// <summary>
     /// CP over UDP
     /// </summary>
-    class CcpUrl
+    public class CcpUrl
     {
         public string Host { get; set; }
         public ushort Port { get; set; }
         public CcpUrl(string urlStr)
-        {
-            throw new NotImplementedException();
+        { // ccp://localhost:9523
+            const string prefix = "ccp://";
+            if (!urlStr.StartsWith(prefix)) throw new ArgumentException();
+            var hostAndPort = urlStr.Substring(prefix.Length);
+            var colonIndex = hostAndPort.IndexOf(':');
+            Host = hostAndPort.Substring(0, colonIndex);
+            Port = ushort.Parse(hostAndPort.Substring(colonIndex + 1));
         }
     }
     /// <summary>
-    /// ccp over DRP
+    /// ccp over DRP (to hide the center)
     /// </summary>
     class CcpdUrl
     {
