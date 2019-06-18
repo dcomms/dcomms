@@ -19,6 +19,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -32,23 +33,28 @@
                     <Button Text="&#8659;" Command="{Binding CstApp.SubtLocalPeerConfigurationBandwidthTargetDecrease}" FontSize="35" WidthRequest="50"  />
                 </StackLayout>
 
-                <Label FontSize="Large" Grid.Row="1" Text="download: " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
-                <Label FontSize="Large" Grid.Row="1" Grid.Column="1" Text="{Binding RecentRxBandwidthString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
-                <Label FontSize="Large" Grid.Row="2" Text="upload: "  IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}" HorizontalOptions="End"/>
-                <Label FontSize="Large" Grid.Row="2" Grid.Column="1" Text="{Binding RecentTxBandwidthString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <StackLayout Grid.Row="1" Grid.ColumnSpan="2" >                    
+                    <Label FontSize="Large" Text="measurements:" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                    <Label FontSize="Small" Text="Note: measured speed can be higher than target speed" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}" VerticalOptions="End"/>
+                </StackLayout>
 
-                <Label FontSize="Large" Grid.Row="3" Text="RTT (ping): " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
-                <Label FontSize="Large" Grid.Row="3" Grid.Column="1" Text="{Binding RecentRttString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="2" Text="download: " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="2" Grid.Column="1" Text="{Binding RecentRxBandwidthString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="3" Text="upload: "  IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="3" Grid.Column="1" Text="{Binding RecentTxBandwidthString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+
+                <Label FontSize="Large" Grid.Row="4" Text="RTT (ping): " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="4" Grid.Column="1" Text="{Binding RecentRttString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
 
 
-                <Label FontSize="Large" Grid.Row="4" Text="uptime: " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
-                <Label FontSize="Large" Grid.Row="4" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.UptimeDurationString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="5" Text="uptime: " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="5" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.UptimeDurationString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
 
-                <Label FontSize="Large" Grid.Row="5" Text="downtime: " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
-                <Label FontSize="Large" Grid.Row="5" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.DowntimeDurationString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="6" Text="downtime: " IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
+                <Label FontSize="Large" Grid.Row="6" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.DowntimeDurationString}" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}"/>
               
-                <Button FontSize="Large" Grid.Row="6" Grid.ColumnSpan="2" Command="{Binding PauseTest}" Text="Pause" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}" />
-                <Button FontSize="Large" Grid.Row="6" Grid.ColumnSpan="2" Command="{Binding ResumeTest}" Text="Resume" VerticalOptions="Start" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused}" />
+                <Button FontSize="Large" Grid.Row="7" Grid.ColumnSpan="2" Command="{Binding PauseTest}" Text="Pause" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused, Converter={StaticResource OppositeConverter}}" />
+                <Button FontSize="Large" Grid.Row="7" Grid.ColumnSpan="2" Command="{Binding ResumeTest}" Text="Resume" VerticalOptions="Start" WidthRequest="150" MinimumWidthRequest="150" IsVisible="{Binding IsPaused}" />
             </Grid>
         </StackLayout>
     </ContentPage>
