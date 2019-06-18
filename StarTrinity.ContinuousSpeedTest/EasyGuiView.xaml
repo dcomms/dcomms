@@ -30,6 +30,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -56,8 +57,16 @@
                                 Command="{Binding OpenAccessInFirewall}"
                                 />
                     </StackPanel>
-
-
+                    <TextBlock Grid.Row="4" Grid.ColumnSpan="2" TextWrapping="Wrap">                       
+                        <Bold>Instructions</Bold>                  
+                        <LineBreak/>
+                        Run this software on two devices at same time, run first instance as server, and another instance as client,<LineBreak/>
+                        measure IP network quality of between the devices. It is useful to <Italic>test just your wifi router</Italic>, without internet.<LineBreak/>
+                    
+                        &#8226; Run first instance as server, open access in firewall if needed, click 'Start Test'<LineBreak/>
+                        &#8226; Run second instance as client, enter IP address of the server, click 'Start Test'<LineBreak/>
+                        &#8226; Use some different UDP port number if needed<LineBreak/>
+                    </TextBlock>
                 </Grid>
             </Expander>
 

@@ -68,6 +68,7 @@
                         &#8226; If the test reports downtimes on multiple different devices - it is exactly problem of internet provider: 
                         send the results to the provider and let them fix the problem.
                         If they are not able to fix it - use another internet provider<LineBreak/>
+                        &#8226; Run the test in your LAN, with the tool running as client and [your own] server, without internet, to check stability of your LAN/wifi router(s)<LineBreak/>
                     
                         &#8226; Contact us by email: support@startrinity.com if you need an advice how to fix internet issues. 
                          We maintain a database of known issues with providers and hardware vendors 
