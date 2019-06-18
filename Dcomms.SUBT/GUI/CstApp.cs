@@ -179,11 +179,11 @@ namespace Dcomms.SUBT.GUI
         
         public ICommand SubtLocalPeerConfigurationBandwidthTargetIncrease => new DelegateCommand(() =>
         {
-            SubtLocalPeerConfigurationBandwidthTarget *= 1.2f;
+            SubtLocalPeerConfigurationBandwidthTarget *= 1.1f;
         });
         public ICommand SubtLocalPeerConfigurationBandwidthTargetDecrease => new DelegateCommand(() =>
         {
-            SubtLocalPeerConfigurationBandwidthTarget *= 0.8f;
+            SubtLocalPeerConfigurationBandwidthTarget /= 1.1f;
         });
         #endregion
 
@@ -308,12 +308,23 @@ namespace Dcomms.SUBT.GUI
             }
         });
         #endregion
-        
+
         #region selected tabs
-        public bool TechTabIsSelected { get; set; }
+        bool _techTabIsSelected;
+        public bool TechTabIsSelected
+        {
+            get => _techTabIsSelected;
+            set { _techTabIsSelected = value; RaisePropertyChanged(() => TechTabIsSelected); }
+        }
         public bool EasyGuiTabIsSelected { get; set; }
         public bool HowItWorksTabIsSelected { get; set; }
-        public bool ConnectedPeersTabIsSelected { get; set; }
+
+        bool _connectedPeersTabIsSelected;
+        public bool ConnectedPeersTabIsSelected
+        {
+            get => _connectedPeersTabIsSelected;
+            set { _connectedPeersTabIsSelected = value; RaisePropertyChanged(() => ConnectedPeersTabIsSelected); }
+        }
         #endregion
 
         #region logging

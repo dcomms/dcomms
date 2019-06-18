@@ -176,13 +176,20 @@
                     <Label Grid.Row="1" Grid.Column="1" Text="{Binding DowntimeDurationString}" FontSize="15" />                    
                 </StackLayout>
                 <Button Command="{Binding Clear}" Text="clear history" />
+                <StackLayout Orientation="Horizontal">
+                    <Label Text="show uptimes" FontSize="15" />
+                    <Switch IsToggled="{Binding DisplayUptimes, Mode=TwoWay}" />
+                    
+                </StackLayout>
             </StackLayout>
 
-            <Label Grid.Row="1" Grid.Column="0" Text="Since"  />
-            <Label Grid.Row="1" Grid.Column="1" Text="Duration"  />
-            <Label Grid.Row="1" Grid.Column="2" Text="State"  />
+            <Label Grid.Row="1" Grid.ColumnSpan="2" Text="[no data to display]" IsVisible="{Binding DisplayedFragmentsExist, Converter={StaticResource OppositeConverter}}" />
 
-            <ListView Grid.Row="2" ItemsSource="{Binding Fragments}" SeparatorVisibility="None" BackgroundColor="Transparent" HasUnevenRows="True" 
+            <Label Grid.Row="1" Grid.Column="0" Text="Since" IsVisible="{Binding DisplayedFragmentsExist}" />
+            <Label Grid.Row="1" Grid.Column="1" Text="Duration" IsVisible="{Binding DisplayedFragmentsExist}"  />
+            <Label Grid.Row="1" Grid.Column="2" Text="State" IsVisible="{Binding DisplayedFragmentsExist}"  />
+
+            <ListView Grid.Row="2" ItemsSource="{Binding DisplayedFragments}" SeparatorVisibility="None" BackgroundColor="Transparent" HasUnevenRows="True" 
                     Grid.ColumnSpan="4" >
                 <ListView.ItemTemplate>
                     <DataTemplate>
@@ -239,17 +246,21 @@
                 <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; If the test reports downtimes on multiple different devices - it is exactly problem of internet provider: send the results to the provider and let them fix the problem. If they are not able to fix it - use another internet provider" />
                 <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; Contact us by email: support@startrinity.com if you need an advice how to fix internet issues. We maintain a database of known issues with providers and hardware vendors" />
 
-
-
                 <Label FontSize="30" FontAttributes="Bold" LineBreakMode="WordWrap" Text="How it works" />
                 <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; The continuous speed test sets up multiple connections with test nodes" />
                 <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; It continuously sends and receives UDP/IP packets according to target bandwidth (set by user)" />
                 <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; It measures quality of connection: packet loss, jitter, round trip delay" />
                 <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; If quality is bad, it considers connection as 'down' and tracks it" />
                 <Label LineBreakMode="WordWrap" FontSize="16" Text="&#8226; It generates reports with measurements, uptimes and downtimes" />
-
-
             </StackLayout>
+        </ScrollView>
+    </ContentPage>
+    <ContentPage Title="dev" x:Name="cryptographyTesterPage" >       
+        <ScrollView>
+            <StackLayout Padding="10" >
+                <Button Text="test hello0" Command="{Binding TestPoW_CCP_hello0}" />
+                <Label x:Name="cryptographyTesterOutput" LineBreakMode="WordWrap" />                
+            </StackLayout>            
         </ScrollView>
     </ContentPage>
     <!--<ContentPage Title="About" Padding="10">

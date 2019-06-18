@@ -19,13 +19,48 @@
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!--<TextBlock  Text="mode: " FontSize="30" HorizontalAlignment="Right" />
-            <ComboBox  Grid.Column="1" VerticalAlignment="Center"  HorizontalAlignment="Center" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" DisplayMemberPath="Description" FontSize="25" MinWidth="150" />-->
+            <Button Grid.Row="0" Command="{Binding StartTest}" Content="Start test" FontSize="30" />
 
-            <Button Grid.Row="1" Grid.ColumnSpan="2" Command="{Binding StartTest}" Content="Start test" FontSize="30" />
+            <Expander Grid.Row="1" Header="Test with my own server..." IsExpanded="{Binding TestWithCustomServer, Mode=TwoWay}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Run this instance as " />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" >
+                        <RadioButton Content="client" IsChecked="{Binding RunThisInstanceAsClient}"/>
+                        <RadioButton Content="server" IsChecked="{Binding RunThisInstanceAsServer}" />
+                    </StackPanel>
+
+                    <TextBlock Visibility="{Binding RunThisInstanceAsServer, Converter={StaticResource BoolToVisibilityConverter}}" Grid.Row="1"  Text="Local IP address(es):" />
+                    <TextBlock Visibility="{Binding RunThisInstanceAsServer, Converter={StaticResource BoolToVisibilityConverter}}" Grid.Row="1" Grid.Column="1" Text="{Binding LocalIpAddresses}" />
+
+                    <TextBlock Visibility="{Binding RunThisInstanceAsClient, Converter={StaticResource BoolToVisibilityConverter}}" Grid.Row="2"  Text="Server IP address:" />
+                    <TextBox Visibility="{Binding RunThisInstanceAsClient, Converter={StaticResource BoolToVisibilityConverter}}" Grid.Row="2" Grid.Column="1" Text="{Binding CustomServerIpAddress, Mode=TwoWay}" />
+                    
+                    <TextBlock Grid.Row="3"  Text="Server UDP port:" />
+                    <StackPanel  Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
+                        <TextBox Text="{Binding CustomServerUdpPort, Mode=TwoWay}" Width="60" />
+                        <Button Content="open access in firewall" 
+                                Visibility="{Binding RunThisInstanceAsServer, Converter={StaticResource BoolToVisibilityConverter}}" 
+                                ToolTip="Configures Windows Firewall to allow access to this program to client. There is no access by default."                                
+                                Command="{Binding OpenAccessInFirewall}"
+                                />
+                    </StackPanel>
+
+
+                </Grid>
+            </Expander>
+
         </Grid>
 
         <Grid Visibility="{Binding MeasurementsVisible, Converter={StaticResource BoolToVisibilityConverter}}" HorizontalAlignment="Center" >
@@ -61,7 +96,6 @@
 
             <Button Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding PauseTest}" Content="Pause" FontSize="25" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
             <Button Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding ResumeTest}" Content="Resume" FontSize="25" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}" />
-
         </Grid>
         <Grid Grid.Row="1">
             <StackPanel Orientation="Horizontal" Visibility="{Binding CstApp.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
@@ -199,10 +233,11 @@
                     <TextBlock Grid.Row="0" Text="uptime:" FontSize="20" />
                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.UptimeDurationString}" FontSize="20" />
                     <TextBlock Grid.Row="1" Text="downtime:" FontSize="20" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.DowntimeDurationString}" FontSize="20" />
-                    <Button Grid.Row="0" Grid.Column="2" Command="{Binding CstApp.DowntimesTracker.Clear}" Content="clear" HorizontalAlignment="Left" />
-                    
-                    <DataGrid Grid.Row="2" Grid.ColumnSpan="3"  ItemsSource="{Binding CstApp.DowntimesTracker.Fragments}" >
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.DowntimeDurationString}" FontSize="20" Margin="3 3 20 3"/>
+                    <Button Grid.Row="0" Grid.Column="2" Command="{Binding CstApp.DowntimesTracker.Clear}" Content="clear" HorizontalAlignment="Left" FontSize="16" />
+                    <CheckBox Grid.Row="1" Grid.Column="2" IsChecked="{Binding CstApp.DowntimesTracker.DisplayUptimes, Mode=TwoWay}" Content="display uptimes" HorizontalAlignment="Left" FontSize="14" />
+
+                    <DataGrid Grid.Row="2" Grid.ColumnSpan="3"  ItemsSource="{Binding CstApp.DowntimesTracker.DisplayedFragments}" >
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Since" Binding="{Binding StartTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss\}'}"></DataGridTextColumn>
                             <DataGridTemplateColumn Header="Till">

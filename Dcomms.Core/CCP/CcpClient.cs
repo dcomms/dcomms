@@ -33,40 +33,56 @@ namespace Dcomms.CCP
 
         async Task InitializeAsync()
         {
-            _localPublicIp = await SendPublicApiRequestAsync("http://api.ipify.org/");
-            if (_localPublicIp == null) _localPublicIp = await SendPublicApiRequestAsync("http://ip.seeip.org/");
-            if (_localPublicIp == null) _localPublicIp = await SendPublicApiRequestAsync("http://bot.whatismyipaddress.com");
-            if (_localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
-            
-            // open udp socket resolving domain name from URL
-            var serverUrl = _config.ServerUrls[0];
-            _udpClient = new UdpClient(serverUrl.Host, serverUrl.Port);
+            try
+            {
+                _localPublicIp = await SendPublicApiRequestAsync("http://api.ipify.org/");
+                if (_localPublicIp == null) _localPublicIp = await SendPublicApiRequestAsync("http://ip.seeip.org/");
+                if (_localPublicIp == null) _localPublicIp = await SendPublicApiRequestAsync("http://bot.whatismyipaddress.com");
+                if (_localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
 
-            // generate new client session token
-            _clientHelloToken = new byte[ClientHelloPacket0.ClientHelloTokenSupportedSize];
-            using (var g = new RNGCryptoServiceProvider())
-                g.GetBytes(_clientHelloToken);
-          
-            var hello0PacketData = GenerateNewClientHelloPacket0(_localPublicIp, TimeSec32UTC, _clientHelloToken);
+                // open udp socket resolving domain name from URL
+                var serverUrl = _config.ServerUrls[0];
+                _udpClient = new UdpClient(serverUrl.Host, serverUrl.Port);
 
-            // send hello0
-            await _udpClient.SendAsync(hello0PacketData, hello0PacketData.Length);
+                // generate new client session token
+                _clientHelloToken = new byte[ClientHelloPacket0.ClientHelloTokenSupportedSize];
+                using (var g = new RNGCryptoServiceProvider())
+                    g.GetBytes(_clientHelloToken);
 
-            // retransmit if no response N times
-            _udpClient.ReceiveAsync();
+                var hello0PacketData = GenerateNewClientHelloPacket0(_localPublicIp, TimeSec32UTC, _clientHelloToken);
 
-            // handle response
+                // send hello0
+                await _udpClient.SendAsync(hello0PacketData, hello0PacketData.Length);
 
-            // send hello1
-            // retransmit if no response N times
+                // retransmit if no response N times
+                _udpClient.ReceiveAsync();
 
-            // handle response
+                // handle response
+
+                // send hello1
+                // retransmit if no response N times
+
+                // handle response
 
 
-            // send pings
-            // if failed - keep reconnecting  after N secs
-
+                // send pings
+                // if failed - keep reconnecting  after N secs
+            }
+            catch (Exception exc)
+            {
+                HandleException(exc, "error when initializing");
+            }
         }
+
+        async Task<byte[]> SendRequestAsync(byte[] requestPacket, byte expectedFirstByteInResponse)
+        {
+            // filter only packets from server 
+            throw new NotImplementedException();
+        }
+
+
+
+
         /// <returns>bytes of IP address</returns>
         async Task<byte[]> SendPublicApiRequestAsync(string url)
         {

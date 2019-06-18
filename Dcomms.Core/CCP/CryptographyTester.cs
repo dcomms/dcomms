@@ -76,7 +76,8 @@ namespace Dcomms.CCP
                 if (sw.Elapsed.TotalMilliseconds > maxMs) maxMs = sw.Elapsed.TotalMilliseconds;
             }
 
-            _wtl($"delays: {sb}.\r\nmax: {maxMs}ms\r\naverage: {totalMs/n}ms");
+            _wtl($"delays: {sb}.\r\nmax: {maxMs}ms\r\naverage: {totalMs/n}ms"); 
+            // asv huawei 
 
         });
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>

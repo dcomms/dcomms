@@ -19,6 +19,15 @@ namespace StarTrinity.CST
             InitializeComponent();
             _cstApp = new CstApp(this);
             this.BindingContext = _cstApp;
+
+#if DEBUG
+            cryptographyTesterPage.BindingContext = new Dcomms.CCP.CryptographyTester((msg)=>
+            {
+                cryptographyTesterOutput.Text = msg;
+            });
+#else
+            this.Children.Remove(cryptographyTesterPage);
+#endif
         }
         bool ICstAppUser.RunningInstalledOnThisPC => true;
         void ICstAppUser.AddStaticResource(string name, object value)

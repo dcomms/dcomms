@@ -21,8 +21,9 @@ namespace Dcomms.SUBT.GUI
         }
 
         public ICommand Clear => new DelegateCommand(() =>
-        {           
-            Fragments.Clear();
+        {
+            _fragments.Clear();
+            _downtimeOnlyFragments.Clear();
             _currentFragment = null;
             UpdateGui();           
         });
@@ -78,15 +79,31 @@ namespace Dcomms.SUBT.GUI
                 return String.Format("{0} ({1:0.0000}%). {2} downtime(s)", downtimeDuration.TimeSpanToStringHMS(), 100.0 * downtimeDuration.Ticks / (uptimeDuration.Ticks + downtimeDuration.Ticks), numberOfDowntimes);
             }
         }
-        public ObservableCollection<UpDownTimeFragment> Fragments { get; private set; } = new ObservableCollection<UpDownTimeFragment>(); // newest first
-      
+        bool _displayUptimes = false;
+        public bool DisplayUptimes
+        {
+            get { return _displayUptimes; }
+            set
+            {
+                _displayUptimes = value;
+                RaisePropertyChanged(() => DisplayUptimes);
+                RaisePropertyChanged(() => DisplayedFragments);
+                RaisePropertyChanged(() => DisplayedFragmentsExist);
+            }
+        }
+
+        ObservableCollection<UpDownTimeFragment> _downtimeOnlyFragments = new ObservableCollection<UpDownTimeFragment>(); // newest first
+        ObservableCollection<UpDownTimeFragment> _fragments = new ObservableCollection<UpDownTimeFragment>(); // newest first
+        public ObservableCollection<UpDownTimeFragment> DisplayedFragments => _displayUptimes ? _fragments : _downtimeOnlyFragments;
+        public bool DisplayedFragmentsExist => DisplayedFragments.Count != 0;
+
         void GetDurations(out TimeSpan uptimeDuration, out TimeSpan downtimeDuration, out int numberOfDowntimes) // gui thead
         {
             uptimeDuration = TimeSpan.Zero;
             downtimeDuration = TimeSpan.Zero;
             numberOfDowntimes = 0;
            
-            foreach (var f in Fragments)
+            foreach (var f in _fragments)
             {
                 var duration = (f.StopTime - f.StartTime);
                 if (f.UpOrDown)
@@ -113,7 +130,8 @@ namespace Dcomms.SUBT.GUI
                             StopTime = m.MeasurementTime,
                             UpOrDown = true,
                         };
-                        Fragments.Insert(0, _currentFragment);
+                        _fragments.Insert(0, _currentFragment);
+                        RaisePropertyChanged(() => DisplayedFragmentsExist);
                     }
                 }
                 else
@@ -128,7 +146,10 @@ namespace Dcomms.SUBT.GUI
                             StopTime = m.MeasurementTime,
                             UpOrDown = up,
                         };
-                        Fragments.Insert(0, _currentFragment);
+                        _fragments.Insert(0, _currentFragment);
+                        if (!up)
+                            _downtimeOnlyFragments.Insert(0, _currentFragment);
+                        RaisePropertyChanged(() => DisplayedFragmentsExist);
                     }
                 }
             });

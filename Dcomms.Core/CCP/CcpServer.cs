@@ -65,7 +65,10 @@ namespace Dcomms.CCP
             if (!PassStatelessPoWfilter(udpSocket, remoteEndpoint, packet))
                 return;
                        
-            ////todo
+            ////todo proceed to stateful PoW
+            ///check stateful PoW result
+            ///limit number of requests  per 1 minute from every IPv4 block: max 100? requests per 1 minute from 1 block
+
         }
 
         bool PassStatelessPoWfilter(UdpClient udpSocket, IPEndPoint remoteEndpoint, ClientHelloPacket0 packet) // sends responses 
@@ -146,11 +149,14 @@ namespace Dcomms.CCP
         }
         internal static bool StatelessPowHashIsOK(byte[] hash)
         {
-            if (hash[4] != 7 || hash[5] != 7
-                || hash[6] > 100
+            if (hash[4] != 7 || (hash[5] != 7 && hash[5] != 8)
+           //     || hash[6] > 100
                 )
                 return false;
             else return true;
+            // devpc2: avg 30ms max 150ms
+            // nova 2i: avg 200ms max 1257ms
+            // honor 7      avg 363-475ms   max 1168-2130ms
         }
     }
 
@@ -269,6 +275,10 @@ namespace Dcomms.CCP
             return true;
         }
     }
+
+
+
+
 
     class CcpBadPacketException: Exception
     {

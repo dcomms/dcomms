@@ -7,6 +7,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Net;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace Dcomms.SUBT.GUI
 {
@@ -124,12 +127,54 @@ namespace Dcomms.SUBT.GUI
         public ICommand StartTest => new DelegateCommand(() =>
         {
             _cstApp.SubtLocalPeerConfigurationBandwidthTarget = CstApp.InitialBandwidthTarget;
-            _cstApp.PredefinedReleaseMode.Execute(null);
+            
+            if (TestWithCustomServer)
+            {
+                if (RunThisInstanceAsClient)
+                {
+                    if (String.IsNullOrEmpty(CustomServerIpAddress))
+                    {
+                        _cstApp.User.ShowMessageToUser("Please enter IP adress of your server");
+                        return;
+                    }
+                    _cstApp.LocalPeerConfiguration.RoleAsUser = true;
+                    _cstApp.LocalPeerConfiguration.RoleAsCoordinator = false;
+                    _cstApp.LocalPeerConfiguration.RoleAsSharedPassive = false;
+
+                    _cstApp.LocalPeerConfiguration.LocalUdpPortRangeStart = null;
+                    _cstApp.LocalPeerConfiguration.SocketsCount = 1;
+                    _cstApp.LocalPeerConfiguration.Coordinators = new IPEndPoint[]
+                    {
+                        new IPEndPoint(IPAddress.Parse(CustomServerIpAddress), CustomServerUdpPort)
+                    };
+                }
+                else if (RunThisInstanceAsServer)
+                {
+                    _cstApp.LocalPeerConfiguration.RoleAsCoordinator = true;
+                    _cstApp.LocalPeerConfiguration.RoleAsSharedPassive = true;
+                    _cstApp.LocalPeerConfiguration.RoleAsUser = false;
+                    _cstApp.LocalPeerConfiguration.LocalUdpPortRangeStart = CustomServerUdpPort;
+                    _cstApp.LocalPeerConfiguration.SocketsCount = 1;  
+                }
+                else throw new ArgumentException();
+            }
+            else
+                _cstApp.PredefinedReleaseMode.Execute(null);
+                       
+
             _cstApp.Initialize.Execute(null);
             RaisePropertyChanged(() => MeasurementsVisible);
             RaisePropertyChanged(() => StartVisible);
             RaisePropertyChanged(() => IsPaused);
-            RaisePropertyChanged(() => DisplayMeasurementsMaxCount);            
+            RaisePropertyChanged(() => DisplayMeasurementsMaxCount);
+
+            if (TestWithCustomServer && RunThisInstanceAsServer)
+            {
+                _cstApp.DeveloperMode = true;
+                _cstApp.TechTabIsSelected = true;
+                _cstApp.ConnectedPeersTabIsSelected = true;
+                _cstApp.RefreshTechGuiOnTimer = true;
+            }
         });
        
         public bool IsPaused { get; set; }
@@ -353,5 +398,77 @@ namespace Dcomms.SUBT.GUI
             }           
         });
 
+        public bool TestWithCustomServer { get; set; } = false;
+        bool _runThisInstanceAsClient = true;
+        public bool RunThisInstanceAsClient
+        {
+            get => _runThisInstanceAsClient;
+            set
+            {
+                _runThisInstanceAsClient = value;
+                RaisePropertyChanged(() => RunThisInstanceAsClient);
+                if (value) RunThisInstanceAsServer = false;
+            }
+        }
+        bool _runThisInstanceAsServer = false;
+        public bool RunThisInstanceAsServer
+        {
+            get => _runThisInstanceAsServer;
+            set
+            {
+                _runThisInstanceAsServer = value;
+                RaisePropertyChanged(() => RunThisInstanceAsServer);
+                if (value) RunThisInstanceAsClient = false;
+            }
+        }
+        
+        public string CustomServerIpAddress { get; set; }
+        public ushort CustomServerUdpPort { get; set; } = 9200;
+        public string LocalIpAddresses
+        {
+            get
+            {
+                var r = new StringBuilder();
+                try
+                {
+                    var entry = System.Net.Dns.GetHostEntry(Environment.MachineName);
+                    foreach (var addr in entry.AddressList)
+                        if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        {
+                            if (!addr.ToString().StartsWith("169.254."))
+                            { // invalid DHCP unassigned IP - skip it
+                                if (r.Length != 0) r.Append(";");
+                                r.Append(addr.ToString());                              
+                            }
+                        }
+                }
+                catch
+                {
+                }
+                return r.ToString();
+            }
+        }
+        public ICommand OpenAccessInFirewall => new DelegateCommand(() =>
+        {
+            var addOrRemove = true;
+            var ruleName = "StarTrinity CST";
+            var processName = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+
+          //  WriteToLog($"{(addOrRemove ? "adding" : "removing")} exception in firewall for '{ruleName}'");
+            var netshProcess = new Process();
+            netshProcess.StartInfo.FileName = "netsh";
+
+            if (addOrRemove) netshProcess.StartInfo.Arguments = $"advfirewall firewall add rule name=\"{ruleName}\" dir=in action=allow program=\"{processName}\" enable=yes";
+            else netshProcess.StartInfo.Arguments = $"advfirewall firewall delete rule name=\"{ruleName}\"";
+
+            netshProcess.StartInfo.Verb = "runas";
+            netshProcess.StartInfo.UseShellExecute = true;
+            netshProcess.Start();
+            netshProcess.WaitForExit();
+            //  WriteToLog($"netsh exited with code {netshProcess.ExitCode}");
+
+            _cstApp.User.ShowMessageToUser("Successfully opened access in Windows Firewall.\r\n\r\n" +
+                "Please also open incoming network connections to this program in antivirus, if you have antivirus running with its own firewall");
+        });
     }
 }
