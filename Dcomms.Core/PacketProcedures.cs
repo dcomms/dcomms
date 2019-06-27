@@ -159,6 +159,5 @@ namespace Dcomms
             if (length == 0) return null;
             return reader.ReadBytes(length);
         }
-
     }
 }

@@ -127,7 +127,7 @@ namespace Dcomms.P2PTP.LocalLogic
                 catch (SocketException exc)
                 {
                     if (_disposing) return;
-                    if (exc.ErrorCode != 10054) // forcibly closed - ICMP port unreachable - it is normal when peer ges down
+                    if (exc.ErrorCode != 10054) // forcibly closed - ICMP port unreachable - it is normal when peer gets down
                         _localPeer.HandleException(LogModules.Receiver, exc);
                     // else ignore it
                 }

@@ -5,7 +5,7 @@ using System.Text;
 namespace Dcomms.CCP
 {
     /// <summary>
-    /// CP over UDP
+    /// CCP over UDP
     /// </summary>
     public class CcpUrl
     {
@@ -22,7 +22,7 @@ namespace Dcomms.CCP
         }
     }
     /// <summary>
-    /// ccp over DRP (to hide the center)
+    /// CCP over DRP (to hide the center)
     /// </summary>
     class CcpdUrl
     {

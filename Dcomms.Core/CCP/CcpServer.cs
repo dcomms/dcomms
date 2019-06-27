@@ -6,72 +6,171 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace Dcomms.CCP
 {
-    class CcpServer
+    class CcpServer: IDisposable, ICcpTransportUser
     {
         readonly DateTime _startTimeUtc = DateTime.UtcNow;
         readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         public DateTime DateTimeNowUtc { get { return _startTimeUtc + _stopwatch.Elapsed; } }
         uint TimeSec32UTC => MiscProcedures.DateTimeToUint32(DateTimeNowUtc);
         readonly ICryptoLibrary _cryptoLibrary = CryptoLibraries.Library;
-        readonly UniqueDataTracker _recentUniquePowData;
-
-        public CcpServer()
+        readonly CcpServerConfiguration _config;
+        ICcpTransport _ccpTransport;
+        #region packet processor thread
+        Thread _packetProcessorThread;
+        bool _disposing;
+        class ReceivedPacket
         {
-            _recentUniquePowData = new UniqueDataTracker(TimeSec32UTC);
+            public byte[] Data;
+            public ICcpRemoteEndpoint ClientEndpoint;
         }
-
-
-        void ProcessUdpPacket(UdpClient udpSocket, IPEndPoint remoteEndpoint, byte[] payloadData) // multi-threaded, receiver threads
+        readonly Queue<ReceivedPacket> _packetsToProcess = new Queue<ReceivedPacket>(); // locked
+        #endregion
+        #region state
+        readonly UniqueDataTracker _recentUniquePowData; // accessed by processor thread only
+        readonly Snonce0Table _snonce0Table; // accessed by processor thread only
+        #endregion
+        public CcpServer(CcpServerConfiguration config)
         {
+            _config = config;
+            _recentUniquePowData = new UniqueDataTracker(TimeSec32UTC, _config);
+            _snonce0Table = new Snonce0Table(TimeSec32UTC, _config);
+            _ccpTransport = new CcpUdpTransport(this, _config.CcpUdpLocalServerPort);
+            _packetProcessorThread = new Thread(PacketProcessorThreadEntry);
+            _packetProcessorThread.Name = "CCP server processor";
+            _packetProcessorThread.Start();
+        }
+        public void Dispose()
+        {
+            if (_disposing) throw new InvalidOperationException();
+            _disposing = true;
+            _packetProcessorThread.Join();
+            _ccpTransport.Dispose();
+        }
+        #region packets processing, general
+        void ICcpTransportUser.ProcessPacket(ICcpRemoteEndpoint remoteEndpoint, byte[] data) // receiver thread(s)
+        {
+            lock (_packetsToProcess)
+            {
+                if (_packetsToProcess.Count > _config.PacketProcessingQueueMaxCount)
+                {
+                    OnPacketProcessingQueueOverloaded();
+                    return;
+                }
+                _packetsToProcess.Enqueue(new ReceivedPacket { ClientEndpoint = remoteEndpoint, Data = data });
+            }
+        }
+        void PacketProcessorThreadEntry()
+        {
+            while (!_disposing)
+            {
+                try
+                {
+                    for (;;)
+                        if (!PacketProcessorThreadProcedure())
+                            break;
+                }              
+                catch (Exception exc)
+                {
+                    HandleExceptionInPacketProcessorThread(exc);
+                }
+                Thread.Sleep(10);
+            }
+        }
+        /// <returns>true if there are more packets in queue, and need to call this procedure again</returns>
+        bool PacketProcessorThreadProcedure()
+        {
+            ReceivedPacket p;
+            lock (_packetsToProcess)
+            {
+                if (_packetsToProcess.Count == 0) return false;
+                p = _packetsToProcess.Dequeue();                        
+            }
+
             try
             {
-                var reader = PacketProcedures.CreateBinaryReader(payloadData, 0);
+                var reader = PacketProcedures.CreateBinaryReader(p.Data, 0);
                 var packetType = (CcpPacketType)reader.ReadByte();
                 switch (packetType)
                 {
                     case CcpPacketType.ClientHelloPacket0:
-                        ProcessClientHello0(udpSocket, remoteEndpoint, reader, payloadData);
+                        ProcessClientHello0(p.ClientEndpoint, reader, p.Data);
+                        break;
+                    case CcpPacketType.ClientHelloPacket1:
+                        ProcessClientHello1(p.ClientEndpoint, reader, p.Data);
                         break;
                     default:
-                        throw new CcpBadPacketException();
+                        HandleMalformedPacket(p.ClientEndpoint);
+                        break;
                 }
             }
             catch (Exception exc)
             {
-                HandleMalformedPacket(remoteEndpoint);
-                RespondToHello0(udpSocket, remoteEndpoint, ServerHello0Status.ErrorBadPacket, null);
+                HandleExceptionInPacketProcessorThread(exc);
+                HandleMalformedPacket(p.ClientEndpoint);
+                if (_config.RespondErrors) RespondToHello0(p.ClientEndpoint, ServerHello0Status.ErrorBadPacket, null);
             }
+
+            return true;
         }
-        void RespondToHello0(UdpClient udpSocket, IPEndPoint remoteEndpoint, ServerHello0Status status, byte[] clientHelloToken)
+        #endregion
+
+        #region error handlers
+        void OnPacketProcessingQueueOverloaded()
+        {//todo
+        }
+        void HandleExceptionInPacketProcessorThread(Exception exc)
+        {// todo
+        }
+        void ICcpTransportUser.HandleExceptionInCcpReceiverThread(Exception exc)
+        {// todo
+        }
+        /// <summary>
+        /// possibly but not neccessarily malformed, because it created an exception
+        /// </summary>
+        void HandleMalformedPacket(ICcpRemoteEndpoint remoteEndpoint)
+        { 
+            //todo
+        }
+        void HandleBadStatelessPowPacket(ICcpRemoteEndpoint remoteEndpoint)
         {
-            var response = new ServerHelloPacket0 { Status = status, ClientHelloToken = clientHelloToken };
+            //todo
+        }
+        void HandleBadSnonce0(ICcpRemoteEndpoint remoteEndpoint)
+        {
+        }
+        #endregion
+
+        #region hello0 
+        void RespondToHello0(ICcpRemoteEndpoint clientEndpoint, ServerHello0Status status, byte[] cnonce0)
+        {
+            var response = new ServerHelloPacket0 { Status = status, Cnonce0 = cnonce0 };
             var responseBytes = response.Encode();
-            udpSocket.Send(responseBytes, responseBytes.Length, remoteEndpoint);
-        }
-        void HandleMalformedPacket(IPEndPoint remoteEndpoint)
-        {
-            //todo
-        }
-        void HandleBadStatelessPowPacket(IPEndPoint remoteEndpoint)
-        {
-            //todo
-        }
-        void ProcessClientHello0(UdpClient udpSocket, IPEndPoint remoteEndpoint, BinaryReader reader, byte[] payloadData)
+            _ccpTransport.SendPacket(clientEndpoint, responseBytes);
+        }        
+        void ProcessClientHello0(ICcpRemoteEndpoint clientEndpoint, BinaryReader reader, byte[] payloadData) // packets processor thread
         {
             var packet = new ClientHelloPacket0(reader, payloadData);
-            if (!PassStatelessPoWfilter(udpSocket, remoteEndpoint, packet))
+            if (!PassStatelessPoWfilter(clientEndpoint, packet))
                 return;
-                       
-            ////todo proceed to stateful PoW
-            ///check stateful PoW result
-            ///limit number of requests  per 1 minute from every IPv4 block: max 100? requests per 1 minute from 1 block
-
+                        
+            // create snonce0 state
+            var snonce0 = _snonce0Table.GenerateOrGetExistingSnonce0(TimeSec32UTC, clientEndpoint);
+            
+            var response = new ServerHelloPacket0
+            {
+                Cnonce0 = packet.Cnonce0,
+                Snonce0 = snonce0.Snonce0,
+                Status = ServerHello0Status.OK,
+                StatefulProofOfWorkType = StatefulProofOfWorkType._2019_06
+            };
+            var responseBytes = response.Encode();
+            _ccpTransport.SendPacket(clientEndpoint, responseBytes);
         }
-
-        bool PassStatelessPoWfilter(UdpClient udpSocket, IPEndPoint remoteEndpoint, ClientHelloPacket0 packet) // sends responses 
+        bool PassStatelessPoWfilter(ICcpRemoteEndpoint clientEndpoint, ClientHelloPacket0 packet)// packets processor thread // sends responses 
         {
             switch (packet.StatelessProofOfWorkType)
             {
@@ -88,7 +187,7 @@ namespace Dcomms.CCP
                     {
                         fixed (byte* statelessProofOfWorkDataPtr = packet.StatelessProofOfWorkData)
                         {
-                            fixed (byte* addressBytesPtr = remoteEndpoint.Address.GetAddressBytes())
+                            fixed (byte* addressBytesPtr = clientEndpoint.AddressBytes)
                             {
                                 receivedTimeSec32 = *((uint*)statelessProofOfWorkDataPtr);                                
                                 if (addressBytesPtr[0] != statelessProofOfWorkDataPtr[4] ||
@@ -97,20 +196,20 @@ namespace Dcomms.CCP
                                     addressBytesPtr[3] != statelessProofOfWorkDataPtr[7]
                                     )
                                 {
-                                    RespondToHello0(udpSocket, remoteEndpoint, ServerHello0Status.ErrorBadStatelessProofOfWork_BadSourceIp, packet.ClientHelloToken);
+                                    if (_config.RespondErrors) RespondToHello0(clientEndpoint, ServerHello0Status.ErrorBadStatelessProofOfWork_BadSourceIp, packet.Cnonce0);
                                     return false;
                                 }
-                            }
+                             }
                         }
                     }
 
 
                     var localTimeSec32 = TimeSec32UTC;
                     var diffSec = Math.Abs((int)unchecked(localTimeSec32 - receivedTimeSec32));
-                    if (diffSec > CcpServerLogic.StatelessPoW_MaxClockDifferenceS)
+                    if (diffSec > _config.StatelessPoW_MaxClockDifferenceS)
                     {
                         // respond with error "try again with valid clock" - legitimate user has to get valid clock from some time server and synchronize itself with the server
-                        RespondToHello0(udpSocket, remoteEndpoint, ServerHello0Status.ErrorBadStatelessProofOfWork_BadClock, packet.ClientHelloToken);
+                        if (_config.RespondErrors) RespondToHello0(clientEndpoint, ServerHello0Status.ErrorBadStatelessProofOfWork_BadClock, packet.Cnonce0);
                         return false;
                     }
 
@@ -119,19 +218,13 @@ namespace Dcomms.CCP
                     // verify hash result
                     if (!StatelessPowHashIsOK(hash))
                     {
-                        HandleBadStatelessPowPacket(remoteEndpoint);
+                        HandleBadStatelessPowPacket(clientEndpoint);
+                        // no response
                         return false;
                     }
-
-
-                   
-
+                    
                     // check if hash is unique
-                    bool dataIsUnique;
-                    lock (_recentUniquePowData)
-                    {                        
-                        dataIsUnique = _recentUniquePowData.TryInputData(hash, localTimeSec32);
-                    }
+                    var dataIsUnique = _recentUniquePowData.TryInputData(hash, localTimeSec32);                   
 
                     if (dataIsUnique)
                     {
@@ -140,7 +233,7 @@ namespace Dcomms.CCP
                     else
                     {
                         // respond with error "try again with unique PoW data"
-                        RespondToHello0(udpSocket, remoteEndpoint, ServerHello0Status.ErrorTryAgainRightNowWithThisServer, packet.ClientHelloToken);
+                        if (_config.RespondErrors) RespondToHello0(clientEndpoint, ServerHello0Status.ErrorTryAgainRightNowWithThisServer, packet.Cnonce0);
                         return false;
                     }
                 default:
@@ -158,15 +251,104 @@ namespace Dcomms.CCP
             // nova 2i: avg 200ms max 1257ms
             // honor 7      avg 363-475ms   max 1168-2130ms
         }
+        #endregion
+
+        #region hello1
+        void ProcessClientHello1(ICcpRemoteEndpoint clientEndpoint, BinaryReader reader, byte[] payloadData) // packets processor thread
+        {
+            var snonce0 = _snonce0Table.TryGetSnonce0(clientEndpoint);
+            if (snonce0 == null)
+            {
+                HandleBadSnonce0(clientEndpoint);
+                return;
+            }
+
+            //TODO
+
+            ///check stateful PoW result, snonce0
+            ///
+            /// questionable:    hello1IPlimit table:  limit number of requests  per 1 minute from every IPv4 block: max 100? requests per 1 minute from 1 block
+            ///   ------------ possible attack on hello1IPlimit  table???
+        }
+        #endregion
     }
 
-    class CcpServerLogic
+    public class CcpServerConfiguration
     {
-        public const int StatelessPoW_MaxClockDifferenceS = 20 * 60;
-        public const int StatelessPoW_RecentUniqueDataResetPeriodS = 10 * 60;
+        public int PacketProcessingQueueMaxCount = 100000; // 100k pps @1 sec queue time
+        public int CcpUdpLocalServerPort = 9523;
+        public int StatelessPoW_MaxClockDifferenceS = 20 * 60;
+        public int StatelessPoW_RecentUniqueDataResetPeriodS = 10 * 60;
+        /// <summary>
+        /// turning this to "true" is not recommended in production mode, as it may create vulnerabilities
+        /// </summary>
+        public bool RespondErrors = false;
+        public uint Snonce0TablePeriodSec = 5;
+        public int Snonce0TableMaxSize = 500000;
+        public int Snonce0Size = 32;
+    }
+
+    class Snonce0State
+    {
+        public byte[] Snonce0; // used to validate snonce received in ClientHello1
     }
 
     /// <summary>
+    /// thread-unsafe
+    /// generates snonce0 objects
+    /// stores them for "period" = 5 seconds in Dictionary, by client endpoint
+    /// max capacity: 100K per second, 5 seconds: 500K*snonce0 =     ...................
+    /// </summary>
+    class Snonce0Table
+    {
+        readonly Random _rnd = new Random();
+        Dictionary<ICcpRemoteEndpoint, Snonce0State> _currentPeriodStates = new Dictionary<ICcpRemoteEndpoint, Snonce0State>();
+        Dictionary<ICcpRemoteEndpoint, Snonce0State> _previousPeriodStates = new Dictionary<ICcpRemoteEndpoint, Snonce0State>();
+        uint _nextPeriodSwitchTimeSec32UTC;
+
+        readonly CcpServerConfiguration _config;
+        public Snonce0Table(uint timeSec32UTC, CcpServerConfiguration config)
+        {
+            _config = config;
+            _nextPeriodSwitchTimeSec32UTC = timeSec32UTC + config.Snonce0TablePeriodSec;
+        }
+        /// <summary>
+        /// generates new snonce0 object
+        /// resets state when necessary
+        /// </summary>
+        public Snonce0State GenerateOrGetExistingSnonce0(uint timeSec32UTC, ICcpRemoteEndpoint clientEndpoint)
+        {
+            if (timeSec32UTC > _nextPeriodSwitchTimeSec32UTC || _currentPeriodStates.Count > _config.Snonce0TableMaxSize)
+            { // switch tables
+                _previousPeriodStates = _currentPeriodStates;
+                _currentPeriodStates = new Dictionary<ICcpRemoteEndpoint, Snonce0State>();
+                _nextPeriodSwitchTimeSec32UTC = timeSec32UTC + _config.Snonce0TablePeriodSec;
+            }
+
+            var existingSnonce0 = TryGetSnonce0(clientEndpoint);
+            if (existingSnonce0 != null) return existingSnonce0;
+
+            var r = new Snonce0State
+            {
+                Snonce0 = new byte[_config.Snonce0Size]
+            };
+            _rnd.NextBytes(r.Snonce0);
+            _currentPeriodStates.Add(clientEndpoint, r);
+            return r;
+        }
+        public Snonce0State TryGetSnonce0(ICcpRemoteEndpoint clientEndpoint)
+        {
+            if (_currentPeriodStates.TryGetValue(clientEndpoint, out var r))
+                return r;
+            if (_previousPeriodStates.TryGetValue(clientEndpoint, out r))
+                return r;
+            return null;
+        }
+    }
+
+    
+    /// <summary>
+    /// thread-unsafe
     /// element of PoW validation (anti-DDoS) subsystem
     /// 
     /// still possible DoS attack#1: attacker precalculates hashes for some [future] period and sends a burst of hello0 packets, and for this time there will be 
@@ -178,7 +360,6 @@ namespace Dcomms.CCP
     /// provides a fast routine that checks "if the new valid PoW unique?", and this routine can return false positives (intentionally designed, to get fastest performance)
     /// contains the unique quadruples (dwords)   for previous "time unit" ("10min") (when new "time unit" comes, this container becomes reset)
     /// 
-    /// thread-unsafe
     /// 
     /// server can check 400K hashes per sec
     /// client can send unique PoW every 200ms (average)
@@ -206,8 +387,10 @@ namespace Dcomms.CCP
         bool UniqueValuesCapacityOverflowFlag => _uniqueValuesCount > _uniqueValuesOverflowCount;
         
         uint _latestResetTimeSec32UTC;
-        public UniqueDataTracker(uint timeSec32UTC)
+        readonly CcpServerConfiguration _config;
+        public UniqueDataTracker(uint timeSec32UTC, CcpServerConfiguration config)
         {
+            _config = config;
             _uniqueValuesOverflowCount = (uint)((double)_dwordFlagBits.Length * 256 * 0.3);
             Reset(timeSec32UTC, false);
         }
@@ -222,7 +405,7 @@ namespace Dcomms.CCP
             if (inputData == null) throw new ArgumentNullException(nameof(inputData));
             if (inputData.Length % 4 != 0) throw new ArgumentException(nameof(inputData)); // must be of size N*4
             
-            if (unchecked(timeSec32UTC - _latestResetTimeSec32UTC) > CcpServerLogic.StatelessPoW_RecentUniqueDataResetPeriodS)
+            if (unchecked(timeSec32UTC - _latestResetTimeSec32UTC) > _config.StatelessPoW_RecentUniqueDataResetPeriodS)
                 Reset(timeSec32UTC);
             
             int numberOfDwords = inputData.Length << 2;
@@ -275,11 +458,7 @@ namespace Dcomms.CCP
             return true;
         }
     }
-
-
-
-
-
+    
     class CcpBadPacketException: Exception
     {
     }
@@ -296,4 +475,5 @@ namespace Dcomms.CCP
         byte[] PoWrequestData { get; set; } // pow for ping request, against stateful DoS attacks
     }
 
+    
 }

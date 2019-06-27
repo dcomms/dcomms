@@ -14,17 +14,17 @@ namespace Dcomms.CCP
         ClientPingRequestPacket = 4,
         ServerPingResponsePacket = 5,
     }
-    
-    // ======================================================================= hello0 stage
+
+    // ======================================================================= hello0 stage =====================================================================================================
 
     /// <summary>
-    /// very first packet sent from client to server
+    /// very first packet in handshaking sent from client to server
     /// </summary>
     public class ClientHelloPacket0
     {
         public ushort Flags; // reserved // cipher suites
-        public byte[] ClientHelloToken; // acts as cnonce and Diffie-Hellman exchange data  // to avoid conflicts between instances // to avoid server spoofing, source for server's signature
-        public const int ClientHelloTokenSupportedSize = 8; // only 1 size now - 201906
+        public byte[] Cnonce0; // acts as cnonce (temporary value) and Diffie-Hellman exchange data  // to avoid conflicts between instances // to avoid server spoofing, source for server's signature
+        public const int Cnonce0SupportedSize = 8; // only 1 size now - 201906
         public StatelessProofOfWorkType StatelessProofOfWorkType;
         public byte[] StatelessProofOfWorkData;
         byte[] ClientSessionPublicKey;
@@ -44,20 +44,20 @@ namespace Dcomms.CCP
         {
             writer.Write((byte)CcpPacketType.ClientHelloPacket0);
             writer.Write(Flags);
-            if (ClientHelloToken.Length != ClientHelloTokenSupportedSize) throw new CcpBadPacketException();
-            PacketProcedures.EncodeByteArray256(writer, ClientHelloToken);
+            if (Cnonce0.Length != Cnonce0SupportedSize) throw new CcpBadPacketException();
+            PacketProcedures.EncodeByteArray256(writer, Cnonce0);
             writer.Write((byte)StatelessProofOfWorkType);
           
             PacketProcedures.EncodeByteArray256(writer, StatelessProofOfWorkData);
-            return 2 + 1 + ClientHelloToken.Length + 1;
+            return 2 + 1 + Cnonce0.Length + 1;
         }
         public readonly byte[] OriginalPacketPayload;
         public ClientHelloPacket0(BinaryReader reader, byte[] originalPacketPayload) // after first byte = packet type
         {
             OriginalPacketPayload = originalPacketPayload;
             Flags = reader.ReadUInt16();
-            ClientHelloToken = PacketProcedures.DecodeByteArray256(reader);
-            if (ClientHelloToken.Length != ClientHelloTokenSupportedSize) throw new CcpBadPacketException();
+            Cnonce0 = PacketProcedures.DecodeByteArray256(reader);
+            if (Cnonce0.Length != Cnonce0SupportedSize) throw new CcpBadPacketException();
             StatelessProofOfWorkType = (StatelessProofOfWorkType)reader.ReadByte();
             StatelessProofOfWorkData = PacketProcedures.DecodeByteArray256(reader);
         }
@@ -69,18 +69,18 @@ namespace Dcomms.CCP
     }
 
     /// <summary> 
-    /// second packet, sent from server to client
-    /// after sending this packet, vision server creates a state linked to client IP:port, for 10 secs, creates a task for "stateful" proof of work
+    /// second packet in the handshaking, sent from server to client
+    /// after sending this packet, server creates a Snonce0 state
     /// </summary>
     class ServerHelloPacket0
     {
         public ushort Flags; //reserved
         public ServerHello0Status Status;
-        public byte[] ClientHelloToken; // must be reflected by server
+        public byte[] Cnonce0; // must be reflected by server
 
         // following fields are set if status = OK 
         public StatefulProofOfWorkType StatefulProofOfWorkType;
-        public byte[] StatefulProofOfWorkRequestData; 
+        public byte[] Snonce0; // = Stateful Proof Of Work (#1) Request Data
         byte[] ServerHelloToken; // acts as snonce and Diffie-Hellman exchange data
         byte[] ServerCertificate; // optional intermediate certificate
         string UnencryptedFallbackServers; // to be used in case of errors while crypto channel is unavailable
@@ -96,12 +96,12 @@ namespace Dcomms.CCP
             writer.Write((byte)CcpPacketType.ServerHelloPacket0);
             writer.Write(Flags);
             writer.Write((byte)Status);
-            PacketProcedures.EncodeByteArray256(writer, ClientHelloToken);
+            PacketProcedures.EncodeByteArray256(writer, Cnonce0);
 
             if (Status == ServerHello0Status.OK)
             {
                 writer.Write((byte)StatefulProofOfWorkType);
-                PacketProcedures.EncodeByteArray256(writer, StatefulProofOfWorkRequestData);
+                PacketProcedures.EncodeByteArray256(writer, Snonce0);
             }
             return ms.ToArray();
         }
@@ -109,11 +109,11 @@ namespace Dcomms.CCP
         {
             Flags = reader.ReadUInt16();
             Status = (ServerHello0Status)reader.ReadByte();
-            ClientHelloToken = PacketProcedures.DecodeByteArray256(reader);
+            Cnonce0 = PacketProcedures.DecodeByteArray256(reader);
             if (Status == ServerHello0Status.OK)
             {
                 StatefulProofOfWorkType = (StatefulProofOfWorkType)reader.ReadByte();
-                StatefulProofOfWorkRequestData = PacketProcedures.DecodeByteArray256(reader);
+                Snonce0 = PacketProcedures.DecodeByteArray256(reader);
             }
         }
 
@@ -135,14 +135,17 @@ namespace Dcomms.CCP
     // ======================================================================= hello1 stage
     enum StatefulProofOfWorkType
     {
-        none = 0,
-        _2019_05 = 1, // send client token in StatefulProofOfWorkRequestData, and expect same value back in Hello1
-        _captcha1 = 1, // ask user to enter captcha, send him url
+     //   none = 0,
+        _2019_06 = 1, // client calculates StatefulProofOfWorkResponseData so that SHA256()
+                      //  _captcha1 = 2, // ask user to enter captcha, send him url
     }
+    /// <summary>
+    /// third packet in the handshaking, sent from server to client
+    /// </summary>
     class ClientHelloPacket1
     {
         byte Flags; // reserved
-        byte[] ServerHelloToken; 
+        byte[] Snonce0; // must be reflected by client, from ServerHelloPacket0
         byte[] StatefulProofOfWorkResponseData;
         byte[] ClientSignature; // set if client is registered
     }

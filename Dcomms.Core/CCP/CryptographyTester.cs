@@ -64,11 +64,11 @@ namespace Dcomms.CCP
             for (int i = 0; i < n; i++)
             {
                 var sw = Stopwatch.StartNew();
-                var helloToken = new byte[ClientHelloPacket0.ClientHelloTokenSupportedSize];
+                var cnonce0 = new byte[ClientHelloPacket0.Cnonce0SupportedSize];
                 var rnd = new Random();
-                rnd.NextBytes(helloToken);
+                rnd.NextBytes(cnonce0);
                 var addressBytes = new byte[4]; rnd.NextBytes(addressBytes);
-                CcpClient.GenerateNewClientHelloPacket0(addressBytes, MiscProcedures.DateTimeToUint32(DateTime.UtcNow), helloToken);
+                CcpClient.GenerateNewClientHelloPacket0(addressBytes, MiscProcedures.DateTimeToUint32(DateTime.UtcNow), cnonce0);
                 sw.Stop();
 
                 sb.AppendFormat("{0:0} ", sw.Elapsed.TotalMilliseconds);
