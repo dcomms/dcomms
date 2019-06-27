@@ -1,0 +1,22 @@
+=================hello0@client:
+cnonce/ client hello token = rand
+powResult:  clientPublic IP||time_now ||  rand: 32
+client:   find powResult so that  SHA256(powResult): byte[5]=7 byte[6]=7
+SHA256(powResult)
+=================hello0@server 
+1) validate time, ip
+2) sha256
+3) create "state" object. generate StatefulProofOfWorkRequestData: rand[32]
+=================hello0@server response: cnonce, status, StatefulProofOfWorkRequestData
+
+=================@client
+powResult:  SHA(StatefulProofOfWorkRequestData||crand) -->byte[5]=8 byte[6]=8
+
+==================================attacks
+attacker: 
+knows client IP, sniffs client hello 0, can relay packets
+knows server IP. has a botnet to calculate PoW.
+
+-----> server hosting overload by UDP flood: anti-DDoS hosting
+-----> drop of legitimate connection
+

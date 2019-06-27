@@ -1,0 +1,1 @@
+create shared keys   out of snonce0, cnonce0  --- -secure??
