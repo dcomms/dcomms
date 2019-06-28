@@ -140,7 +140,11 @@ namespace Dcomms.CCP
             //todo
         }
         void HandleBadSnonce0(ICcpRemoteEndpoint remoteEndpoint)
+        {//todo
+        }
+        void HandleBadStatefulPowPacket(ICcpRemoteEndpoint remoteEndpoint)
         {
+            //todo
         }
         #endregion
 
@@ -262,13 +266,44 @@ namespace Dcomms.CCP
                 HandleBadSnonce0(clientEndpoint);
                 return;
             }
+            
+            var packet = new ClientHelloPacket1(reader, payloadData);
 
-            //TODO
+            // check snonce0
+            if (!MiscProcedures.EqualByteArrays(packet.Snonce0, snonce0.Snonce0))
+            {
+                HandleBadSnonce0(clientEndpoint);
+                return;
+            }
 
-            ///check stateful PoW result, snonce0
-            ///
-            /// questionable:    hello1IPlimit table:  limit number of requests  per 1 minute from every IPv4 block: max 100? requests per 1 minute from 1 block
-            ///   ------------ possible attack on hello1IPlimit  table???
+            ///check stateful PoW result
+            var hash = _cryptoLibrary.GetHashSHA256(packet.OriginalPacketPayload);
+            // calculate hash, considering entire packet data (including stateful PoW result)
+            // verify hash result
+            if (!StatefulPowHashIsOK(hash))
+            {
+                HandleBadStatefulPowPacket(clientEndpoint);
+                // no response
+                return;
+            }
+
+            // questionable:    hello1IPlimit table:  limit number of requests  per 1 minute from every IPv4 block: max 100? requests per 1 minute from 1 block
+            //   ------------ possible attack on hello1IPlimit  table???
+               
+
+            var response = new ServerHelloPacket1 { Status = ServerHello1Status.OKready, Cnonce1 = packet.StatefulProofOfWorkResponseData };
+            var responseBytes = response.Encode();
+            _ccpTransport.SendPacket(clientEndpoint, responseBytes);
+
+        }
+
+        internal static bool StatefulPowHashIsOK(byte[] hash)
+        {
+            if (hash[4] != 8 || (hash[5] != 9 && hash[5] != 10)
+                //     || hash[6] > 100
+                )
+                return false;
+            else return true;
         }
         #endregion
     }
@@ -285,7 +320,6 @@ namespace Dcomms.CCP
         public bool RespondErrors = false;
         public uint Snonce0TablePeriodSec = 5;
         public int Snonce0TableMaxSize = 500000;
-        public int Snonce0Size = 32;
     }
 
     class Snonce0State
@@ -330,7 +364,7 @@ namespace Dcomms.CCP
 
             var r = new Snonce0State
             {
-                Snonce0 = new byte[_config.Snonce0Size]
+                Snonce0 = new byte[ServerHelloPacket0.Snonce0SupportedSize]
             };
             _rnd.NextBytes(r.Snonce0);
             _currentPeriodStates.Add(clientEndpoint, r);
