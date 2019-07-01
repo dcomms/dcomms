@@ -45,18 +45,34 @@ namespace TestECDH.Lib
         }
         public void Test1_2()
         {
-            int n = 10000;
-            _wtl("ecdh keys generation...");
+            int n = 1000;
+            _wtl("ECDH keys generation...");
             var sw = Stopwatch.StartNew();
             for (int i = 0; i < n; i++)
-            {          
-                using (var aliceECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
+            {
+                using (var serverECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
                 {
 
                 }
             }
             sw.Stop();
             _wtl($"{(double)n / sw.Elapsed.TotalSeconds} ECDH keypair generations per second");
+        }
+        public void Test1_3()
+        {
+            int n = 10000;
+            _wtl("ECDH deriving shared key...");
+            using (var serverECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
+            using (var clientECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
+            {
+                var sw = Stopwatch.StartNew();
+                for (int i = 0; i < n; i++)
+                {
+                    byte[] serverSharedKey = serverECDH.DeriveKeyMaterial(clientECDH.PublicKey);
+                }
+                sw.Stop();
+                _wtl($"{(double)n / sw.Elapsed.TotalSeconds} ECDH shared key derivations per second");
+            }
         }
 
         static void Send(byte[] key, string secretMessage, out byte[] encryptedMessage, out byte[] iv)

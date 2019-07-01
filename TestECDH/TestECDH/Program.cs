@@ -13,6 +13,7 @@ namespace TestECDH
             var test1 = new Test1(x => Console.WriteLine(x));
             test1.Test1_1();
             test1.Test1_2();
+            test1.Test1_3();
         }
     }
 
