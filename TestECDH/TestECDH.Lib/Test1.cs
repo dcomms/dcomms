@@ -21,58 +21,58 @@ namespace TestECDH.Lib
             //    Curve = ECCurve.NamedCurves.nistP256,
             //    D = xxx
             //};
-            using (var aliceECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
-            using (var bobECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
-            {
-                _wtl($"alice public key: {Encoding.ASCII.GetString(aliceECDH.PublicKey.ToByteArray())}");
-                _wtl($"alice private key: {Encoding.ASCII.GetString(aliceECDH.ExportECPrivateKey())}");
-                _wtl($"bob public key: {Encoding.ASCII.GetString(bobECDH.PublicKey.ToByteArray())}");
-                _wtl($"bob private key: {Encoding.ASCII.GetString(bobECDH.ExportECPrivateKey())}");
-                // alice.KeyDerivationFunction = ECDiffieHellmanKeyDerivationFunction.Hash;
-                // alice.HashAlgorithm = CngAlgorithm.Sha256;
-                // alicePublicKey = alice.PublicKey.ToByteArray();
+            //using (var aliceECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
+            //using (var bobECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
+            //{
+            //    _wtl($"alice public key: {Encoding.ASCII.GetString(aliceECDH.PublicKey.ToByteArray())}");
+            //    _wtl($"alice private key: {Encoding.ASCII.GetString(aliceECDH.ExportECPrivateKey())}");
+            //    _wtl($"bob public key: {Encoding.ASCII.GetString(bobECDH.PublicKey.ToByteArray())}");
+            //    _wtl($"bob private key: {Encoding.ASCII.GetString(bobECDH.ExportECPrivateKey())}");
+            //    // alice.KeyDerivationFunction = ECDiffieHellmanKeyDerivationFunction.Hash;
+            //    // alice.HashAlgorithm = CngAlgorithm.Sha256;
+            //    // alicePublicKey = alice.PublicKey.ToByteArray();
 
 
-                byte[] aliceSharedKey = aliceECDH.DeriveKeyMaterial(bobECDH.PublicKey);
-                byte[] bobSharedKey = bobECDH.DeriveKeyMaterial(aliceECDH.PublicKey);
-                _wtl($"alice shared key: {Encoding.ASCII.GetString(aliceSharedKey)}");
-                _wtl($"bob shared key: {Encoding.ASCII.GetString(bobSharedKey)}");
+            //    byte[] aliceSharedKey = aliceECDH.DeriveKeyMaterial(bobECDH.PublicKey);
+            //    byte[] bobSharedKey = bobECDH.DeriveKeyMaterial(aliceECDH.PublicKey);
+            //    _wtl($"alice shared key: {Encoding.ASCII.GetString(aliceSharedKey)}");
+            //    _wtl($"bob shared key: {Encoding.ASCII.GetString(bobSharedKey)}");
 
-                Send(aliceSharedKey, "Secret message", out var encryptedMessage, out var iv);
-                var decoded = Receive(bobSharedKey, encryptedMessage, iv);
-                _wtl($"decoded: {decoded}");
-            }
+            //    Send(aliceSharedKey, "Secret message", out var encryptedMessage, out var iv);
+            //    var decoded = Receive(bobSharedKey, encryptedMessage, iv);
+            //    _wtl($"decoded: {decoded}");
+            //}
         }
         public void Test1_2()
         {
-            int n = 1000;
-            _wtl("ECDH keys generation...");
-            var sw = Stopwatch.StartNew();
-            for (int i = 0; i < n; i++)
-            {
-                using (var serverECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
-                {
+            //int n = 1000;
+            //_wtl("ECDH keys generation...");
+            //var sw = Stopwatch.StartNew();
+            //for (int i = 0; i < n; i++)
+            //{
+            //    using (var serverECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
+            //    {
 
-                }
-            }
-            sw.Stop();
-            _wtl($"{(double)n / sw.Elapsed.TotalSeconds} ECDH keypair generations per second");
+            //    }
+            //}
+            //sw.Stop();
+            //_wtl($"{(double)n / sw.Elapsed.TotalSeconds} ECDH keypair generations per second");
         }
         public void Test1_3()
         {
-            int n = 10000;
-            _wtl("ECDH deriving shared key...");
-            using (var serverECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
-            using (var clientECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
-            {
-                var sw = Stopwatch.StartNew();
-                for (int i = 0; i < n; i++)
-                {
-                    byte[] serverSharedKey = serverECDH.DeriveKeyMaterial(clientECDH.PublicKey);
-                }
-                sw.Stop();
-                _wtl($"{(double)n / sw.Elapsed.TotalSeconds} ECDH shared key derivations per second");
-            }
+            //int n = 10000;
+            //_wtl("ECDH deriving shared key...");
+            //using (var serverECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
+            //using (var clientECDH = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256))
+            //{
+            //    var sw = Stopwatch.StartNew();
+            //    for (int i = 0; i < n; i++)
+            //    {
+            //        byte[] serverSharedKey = serverECDH.DeriveKeyMaterial(clientECDH.PublicKey);
+            //    }
+            //    sw.Stop();
+            //    _wtl($"{(double)n / sw.Elapsed.TotalSeconds} ECDH shared key derivations per second");
+            //}
         }
 
         static void Send(byte[] key, string secretMessage, out byte[] encryptedMessage, out byte[] iv)

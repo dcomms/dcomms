@@ -1,0 +1,24 @@
+STEPS:
+=================keyPairGen@peerA:
+generate keypair, store private key in safe place and at device
+calculate SHA256(public key)=32bytes  =IDa (v.1) (v.2 linked to email, with attributes)
+
+
+=================interconnection with peerB@peerA
+get IDb from public internet
+establish connection via P2P network with peerB
+
+=================lookup @peerA
+
+=================lookup routed @peerX
+
+=================lookup received @peerB
+
+=================max N hops reached maximum @peerX
+
+=================lookupResponse
+
+PACKETS:
+announce+response
+lookup+response
+ping+response
