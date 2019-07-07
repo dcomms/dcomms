@@ -1,7 +1,9 @@
-﻿using EllipticCurveCrypto;
+﻿using Cryptography.ECDSA;
+using EllipticCurveCrypto;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace TestECDH.Lib
@@ -13,6 +15,80 @@ namespace TestECDH.Lib
         {
             _wtl = wtl;
         }
+
+        public void TestSHA256()
+        {
+            int TestSha256inputSize  = 128;
+
+            var sw = Stopwatch.StartNew();
+            var input = new byte[TestSha256inputSize];
+            var rnd = new Random();
+            rnd.NextBytes(input);
+            int n = 1000000;
+            for (int i = 0; i < n; i++)
+            {
+                var hash = Sha256Manager.GetHash(input);
+            }
+            sw.Stop();
+            var callsPerSec = (double)n / sw.Elapsed.TotalSeconds;
+            _wtl($"SHA256 calls per sec: {callsPerSec}");
+        }
+
+        public void TestECDSA_Sign()
+        {
+            var key = Secp256K1Manager.GenerateRandomKey();
+            var sw = new Stopwatch();
+            var rand = new RNGCryptoServiceProvider();
+            byte[] msg = new byte[64];
+            int n = 5000;
+            sw.Start();
+            for (int i = 0; i < n; i++)
+            {
+                rand.GetBytes(msg);
+                var hash = Sha256Manager.GetHash(msg);
+                var signature1 = Secp256K1Manager.SignCompressedCompact(hash, key);
+              //  Assert(signature1.Length == 65);
+              //  Assert(Secp256K1Manager.IsCanonical(signature1, 1));
+             //   if (!Secp256K1Manager.IsCanonical(signature1, 1))
+             //   {
+             //       _wtl($"signature1 not canonical - skip [{i}]");
+            //    }
+            }
+
+            sw.Stop();
+            var callsPerSec = (double)n / sw.Elapsed.TotalSeconds;
+            _wtl($"Secp256K1Manager.SignCompressedCompact calls per sec: {callsPerSec}");
+        }
+        public void TestECDSA_Verify()
+        {
+            var key = Secp256K1Manager.GenerateRandomKey();
+            var sw = new Stopwatch();
+            var rand = new RNGCryptoServiceProvider();
+            byte[] msg = new byte[64];
+                rand.GetBytes(msg);
+                var hash = Sha256Manager.GetHash(msg);
+                var signature1 = Secp256K1Manager.SignCompressedCompact(hash, key);
+            int n = 5000;
+            sw.Start();
+            for (int i = 0; i < n; i++)
+            {
+                //  Assert(signature1.Length == 65);
+                  Assert(Secp256K1Manager.IsCanonical(signature1, 1));
+                //   if (!Secp256K1Manager.IsCanonical(signature1, 1))
+                //   {
+                //       _wtl($"signature1 not canonical - skip [{i}]");
+                //    }
+            }
+
+            sw.Stop();
+            var callsPerSec = (double)n / sw.Elapsed.TotalSeconds;
+            _wtl($"Secp256K1Manager.SignCompressedCompact calls per sec: {callsPerSec}");
+        }
+        void Assert(bool b)
+        {
+            if (!b) throw new Exception();
+        }
+
         public void Test2_1()
         {
             var p = new EllipticCurveCryptoProvider(EllipticCurveNames.Secp256K1);
@@ -61,5 +137,8 @@ namespace TestECDH.Lib
             sw.Stop();
             _wtl($"{(double)n / sw.Elapsed.TotalSeconds} shared keys derived per second");
         }
+
+
+
     }
 }
