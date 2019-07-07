@@ -1,24 +1,85 @@
+DECENTRALIZED ROUTING PROTOCOL (DRP) WHITEPAPER
+
+CONCEPTS
+
+realworld                                dcomms
+decentr                                  decentr
+3D space                                 10D space
+police checking cars every 100km         nodes checking fraud/spam filter
+local authorities                        anti-fraud reports acceptors (as peers at known locations)
+passport ID (optional)                   optional certificate signed by CA
+receptionist/board with media            always-online server
+conference hall                          always-online server (group chat) 
+representative keeping your              always-online server  
+real loc. unknown
+old language                             old version: signal "update"
+neighborhood                                      neighborhood
+personal rating: req-resp time, delivery rate     rating
+signature with time                               signature with time 
+time now                                          time now
+
+
+
 STEPS:
 =================keyPairGen@peerA:
 generate keypair, store private key in safe place and at device
 calculate SHA256(public key)=32bytes  =IDa (v.1) (v.2 linked to email, with attributes)
+encrypted by password
+cold hardware wallet? offline device / paper
 
+=================settlement of IDa: possible flooding attack over target ID neighborhood: optionally use "seeder CA"
+peerA connects to any node; asks "can I settle to my IDa?";
+the network spreads the "settlementRequest" signal to corect neighbours; 
+some neighbours reply and get connected to peerA
 
 =================interconnection with peerB@peerA
-get IDb from public internet
+get IDb from public internet or physically (in-person meeting, QR code)
 establish connection via P2P network with peerB
 
-=================lookup @peerA
+=================initialLookup @peerA
+send { IDa, IDb, PoW, sign as IDa }
 
-=================lookup routed @peerX
+=================initialLookup routed @peerX
 
-=================lookup received @peerB
+=================initialLookup received @peerB
 
 =================max N hops reached maximum @peerX
 
-=================lookupResponse
+=================initialLookupResponse
+
+=================lookup (having preshared key)
+
+=================backup contact book and preshared keys to some trusted place (file?)
+
 
 PACKETS:
-announce+response
-lookup+response
-ping+response
+settleRequest+response:  neighbours limit rate of new peers settled
+initialLookup+response
+pingNeighbour+response (while settled) 
+connectToNeighbour+response (give more neighbours) (before and after settlement)
+
+
+ATTACKS:
+========================bad neighbourhood (Sybil attack):
+- drop packets
+- malform packets: signature protection
+- replay packets: duplicate delivery.    neighbors look at unique data, dont proxy duplicates
+- write down and track source/dest IDs, ID---IP mapping 
+
+=======================neighbours sniff src/dst IDs
+- send many "test" initialLookup packets (fake, not real messages)
+
+recommendation for RATING: do neighbors trust you to proxy real messages or they just take your messages and send you test messages to random test IDs?
+-lifetime of ID-ID connection
+-delivery rate while ping is online
+"broadcast bad neighour signal to close area". when too many IDs.
+- policemen build rating out of neighbours (collect ratings)
+
+
+
+
+MONETIZATION MODELS
+- DNS: short name-ID(s) linking authority center - when party B is not private
+- DUNS: ID to legal name - when party B is not private
+- "always online servers" hosting - offline messages, group chats, hosted media (like instagram, micro-websites), hide IP address
+
