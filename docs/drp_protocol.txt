@@ -1,11 +1,18 @@
 DECENTRALIZED ROUTING PROTOCOL (DRP) WHITEPAPER
 
 CONCEPTS
+ID keypair: public + private key
+IDspace 8-d space (8 axes) = SHA512(public key) (64bytes) 8bytes per dimension (x,y,z,....)
+rendervouz nodes (RN) - entries into p2p network, peers with public IP: port
+normalized vector between peers A and M (nvAM): used to hide IDm for A, preserving direction from A to M
+connection between peers A,M: {IDa, optionalIDm, nvAM}
 
+---------------------------table begin-----------------------------------------------------
 realworld                                dcomms
 decentr                                  decentr
-3D space                                 10D space
+3D space                                 8D space
 police checking cars every 100km         nodes checking fraud/spam filter
+capacity limit of roads
 local authorities                        anti-fraud reports acceptors (as peers at known locations)
 passport ID (optional)                   optional certificate signed by CA
 receptionist/board with media            always-online server
@@ -17,18 +24,32 @@ neighborhood                                      neighborhood
 personal rating: req-resp time, delivery rate     rating
 signature with time                               signature with time 
 time now                                          time now
+---------------------------table end----------------------------------------------------------
 
 
-
-STEPS:
+STAGES; BEHAVIOUR OF PEERS:
 =================keyPairGen@peerA:
+CURVE25519
 generate keypair, store private key in safe place and at device
-calculate SHA256(public key)=32bytes  =IDa (v.1) (v.2 linked to email, with attributes)
-encrypted by password
+calculate SHA512(public key)=64bytes=IDa (v.1) (v.2 linked to email, with attributes)
+private key is stored  encrypted by password
 cold hardware wallet? offline device / paper
 
-=================settlement of IDa: possible flooding attack over target ID neighborhood: optionally use "seeder CA"
-peerA connects to any node; asks "can I settle to my IDa?";
+=================settlement of IDa
+peerA connects to rendezvous node (RN); then to its neighbours;
+
+peerA sends to RN packet  settlementRequest {IDa,timestamp,PoW,IPa,signatureA}
+
+
+
+RN selects peers M, X who are closer to IDa
+RN requests  peerM, peerX: settlementRequest {IDa,timestamp,PoW,IPa,signatureA}
+
+peerX,M respond with settlementResponse:OK/reject
+
+RN responds   to peerA: settlementResponse {IPm,IPx}
+
+peerA asks "can I settle to my IDa?";
 the network spreads the "settlementRequest" signal to corect neighbours; 
 some neighbours reply and get connected to peerA
 
@@ -37,7 +58,9 @@ get IDb from public internet or physically (in-person meeting, QR code)
 establish connection via P2P network with peerB
 
 =================initialLookup @peerA
-send { IDa, IDb, PoW, sign as IDa }
+
+
+==== no reply to initialLookup;retransmission
 
 =================initialLookup routed @peerX
 
@@ -53,27 +76,94 @@ send { IDa, IDb, PoW, sign as IDa }
 
 
 PACKETS:
-settleRequest+response:  neighbours limit rate of new peers settled
-initialLookup+response
+settlementRequest+response
+
+
+
+
+-------------------------------------------
+initialLookup (peerA->peerX, peerX->peerY, peerY->peerB)
+IDa,IDb,timestamp,DHkeyA=nonceA,signatureA,cpuPoW,nhops
+
+initialLookupACK (from peerX)
+IDa,IDb,timestamp,DHkeyA=nonceA,signatureA,cpuPoW
+
+
+initialLookupResponse
+
+
+initialLookupResponseACK
+
+
+-----------------------------------
+subsequentLookup
+
 pingNeighbour+response (while settled) 
-connectToNeighbour+response (give more neighbours) (before and after settlement)
+connectToAnotherNeighbour+response (give more neighbours) (before and after settlement)
 
 
-ATTACKS:
-========================bad neighbourhood (Sybil attack):
+PEER-TO-PEER RATING
+PRIVATE RATINGS ONLY (no "fake" rating attack)
+do neighbors trust you to proxy real messages or they just take your messages and send you test messages to random test IDs?
+-distance to neighbour (prefer close?)
+-lifetime of ID-ID connection
+-delivery rate (%) while ping is OK
+
+"broadcast bad neighour signal to close area". when too many IDs.
+- ???? (centralized) policemen build rating out of neighbours (collect ratings)
+
+
+
+
+
+
+
+
+
+
+
+
+ATTACKS
+
+STOLEN PRIVATE KEY ATATCK
+store at safe place, user's responsibility
+
+FLOODING ATTACK WITH ANY PACKET
+CPU-based proof of work
+
+BAD NEIGHBORHOOD ATTACK (Sybil attack):
 - drop packets
 - malform packets: signature protection
 - replay packets: duplicate delivery.    neighbors look at unique data, dont proxy duplicates
-- write down and track source/dest IDs, ID---IP mapping 
+- delay packets
 
-=======================neighbours sniff src/dst IDs
-- send many "test" initialLookup packets (fake, not real messages)
+SRC/DST ID SNIFFING ATTACK
+scanners sniffing src/dst IDs (contact book leakage)  
+@neighborhood or everywhere in the network
+- send many "test" initialLookup packets (fake, not real messages) to randomly discovered IDs
 
-recommendation for RATING: do neighbors trust you to proxy real messages or they just take your messages and send you test messages to random test IDs?
--lifetime of ID-ID connection
--delivery rate while ping is online
-"broadcast bad neighour signal to close area". when too many IDs.
-- policemen build rating out of neighbours (collect ratings)
+
+SETTLEMENT FLOODING ATTACK
+- neighbours limit rate of new peers settled
+- signature of "seeder" CA who generates and distributes IDs
+
+SETTLEMENT IN BAD PLACE
+
+
+
+
+
+
+
+
+
+
+A-B fake A=B 
+
+
+
+
+
 
 
 

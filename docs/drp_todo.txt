@@ -1,0 +1,52 @@
+rendezvous anti-block reports: peers with good rating report   available center proxy ip addresses
+- sha512 64byte     8bytes=
+
+store private key via app-specific storage in android
+
+newNeighbour:  dont tell neighbour Ids?
+
+Artem:
+use NET standard ECDSA or OPENSSL C# WRAPPER  https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.ecdsa?view=netframework-4.8
+необходимость stateless proofOfWork?
+generate keypair: seed=mouse moves + KDF
+
+temporary IDs against spam:
+Alice: pubA, privA
+temp. ID:
+IDa_tmp = hash(PubA, X)
+X - random,    equal at A and B
+
+B: forum: ida_tmp, x
+B: settles
+B: connect to ida_tmp;
+get pubA'
+bool OK = (hash(pubA', X) == IDa_tmp)
+
+true alice or not?
+via IDa_tmp
+
+
+neighbours flooding:
+сети доверия pgp
+https://www.intuit.ru/studies/curriculums/20926/courses/7/lecture/230?page=6#sect17
+
+
+diffie hellman is not needed. 
+1. А и Б договариваются о сеансе
+2. A: случайный ключ K
+    А -> Б Enc(PubB, K)
+3. Б: Dec(PrivB, Enc(PubB, K)) == K
+
+
+
+
+
+
+
+
+
+
+
+
+
+
