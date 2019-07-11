@@ -147,25 +147,23 @@ SETTLEMENT FLOODING ATTACK
 - neighbours limit rate of new peers settled
 - signature of "seeder" CA who generates and distributes IDs
 
-SETTLEMENT IN BAD PLACE
+OCCUPY-FLOOD ATTACK
+attacker settles   100 nodes across network.   for 1 month they behave normally. then he starts attack:   1) let his 100 nodes drop all other (not bellonging to attacker) peers   2) generate a flood between the 100 peers, across the network.   it is a very advanced DoS.
+here bad means  relaying attacker's packets   but dropping other packets.
+it is like you send your agents to enemy, 1000 agents. they first settle and 1 year behave normally. then they get your command to attack
+solution: there can be an authority (optionally used in case of such dos). a local authority = government. then in case of dos  -authority-signed packets are routed always first.
+"i am french gov. user  -   i trust french government authority - in case of DoS I better trust senders who are signed with french government certificate"
+so only signed packets/messages go through during the dos
+.. openPGP level of trust
 
 
+SETTLEMENT IN BAD PLACE (MISLEAD BY RENDEZVOUS NODE)
 
+GENERATION OF EXACTLY SAME ID
 
+BAD CRYPTO LIBRARIES AT TARGET DEVICE
 
-
-
-
-
-
-A-B fake A=B 
-
-
-
-
-
-
-
+BAD CRYPTO LIBRARIES AT PEER'S DEVICE
 
 
 MONETIZATION MODELS

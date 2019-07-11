@@ -94,12 +94,12 @@
 Алиса хочет дать Бобу свой идентификатор.
 
 1. A: генерирует или получает X - случайный идентификатор сессии;
-2. A -> B: Temp_ID = hash(PubA, X), X.
+2. A -> B: Temp_ID = hash(PubA|X), X.
 
 #### Проверка
 
 1. Получить PubA' ;
-2. hash(PubA', X) == Temp_ID ? OK : FAILURE.
+2. hash(PubA'|X) == Temp_ID ? OK : FAILURE.
 
 Остальное использование полностью аналогично обычным идентификаторам. Для смены просто генерируется новый X, возможно, с помощью уже установленного защищенного контакта через сеть.
 
@@ -111,11 +111,11 @@
 
 1. A -> B: PubA;
 
-2. B: hash(PubA, X) == ID_A ? OK : FAILURE;
+2. B: hash(PubA|X) == ID_A ? OK : FAILURE;
 
    B -> A: PubB;
 
-3. A: hash(PubB, Y) == ID_B ? OK : FAILURE.
+3. A: hash(PubB|Y) == ID_B ? OK : FAILURE.
 
 ### Сеансовым
 
