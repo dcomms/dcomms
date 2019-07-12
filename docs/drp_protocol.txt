@@ -11,6 +11,7 @@ connection between peers A,M: {IDa, optionalIDm, nvAM}
 realworld                                dcomms
 decentr                                  decentr
 3D space                                 8D space
+landing party                            ID=hash(PubKey,IDsalt)
 police checking cars every 100km         nodes checking fraud/spam filter
 capacity limit of roads
 local authorities                        anti-fraud reports acceptors (as peers at known locations)
@@ -36,22 +37,7 @@ private key is stored  encrypted by password
 cold hardware wallet? offline device / paper
 
 =================settlement of IDa
-peerA connects to rendezvous node (RN); then to its neighbours;
 
-peerA sends to RN packet  settlementRequest {IDa,timestamp,PoW,IPa,signatureA}
-
-
-
-RN selects peers M, X who are closer to IDa
-RN requests  peerM, peerX: settlementRequest {IDa,timestamp,PoW,IPa,signatureA}
-
-peerX,M respond with settlementResponse:OK/reject
-
-RN responds   to peerA: settlementResponse {IPm,IPx}
-
-peerA asks "can I settle to my IDa?";
-the network spreads the "settlementRequest" signal to corect neighbours; 
-some neighbours reply and get connected to peerA
 
 =================interconnection with peerB@peerA
 get IDb from public internet or physically (in-person meeting, QR code)

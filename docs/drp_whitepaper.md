@@ -8,7 +8,9 @@ Author: Sergei Aleshin Vladimirovich. asv@startrinity.com  startrinity.asv@gmail
 
 ## Abstract
 
-The Decentralized Routing Protocol (DRP) is designed to build peer-to-peer (P2P) networks where peers can contact each other without servers. The DRP runs over UDP protocol and uses technique of "UDP hole punching" for NAT/firewall traversal. DRP is used to initialize direct UDP channel between two peers, it does not carry communications between peers. The DRP is designed to build secure decentralized messengers,  UC apps. In 2019 main competitors are: matrix.org, bitmessage.org, tox messenger. 
+The Decentralized Routing Protocol (DRP) is designed to build peer-to-peer (P2P) networks where peers can contact each other without servers. The DRP runs over UDP protocol and uses technique of "UDP hole punching" for NAT/firewall traversal. DRP is used to initialize direct UDP channel between two peers, it does not carry communications between peers (its purpose is similar to SIP protocol). The DRP is designed to build secure decentralized messengers, unified communication apps. In 2019 main competitors are: matrix.org, bitmessage.org, tox messenger. 
+
+
 
 
 
@@ -20,15 +22,15 @@ The Decentralized Routing Protocol (DRP) is designed to build peer-to-peer (P2P)
 
 ### User's identifiers. ID, PublicKey, PrivateKey
 
-**user**: a person who uses the messenger.
+**user**: a person who uses the messenger. Prototype legitimate users: A=Alice, B=Bob, N=Neighbor. Unkown users: X=attacker.
 
-**keypair**: {PublicKey, PrivateKey} is used as a self-signed certificate of a *user*. Private key is used to sign, public key - to verify packets. We select Ed25519 ECDSA for the asymmetric crypography.
+**keypair** of *user* A: {PubA, PrivA} is used as a self-signed certificate of the *user*. Private key is used to sign, public key - to verify packets. We select Ed25519 ECDSA for the asymmetric crypography.
 
 **idNonce**: random bytes (salt), is used to change user's ID without changing his public key
 
 **ID**=SHA512(*PublicKey*|*idNonce*), 512 bits
 
-ID is used to deliver packets across the P2P network, to sign transmitted packets, verify the packets.
+ID is used to deliver packets across the P2P network, to verify the packets.
 
 ### ID space, distance, vectors
 
@@ -59,90 +61,159 @@ contact_book_entry = { IDb, PublicKeyB, idNonceB }
 
 ## Packets, fields
 
-**SettlementRequest** { IPa, IDa+rnd, timestamp, PoW }, ?? ts,signatureA, caPubKey,caSignature
+Detailed explanation of the packets is below, see "Stages" section. xxxACK packet is sent in response to xxx packet, it is a part of UDP-packet loss-retransmission transport level.
 
-rnd is a random vector, used to hide IDa.
+**RegisterRequest** { IPa, IDa, PoW }, ?? ts,signatureA, caPubKey,caSignature
 
-SettlementResponse { IPm, IDm+rnd, }
+**RegisterResponse** { IPm, IDm+rnd, statusCode }
 
-InitialLookup, InitialLookupACK, Response
+**Ping** { ???IDa }
 
+**Invite** { IPa, IDa, PubA, IDb, PoW, nhops }, 
 
+InviteACK,
 
+InviteResponse, 
 
+InviteResponseACK
 
 ## Stages
 
 ### Generation of keypair and ID
 
-Peer generates keypair, idNonce, IDa. Stores the keypair in safe place.
+Peer generates **keypair**. Stores the keypair in safe place. Generates one or multiple **idNonce** (salt) and **IDa**.
 
 ### Exchange of IDs
 
 Peers A gets ID of peer B via QR code (this allows private IDb) or via public channel (another messenger, forum), adds new entry into contact book.
 
-### Settlement. Rendezvous Nodes.
+### Regitration/Settlement. Rendezvous Peers.
 
-Peer A first gets connected to **Rendezvous Node (RN)** - a peer with accessible IP address and UDP port, entry into the network. RN is connected with multiple peers; peer A asks RN to connect to neighbors near IDa within IDspace. RN connects A to intermediate peers that is closer to IDa, finally peer A gets connected to neighbors. Peer A is able to increase or decrease number of connections to neighborhood. UDP hole punching technique is used to create new connections between peers.
+Peer A first gets connected to **Rendezvous Peer (RP)** - a peer with accessible IP address and UDP port, entry into the network. RP is connected with multiple peers; peer A asks RP to connect to neighbors near IDa within IDspace. RP connects A to intermediate peers that is closer to IDa, finally peer A gets connected to neighbors: peer A asks the network "can I settle to my IDa?", the network spreads the **registerRequest** packet to correct neighbors; some neighbors reply and get connected to peer A.  Peer A is able to increase or decrease number of connections to neighborhood. **UDP hole punching** technique is used to set up direct **UDP connections** between neighbor peers (see ref.).
 
-PeerA sends *settlementRequest* to RN. RN selects peer M who is closer to IDa+rnd. RN proxies settlementRequest to peerM. PeerM respond with settlementResponse:OK/reject
+PeerA sends *registerRequest* to RP. RP selects peer M who is closer to IDa+rnd. RP proxies *registerRequest* to peerM. PeerM responds with *registerResponse*  to RP, RP proxies response to A. The *registerRequest* packet is similar to REGISTER packet in SIP protocol (see ref.).
 
-RN responds   to peerA: settlementResponse {IPm,IPx}
-
-peerA asks "can I settle to my IDa?";
-the network spreads the "settlementRequest" signal to corect neighbours; 
-some neighbours reply and get connected to peerA
-
-### Testing neighbors
-
-Every peer is interested to measure quality of his neighbors. He sends test messages to some (random) destinations and measures packet loss and round-trip time (RTT).
-
-### Initial Lookup
-
-from A to B, to add to contact book.
-
-### Subsequent Lookup
-
-lookup with preshared key in the contact book
-
-### Direct UDP channel
-
-When both users A and B agree to set up **direct channel**, they disclose IP addresses to each other and start end-to-end encrypted communication over some other protocol (DTLS, SIP, RTP).
-
-The direct channel could be opened before any communication between users, in case if users are afraid of possible future DRP-level DoS attack, when they will not be able to set up the direct channel.
+Peers A and M start to send **ping** packets to each other, keeping UDP connection open. *Ping* packets are sent on timeout, if no other packets are sent between neighbors. The *ping* packet is similar to OPTIONS packet in SIP protocol (see ref.).
 
 
 
+### Testing performance of neighbors
 
+Every peer is interested to measure quality of his neighbors. He sends test messages to some (random) destination IDs, receives  and measures packet loss and round-trip time (RTT)  (process similar to tracert). 
 
-## Usage modes
+### Invite
 
-- Public P2P network
-- Private P2P network, with own rendezvous node(s). Rendezvous nodes accessible from public internet, or accessible from LAN only
+Sent from A to B via the P2P network, from one neighbor to another, to establish *direct channel*. The lookup packet is similar to INVITE packet in SIP protocol (see ref.).
+
+### Direct channel
+
+When both users A and B agree to set up **direct channel**, they disclose IP addresses to each other and start end-to-end encrypted communication over some UDP-based protocol (DTLS, SRTP). 
 
 
 
 ## Attacks and countermeasures
 
-### DRP-level DDoS attacks
+### DRP-level DDoS attacks on target ID
 
-DDoS attack on target user A is possible when an attacker owns a botnet and knows ID of user A. He is able to register many fake users X talking to each other normally, then at some point send oackets towards A, in this way flooding *IDspace* near location of A.
+DDoS attack on target user A is possible when an attacker owns a botnet and knows ID of user A. He is able to register many fake users X talking to each other normally, then at some point send packets towards A, in this way flooding *IDspace* near location of A. **Countermeasures:** 
+
+- **Money-based proof of work**: sell "high-priority" signatures, linked to public keys. The signatures can be used to prioritize routing of packets from user who paid for the service. Such high-priority packets will pass through flooded area in the *IDspace*.
+- Frequently **change IDsalt** and synchronize it with contacts; have unique IDsalt per contact book entry; exchange IDs in safe place, so only A and B know about IDsalt's, IDa, IDb.
+- Set up *direct channel* before the DoS attack. The *direct channel* could be opened before any communication between users, in case if users are afraid of possible future DRP-level DoS attack, when they will not be able to send/receive *lookup* packets.
+
+### DRP-level DDoS on entire network
+
+DDoS attack on entire P2P network(s) is possible if an attacker operates a botnet of peers X and at some time synchronously the peers X start sending some packets. **Countermeasures:**
+
+- require some work done by new neighbors: 
+  - have new neighbor reply to CAPTCHA when entering into network. request CAPTCHA at RP.
+  - have the new neighbor get good rating by letting it deliver some test packets
+- use private P2P networks: own rendezvous servers and/or own LAN; 
+- have P2P network running privately: private RPs and/or private LAN;
+- have private CA who signs public keys of trusted (non-hacker) users, and packets from such signed users are routed with higher priority
+
+### DRP-level attacks without botnet
+
+**Countermeasures:** CPU-based proof of work
 
 ### Contact book sniffing
 
-The attack is possible if an attacker runs a "sensor network" which records pairs of source and destination IDs.
+The attack is possible if an attacker runs a "sensor network" which records pairs of source and destination IDs, to get track source and destination users. **Countermeasures:** frequently change IDsalt and synchronize it with contacts; have unique IDsalt per contact book entry; exchange IDs in safe place, so only A and B know about IDsalt's, IDa, IDb.
 
 ### Target IP sniffing
 
-The attacker who is interested in getting IP address of target user can generate an ID in IDspace that is close to target ID, become his neighbor (settle at target location) and get IP address of the target.
+The attacker who is interested in getting IP address of target user can generate an ID in IDspace that is close to target ID, become his neighbor (settle at target location) and get IP address of the target. **Countermeasures:** use unique temporary IDs, settle and connect to neighbors, don't connect to new neighbors after exposing the temporary ID to some potentially bad users; 
 
 ### UDP-level DDoS attacks
 
-When an attacker knows IP address of target, he can run a regular UDP flooding attack over target IP.
+When an attacker knows IP address of target, he can run a regular UDP flooding attack over target IP. Targets:
+
+1) rendezvous peer. **Resolutions:** use DDoS-resistant hosting providers to host RPs; dynamically change IP addresses of the RPs (exchange servers, deploy RP using automation); use CAPTCHA
+
+2) user's peer
+
+### Stolen keypair
+
+If an attacker gets access to user's device, he is able to copy his keypair. **Resolutions:** encrypt the keypair with a password; store *keypair* at hardware (cold wallet) or paper, in physically safe place(s).
+
+### Lost keypair
+
+An attacker can steal user's device (or user can lose/destroy the device himself) and lose access to the *keypair*. **Resolutions:** store *keypair* at hardware (cold wallet) or paper, in physically safe place(s). Multiple places could be used for redundancy.
+
+### Stolen contact book
+
+An attacker is able to copy user's contact book including names of contacts and their public keys, if contact book is stored at unsafe place.
+
+### Stolen message history
+
+**Resolutions:** do not store messages; encrypt messages with user's password.
 
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## References
+
+Here is list of concepts, protocols, algorithms, used in the DRP.
+
+- UDP protocol
+
+- UDP hole punching
+- SIP protocol
+- DHT
+
+- CPU-based Proof of Work, hashcash
+- Double Ratchet Algorithm
+- Bitcoin
+- Elliptic Curves, Asymmetric Cryptography. Ed25519.
 
