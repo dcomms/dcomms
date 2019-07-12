@@ -28,44 +28,6 @@ time now                                          time now
 ---------------------------table end----------------------------------------------------------
 
 
-STAGES; BEHAVIOUR OF PEERS:
-=================keyPairGen@peerA:
-CURVE25519
-generate keypair, store private key in safe place and at device
-calculate SHA512(public key)=64bytes=IDa (v.1) (v.2 linked to email, with attributes)
-private key is stored  encrypted by password
-cold hardware wallet? offline device / paper
-
-=================settlement of IDa
-
-
-=================interconnection with peerB@peerA
-get IDb from public internet or physically (in-person meeting, QR code)
-establish connection via P2P network with peerB
-
-=================initialLookup @peerA
-
-
-==== no reply to initialLookup;retransmission
-
-=================initialLookup routed @peerX
-
-=================initialLookup received @peerB
-
-=================max N hops reached maximum @peerX
-
-=================initialLookupResponse
-
-=================lookup (having preshared key)
-
-=================backup contact book and preshared keys to some trusted place (file?)
-
-
-PACKETS:
-settlementRequest+response
-
-
-
 
 -------------------------------------------
 initialLookup (peerA->peerX, peerX->peerY, peerY->peerB)
@@ -75,58 +37,9 @@ initialLookupACK (from peerX)
 IDa,IDb,timestamp,DHkeyA=nonceA,signatureA,cpuPoW
 
 
-initialLookupResponse
-
-
-initialLookupResponseACK
-
-
------------------------------------
-subsequentLookup
-
 pingNeighbour+response (while settled) 
 connectToAnotherNeighbour+response (give more neighbours) (before and after settlement)
 
-
-PEER-TO-PEER RATING
-PRIVATE RATINGS ONLY (no "fake" rating attack)
-do neighbors trust you to proxy real messages or they just take your messages and send you test messages to random test IDs?
--distance to neighbour (prefer close?)
--lifetime of ID-ID connection
--delivery rate (%) while ping is OK
-
-"broadcast bad neighour signal to close area". when too many IDs.
-- ???? (centralized) policemen build rating out of neighbours (collect ratings)
-
-
-
-
-
-
-
-
-
-
-
-
-ATTACKS
-
-STOLEN PRIVATE KEY ATATCK
-store at safe place, user's responsibility
-
-FLOODING ATTACK WITH ANY PACKET
-CPU-based proof of work
-
-BAD NEIGHBORHOOD ATTACK (Sybil attack):
-- drop packets
-- malform packets: signature protection
-- replay packets: duplicate delivery.    neighbors look at unique data, dont proxy duplicates
-- delay packets
-
-SRC/DST ID SNIFFING ATTACK
-scanners sniffing src/dst IDs (contact book leakage)  
-@neighborhood or everywhere in the network
-- send many "test" initialLookup packets (fake, not real messages) to randomly discovered IDs
 
 
 SETTLEMENT FLOODING ATTACK
