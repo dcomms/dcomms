@@ -8,7 +8,19 @@ Author: Sergei Aleshin Vladimirovich. asv@startrinity.com  startrinity.asv@gmail
 
 ## Abstract
 
-The Decentralized Routing Protocol (DRP) is designed to build peer-to-peer (P2P) networks where peers can contact each other without servers. The DRP runs over UDP protocol and uses technique of "UDP hole punching" for NAT/firewall traversal. DRP is used to initialize direct UDP channel between two peers, it does not carry communications between peers (its purpose is similar to SIP protocol). The DRP is designed to build secure decentralized messengers, unified communication apps. In 2019 main competitors are: matrix.org, bitmessage.org, tox messenger. 
+The Decentralized Routing Protocol (DRP) is designed to build peer-to-peer (P2P) networks where peers can contact each other without servers. The DRP runs over UDP protocol and uses technique of "UDP hole punching" for NAT/firewall traversal. DRP is used to initialize direct UDP channel between two peers, it does not carry communications between peers (its purpose is similar to SIP protocol). The DRP is designed to build secure decentralized messengers, unified communication apps. 
+
+## State of Art
+
+SIP protocol is designed for centralized architecture.....  servers are bottlenecks ... DoS vulnerabilities ... NAT/firewall issues ... high cost of environment setup and testing
+
+P2P networks like Tor and I2P are under DoS attacks.... frequent downtimes.... high RTT   .... success of bittorrent protocol....
+
+In 2019 main competitors are: matrix.org, bitmessage.org, tox messenger.....
+
+French government ... HTTPS and PKI vulnerabilities ...
+
+Quality of source code is not good ....
 
 
 
@@ -272,6 +284,7 @@ Here is list of concepts, protocols, algorithms, used in the DRP.
 - UDP hole punching
 - SIP protocol
 - DHT
+- Bittorrent, magnet links
 
 - CPU-based Proof of Work, hashcash
 - Double Ratchet Algorithm
