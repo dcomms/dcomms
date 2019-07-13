@@ -4,7 +4,7 @@ LICENSE: GPLv3 + custom message from developer
 
 Whitepaper. Draft.
 
-Author: Sergei Aleshin Vladimirovich. asv@startrinity.com  startrinity.asv@gmail.com https://www.linkedin.com/in/sergey-aleshin-startrinity/
+Author: Sergei Aleshin Vladimirovich. asv@startrinity.com  startrinity.asv@gmail.com https://www.linkedin.com/in/sergey-aleshin-startrinity/  http://dcomms.org
 
 ## Abstract
 
@@ -18,7 +18,7 @@ P2P networks like Tor and I2P are under DoS attacks.... frequent downtimes.... h
 
 In 2019 main competitors are: matrix.org, bitmessage.org, tox messenger.....
 
-French government ... HTTPS and PKI vulnerabilities ...
+French government ... HTTPS and PKI vulnerabilities .. case of gmail in Iran ...
 
 Quality of source code is not good ....
 
@@ -38,29 +38,29 @@ Quality of source code is not good ....
 
 ## Concepts
 
-### User's identifiers. ID, PublicKey, PrivateKey
+### User's identifiers, public and private keys
 
 **user**: a person who uses the messenger. Prototype legitimate users: A=Alice, B=Bob, N=Neighbor. Unkown users: X=attacker.
 
-**keypair** of *user* A: {PubA, PrivA} is used as a self-signed certificate of the *user*. Private key is used to sign, public key - to verify packets. We select Ed25519 ECDSA for the asymmetric crypography.
+**userKeypair** of *user* A: {userPubA, userPrivA} is used as a self-signed certificate of the *user*. Private key is used to sign, public key - to verify packets. We select Ed25519 ECDSA for the asymmetric crypography.
 
-**idNonce**: random bytes (salt), is used to change user's ID without changing his public key
+**regKeypair**: {regPubA, regPrivA} is used to change location of user's registrations within *regIDspace* without changing his *userKeypair*
 
-**ID**=SHA512(*PublicKey*|*idNonce*), 512 bits
+**regID**=SHA512(*regPubA*), 512 bits
 
-ID is used to deliver packets across the P2P network, to verify the packets.
+regID is used to deliver packets across the P2P network between registered users, to verify the packets.
 
 ### ID space, distance, vectors
 
-The ID is splitted into groups of bits, each group indicates a coordinate in 8-D **IDspace**. **Distance** between two IDs is defined as Euclidean distance. **Vector** from IDa to IDb is defined in same way as in Euclidean geometry.
+The regID is splitted into groups of bits, each group indicates a coordinate in 8-D **regIDspace**. **Distance** between two regIDs is defined as Euclidean distance. **Vector** from regIDa to regIDb is defined in same way as in Euclidean geometry.
 
 ### Neighborhood, routing, priorities, flood
 
-**Connection** between **neighbor** peers A and N is a direct, bidirectional UDP channel, used to transfer DRP packets. Peer A is interested to connect with peers who are close to its own ID. 
+**Connection** between **neighbor** peers A and N is a direct, bidirectional UDP channel, used to transfer DRP packets. Peer A is interested to register and connect with peers who are close to its own regID. 
 
 **Routing** of **packet** at peer X to towards destination B is retransmission (proxying) of the packet towards next neighbor Y (hop) according to vector {XB}. The routing algorithm uses following concepts:
 
-- **Rate**: number of messages going through the P2P connection in a certain period of time, speed of proxied messages. **Outgoing rate** = speed of messages **from this peer** A to neighbor N. **Incoming rate** = speed of messages **to this peer** A from neighbor N.
+- **Rate**: number of messages going through the P2P connection in a certain period of time, speed of proxied REGISTER/INVITE packets. **Outgoing rate** = speed of packets **from this peer** A to neighbor N. **Incoming rate** = speed of packets **to this peer** A from neighbor N.
 - **Rate limit**: maximal value of outgoing/incoming rate. Incoming rate is limited by this peer(A), outgoing rate is limited by neighbor peer (N). 
 - **Rating of neighbor** N, qualified by this peer A -  personal/private opinion about the neighbor N. Components of the rating:
   -  is he legitimate user or a peer in botnet?
@@ -72,27 +72,33 @@ The ID is splitted into groups of bits, each group indicates a coordinate in 8-D
 - **Flood of connection** from A to N - situation when rate of packets over the connection reaches its limit. 
 - **Flood of peer** A - situation when A receives a packet to proxy, but does not have non-flooded connections to pass the packet further.
 
-Every connection from A to neighbor N has following fields: { IDn, ratingN, recentOutRate, maxOutRate, recentInRate, maxInRate }. 
+Every connection from A to neighbor N has following fields: { regIDn, ratingN, recentOutRate, maxOutRate, recentInRate, maxInRate }. 
 
 ### Contact book entries
 
 B=Bob=some other user
 
-contact_book_entry = { IDb, PublicKeyB ??????, array of idNonceB }
+contact_book_entry = { userPublicKeyB ??????, array of idNonceB }
 
 
 
 ## Packets, fields
 
-Detailed explanation of the packets is below, see "Stages" section. xxxACK packet is sent in response to xxx packet, it is a part of UDP-packet loss-retransmission transport level.
+**REGISTER** requests connection with a neighbor who is close to requester peer ID. **INVITE** requests direct communication with peer B, is proxied via P2P network. **PING** packets are sent between peers to keep connection alive.
 
-**RegisterRequest** { IPa, IDa, PoW }, ?? ts,signatureA, caPubKey,caSignature
+certXX = certificate: { public key of user A, period, CA ID, CA signature }.  The certificate is sent encrypted with DH shared key, to avoid tracking of the user.
 
-**RegisterResponse** { IPm, IDm+rnd, statusCode }
+IPx = IP address and UDP port number of a peer X.
 
-**PING** { ???IDa }
+**REGISTER** { IPa, PubIDa, ts, signIDa, cpuPoWa }, ??  caPubKey,caSignature    path: (A->RP->M->N)
 
-**INVITE** { IPa, IDa, PubA????, IDnonceA, IDb, PoW, ts, signA, nhops }, 
+**REGISTERresponse** { IPn, statusCode={received(at RP),connected,rejected}, cpuPoWa, IPn, PubIDn, nonceN, signN }  path: (N->M->RP->A )
+
+
+
+**PING** { IPa, PubIDa, ts, signA, cpuPoWa }
+
+**INVITE** { IPa, PubIDa, IDb, PoW, ts, signA, nhops }, 
 
 InviteACK  { IPn, IDa, PubA, IDb, PoW, ts, signA, nhops, status }, 
 
