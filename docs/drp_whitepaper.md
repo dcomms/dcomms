@@ -58,7 +58,7 @@ The regID is splitted into groups of bits, each group indicates a coordinate in 
 
 **Connection** between **neighbor** peers A and N is a direct, bidirectional UDP channel, used to transfer DRP packets. Peer A is interested to register and connect with peers who are close to its own regID. 
 
-**Routing** of **packet** at peer X to towards destination B is retransmission (proxying) of the packet towards next neighbor Y (hop) according to vector {XB}. The routing algorithm uses following concepts:
+**Routing** of **packet** at peer X to towards destination B is retransmission (proxying) of the packet towards next neighbor Y (hop) according to vector {regIDb->regIDx}. The routing algorithm uses following concepts:
 
 - **Rate**: number of messages going through the P2P connection in a certain period of time, speed of proxied REGISTER/INVITE packets. **Outgoing rate** = speed of packets **from this peer** A to neighbor N. **Incoming rate** = speed of packets **to this peer** A from neighbor N.
 - **Rate limit**: maximal value of outgoing/incoming rate. Incoming rate is limited by this peer(A), outgoing rate is limited by neighbor peer (N). 
@@ -66,7 +66,7 @@ The regID is splitted into groups of bits, each group indicates a coordinate in 
   -  is he legitimate user or a peer in botnet?
   - is he spammer or not? what is proportion between outgoing and incoming rates?
   - does he proxy packets correctly and deliver the packets correctly, or does he drop the packets? what is average delivery time and success rate?
-  - what is RTT of pings and ping packet loss percentage?
+  - what is RTT of PINGs and PING packet loss percentage?
   - how long is the connection up?
 - **Rating of packet**  - is sender of the packet in contact book?  is the packet signed  by CA?
 - **Flood of connection** from A to N - situation when rate of packets over the connection reaches its limit. 
@@ -78,37 +78,27 @@ Every connection from A to neighbor N has following fields: { regIDn, ratingN, r
 
 B=Bob=some other user
 
-contact_book_entry = { userPublicKeyB ??????, array of idNonceB }
+contact_book_entry = { userPubB, array of regPubB (location of redundant registrations) }
 
 
 
 ## Packets, fields
 
-**REGISTER** requests connection with a neighbor who is close to requester peer ID. **INVITE** requests direct communication with peer B, is proxied via P2P network. **PING** packets are sent between peers to keep connection alive.
+**REGISTER** requests connection with a neighbor who is close to requester regID. **INVITE** requests direct communication with peer B, is proxied via P2P network. **PING** packets are sent between peers to keep connection alive.
 
-certXX = certificate: { public key of user A, period, CA ID, CA signature }.  The certificate is sent encrypted with DH shared key, to avoid tracking of the user.
+certXX = certificate: { public key of user A, period, CA ID, CA signature }.  The certificate is sent encrypted over the network, to avoid tracking of the user by his public key.
 
 IPx = IP address and UDP port number of a peer X.
 
-**REGISTER** { IPa, PubIDa, ts, signIDa, cpuPoWa }, ??  caPubKey,caSignature    path: (A->RP->M->N)
+**REGISTER** { IPa, regPubA, ts, regSignA, cpuPoWa, nhops }, ??  caPubKey,caSignature    path: (A->RP->M->N). The *REGISTER* packet is similar to REGISTER in SIP protocol (see ref.).
 
-**REGISTERresponse** { IPn, statusCode={received(at RP),connected,rejected}, cpuPoWa, IPn, PubIDn, nonceN, signN }  path: (N->M->RP->A )
+**REGISTERresponse** { statusCode={received(at RP),connected,rejected}, cpuPoWa, IPn, regPubn, nonceN, regSignN }  path: (N->M->RP->A )
 
+**PING** { IPa, regPubA, ts, signA, cpuPoWa } The *PING* packet is similar to OPTIONS packet in SIP protocol (see ref.).
 
+**INVITE** { IPa, regPubA, regPubB, PoW, ts, signA, nhops }, The *INVITE* packet is similar to INVITE packet in SIP protocol (see ref.).
 
-**PING** { IPa, PubIDa, ts, signA, cpuPoWa }
-
-**INVITE** { IPa, PubIDa, IDb, PoW, ts, signA, nhops }, 
-
-InviteACK  { IPn, IDa, PubA, IDb, PoW, ts, signA, nhops, status }, 
-
-InviteResponse { PubB??? IDsaltB???}
-
-InviteResponseACK
-
-
-
-
+**INVITEresponse**  { IPn, regPubA, IDb, PoW, ts, signA, nhops, status={received at neighbor, accepted, rejected} }
 
 
 
@@ -120,33 +110,35 @@ InviteResponseACK
 
 ### Generation of keypair and ID
 
-Peer generates **keypair**. Stores the keypair in safe place. Generates one or multiple **idNonce** (salt) and **IDa**.
+Peer generates **userKeypair**. Stores the userKeypair in safe place. Generates one or multiple **regKeypairs** - locations in regIDspace for registration.
 
-### Exchange of IDs
+### Contact book setup with secure channel
 
-Peers A gets ID of peer B via QR code (this allows private IDb) or via public channel (another messenger, forum), adds new entry into contact book.
+User A gets public key of user B *userPubB* and multiple registration locations *regPubB*  over some secure channel, adds new entry into contact book under name of user B. Same for user B. The secure channels are: 1) QR code - camera 2) Email
 
-### Regitration/Settlement. Rendezvous Peers.
+### Contact book setup with secure channel
 
-Peer A first gets connected to **Rendezvous Peer (RP)** - a peer with accessible IP address and UDP port, entry into the network. RP is connected with multiple peers; peer A asks RP to connect to neighbors near IDa within IDspace. RP connects A to intermediate peers that is closer to IDa, finally peer A gets connected to neighbors: peer A asks the network "can I settle to my IDa?", the network spreads the **registerRequest** packet to correct neighbors; some neighbors reply and get connected to peer A.  Peer A is able to increase or decrease number of connections to neighborhood. **UDP hole punching** technique is used to set up direct **UDP connections** between neighbor peers (see ref.).
+User A gets public key of user B *userPubB* and multiple registration locations *regPubB*  over some secure channel, adds new entry into contact book. Same for user B.
 
-PeerA sends *registerRequest* to RP. RP selects peer M who is closer to IDa+rnd. RP proxies *registerRequest* to peerM. PeerM responds with *registerResponse*  to RP, RP proxies response to A. The *registerRequest* packet is similar to REGISTER packet in SIP protocol (see ref.).
+### Registration. Rendezvous Peers. Connecting to neighbors
 
-Peers A and M start to send **ping** packets to each other, keeping UDP connection open. *Ping* packets are sent on timeout, if no other packets are sent between neighbors. The *ping* packet is similar to OPTIONS packet in SIP protocol (see ref.).
+Peer A first gets connected to **Rendezvous Peer (RP)** - a peer with accessible IP address and UDP port, entry into the network. RP is connected with multiple peers. Peer A sends REGISTER, asking RP to connect to neighbors near *regIDa* within *regIDspace*. RP spreads the REGISTER to intermediate peers that are closer to IDa, finally a neighbor N replies to REGISTER and A gets connected to N. Peer A is able to increase or decrease number of connections to neighborhood by sending more REGISTER requests to existing neighbors. **UDP hole punching** technique is used to set up direct **UDP connections** between neighbors (see ref.).
+
+Peers A and M start to send **PING** packets to each other, keeping UDP connection open. *PING* packets are sent only if no other packets are sent between neighbors. 
 
 
 
 ### Testing performance of neighbors
 
-Every peer is interested to measure quality of his neighbors. He sends test messages to some (random) destination IDs, receives  and measures packet loss and round-trip time (RTT)  (process similar to tracert). 
+Every peer is interested to measure quality of his neighbors. He sends test messages to some (random) destination regIDs, receives  and measures packet loss and round-trip time (RTT)  (this is similar to tracert, see ref.). 
 
 ### Invite
 
-Sent from A to B via the P2P network, from one neighbor to another, to establish *direct channel*. The lookup packet is similar to INVITE packet in SIP protocol (see ref.).
+Sent from A to B via the P2P network, from one neighbor to another, to establish *direct channel*. 
 
 ### Direct channel
 
-When both users A and B agree to set up **direct channel**, they disclose IP addresses to each other and start end-to-end encrypted communication over some UDP-based protocol (DTLS, SRTP). 
+When both users A and B agree to set up **direct channel**, they disclose IP addresses to each other and start end-to-end encrypted communication over some UDP-based protocol (DTLS, SRTP). users authenticate each other using public keys in contact books.
 
 
 
@@ -174,15 +166,15 @@ When both users A and B agree to set up **direct channel**, they disclose IP add
 
 ## Attacks and countermeasures
 
-### DRP-level INVITE DDoS attacks on target ID
+### DRP-level INVITE DDoS attack on target regID
 
-DDoS attack on target user A is possible when an attacker owns a botnet and knows ID of user A. He is able to register many fake users X talking to each other normally, then at some point send packets towards A, in this way flooding *IDspace* near location of A. **Countermeasures:** 
+DDoS attack on target user A is possible when an attacker owns a botnet and knows *regID* of user A. He is able to register many fake users X talking to each other normally, then at some point send packets towards A, in this way flooding *IDspace* near location of A. **Countermeasures:** 
 
-- **Money-based proof of work**: sell "high-priority" signatures, linked to public keys. The signatures can be used to prioritize routing of packets from user who paid for the service. Such high-priority packets will pass through flooded area in the *IDspace*.
-- Frequently **change IDsalt** and synchronize it with contacts; have unique IDsalt per contact book entry; exchange IDs in safe place, so only A and B know about IDsalt's, IDa, IDb.
-- Set up *direct channel* before the DoS attack. The *direct channel* could be opened before any communication between users, in case if users are afraid of possible future DRP-level DoS attack, when they will not be able to send/receive *lookup* packets.
+- **Money-based proof of work**: sell "high-priority" signatures, linked to public keys. The signatures can be used to prioritize routing of packets from user who paid for the service. Such high-priority packets will pass through flooded area in the *regIDspace*.
+- Frequently **change regID** and synchronize it with all contacts; have unique regID per contact book entry; exchange regIDs in safe place, so only A and B know about regIDa and regIDb.
+- Set up *direct channel* before the DoS attack. The *direct channel* could be opened before any communication between users, in case if users are afraid of possible future DRP-level DoS attack, when they will not be able to send/receive *INVITE* packets.
 
-### DRP-level DDoS on entire network
+### DRP-level DDoS attack on entire network
 
 DDoS attack on entire P2P network(s) is possible if an attacker operates a botnet of peers X and at some time synchronously the peers X start sending some packets - INVITEs or REGISTERs. **Countermeasures:**
 
@@ -213,17 +205,17 @@ delay INVITEs or REGISTERs
 
 ### Contact book sniffing
 
-The attack is possible if an attacker runs a "sensor network" which records pairs of source and destination IDs, to get track source and destination users. **Countermeasures:** frequently change IDsalt and synchronize it with contacts; have unique IDsalt per contact book entry; exchange IDs in safe place, so only A and B know about IDsalt's, IDa, IDb; send many testINVITEs to some unknown IDs (not in contact book) so it will be not possible to understand is it realINVITE or testINVITE.
+The attack is possible if an attacker runs a "sensor network" which records pairs of source and destination regIDs, to get track source and destination users, if he has a way to link regID to user. **Countermeasures:** frequently change regID and synchronize it with contacts; have unique regID per contact book entry; exchange regIDs in safe place, so only A and B know about regIDs; send many testINVITEs to some unknown regIDs (not in contact book) so it will be not possible to understand is it realINVITE or testINVITE.
 
 ### Target user IP sniffing
 
-The attacker who is interested in getting IP address of target user can generate an ID in IDspace that is close to target ID, become his neighbor (settle at target location) and get IP address of the target. **Countermeasures:** use unique temporary IDs, settle and connect to neighbors, don't connect to new neighbors after exposing the temporary ID to some potentially bad users; 
+The attacker who is interested in getting IP address of target user and who knows his regIDa, can generate a regIDx in regIDspace that is close to target regIDa, become his neighbor and get IP address of the target user. **Countermeasures:** use unique temporary regIDs, don't connect to any new neighbors after exposing the regIDa to some potentially bad users 
 
 ### UDP-level DDoS attacks
 
 When an attacker knows IP address of target, he can run a regular UDP flooding attack over target IP. Cases:
 
-- target IP address is is rendezvous peer. **Resolutions:** use DDoS-resistant hosting providers to host RPs; dynamically change IP addresses of the RPs (exchange servers, deploy RP using automation); use CAPTCHA
+- target IP address is rendezvous peer. **Resolutions:** use DDoS-resistant hosting providers to host RPs; dynamically change IP addresses of the RPs (exchange servers, deploy RP using automation); use CAPTCHA
 
 - target IP address is user's peer. **Resolutions:** change internet service provider; use only temporary IDsalt values and/or don't disclose IDsalt. See also: "Target user IP sniffing"
 
@@ -231,13 +223,13 @@ When an attacker knows IP address of target, he can run a regular UDP flooding a
 
 An attacker or internet service provider is able to sniff IP traffic, intercept and manipulate DRP packets, block connections to peers. **Resolutions:** use VPN; encrypt DRP packets with some cipher (e.g. XOR, RC4, AES256) with secret keys; use random UDP port numbers; use another internet service provider.
 
-### Stolen keypair
+### Stolen userKeypair
 
-If an attacker gets access to user's device, he is able to copy his keypair. **Resolutions:** encrypt the keypair with a password; store *keypair* at hardware (cold wallet) or paper, in physically safe place(s).
+If an attacker gets access to user's device, he is able to copy his *userKeypair*. **Resolutions:** encrypt the userKeypair with a password; store *userKeypair* at hardware (cold wallet) or paper, in physically safe place(s).
 
-### Lost keypair
+### Lost userKeypair
 
-An attacker can steal user's device (or user can lose/destroy the device himself) and lose access to the *keypair*. **Resolutions:** store *keypair* at hardware (cold wallet) or paper, in physically safe place(s). Multiple places could be used for redundancy.
+An attacker can steal user's device (or user can lose/destroy the device himself) and lose access to the *userKeypair*. **Resolutions:** store *userKeypair* at hardware (cold wallet) or paper, in physically safe place(s). Multiple places could be used for redundancy.
 
 ### Stolen contact book
 
@@ -289,6 +281,7 @@ Here is list of concepts, protocols, algorithms, used in the DRP.
 
 - UDP hole punching
 - SIP protocol
+- tracert tool
 - DHT
 - Bittorrent, magnet links
 
