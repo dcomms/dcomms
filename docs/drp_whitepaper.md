@@ -42,13 +42,13 @@ Quality of source code is not good ....
 
 **user**: a person who uses the messenger. Prototype legitimate users: A=Alice, B=Bob, N=Neighbor. Unkown users: X=attacker.
 
-**userKeypair** of *user* A: {userPubA, userPrivA} is used as a self-signed certificate of the *user*. Private key is used to sign, public key - to verify packets. We select Ed25519 ECDSA for the asymmetric crypography.
+**userKeypair** of *user* A: {userPubA, userPrivA} is used as a self-signed certificate of the *user*. Private key is used to sign, public key - to verify packets in direct channel (not INVITE and REGISTER). We select Ed25519 ECDSA for the asymmetric cryptography.
 
-**regKeypair**: {regPubA, regPrivA} is used to change location of user's registrations within *regIDspace* without changing his *userKeypair*
+**regKeypair**: {regPubA, regPrivA} is used to register a user within *regIDspace*. Private key is used to sign, public key - to verify REGISTER and INVITE packets. User can replace regKeypairs without changing his *userKeypair*
 
 **regID**=SHA512(*regPubA*), 512 bits
 
-regID is used to deliver packets across the P2P network between registered users, to verify the packets.
+regID is used to route/deliver REGISTER and INVITE packets across the P2P network between registered users, to verify the packets.
 
 ### ID space, distance, vectors
 
@@ -84,11 +84,11 @@ contact_book_entry = { userPubB, array of regPubB (location of redundant registr
 
 ## Packets, fields
 
-**REGISTER** requests connection with a neighbor who is close to requester regID. **INVITE** requests direct communication with peer B, is proxied via P2P network. **PING** packets are sent between peers to keep connection alive.
+**REGISTER** requests connection with a neighbor who is close to requester regID. **INVITE** requests direct communication with peer B, is proxied via P2P network. **PING** packets are sent between peers to keep connection alive. Elements:
 
-certXX = certificate: { public key of user A, period, CA ID, CA signature }.  The certificate is sent encrypted over the network, to avoid tracking of the user by his public key.
-
-IPx = IP address and UDP port number of a peer X.
+- certXX = certificate: { public key of user A, period, CA ID, CA signature }.  The certificate is sent encrypted over the network, to avoid tracking of the user by his public key.
+- IPx = IP address and UDP port number of a peer X.
+- regSignX = signature of the entire packet by peer X (private key regPrivX)
 
 **REGISTER** { IPa, regPubA, ts, regSignA, cpuPoWa, nhops }, ??  caPubKey,caSignature    path: (A->RP->M->N). The *REGISTER* packet is similar to REGISTER in SIP protocol (see ref.).
 
@@ -96,33 +96,37 @@ IPx = IP address and UDP port number of a peer X.
 
 **PING** { IPa, regPubA, ts, signA, cpuPoWa } The *PING* packet is similar to OPTIONS packet in SIP protocol (see ref.).
 
-**INVITE** { IPa, regPubA, regPubB, PoW, ts, signA, nhops }, The *INVITE* packet is similar to INVITE packet in SIP protocol (see ref.).
+**INVITE** { IPa, regPubA, regPubB, PoW, ts, regSignA, nhops }, The *INVITE* packet is similar to INVITE packet in SIP protocol (see ref.).
 
 **INVITEresponse**  { IPn, regPubA, IDb, PoW, ts, signA, nhops, status={received at neighbor, accepted, rejected} }
 
+### Packets over direct channel
 
+**AUTHandSETUPKEY** sets up a new session key for symmetric encryption within the direct channel
 
+**UPDATEREG**  {  } updates entry in remote contact book with new regID
 
+**TEXTMESSAGE** { ts, nonce, encryptedPlainText, signUserA }
 
 
 
 ## Stages
 
-### Generation of keypair and ID
+### Generation of userKeypair and regIDs
 
-Peer generates **userKeypair**. Stores the userKeypair in safe place. Generates one or multiple **regKeypairs** - locations in regIDspace for registration.
-
-### Contact book setup with secure channel
-
-User A gets public key of user B *userPubB* and multiple registration locations *regPubB*  over some secure channel, adds new entry into contact book under name of user B. Same for user B. The secure channels are: 1) QR code - camera 2) Email
+Peer generates **userKeypair**. Stores the *userKeypair* in safe place. Generates one or multiple **regKeypairs** - locations in *regIDspace* for registration.
 
 ### Contact book setup with secure channel
 
-User A gets public key of user B *userPubB* and multiple registration locations *regPubB*  over some secure channel, adds new entry into contact book. Same for user B.
+User A gets public key of user B *userPubB* and multiple registration locations *regPubB*  over some secure channel, adds new entry into contact book under name of user B. Same for user B. The secure channels are: 1) QR code - camera 2) trusted email servers
+
+### Contact book setup without secure channel
+
+User A gets a temporary regPubB of user B over some insecure channel; user A sends INVITE to regPubB; A and B set up shared secret key using Diffie-Hellman algorithm; user B sends encrypted userPubB
 
 ### Registration. Rendezvous Peers. Connecting to neighbors
 
-Peer A first gets connected to **Rendezvous Peer (RP)** - a peer with accessible IP address and UDP port, entry into the network. RP is connected with multiple peers. Peer A sends REGISTER, asking RP to connect to neighbors near *regIDa* within *regIDspace*. RP spreads the REGISTER to intermediate peers that are closer to IDa, finally a neighbor N replies to REGISTER and A gets connected to N. Peer A is able to increase or decrease number of connections to neighborhood by sending more REGISTER requests to existing neighbors. **UDP hole punching** technique is used to set up direct **UDP connections** between neighbors (see ref.).
+Peer A first gets connected to **Rendezvous Peer (RP)** - a peer with accessible IP address and UDP port, entry into the network. RP is connected with multiple peers. Peer A sends REGISTER, asking RP to connect to neighbors near *regIDa* within *regIDspace*. RP spreads the REGISTER to intermediate peers that are closer to IDa, finally a neighbor N replies to REGISTER and A gets connected to N. Peer A is able to increase or decrease number of connections to neighborhood by sending more REGISTER requests to existing neighbors. **UDP hole punching** technique is used to set up **direct UDP connections** between neighbors (see ref).
 
 Peers A and M start to send **PING** packets to each other, keeping UDP connection open. *PING* packets are sent only if no other packets are sent between neighbors. 
 
@@ -134,19 +138,24 @@ Every peer is interested to measure quality of his neighbors. He sends test mess
 
 ### Invite
 
-Sent from A to B via the P2P network, from one neighbor to another, to establish *direct channel*. 
+INVITE is sent from A to B via the P2P network, from one neighbor to another, to establish *direct channel*. If user B agrees to disclose IP address, peer B responds to INVITE.
 
 ### Direct channel
 
-When both users A and B agree to set up **direct channel**, they disclose IP addresses to each other and start end-to-end encrypted communication over some UDP-based protocol (DTLS, SRTP). users authenticate each other using public keys in contact books.
+When both users A and B agree to set up **direct channel**, they share IP addresses between each other using INVITE and start end-to-end encrypted (E2EE) communication. Users authenticate each other using public keys in contact books, generate temporary session keys: 
 
+- B generates random **sessionKeyBtoA** (unidirectional), encrypts it with userPubA, A decrypts it with userPrivA
+- A generates random **sessionKeyAtoB** (unidirectional), encrypts it with userPubB, B decrypts it with userPrivB
 
+Temporary keys are destroyed and never used again; it avoids decryption of independent sessions with same key, similarly to double ratchet algorithm, perfect forward secrecy (see ref).
 
+Direct-channel packets are encrypted by sessionKeyBtoA/sessionKeyAtoB, AES256 in CBC mode ????:
 
+- **DC_PING** { sequenceNumber, timestamp }
 
+- **DC_TEXTMESSAGE** { sequenceNumber, plainText }
 
-
-
+- **DC_AUDIO** { sequenceNumber, timestamp, codec, audioData } - similar to RTP (see ref)
 
 
 
@@ -282,6 +291,7 @@ Here is list of concepts, protocols, algorithms, used in the DRP.
 - UDP hole punching
 - SIP protocol
 - tracert tool
+- RTP protocol
 - DHT
 - Bittorrent, magnet links
 

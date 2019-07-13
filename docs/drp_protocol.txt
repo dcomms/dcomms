@@ -40,7 +40,7 @@ IDa,IDb,timestamp,DHkeyA=nonceA,signatureA,cpuPoW
 pingNeighbour+response (while settled) 
 connectToAnotherNeighbour+response (give more neighbours) (before and after settlement)
 
-
+ 
 
 SETTLEMENT FLOODING ATTACK
 - neighbours limit rate of new peers settled
@@ -69,4 +69,6 @@ MONETIZATION MODELS
 - DNS: short name-ID(s) linking authority center - when party B is not private
 - DUNS: ID to legal name - when party B is not private
 - "always online servers" hosting - offline messages, group chats, hosted media (like instagram, micro-websites), hide IP address
+- high-priority anti-DoS routing via p2p network - blind signature by CA for bitcoins
+
 
