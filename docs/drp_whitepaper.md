@@ -1,4 +1,4 @@
-LICENSE: GPLv3 + custom message from developer
+LICENSE: MIT: you can use this protocol and C# (.NET Standard) implementation to develop your own messenger and UC app, under your brand name.
 
 # Decentralized Routing Protocol
 
@@ -50,6 +50,12 @@ Quality of source code is not good ....
 
 regID is used to route/deliver REGISTER and INVITE packets across the P2P network between registered users, to verify the packets.
 
+
+
+
+
+
+
 ### ID space, distance, vectors
 
 The regID is splitted into groups of bits, each group indicates a coordinate in 8-D **regIDspace**. **Distance** between two regIDs is defined as Euclidean distance. **Vector** from regIDa to regIDb is defined in same way as in Euclidean geometry.
@@ -82,6 +88,12 @@ contact_book_entry = { userPubB, array of regPubB (location of redundant registr
 
 
 
+
+
+
+
+
+
 ## Packets, fields
 
 **REGISTER** requests connection with a neighbor who is close to requester regID. **INVITE** requests direct communication with peer B, is proxied via P2P network. **PING** packets are sent between peers to keep connection alive. Elements:
@@ -90,7 +102,7 @@ contact_book_entry = { userPubB, array of regPubB (location of redundant registr
 - IPx = IP address and UDP port number of a peer X.
 - regSignX = signature of the entire packet by peer X (private key regPrivX)
 
-**REGISTER** { IPa, regPubA, ts, regSignA, cpuPoWa, nhops }, ??  caPubKey,caSignature    path: (A->RP->M->N). The *REGISTER* packet is similar to REGISTER in SIP protocol (see ref.).
+**REGISTER** { IPa, pubA, ts, signA, cpuPoWa, nhops }, ??  caPubKey,caSignature    path: (A->RP->M->N). The *REGISTER* packet is similar to REGISTER in SIP protocol (see ref.).
 
 **REGISTERresponse** { statusCode={received(at RP),connected,rejected}, cpuPoWa, IPn, regPubn, nonceN, regSignN }  path: (N->M->RP->A )
 
