@@ -44,7 +44,7 @@ connectToAnotherNeighbour+response (give more neighbours) (before and after sett
 
 SETTLEMENT FLOODING ATTACK
 - neighbours limit rate of new peers settled
-- signature of "seeder" CA who generates and distributes IDs
+- signature of "seeder" CA who generates and distributes IDs of sender - packets from such sender has more priority
 
 OCCUPY-FLOOD ATTACK
 attacker settles   100 nodes across network.   for 1 month they behave normally. then he starts attack:   1) let his 100 nodes drop all other (not bellonging to attacker) peers   2) generate a flood between the 100 peers, across the network.   it is a very advanced DoS.
