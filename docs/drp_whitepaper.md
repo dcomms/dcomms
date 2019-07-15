@@ -121,10 +121,10 @@ path of *REGISTER* request: (A->RP->M->N). The *REGISTER* packet is similar to R
 
 Following direct-channel packets are encrypted by sessionKeyBtoA/sessionKeyAtoB, AES256 in CBC mode:
 
-- **DC_PING** { sequenceNumber, timestamp, nonceA, userSignA }
-- **DC_TEXTMESSAGE** { sequenceNumber, timestamp, plainText, nonceA, userSignA }
-- **DC_AUDIO** { sequenceNumber, timestamp, codec, audioData } - similar to RTP (see ref)
-- **DC_UPDATEREG**  {  } updates entry in remote contact book with new regIDs
+- **DC_PING** { sequenceNumber, ts, nonceA, signUserA }
+- **DC_TEXTMESSAGE** { sequenceNumber, ts, plainText, nonceA, signUserA }
+- **DC_AUDIO** { sequenceNumber, ts, codec, audioData } - similar to RTP (see ref)
+- **DC_UPDATEREG**  { ts, array of regPubKeys, signUserA } updates entry in remote contact book with new regIDs
 
 
 
