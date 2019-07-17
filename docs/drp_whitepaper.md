@@ -22,6 +22,8 @@ French government ... HTTPS and PKI vulnerabilities .. case of gmail in Iran ...
 
 Quality of source code is not good ....
 
+Lack of competition at market of messengers.. messengers with closed source code..
+
 
 
 

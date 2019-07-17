@@ -93,7 +93,7 @@
 
 Алиса хочет дать Бобу свой идентификатор.
 
-1. A: генерирует или получает X - случайный идентификатор сессии;
+1. A: генерирует или получает X - случайный идентификатор сессии, ИЛИ имя пользователя;
 2. A -> B: Temp_ID = hash(PubA|X), X.
 
 #### Проверка
@@ -134,6 +134,15 @@
    A -> B: Ck = encrypt_asym(K, PubB), Sk = sign(K, PrivA);
 
 2. B: K' = decrypt_asym(Ck, PrivB), check_sign(K', Sk, PubA) ? OK : FAILURE.
+
+   
+
+protocol
+
+1. A <--> B: ike
+2. A: K_aes : 256 bit
+3. A -> B:  { encrypt_asym(K_aes, PubB), sign(K_aes, PrivA): 256 bit } :
+4. B: K_aes: decrypt_asym()
 
 *Вместо* использования подписи можно использовать расширение протокола:
 
