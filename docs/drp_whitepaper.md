@@ -103,23 +103,23 @@ contact_book_entry = { userPubB, array of regPubB (location of redundant registr
 - IPx = IP address and UDP port number of a peer X.
 - regSignX = signature of the entire packet (except maxhops field) by peer X (private key regPrivX)
 
-**REGISTER** { IPa, regPubA, ts, regSignA, cpuPoWa=nonceA=messageID, caNameID, caNonce, caSign, maxhops }
+**REGISTER** { IPa, regPubA, ts, regSignA, cpuPoWa=nonceA=messageID, maxhops }   for later versions: add signature of CA for prioritization: { caNameID, caNonce, caSign } - predefined CA signs regPubA+period+caNonce
 
 path of *REGISTER* request: (A->RP->M->N). The *REGISTER* packet is similar to REGISTER in SIP protocol (see ref). In order to minimize DoS attacks and to avoid IPa spoofing, *REGISTER* request from a new peer is rejected by neighbors until they measure rating of the new peer by test *REGISTER's*.
 
-**REGISTERresponse** { IPx, statusCode={received(at neighbor),connected,rejected,maxhops}, cpuPoWa,  regPubX, nonceX, regSignX=cpuPoWx }  paths: (RP->A); (M->RP);  (N->M->RP->A )
+**REGISTERresponse** { IPx, statusCode={received(at neighbor),connected,rejected,maxhops}, cpuPoWa=messageID, regPubN, nonceN, regSignN=cpuPoWn }  paths: (RP->A); (M->RP);  (N->M->RP->A )
 
-**PING** { IPa, nonceA, signA=cpuPoWa } The *PING* packet is similar to OPTIONS packet in SIP protocol (see ref).
+**PING** { IPa, ts, nonceA, signA=cpuPoWa } The *PING* packet is similar to OPTIONS packet in SIP protocol (see ref).
 
-**INVITE** { same as for REGISTER }, The *INVITE* packet is similar to INVITE packet in SIP protocol (see ref).
+**INVITE** { same as for REGISTER + regPubB }, The *INVITE* packet is similar to INVITE packet in SIP protocol (see ref).
 
 **INVITEresponse**  { same as for REGISTER }
 
 ### Packets over direct channel
 
-**AUTHandSETUPKEY** { ts, encUserA_SessionKeyAtoB, signUserA  } 
+**AUTHandSETUPKEY** { ts, encUserA_SessionKeyAtoB, signUserA, signRegA  } 
 
-**AUTHandSETUPKEYresponse** { ts, encUserB_SessionKeyBtoA, signUserB }
+**AUTHandSETUPKEYresponse** { ts, encUserB_SessionKeyBtoA, signUserB, signRegB }
 
 Following direct-channel packets are encrypted by sessionKeyBtoA/sessionKeyAtoB, AES256 in CBC mode:
 

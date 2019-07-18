@@ -9,38 +9,89 @@ namespace Dcomms.DRP
     /// is sent from A to RP, from RP to M, from M to N
     /// A = original requester
     /// </summary>
-    class RegisterRequestPacket
+    class RegisterSynPacket
     {
-        IPEndPoint EndointA;
-        byte[] RegPubA;
+        // часть SYN
+        byte[] RegPubA; // used to verify signature
         uint timestamp;
-        byte[] CpuPoWa; // =nonceA=messageID,
-        byte[] RegSignA;
-        byte HopsRemaining;
-    }
+        byte[] CpuPoWa; // =nonceA=messageID,    // sha256(RegPubA|timestamp|CpuPoWa) has byte[6]=7
+        byte[] RegSignA; // часть SYN // is verified by RP,M,N
+        byte HopsRemaining;// max 10
 
+        byte[] RegPubSender; // = RP,M,X  //подпись последнего отправителя
+        byte[] RegSignSender; // весь пакет
+
+        byte[][] ExceptTheseNeighbors; // только для вторичных register
+    }
     /// <summary>
-    /// sent from neighbor N who agrees to set up connection back in same way; and directly to orginal requester IP
-    /// response with statusCode=proxied is sent to previous hop immediately when packet is proxied, to avoid retransmissions
+    /// ответ от RP к A идет по тем же hops
+    /// узлы помнят обратный путь  по 
     /// </summary>
-    class RegisterResponsePacket
+    class RegisterSynAckPacket
     {
+        // not null only for N-X-M-RP-A  (status=connecting_ntoa)
         byte[] ResponderEndpoint_encryptedByRegPubA;
+        
         DrpStatusCode StatusCode;
+
+        // SYN part:
         byte[] RegPubA; // copied from request
         uint timestamp; // copied from request
         byte[] cpuPoWa; // copied from request
-        byte[] RegPubN;
+
+        // ACK:
+        byte[] RegPubN; // pub key of RP, Mm N
         byte[] NonceN;
-        byte[] RegSignN;//=cpuPoWn
+        byte[] RegSignN; // весь пакет //=cpuPoWn
+
+
     }
+
+    /// <summary>
+    /// A-RP
+    /// пиры помнят путь по messageid=CpuPoWa
+    /// </summary>
+    class RegisterAckPacket
+    {
+        // syn part
+        byte[] RegPubA;
+        uint timestamp;
+        byte[] CpuPoWa; // =nonceA=messageID, // sha256(RegPubA|timestamp|CpuPoWa) has byte[6]=7
+
+        byte[] EndointA_encryptedByPubN;
+
+        byte[] RegSignA; // is verified by RP,M,N
+        byte HopsRemaining;
+    }
+    /// <summary>
+    /// А получил пинг от N
+    /// A-RP
+    /// пиры помнят путь по messageid=CpuPoWa
+    /// пиры финализуруют состояние, обновляют рейтинг (всех по цепочке)
+    /// </summary>
+    class RegisterConfirmedPacket
+    {
+        // syn part
+        byte[] RegPubA;
+        uint timestamp;
+        byte[] CpuPoWa; // =nonceA=messageID, // sha256(RegPubA|timestamp|CpuPoWa) has byte[6]=7
+
+        byte[] EndointA_encryptedByPubN;
+
+        byte[] RegSignA; // is verified by RP,M,N
+        byte HopsRemaining;
+    }
+
+
+
     enum DrpStatusCode
     {
-        proxied,
-        connected,
-        rejected,
+        proxied, // is sent to previous hop immediately when packet is proxied, to avoid retransmissions
+        connecting_ntom, // sent from neighbor N who agrees to set up connection back in same way n-m-pr-a
+        connecting_ntoa, // sent from neighbor N who agrees to set up connection directly to orginal requester IP
+        rejected, // no neighbors
         rejected_badtimestamp,
-        maxhopsReached
+        rejected_maxhopsReached
     }
     class PingPacket
     {
