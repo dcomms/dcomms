@@ -14,15 +14,28 @@ namespace Dcomms.DRP
         // часть SYN
         byte[] RegPubA; // used to verify signature
         uint timestamp;
+        byte powType; // 3 bits //todo: argon2 cpuPoW
         byte[] CpuPoWa; // =nonceA=messageID,    // sha256(RegPubA|timestamp|CpuPoWa) has byte[6]=7
         byte[] RegSignA; // часть SYN // is verified by RP,M,N
         byte HopsRemaining;// max 10
 
-        byte[] RegPubSender; // = RP,M,X  //подпись последнего отправителя
-        byte[] RegSignSender; // весь пакет
-
-        byte[][] ExceptTheseNeighbors; // только для вторичных register
+        byte[][] ExceptTheseNeighbors; // только для расширения соседей
     }
+
+    class RegisterProxiedSynPacket
+    {
+        // часть SYN
+        byte[] RegPubA; // used to verify signature
+        uint timestamp;
+        byte powType; // 3 bits
+        byte[] CpuPoWa; // =nonceA=messageID,    // sha256(RegPubA|timestamp|CpuPoWa) has byte[6]=7
+        byte[] RegSignA; // часть SYN // is verified by RP,M,N
+        byte HopsRemaining;// decremented
+
+        byte[] RegPubSender; // = RP,M,X  sender=тот, кто проксирует
+        byte[] RegSignSender; //подпись последнего отправителя// весь пакет
+    }
+
     /// <summary>
     /// ответ от RP к A идет по тем же hops
     /// узлы помнят обратный путь  по 
@@ -37,14 +50,12 @@ namespace Dcomms.DRP
         // SYN part:
         byte[] RegPubA; // copied from request
         uint timestamp; // copied from request
-        byte[] cpuPoWa; // copied from request
+        byte[] cpuPoWa; // copied from request //=messageId
 
         // ACK:
         byte[] RegPubN; // pub key of RP, Mm N
-        byte[] NonceN;
-        byte[] RegSignN; // весь пакет //=cpuPoWn
-
-
+      //// ???     byte[] NonceN; // not needed: alrady enough of salt
+        byte[] RegSignN; // весь пакет //=cpuPoWn        
     }
 
     /// <summary>
@@ -87,16 +98,17 @@ namespace Dcomms.DRP
     enum DrpStatusCode
     {
         proxied, // is sent to previous hop immediately when packet is proxied, to avoid retransmissions
-        connecting_ntom, // sent from neighbor N who agrees to set up connection back in same way n-m-pr-a
-        connecting_ntoa, // sent from neighbor N who agrees to set up connection directly to orginal requester IP
+        connecting,
+        
         rejected, // no neighbors
         rejected_badtimestamp,
         rejected_maxhopsReached
     }
     class PingPacket
     {
-        uint timestamp;
-        byte[] nonceA;
+        byte flags; // bit0 = "bad time"   // attack on neighbor: fake "bad time": max time sync per minute
+        uint timestamp; // against replay: receiver checks timestamp
+    //// Alexey: not needed  byte[] nonceA; // ?? with ed25519 not needed???  
         byte[] regSignA;
     ////////////    byte[] cpuPoWa;//??????????
     }
