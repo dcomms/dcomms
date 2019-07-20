@@ -1,0 +1,46 @@
+alexey
+
+
+libsodium: better than bouncy castle
+bouncy castle  lib
+sha512
+ed25519 sign verify    (already includes sha)
+
+
+
+idspace distance (x,y): abs(x1-y1)+abs(x2-y2)+abs(x2-y2)
+
+????DHT??? log(N)
+
+cpu pow: argon2: slow on GPU
+
+-  regSyn разделить a-RP, RP-N
+
+alexey: attack on private key ed25519 by multiple signatures  - not possible
+salt is not needed for ed25519
+
+
+
+
+questions:
+
+1 безопасно ли шифровть ip address с портом без соли
+ byte[] NeighborEndpoint_encryptedByRegPubA;
+
+2 достаточность   RequestID   в RegisterSynAckPacket   
+
+3 нужно ли подписывать proxied-- пакеты?
+
+4 возможность минимизировать количество проверок подписей всеми пирами на пути сообщения - можно ли проверять лишь часть запросов?
+
+5 необходимость подписи пирами, которые проксируют запросы. достаточно ли  иметь только подпись изначального requester-а? для аутентификации проксированного запроса от соседа использовать свой токен ,  который передавался соседу в ping-е ?  возможность сниффинга пингов, извлечение токена p2p соединения, подделки запросов к соседу с использованием IP spoofing
+
+6  выбор метрики расстояние в пространстве что лучше - 1 8D euclidean distance sha512(publicKey)    2 publickey, no sha512     3 public key, manhattan 8d distance  4 xor distance of public keys 5  xor distance of sha532(pub keys)
+
+7 коллизии в reg пространстве насколько просто достичь
+
+8 использование sha256 vs.  sha512  в proof of work
+
+9 RegisterAckPacket need of requester public key
+
+10 need of timestamp if requestId is there, random
