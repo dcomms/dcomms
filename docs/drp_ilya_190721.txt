@@ -1,0 +1,30 @@
+dist=XOR
+
+p2p connection rating X-N:
+{
+ RTT (ping) -- internet
+ how long exists? 
+ how many tests performed?
+ invite delivery percentage
+ register delivery percent
+}
+
+requestID: get from hash32
+
+(requesterPublicKey)
+
+
+
+p2pConnection
+{
+rateIn,
+rateOut
+}
+
+
+
+
+requestState
+{
+whenCreated=taken from internal clock
+}

@@ -6,10 +6,7 @@ bouncy castle  lib
 sha512
 ed25519 sign verify    (already includes sha)
 
-
-
 idspace distance (x,y): abs(x1-y1)+abs(x2-y2)+abs(x2-y2)
-
 ????DHT??? log(N)
 
 cpu pow: argon2: slow on GPU
@@ -26,21 +23,57 @@ questions:
 
 1 безопасно ли шифровть ip address с портом без соли
  byte[] NeighborEndpoint_encryptedByRegPubA;
+known plaintext attack on ed25519 really impossible?
 
-2 достаточность   RequestID   в RegisterSynAckPacket   
+-- OK: against replay attacks: ts into signed data
+
+
+
+2 достаточность   RequestID   в RegisterSynAckPacket  
+requestID= (requester public key)  = 32bytes
 
 3 нужно ли подписывать proxied-- пакеты?
+---------
+use HMAC sha256/sha512
+noise protocol framework  http://www.noiseprotocol.org/
 
 4 возможность минимизировать количество проверок подписей всеми пирами на пути сообщения - можно ли проверять лишь часть запросов?
+----use hmac+sourceIP:port specific to every p2p connection
 
 5 необходимость подписи пирами, которые проксируют запросы. достаточно ли  иметь только подпись изначального requester-а? для аутентификации проксированного запроса от соседа использовать свой токен ,  который передавался соседу в ping-е ?  возможность сниффинга пингов, извлечение токена p2p соединения, подделки запросов к соседу с использованием IP spoofing
 
-6  выбор метрики расстояние в пространстве что лучше - 1 8D euclidean distance sha512(publicKey)    2 publickey, no sha512     3 public key, manhattan 8d distance  4 xor distance of public keys 5  xor distance of sha532(pub keys)
+6)  выбор метрики расстояние в пространстве что лучше - 1 8D euclidean distance sha512(publicKey)    2 publickey, no sha512     3 public key, manhattan 8d distance  4 xor distance of public keys 5  xor distance of sha512(pub keys)
+
+--------------4: public keys have 
+(close to uniform) distribution
+
 
 7 коллизии в reg пространстве насколько просто достичь
+ed25519  probability of generating same public keys 
+---OK
+
 
 8 использование sha256 vs.  sha512  в proof of work
+bitcoin hardware 
 
 9 RegisterAckPacket need of requester public key
 
 10 need of timestamp if requestId is there, random
+
+11 attack on requestIds  -- try to guess? - requestId is linked to p2p connection always, no other p2p connection can intefere with it
+
+12 remove signatures from pings/proxiedRequests?
+ have signature when registered only, have shared secret key per p2p connection and use HMACs over that shared key?
+
+
+190722:
+todo for Sergey:
+----- research performance of sha256 vs sha512  on mobile devices
+----- padding oracle attack
+------ look at noise protocol
+----- look at ECIES DirectChannelSecretBA_encryptedByResponderPublicKey;
+---- emulate TCP over UDP:  UTP, KCP, wireguard (VPN over UDP)
+
+------SMS micro-text inside INVITE
+----refer double ratchet
+
