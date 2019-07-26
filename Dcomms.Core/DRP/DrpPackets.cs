@@ -42,6 +42,7 @@ namespace Dcomms.DRP
         // also: ignored
     }
 
+
     /// <summary>
     /// is sent from A to RP
     /// is sent from RP to M, from M to N
@@ -52,55 +53,51 @@ namespace Dcomms.DRP
     class RegisterSynPacket
     {
         byte ReservedFlagsMustBeZero;
-        // "initial SYN" part
-        byte[] RequesterPublicKey; // used to verify signature
+ 
+        RegistrationPublicKey RequesterPublicKey_RequestID; // used to verify signature // used also as request ID
         /// <summary>
-        /// against flood by this packet in future, without A
+        /// against flood by this packet in future, without A (against replay attack)
         /// </summary>
         uint Timestamp;
-
-        ////  byte[] RequestId;// can not be changed by proxy peers
-        ////  RequestID=sha32XXX(RequesterPublicKey)
-
+        
         uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood
         byte[] RequesterSignature; // is verified by N, MAY be verified by proxies
 
         /// <summary>
         /// is transmitted only from A to RP
-        /// sha512(RequestID|ProofOrWork2Request|ProofOfWork1) has byte[6]=7  
+        /// sha512(RequesterPublicKey_RequestID|ProofOrWork2Request|ProofOfWork2) has byte[6]=7  
         /// includes powType 
-        /// todo: argon2 cpuPoW
         /// </summary>
         byte[] ProofOfWork2;
         /// <summary>
-        /// RP knows size of network.  he knows distance RP-A.  he knows avg n hops
-        /// RP limits this field
+        /// RP knows size of network.  he knows distance RP-A.  he knows "average number of hops" for this distance
+        /// RP limits this field by "average number of hops"
+        /// is decremented by peers
         /// </summary>
         byte NumberOfHops;
 
         /// <summary>
-        /// optional signature of latest proxy sender: RP,M,X
-        /// optional: is set when next (receiver) hop requires the signature by sending reply with status=signatureRequired,
-        /// when the next hop suspects IP-spoofed attack
+        /// signature of latest proxy sender: RP,M,X
+        /// is NULL for A->RP packet
+        /// uses common secret of neighbors within p2p connection
         /// </summary>
-        byte[] PreviousHopSignature;
+        HMAC SenderHMAC;
     }
     /// <summary>
-    /// is sent by next hop to previous hop
-    /// possible DRP-level attack: sniffing RequestId + flooding with spoofed source IP
+    /// is sent from next hop to previous hop, when the next hop receives some packet from neighbor
     /// </summary>
     class DrpNextHopResponsePacket
     {
         byte ReservedFlagsMustBeZero;
-        byte[] RequestId;
+        RegistrationPublicKey RequesterPublicKey_RequestID;
         DrpNextHopResponseCode StatusCode;
+        HMAC SenderHMAC;
     }
     enum DrpNextHopResponseCode
     {
-        received, // is sent to previous hop immediately when packet is proxied, to avoid retransmissions
-        signatureRequired,
+        received, // is sent to previous hop immediately when packet is proxied, to avoid retransmissions      
         rejected_overloaded,
-        rejected_badRequestId,
+        rejected_rateExceeded, // anti-ddos
     }
     
     /// <summary>
@@ -115,22 +112,16 @@ namespace Dcomms.DRP
         /// not null only for (status=connected) (N->X-M-RP-A)
         /// IP address of N with salt, encrypted for A
         /// </summary>
-        byte[] NeighborEndpoint_EncryptedByRequesterPublicKey; 
+        byte[] NeighborEndpoint_EncryptedByRequesterPublicKey;
+        byte[] KeyForHMAC_EncryptedByRequesterPublicKey;
 
-        /// <summary>
-        /// authorizes sender of this packet, together with source IP+ UDP port
-        /// </summary>
-        byte[] RequestId;
-        byte[] NeighborPublicKey; // pub key of RP, M, N
+        RegistrationPublicKey RequesterPublicKey_RequestID;
+        RegistrationPublicKey NeighborPublicKey; // pub key of RP, M, N
         byte[] NeighborSignature; // signature of entire packet
 
-        /// <summary>
-        /// optional: is set when next hop requires the signature by sending reply with status=signatureRequired,
-        /// when the next hop suspects IP-spoofed attack
-        /// </summary>
-        byte[] PreviousHopSignature;
+        HMAC SenderHMAC; // is NULL for RP->A
 
-        IPEndPoint endpointA; // is sent only from RP to A to provide public IP:port
+        IPEndPoint EndpointA; // is sent only from RP to A to provide public IP:port
 
     }
 
@@ -142,15 +133,11 @@ namespace Dcomms.DRP
     class RegisterAckPacket
     {
         byte ReservedFlagsMustBeZero;
-        byte[] RequestId;
-        byte[] RequesterEndoint_encryptedByPubN; // IP address of A + UDP port + salt
+        RegistrationPublicKey RequesterPublicKey_RequestID;
+        byte[] RequesterEndoint_encryptedByNeighborPublicKey; // IP address of A + UDP port + salt // comes from RP  // possible attacks by RP???
         byte[] RequesterSignature; // is verified by N; MAY be verified by  RP, N
 
-        /// <summary>
-        /// optional: is set when next hop requires the signature by sending reply with status=signatureRequired,
-        /// when the next hop suspects IP-spoofed attack
-        /// </summary>
-        byte[] PreviousHopSignature;
+        HMAC SenderHMAC; // is NULL for A->RP
     }
 
     /// <summary>
@@ -162,15 +149,11 @@ namespace Dcomms.DRP
     class RegisterConfirmedPacket
     {
         byte ReservedFlagsMustBeZero;
-        byte[] RequestId;
+        RegistrationPublicKey RequesterPublicKey_RequestID;
         byte succeeded; // 1 bit, to make the signature different from initial "SYN" part
         byte[] RequesterSignature; // is verified by N, RP,M  before updating rating
 
-        /// <summary>
-        /// optional, is set when next hop requires the signature (in case when next hop suspects IP-spoofed attack)
-        /// подпись последнего прокси-отправителя RP,M,X 
-        /// </summary>
-        byte[] SenderSignature;
+        HMAC SenderHMAC; // is NULL for A->RP
     }
 
 
@@ -181,24 +164,15 @@ namespace Dcomms.DRP
         rejected, // no neighbors
         rejected_badtimestamp,
         rejected_maxhopsReached,
+        rejected_noGoodPeers, // timed out or dead end in IDspace
         rejected_userBusyForInvite
     }
     class PingPacket
     {
-        byte Flags; // bit0 = "bad time"  // bit1="require signature"   // attack on neighbor: fake "bad time": max time sync per minute
+        byte ReservedFlagsMustBeZero;
         uint Timestamp;
 
-        /// <summary>
-        /// if wrong hmac:  don't reply
-        /// 
-        /// </summary>
-        byte[] hmac;
-
-
-        /// <summary>
-        /// is sent by requester if another party suspects ip-spoofed DoS and requires signature
-        /// </summary>
-        byte[] SenderSignature;
+        HMAC SenderHMAC;
     }
     /// <summary>
     /// A=requester
@@ -207,38 +181,45 @@ namespace Dcomms.DRP
     /// </summary>
     class InviteRequestPacket
     {
-        // requestID={publicKeyA|publicKeyB}
+        // requestID={RequesterPublicKey|DestinationResponderPublicKey}
 
-      //  byte[] RequestId; // set by A=requester, can not be changed by hops // is valid within p2p connection // min 4 bytes
         byte[] DirectChannelEndointA_encryptedByResponderPublicKey; // with salt // can be decrypted only by B
         /// <summary>
         /// todo: look at noise protocol
         /// todo: look at ECIES
         /// </summary>
         byte[] DirectChannelSecretBA_encryptedByResponderPublicKey;
-        byte[] SourceRequesterPublicKey; // A public key 
-        byte[] DestinationResponderPublicKey; // B public key
+        byte[] RequesterMessage_encryptedByResponderPublicKey; // messenger top-level protocol
+        RegistrationPublicKey RequesterPublicKey; // A public key 
+        RegistrationPublicKey DestinationResponderPublicKey; // B public key
         byte[] RequesterSignature;
 
         byte NumberOfHopsRemaining; // max 10 // is decremented by peers
 
         /// <summary>
-        /// optional, is set when next hop requires the signature (in case when next hop suspects IP-spoofed DoS attack)
-        /// подпись последнего прокси-отправителя RP,M,X 
+        /// authorizes peer that sends the packet
         /// </summary>
-     //   byte[] SenderSignature;
-
-        byte[] SenderHmac;
+        HMAC SenderHmac;
     }
     /// <summary>
     /// B1->X->N->A (rejected/confirmed)
     /// </summary>
     class InviteResponsePacket
     {
-        byte[] RequestId;
+        // requestID={RequesterPublicKey|DestinationResponderPublicKey}
+
+        RegistrationPublicKey RequesterPublicKey; // A public key 
+        RegistrationPublicKey DestinationResponderPublicKey; // B public key
+
         DrpResponderStatusCode StatusCode;
-        byte[] DirectChannelEndointB_encryptedByRequesterPublicKey; // with salt // user key or reg key?    
+        byte[] DirectChannelEndointB_encryptedByRequesterPublicKey; 
         byte[] DirectChannelSecretAB_encryptedByRequesterPublicKey;
+        byte[] ResponderMessage_encryptedByRequesterPublicKey; // messenger top-level protocol
         byte[] ResponderSignature;
+
+        /// <summary>
+        /// authorizes peer that sends the packet
+        /// </summary>
+        HMAC SenderHmac;
     }
 }
