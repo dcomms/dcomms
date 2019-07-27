@@ -26,6 +26,7 @@ namespace Dcomms.DRP
         Dictionary<DrpPeerRegistrationConfiguration, RegisteredLocalDrpPeer> RegisteredLocalPeers;
         public void BeginRegister(DrpPeerRegistrationConfiguration registrationConfiguration)
         {
+            // todo
             // send register pow request
             // wait for response
             // on error or timeout try next rendezvous server
@@ -35,11 +36,31 @@ namespace Dcomms.DRP
         void ProcessUdpPacket(IPEndPoint remoteEndpoint, byte[] data) // receiver thread
         {
             // parse packet
-            // if register  syn:
+            // process register pow  like in ccp
+            // see which peer sends this packet, authentcate by HMAC
+            // update and limit rx packet rate - blacklist regID
+            // process register syn:
+            //   see if local peer is good neighbor, reply
+            //   decrement nhops, check if it is not 0, proxy to some neighbor:
+            //       subroutine create requestViaConnectedPeer
+
+            // process reponses: pass to original requester, verify responder signature and update rating
+            //   when request is complete, clean state
+
         }
+
         void OnTimer_1s() // manager thread
         {
+            // for every connected peer
+            //   update IIR counters for rates
+            //   send ping in case of inactivity
+            //   remove dead connected peers (no reply to ping)
+            //   retransmit packets
+            //   clean timed out requests, raise timeout events
 
+            // expand neighborhood
+
+            // send test packets between local registered peers
         }
 
         public void BeginSendInvite(RegistrationPublicKey localPeerRegistrationPublicKey, RegistrationPublicKey remotePeerRegistrationPublicKey, byte[] message, Action<DrpResponderStatusCode> callback)
@@ -50,14 +71,37 @@ namespace Dcomms.DRP
 
             // send invite
 
-            // add txrequest state 
+            // subroutine create requestViaConnectedPeer
+        }
+
+        /// <summary>
+        /// creates an instance of TxRequestState, starts retransmission timer
+        /// </summary>
+        bool TrySendRequestViaConnectedPeer(ConnectedDrpPeer connectedPeer, RegistrationPublicKey remotePeerRegistrationPublicKey)
+        {
+            // assert tx rate is not exceeded  -- return false
+
+            // create an instance of TxRequestState, add it to list
+
+            // send packet to peer
+
+
+            throw new NotImplementedException();
         }
     }
+
+    /// <summary>
+    /// "contact point" of local user in the regID space
+    /// </summary>
     class RegisteredLocalDrpPeer
     {
         List<ConnectedDrpPeer> ConnectedPeers; // neighbors
-        ConnectedDrpPeer GetClosestConnectedPeer(RegistrationPublicKey targetRegistrationPublicKey)
+        ConnectedDrpPeer GetClosestNonFloodedConnectedPeer(RegistrationPublicKey targetRegistrationPublicKey)
         {
+            // enumerate conn. peers
+            //   skip flooded tx connections (where tx rate is exceeded)
+            //   get distance = xor
+            //   
             throw new NotImplementedException();
         }
     }
@@ -80,17 +124,24 @@ namespace Dcomms.DRP
         void OnReceivedMessage(byte[] message);
     }
 
-
+    enum DrpPeerConnectionInitiatedBy
+    {
+        localPeer, // local peer connected to remote peer via REGISTER procedure
+        remotePeer // re mote peer connected to local peer via REGISTER procedure
+    }
     class ConnectedDrpPeer
     {
+        DrpPeerConnectionInitiatedBy InitiatedBy;
         RegistrationPublicKey RemotePeerPublicKey;
         SecretHeyForHmac SecretKeyForHmac;
 
         ConnectedDrpPeerRating Rating;
 
-        IirFilterCounter RxRateRps;
-        
-        IirFilterCounter TxRateRps;
+        IirFilterCounter RxInviteRateRps;
+        IirFilterCounter RxRegisterRateRps;
+
+        float MaxTxInviteRateRps, MaxTxRegiserRaateRps; // sent by remote peer via ping
+        IirFilterCounter TxInviteRateRps, TxRegisterRateRps;
         List<TxRegisterRequestState> PendingTxRegisterRequests;
         List<TxInviteRequestState> PendingTxInviteRequests;
     }

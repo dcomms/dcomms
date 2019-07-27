@@ -112,8 +112,8 @@ namespace Dcomms.DRP
         /// not null only for (status=connected) (N->X-M-RP-A)
         /// IP address of N with salt, encrypted for A
         /// </summary>
-        byte[] NeighborEndpoint_EncryptedByRequesterPublicKey;
-        byte[] KeyForHMAC_EncryptedByRequesterPublicKey;
+        EncryptedP2pStreamParameters NeighborEndpoint_EncryptedByRequesterPublicKey;
+       
 
         RegistrationPublicKey RequesterPublicKey_RequestID;
         RegistrationPublicKey NeighborPublicKey; // pub key of RP, M, N
@@ -126,6 +126,17 @@ namespace Dcomms.DRP
     }
 
     /// <summary>
+    /// remote peer -> local peer via REGISTER channel
+    /// parameters to connect to remote peer, encrypted by local peer's public key
+    /// </summary>
+    class EncryptedP2pStreamParameters
+    {
+        byte[] destinationEndpointEncrypted; // IP address of A + UDP port + salt 
+        byte[] P2pStreamIdEncrypted; // encrypted ushort
+        byte[] KeyForHmacEncrypted;
+    }
+
+    /// <summary>
     /// is sent from A to N with encrypted IP address of A
     /// A->RP->M->N
     /// пиры помнят путь по RequestID  пиры уже авторизовали друг друга на этом этапе
@@ -134,7 +145,7 @@ namespace Dcomms.DRP
     {
         byte ReservedFlagsMustBeZero;
         RegistrationPublicKey RequesterPublicKey_RequestID;
-        byte[] RequesterEndoint_encryptedByNeighborPublicKey; // IP address of A + UDP port + salt // comes from RP  // possible attacks by RP???
+        EncryptedP2pStreamParameters  RequesterEndoint_encryptedByNeighborPublicKey; // IP address of A + UDP port + salt // initiall IP address of A comes from RP  // possible attacks by RP???
         byte[] RequesterSignature; // is verified by N; MAY be verified by  RP, N
 
         HMAC SenderHMAC; // is NULL for A->RP
@@ -161,7 +172,7 @@ namespace Dcomms.DRP
     {
         confirmed,
 
-        rejected, // no neighbors
+        rejected_badSenderRating,
         rejected_badtimestamp,
         rejected_maxhopsReached,
         rejected_noGoodPeers, // timed out or dead end in IDspace
@@ -171,7 +182,8 @@ namespace Dcomms.DRP
     {
         byte ReservedFlagsMustBeZero;
         uint Timestamp;
-
+        float MaxRxInviteRateRps;
+        float MaxRxRegisterRateRps;
         HMAC SenderHMAC;
     }
     /// <summary>
