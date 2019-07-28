@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Dcomms.DRP
 {
-    class RegistrationPublicKey
+    public class RegistrationPublicKey
     {
         byte[] ed25519publicKey;
     }

@@ -11,7 +11,7 @@ namespace Dcomms.DRP
     /// is sent from A to RP when A connects to the P2P network
     /// protects system against IP spoofing
     /// </summary>
-    class RegisterPowRequestPacket
+    class RegisterPow1RequestPacket
     {
         byte ReservedFlagsMustBeZero;
         uint Timestamp;
@@ -26,7 +26,7 @@ namespace Dcomms.DRP
     /// verifies UDP/IP path from RP to A, check UDP.sourceIP
     /// can be used for UDP reflection attacks
     /// </summary>
-    class RegisterPowResponsePacket
+    class RegisterPow1ResponsePacket
     {
         byte ReservedFlagsMustBeZero;
         RegisterPowResponseStatusCode StatusCode;      
@@ -112,7 +112,7 @@ namespace Dcomms.DRP
         /// not null only for (status=connected) (N->X-M-RP-A)
         /// IP address of N with salt, encrypted for A
         /// </summary>
-        EncryptedP2pStreamParameters NeighborEndpoint_EncryptedByRequesterPublicKey;
+        EncryptedP2pStreamTxParameters NeighborEndpoint_EncryptedByRequesterPublicKey;
        
 
         RegistrationPublicKey RequesterPublicKey_RequestID;
@@ -121,19 +121,20 @@ namespace Dcomms.DRP
 
         HMAC SenderHMAC; // is NULL for RP->A
 
-        IPEndPoint EndpointA; // is sent only from RP to A to provide public IP:port
-
+        IPEndPoint RequesterEndpoint; // is sent only from RP to A to provide public IP:port
     }
 
     /// <summary>
-    /// remote peer -> local peer via REGISTER channel
+    /// parameters to transmit DRP pings and proxied packets from local peer to remote peer
+    /// sent from  remote peer to local peer via REGISTER channel
     /// parameters to connect to remote peer, encrypted by local peer's public key
     /// </summary>
-    class EncryptedP2pStreamParameters
+    class EncryptedP2pStreamTxParameters
     {
-        byte[] destinationEndpointEncrypted; // IP address of A + UDP port + salt 
-        byte[] P2pStreamIdEncrypted; // encrypted ushort
-        byte[] KeyForHmacEncrypted;
+        // all following fields are encrypted with destination (remote) peer's public key
+        IPEndPoint DestinationEndpoint; // IP address + UDP port + salt(?) 
+        ushort StreamId; // is unique at remote peer; is used to identify local (sender) peer at remote peer
+        byte[] KeyForHMAC;
     }
 
     /// <summary>
@@ -145,7 +146,7 @@ namespace Dcomms.DRP
     {
         byte ReservedFlagsMustBeZero;
         RegistrationPublicKey RequesterPublicKey_RequestID;
-        EncryptedP2pStreamParameters  RequesterEndoint_encryptedByNeighborPublicKey; // IP address of A + UDP port + salt // initiall IP address of A comes from RP  // possible attacks by RP???
+        EncryptedP2pStreamTxParameters  RequesterEndoint_encryptedByNeighborPublicKey; // IP address of A + UDP port + salt // initiall IP address of A comes from RP  // possible attacks by RP???
         byte[] RequesterSignature; // is verified by N; MAY be verified by  RP, N
 
         HMAC SenderHMAC; // is NULL for A->RP
@@ -168,7 +169,7 @@ namespace Dcomms.DRP
     }
 
 
-    enum DrpResponderStatusCode
+    public enum DrpResponderStatusCode
     {
         confirmed,
 
@@ -178,12 +179,18 @@ namespace Dcomms.DRP
         rejected_noGoodPeers, // timed out or dead end in IDspace
         rejected_userBusyForInvite
     }
-    class PingPacket
+    class PingRequestPacket
     {
         byte ReservedFlagsMustBeZero;
-        uint Timestamp;
-        float MaxRxInviteRateRps;
-        float MaxRxRegisterRateRps;
+        ushort Timestamp; // msec
+        float? MaxRxInviteRateRps;   // signal from sender "how much I can receive via this p2p connection"
+        float? MaxRxRegisterRateRps; // signal from sender "how much I can receive via this p2p connection"
+        HMAC SenderHMAC;
+    }
+    class PingResponsePacket
+    {
+        byte ReservedFlagsMustBeZero;
+        ushort TimestampOfRequest; // msec
         HMAC SenderHMAC;
     }
     /// <summary>

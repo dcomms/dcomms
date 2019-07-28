@@ -2,54 +2,105 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Dcomms.DRP
 {
-    class DrpPeer: IDisposable
+    public class DrpPeerEngine: IDisposable
     {
         bool _disposing;
-        Thread _managerThread;
+        Thread _engineThread;
         Thread _receiverThread;
         UdpClient _socket;
         
-        public DrpPeer(DrpPeerConfiguration configuration, IDrpPeerUser user)
+        public DrpPeerEngine(DrpPeerEngineConfiguration configuration)
         {
+            // todo  open udp socket, start receiver, engine thread
 
         }
         public void Dispose()
         {
         }
+        void HandleException(Exception exc, string description)
+        {
+            //todo report to log/dev vision
+        }
 
-        Dictionary<DrpPeerRegistrationConfiguration, RegisteredLocalDrpPeer> RegisteredLocalPeers;
-        public void BeginRegister(DrpPeerRegistrationConfiguration registrationConfiguration)
+        Dictionary<RegistrationPublicKey, LocalDrpPeer> LocalPeers;
+   
+
+        #region registration client-side
+        /// <summary>
+        /// returns control only when LocalrpPeer is registered and ready for operation ("local user logged in")
+        /// </summary>
+        public async Task<LocalDrpPeer> RegisterAsync(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
         {
             // todo
-            // send register pow request
-            // wait for response
-            // on error or timeout try next rendezvous server
+
+            //  add new LocalDrpPeer to LocalPeers list
+
+            var localPublicIp = await SendPublicApiRequestAsync("http://api.ipify.org/");
+            if (localPublicIp == null) localPublicIp = await SendPublicApiRequestAsync("http://ip.seeip.org/");
+            if (localPublicIp == null) localPublicIp = await SendPublicApiRequestAsync("http://bot.whatismyipaddress.com");
+            if (localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
+
+            new RegisterPow1RequestPacket();
+
+            // if specified rendezvous servers:
+            //    send register pow request
+            //    wait for response
+            //    connect to neighbor
+            //    on error or timeout try next rendezvous server
 
         }
+        /// <returns>bytes of IP address</returns>
+        async Task<byte[]> SendPublicApiRequestAsync(string url)
+        {
+            try
+            {
+                var httpClient = new HttpClient();
+                httpClient.Timeout = TimeSpan.FromSeconds(3);
+                var response = await httpClient.GetAsync(url);
+                var result = await response.Content.ReadAsStringAsync();
+                var ipAddress = IPAddress.Parse(result);
+                return ipAddress.GetAddressBytes();
+            }
+            catch (Exception exc)
+            {
+                HandleException(exc, $"public api request to {url} failed");
+                return null;
+            }
+        }
+        #endregion
 
         void ProcessUdpPacket(IPEndPoint remoteEndpoint, byte[] data) // receiver thread
         {
             // parse packet
-            // process register pow  like in ccp
-            // see which peer sends this packet, authentcate by HMAC
-            // update and limit rx packet rate - blacklist regID
-            // process register syn:
-            //   see if local peer is good neighbor, reply
-            //   decrement nhops, check if it is not 0, proxy to some neighbor:
-            //       subroutine create requestViaConnectedPeer
+            // if packet from new peer (register syn)
+            //    process register pow  like in ccp
+            // if packet is from existing connected peer (ping, proxied invite/register)
+            //   see which peer sends this packet by streamID, authentcate by source IP:port and  HMAC
+            //   update and limit rx packet rate - blacklist regID
+            //   process register requests:
+            //     see if local peer is good neighbor, reply
+            //     decrement nhops, check if it is not 0, proxy to some neighbor:
+            //        subroutine create requestViaConnectedPeer
+            //   process invite:
+            //     see if local peer is destination, pass to user, reply; set up DirectChannel
+            //     decrement nhops, check if it is not 0, proxy to some neighbor:
+            //        subroutine create requestViaConnectedPeer
 
-            // process reponses: pass to original requester, verify responder signature and update rating
-            //   when request is complete, clean state
+            //   process invite/register reponses: pass to original requester, verify responder signature and update rating
+            //     when request is complete, clean state
 
+            //   process ping request/response: reply; measure RTT
         }
 
-        void OnTimer_1s() // manager thread
+        void OnTimer_1s() // engine thread
         {
             // for every connected peer
             //   update IIR counters for rates
@@ -85,41 +136,64 @@ namespace Dcomms.DRP
 
             // send packet to peer
 
-
             throw new NotImplementedException();
         }
     }
 
     /// <summary>
     /// "contact point" of local user in the regID space
+    /// can be "registered" or "registering"
     /// </summary>
-    class RegisteredLocalDrpPeer
+    public class LocalDrpPeer
     {
+        LocalDrpPeerState State;
+        public LocalDrpPeer(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
+        {
+
+        }
         List<ConnectedDrpPeer> ConnectedPeers; // neighbors
-        ConnectedDrpPeer GetClosestNonFloodedConnectedPeer(RegistrationPublicKey targetRegistrationPublicKey)
+        /// <summary>
+        /// main routing procedure
+        /// selects next peer (hop) to proxy packet
+        /// returns null in case of flood
+        /// </summary>
+        ConnectedDrpPeer TryRouteRequest(RegistrationPublicKey targetRegistrationPublicKey)
         {
             // enumerate conn. peers
             //   skip flooded tx connections (where tx rate is exceeded)
-            //   get distance = xor
+            //   get distance = xor;   combined with ping RTT and rating    (based on RDR)
             //   
             throw new NotImplementedException();
         }
+        public void Dispose() // unregisters
+        {
+
+        }
+    }
+    enum LocalDrpPeerState
+    {
+        requestingPublicIp,
+        pow,
+        registerSynSent,
+        pingEstablished,
+        minNeighborsCountAchieved,
+        achievedGoodRatingForNeighbors // ready to send requests
     }
 
 
-    class DrpPeerConfiguration
+    public class DrpPeerEngineConfiguration
     {
         ushort? LocalPort;
-        IPEndPoint[] RendezvousPeers;
     }
-    class DrpPeerRegistrationConfiguration
+    public class DrpPeerRegistrationConfiguration
     {
+        IPEndPoint[] RendezvousPeers; // in case when local peer IP = rendezvous peer IP, it is skipped
         RegistrationPublicKey LocalPeerRegistrationPublicKey;
         RegistrationPrivateKey LocalPeerRegistrationPrivateKey;
         int NumberOfNeighborsToKeep;
     }
 
-    interface IDrpPeerUser
+    public interface IDrpRegisteredPeerUser
     {
         void OnReceivedMessage(byte[] message);
     }
@@ -149,11 +223,32 @@ namespace Dcomms.DRP
     {
         IirFilterAverage PingRttMs;
         TimeSpan Age => throw new NotImplementedException();
-        IirFilterCounter RegisterRequestsSent;
-        IirFilterCounter RegisterRequestsSuccessfullyCompleted; // target of sybil-looped-traffic attack
-
-        IirFilterCounter InviteRequestsSent;
-        IirFilterCounter InviteRequestsSuccessfullyCompleted; // target of sybil-looped-traffic attack
+        float RecentRegisterRequestsSuccessRate => throw new NotImplementedException(); // target of sybil-looped-traffic attack
+        float RecentInviteRequestsSuccessRate => throw new NotImplementedException(); // target of sybil-looped-traffic attack
+    }
+    /// <summary>
+    /// contains recent RDRs;  RAM-based database
+    /// is used to prioritize requests in case of DoS
+    /// 50 neighbors, 1 req per second, 1 hour: 180K records: 2.6MB
+    /// </summary>
+    class RequestDetailsRecordsHistory
+    {
+        LinkedList<RequestDetailsRecord> Records; // newest first
+    }
+    class RequestDetailsRecord
+    {
+        RegistrationPublicKey Sender;
+        RegistrationPublicKey Receiver;
+        RegistrationPublicKey Requester;
+        RegistrationPublicKey Responder;
+        DateTime RequestCreatedTimeUTC;
+        DateTime RequestFinishedTimeUTC;
+        DrpResponderStatusCode Status;
+    }
+    enum RequestType
+    {
+        invite,
+        register
     }
 
     class TxRequestState
