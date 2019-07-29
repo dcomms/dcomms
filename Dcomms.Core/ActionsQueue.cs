@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace Dcomms.P2PTP.LocalLogic
+namespace Dcomms
 {
     public class ActionsQueue : IDisposable
     {
@@ -21,6 +22,16 @@ namespace Dcomms.P2PTP.LocalLogic
                 if (_queue.Count > 5000) throw new InsufficientResourcesException();
                 _queue.Enqueue(a);
             }
+        }
+        public Task<bool> EnqueueAsync()
+        {
+            var tcs = new TaskCompletionSource<bool>();            
+            Enqueue(() =>
+            {
+                tcs.SetResult(true);
+            });
+            return tcs.Task;
+
         }
         public void ExecuteQueued()
         {

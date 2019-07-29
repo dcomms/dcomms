@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace Dcomms.Cryptography
@@ -65,6 +66,7 @@ namespace Dcomms.Cryptography
 
         byte[] GetHashSHA256(byte[] data);
         byte[] GetHashSHA512(byte[] data);
+        byte[] GetHashSHA512(Stream data);
     }
     public static class CryptoLibraries
     {

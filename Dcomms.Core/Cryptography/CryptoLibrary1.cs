@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -25,6 +26,10 @@ namespace Dcomms.Cryptography
 
         readonly SHA512 _sha512 = SHA512.Create();
         byte[] ICryptoLibrary.GetHashSHA512(byte[] data)
+        {
+            return _sha512.ComputeHash(data);
+        }
+        byte[] ICryptoLibrary.GetHashSHA512(Stream data)
         {
             return _sha512.ComputeHash(data);
         }

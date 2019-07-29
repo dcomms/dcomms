@@ -194,8 +194,4 @@ namespace Dcomms.P2PTP
         }
     }
 
-    class InsufficientResourcesException: ApplicationException
-    {
-
-    }
 }

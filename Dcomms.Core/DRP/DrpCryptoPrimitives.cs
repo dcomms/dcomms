@@ -8,7 +8,7 @@ namespace Dcomms.DRP
     {
         byte[] ed25519publicKey;
     }
-    class RegistrationPrivateKey
+    public class RegistrationPrivateKey
     {
         byte[] ed25519privateKey;
     }

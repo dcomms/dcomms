@@ -1,5 +1,8 @@
 Dcomms.org - secure telecommunication - open protocols and implementation
 
+License: MIT
 
+Contact: Aleshin Sergei Vladimirovich   
 
-official website: http://dcomms.org
+Website: http://dcomms.org
+
