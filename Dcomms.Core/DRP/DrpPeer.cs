@@ -20,7 +20,7 @@ namespace Dcomms.DRP
         readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         TimeSpan TimeSWE => _stopwatch.Elapsed; // stopwatch elapsed
         public DateTime DateTimeNowUtc { get { return _startTimeUtc + TimeSWE; } }
-        uint TimeSec32UTC => MiscProcedures.DateTimeToUint32(DateTimeNowUtc);
+        uint Timestamp32S => MiscProcedures.DateTimeToUint32(DateTimeNowUtc);
         bool _disposing;
         Thread _engineThread;
         Thread _receiverThread;
@@ -102,7 +102,9 @@ namespace Dcomms.DRP
                     else
                     {
                         WriteToLog_reg_requesterSide_debug($"connecting to RP {rpEndpoint}...");
-                        var registerPow1RequestPacketData = GenerateRegisterPow1RequestPacket(localPublicIp, TimeSec32UTC);
+
+                        #region PoW1
+                        var registerPow1RequestPacketData = GenerateRegisterPow1RequestPacket(localPublicIp, Timestamp32S);
 
                         // send register pow1 request
                         var rpPow1ResponsePacketData = await SendUdpRequestAsync(
@@ -117,9 +119,28 @@ namespace Dcomms.DRP
                             WriteToLog_reg_requesterSide_debug($"... connection to RP {rpEndpoint} timed out");
                             // timeout: go to next RP
                             continue;
+                        }                                               
+
+                        var pow1ResponsePacket = new RegisterPow1ResponsePacket(PacketProcedures.CreateBinaryReader(rpPow1ResponsePacketData, 1));
+                        if (pow1ResponsePacket.StatusCode != RegisterPowResponseStatusCode.succeeded_Pow2Challenge)
+                        {
+                            WriteToLog_reg_requesterSide_debug($"... connection to RP {rpEndpoint} failed with status {pow1ResponsePacket.StatusCode}");
+                            // error: go to next RP
+                            continue;
                         }
-                        
-                        //todo   pow2
+                        #endregion
+
+                        // calculate PoW2
+                        var registerSynPacket = new RegisterSynPacket
+                        {
+                            RequesterPublicKey_RequestID = registrationConfiguration.LocalPeerRegistrationPublicKey,
+                            Timestamp32S = Timestamp32S,
+                            MinimalDistanceToNeighbor = 0,
+                            NumberOfHopsRemaining = 10,
+                        };
+                        GenerateRegisterSynPow2(registerSynPacket, pow1ResponsePacket.ProofOfWork2Request);
+                        //registerSynPacket.RequesterSignature = //todo _cryptoLibrary.SignCertificate x,
+
                         //    connect to neighbor, retransmit
                         //    on error or timeout try next rendezvous server
 
@@ -149,7 +170,7 @@ namespace Dcomms.DRP
             }
         }        
         /// <summary>
-        /// performs stateless proof of work
+        /// performs PoW#1 (stateless proof of work)
         /// </summary>
         static byte[] GenerateRegisterPow1RequestPacket(byte[] clientPublicIp, uint timeSec32UTC)
         {
@@ -169,6 +190,18 @@ namespace Dcomms.DRP
             var packetData = ms.ToArray();
             return packetData;
         }
+
+        static void GenerateRegisterSynPow2(RegisterSynPacket packet, byte[] proofOfWork2Request)
+        {
+            packet.ProofOfWork2 = new byte[64];
+            var rnd = new Random();
+            for (; ; )
+            {
+                rnd.NextBytes(packet.ProofOfWork2);
+                if (Pow2IsOK(packet, proofOfWork2Request)) break;
+            }
+        }
+
         #endregion
         #region registration RP-side
         static bool Pow1IsOK(RegisterPow1RequestPacket packet, byte[] clientPublicIP)
@@ -180,6 +213,22 @@ namespace Dcomms.DRP
                 writer.Write(packet.ProofOfWork1);
                 writer.Write(clientPublicIP);
             }            
+            var hash = _cryptoLibrary.GetHashSHA512(ms);
+            if (hash[4] != 7 || (hash[5] != 7 && hash[5] != 8)
+                //     || hash[6] > 100
+                )
+                return false;
+            else return true;
+        }
+        static bool Pow2IsOK(RegisterSynPacket packet, byte[] proofOrWork2Request)
+        {
+            var ms = new MemoryStream(packet.RequesterPublicKey_RequestID.ed25519publicKey.Length + proofOrWork2Request.Length + packet.ProofOfWork2.Length);
+            using (var writer = new BinaryWriter(ms))
+            {
+                writer.Write(packet.RequesterPublicKey_RequestID.ed25519publicKey);
+                writer.Write(proofOrWork2Request);
+                writer.Write(packet.ProofOfWork2);
+            }
             var hash = _cryptoLibrary.GetHashSHA512(ms);
             if (hash[4] != 7 || (hash[5] != 7 && hash[5] != 8)
                 //     || hash[6] > 100

@@ -80,6 +80,41 @@ namespace Dcomms.CCP
             // asv huawei 
 
         });
+        public DelegateCommand TestEd25519 => new DelegateCommand(() =>
+        {
+            var privateKey = _cryptoLibrary.GeneratePrivateKeyEd25519();
+            var publicKey = _cryptoLibrary.GetPublicKeyEd25519(privateKey);
+
+            var plainText = new byte[128];
+            var rnd = new Random();
+            rnd.NextBytes(plainText);
+
+            byte[] signature = null;
+            var swSign = Stopwatch.StartNew();
+            int nSign = 10000;
+            for (int i = 0; i < nSign; i++)
+            {
+                signature = _cryptoLibrary.SignEd25519(plainText, privateKey);               
+            }
+            swSign.Stop();
+            var signaturesPerSecond = (double)nSign / swSign.Elapsed.TotalSeconds;
+
+
+            var swVerify = Stopwatch.StartNew();
+            int nVerify = 10000;
+            for (int i = 0; i < nVerify; i++)
+            {
+                _cryptoLibrary.VerifyEd25519(plainText, signature, publicKey);
+            }
+            swVerify.Stop();
+            var verificationsPerSecond = (double)nVerify / swVerify.Elapsed.TotalSeconds;
+
+            _wtl($"Ed25519: { signaturesPerSecond } sign/sec, { verificationsPerSecond } ver/sec");
+            // asv huawei 
+
+        });
+
+
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
         {
            // var t = new UniqueDataTracker();

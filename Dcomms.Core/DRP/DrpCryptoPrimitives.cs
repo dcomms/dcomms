@@ -6,19 +6,19 @@ namespace Dcomms.DRP
 {
     public class RegistrationPublicKey
     {
-        byte[] ed25519publicKey;
+        public byte[] ed25519publicKey;
     }
     public class RegistrationPrivateKey
     {
-        byte[] ed25519privateKey;
+        public byte[] ed25519privateKey;
     }
     class SecretHeyForHmac
     {
-        byte[] secretkey; // is same at 2 neighbor peers
+        public byte[] secretkey; // is same at 2 neighbor peers
     }
     class HMAC
     {
-        byte[] hmac;
+        public byte[] hmac;
     }
 
 }

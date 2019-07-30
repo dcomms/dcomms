@@ -5,16 +5,13 @@ register DoS on entire network:
 upnp open UDP ports -- refresh dynamically
 
 
-- have large number of neighbors
+- have large number of neighbors: 
+   at least 1 neighbor is not under DoS
 
 INVITE DDoS on A
 - move reg ID to new unDoSed place
   - sign by previous reg ID to transfer rating 
 with existing neighbors
-
-
-
-
 
 STOLEN PRIVATE KEYS:
 - use EPHEMERAL KEYS?

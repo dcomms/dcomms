@@ -265,6 +265,7 @@
         <ScrollView>
             <StackLayout Padding="10" >
                 <Button Text="test hello0" Command="{Binding TestPoW_CCP_hello0}" />
+                <Button Text="test EdDSA" Command="{Binding TestEd25519}" />
                 <Label x:Name="cryptographyTesterOutput" LineBreakMode="WordWrap" />                
             </StackLayout>            
         </ScrollView>

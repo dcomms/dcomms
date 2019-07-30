@@ -30,3 +30,9 @@
 /StarTrinity.CST/StarTrinity.CST/tt/VersionAndCompiledDateCs.cs
 /Dcomms.CryptographyTester/bin
 /Dcomms.CryptographyTester/obj
+/TestECDH/.vs/TestECDH
+/TestECDH/TestECDH
+/TestECDH/TestECDH.Lib/bin
+/TestECDH/TestECDH.Lib/obj/Debug/netstandard2.0
+/TestECDH/TestECDH.Lib/obj/Release/netstandard2.0
+/TestECDH/TestECDH.Lib/obj

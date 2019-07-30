@@ -66,13 +66,34 @@ namespace Dcomms.DRP
     /// </summary>
     class RegisterPow1ResponsePacket
     {
-        byte ReservedFlagsMustBeZero;
-        RegisterPowResponseStatusCode StatusCode;      
-        byte[] ProofOrWork2Request;
+        public byte ReservedFlagsMustBeZero;
+        public RegisterPowResponseStatusCode StatusCode;
+        public byte[] ProofOfWork2Request; // 16 bytes
+        
+        public byte[] Encode()
+        {
+            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            writer.Write((byte)DrpPacketType.RegisterPow1ResponsePacket);
+            writer.Write(ReservedFlagsMustBeZero);
+            writer.Write((byte)StatusCode);
+            if (StatusCode == RegisterPowResponseStatusCode.succeeded_Pow2Challenge)
+                writer.Write(ProofOfWork2Request);
+            return ms.ToArray();
+        }
+        /// <param name="reader">is positioned after first byte = packet type</param>
+        public RegisterPow1ResponsePacket(BinaryReader reader) 
+        {
+            ReservedFlagsMustBeZero = reader.ReadByte();
+            StatusCode = (RegisterPowResponseStatusCode)reader.ReadByte();
+            if (StatusCode == RegisterPowResponseStatusCode.succeeded_Pow2Challenge)
+            {
+                ProofOfWork2Request = reader.ReadBytes(16);
+            }
+        }
     }
     enum RegisterPowResponseStatusCode
     {
-        succeeded_Pow1Challenge,
+        succeeded_Pow2Challenge,
                 
         rejected, // is sent if peer in "developer" mode only
         rejected_badtimestamp, // is sent if peer in "developer" mode only (???) peer is responsible for his clock, using 3rd party time servers
@@ -93,27 +114,27 @@ namespace Dcomms.DRP
         RemotePeerToken16 SenderToken16;
         byte ReservedFlagsMustBeZero;
  
-        RegistrationPublicKey RequesterPublicKey_RequestID; // used to verify signature // used also as request ID
+        public RegistrationPublicKey RequesterPublicKey_RequestID; // used to verify signature // used also as request ID
         /// <summary>
         /// against flood by this packet in future, without A (against replay attack)
+        /// seconds since 2019-01-01 UTC, 32 bits are enough for 136 years
         /// </summary>
-        uint Timestamp;
-        
-        uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood
-        byte[] RequesterSignature; // is verified by N, MAY be verified by proxies
+        public uint Timestamp32S;
+
+        public uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood
+        public byte[] RequesterSignature; // {RequesterPublicKey_RequestID,Timestamp32S,MinimalDistanceToNeighbor} // is verified by N, MAY be verified by proxies
 
         /// <summary>
         /// is transmitted only from A to RP
-        /// sha512(RequesterPublicKey_RequestID|ProofOrWork2Request|ProofOfWork2) has byte[6]=7  
-        /// includes powType 
+        /// sha512(RequesterPublicKey_RequestID|ProofOrWork2Request|ProofOfWork2) has byte[6]=7       
         /// </summary>
-        byte[] ProofOfWork2;
+        public byte[] ProofOfWork2;
         /// <summary>
         /// RP knows size of network.  he knows distance RP-A.  he knows "average number of hops" for this distance
         /// RP limits this field by "average number of hops"
         /// is decremented by peers
         /// </summary>
-        byte NumberOfHops;
+        public byte NumberOfHopsRemaining;
 
         /// <summary>
         /// signature of latest proxy sender: RP,M,X

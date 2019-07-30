@@ -17,8 +17,9 @@
             <TextBlock Text="input size:" />
             <TextBox Text="{Binding TestSha512inputSize}" />
         </StackPanel>
-        <StackPanel Orientation="Horizontal">
+        <StackPanel Orientation="Vertical">
             <Button Command="{Binding TestPoW_CCP_hello0}" Content="test CCP hello0 PoW" />
+            <Button Command="{Binding TestEd25519}" Content="TestEd25519" />
         </StackPanel>
     </StackPanel>
 </Window>
