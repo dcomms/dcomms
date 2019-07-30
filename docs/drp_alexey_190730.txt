@@ -1,0 +1,66 @@
+attacks:
+register DoS on entire network:
+- dynamic lists of rendezvous peers
+  + default rendezvous peers
+upnp open UDP ports -- refresh dynamically
+
+
+- have large number of neighbors
+
+INVITE DDoS on A
+- move reg ID to new unDoSed place
+  - sign by previous reg ID to transfer rating 
+with existing neighbors
+
+
+
+
+
+STOLEN PRIVATE KEYS:
+- use EPHEMERAL KEYS?
+
+
+DYNAMICALLY CHANGE REG IDS
+
+
+
+
+-----------
+save rating of neghbor to files
+HD KEYS IN BITCOIN
+HD VALLETS https://bitcoin.org/en/glossary/hd-protocol
+
+ecies
+
+
+----------------------------------
+promotion:
+-whitepaper : without attacks now
+  regid , reg, invite
+  packet fields  binary format 
+    https://developers.google.com/protocol-buffers/?hl=ru 
+    https://cbor.io/ 
+ 
+- SDK promotion
+
+- github discussion  like https://github.com/mlswg
+- mailing lists https://mailarchive.ietf.org/arch/browse/mls/
+https://datatracker.ietf.org/wg/mls/about/
+
+- GUI   UX
+
+conferences: with decision makers  
+-- find beta testers
+eurocrypt
+
+---------------------------
+monetization:
+offline messages
+
+
+
+
+
+
+
+
