@@ -111,8 +111,10 @@ namespace Dcomms.DRP
     /// </summary>
     class RegisterSynPacket
     {
-        RemotePeerToken16 SenderToken16;
-        byte ReservedFlagsMustBeZero;
+        byte FlagsDecoded;
+        public static byte Flag_AtoRP = 0x01; // set if packet is transmitted from a to RP, is not set when RP->N
+        
+        public RemotePeerToken16 SenderToken16; // is zero for A->RP request
  
         public RegistrationPublicKey RequesterPublicKey_RequestID; // used to verify signature // used also as request ID
         /// <summary>
@@ -121,12 +123,13 @@ namespace Dcomms.DRP
         /// </summary>
         public uint Timestamp32S;
 
-        public uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood
-        public byte[] RequesterSignature; // {RequesterPublicKey_RequestID,Timestamp32S,MinimalDistanceToNeighbor} // is verified by N, MAY be verified by proxies
+        public byte MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood // 32-byte xor distance compressed into 8 bits (log2)
+        public RegistrationSignature RequesterSignature; // {RequesterPublicKey_RequestID,Timestamp32S,MinimalDistanceToNeighbor} // is verified by N, MAY be verified by proxies
 
         /// <summary>
         /// is transmitted only from A to RP
-        /// sha512(RequesterPublicKey_RequestID|ProofOrWork2Request|ProofOfWork2) has byte[6]=7       
+        /// sha512(RequesterPublicKey_RequestID|ProofOrWork2Request|ProofOfWork2) has byte[6]=7    
+        /// 64 bytes
         /// </summary>
         public byte[] ProofOfWork2;
         /// <summary>
@@ -141,7 +144,50 @@ namespace Dcomms.DRP
         /// is NULL for A->RP packet
         /// uses common secret of neighbors within p2p connection
         /// </summary>
-        HMAC SenderHMAC;
+        public HMAC SenderHMAC;
+
+        public RegisterSynPacket()
+        {
+        }
+        public byte[] Encode(byte flags)
+        {
+            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+
+            writer.Write((byte)DrpPacketType.RegisterSynPacket);
+            writer.Write(flags);
+            SenderToken16.Encode(writer);
+            RequesterPublicKey_RequestID.Encode(writer);
+            writer.Write(Timestamp32S);
+            writer.Write(MinimalDistanceToNeighbor);
+            RequesterSignature.Encode(writer);
+            if ((flags & Flag_AtoRP) != 0)
+            {
+                if (ProofOfWork2.Length != 64) throw new ArgumentException();
+                writer.Write(ProofOfWork2);
+            }
+            writer.Write(NumberOfHopsRemaining);
+            if ((flags & Flag_AtoRP) == 0)
+            {
+                SenderHMAC.Encode(writer);
+            }
+            
+            return ms.ToArray();
+        }
+        /// <param name="reader">is positioned after first byte = packet type</param>
+        public RegisterSynPacket(BinaryReader reader)
+        {
+            var flags = reader.ReadByte();
+            SenderToken16 = RemotePeerToken16.Decode(reader);
+            RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
+            Timestamp32S = reader.ReadUInt32();
+            MinimalDistanceToNeighbor = reader.ReadByte();
+            RequesterSignature = RegistrationSignature.Decode(reader);
+            if ((flags & Flag_AtoRP) != 0)
+                ProofOfWork2 = reader.ReadBytes(64);
+            NumberOfHopsRemaining = reader.ReadByte();
+            if ((flags & Flag_AtoRP) == 0)
+                SenderHMAC = HMAC.Decode(reader);
+        }
     }
     /// <summary>
     /// is sent from next hop to previous hop, when the next hop receives some packet from neighbor
@@ -194,7 +240,17 @@ namespace Dcomms.DRP
     /// </summary>
     class RemotePeerToken16
     {
-        ushort Token16;
+        public ushort Token16;
+        public void Encode(BinaryWriter writer)
+        {
+            writer.Write(Token16);
+        }
+        public static RemotePeerToken16 Decode(BinaryReader reader)
+        {
+            var r = new RemotePeerToken16();
+            r.Token16 = reader.ReadUInt16();
+            return r;
+        }
     }
 
     /// <summary>

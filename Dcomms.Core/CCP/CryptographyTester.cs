@@ -104,7 +104,8 @@ namespace Dcomms.CCP
             int nVerify = 10000;
             for (int i = 0; i < nVerify; i++)
             {
-                _cryptoLibrary.VerifyEd25519(plainText, signature, publicKey);
+                if (!_cryptoLibrary.VerifyEd25519(plainText, signature, publicKey))
+                    throw new Exception();
             }
             swVerify.Stop();
             var verificationsPerSecond = (double)nVerify / swVerify.Elapsed.TotalSeconds;

@@ -137,14 +137,31 @@ namespace Dcomms.DRP
                             Timestamp32S = Timestamp32S,
                             MinimalDistanceToNeighbor = 0,
                             NumberOfHopsRemaining = 10,
+                            SenderToken16 = new RemotePeerToken16()
                         };
                         GenerateRegisterSynPow2(registerSynPacket, pow1ResponsePacket.ProofOfWork2Request);
-                        //registerSynPacket.RequesterSignature = //todo _cryptoLibrary.SignCertificate x,
+                        registerSynPacket.RequesterSignature = new RegistrationSignature
+                        {
+                            ed25519signature = _cryptoLibrary.SignEd25519(
+                                PacketProcedures.JoinFields(registerSynPacket.RequesterPublicKey_RequestID.ed25519publicKey, registerSynPacket.Timestamp32S, registerSynPacket.MinimalDistanceToNeighbor),
+                                registrationConfiguration.LocalPeerRegistrationPrivateKey.ed25519privateKey)
+                        };           
+                        var registerSynPacketData = registerSynPacket.Encode(RegisterSynPacket.Flag_AtoRP); 
 
+                        var registerSynPacketResponsePacketData = await SendUdpRequestAsync(
+                                    new LowLevelUdpRequest(rpEndpoint,
+                                        new byte[] { (byte)DrpPacketType.DrpNextHopResponsePacket },
+                                        registerSynPacketData,
+                                        DateTimeNowUtc
+                                    )); // wait for "DrpNextHopResponsePacket" response from RP
+                                               
+                        // todo: wait for "RegisterSynAckPacket"
+                        
                         //    connect to neighbor, retransmit
                         //    on error or timeout try next rendezvous server
 
                         // await   
+                        // send registration confirmed packet
                     }
                 }
             }   

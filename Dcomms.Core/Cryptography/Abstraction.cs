@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Org.BouncyCastle.Math.EC.Rfc8032;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -21,5 +22,8 @@ namespace Dcomms.Cryptography
     public static class CryptoLibraries
     {
         public static ICryptoLibrary Library => new CryptoLibrary1();
+
+        public static readonly int Ed25519PublicKeySize = Ed25519.PublicKeySize;
+        public static readonly int Ed25519SignatureSize = Ed25519.SignatureSize;
     }
 }
