@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Dcomms.Cryptography;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -11,7 +12,8 @@ namespace Dcomms.DRP
         RegisterPow1RequestPacket = 1,
         RegisterPow1ResponsePacket = 2,
         RegisterSynPacket = 3,
-        DrpNextHopResponsePacket = 4,
+        NextHopResponsePacket = 4,
+        RegisterSynAckPacket = 5,
     }
 
     /// <summary>
@@ -103,18 +105,16 @@ namespace Dcomms.DRP
 
 
     /// <summary>
-    /// is sent from A to RP
+    /// REGISTER SYN request, is sent from A to RP
     /// is sent from RP to M, from M to N
     /// is sent over established P2P UDP channels that are kept alive by pings.  
-    /// sender proxy is authenticated by source IP:UDP port, and it can be spoofed.
-    /// if spoofing is suspected, a rejected_badRequestId DrpNextHopResponsePacket is sent
+    /// proxy sender peer is authenticated by source IP:UDP port and SenderHMAC
     /// </summary>
     class RegisterSynPacket
     {
-        byte FlagsDecoded;
-        public static byte Flag_AtoRP = 0x01; // set if packet is transmitted from a to RP, is not set when RP->N
+        public static byte Flag_AtoRP = 0x01; // set if packet is transmitted from registering A to RP, otherwise it is zero
         
-        public RemotePeerToken16 SenderToken16; // is zero for A->RP request
+        public RemotePeerToken16 SenderToken16; // is not transmitted in A->RP request
  
         public RegistrationPublicKey RequesterPublicKey_RequestID; // used to verify signature // used also as request ID
         /// <summary>
@@ -155,7 +155,7 @@ namespace Dcomms.DRP
 
             writer.Write((byte)DrpPacketType.RegisterSynPacket);
             writer.Write(flags);
-            SenderToken16.Encode(writer);
+            if ((flags & Flag_AtoRP) == 0) SenderToken16.Encode(writer);
             RequesterPublicKey_RequestID.Encode(writer);
             writer.Write(Timestamp32S);
             writer.Write(MinimalDistanceToNeighbor);
@@ -166,41 +166,64 @@ namespace Dcomms.DRP
                 writer.Write(ProofOfWork2);
             }
             writer.Write(NumberOfHopsRemaining);
-            if ((flags & Flag_AtoRP) == 0)
-            {
-                SenderHMAC.Encode(writer);
-            }
-            
+            if ((flags & Flag_AtoRP) == 0) SenderHMAC.Encode(writer);
+                      
             return ms.ToArray();
         }
         /// <param name="reader">is positioned after first byte = packet type</param>
         public RegisterSynPacket(BinaryReader reader)
         {
             var flags = reader.ReadByte();
-            SenderToken16 = RemotePeerToken16.Decode(reader);
+            if ((flags & Flag_AtoRP) == 0) SenderToken16 = RemotePeerToken16.Decode(reader);
             RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             Timestamp32S = reader.ReadUInt32();
             MinimalDistanceToNeighbor = reader.ReadByte();
             RequesterSignature = RegistrationSignature.Decode(reader);
-            if ((flags & Flag_AtoRP) != 0)
-                ProofOfWork2 = reader.ReadBytes(64);
+            if ((flags & Flag_AtoRP) != 0) ProofOfWork2 = reader.ReadBytes(64);
             NumberOfHopsRemaining = reader.ReadByte();
-            if ((flags & Flag_AtoRP) == 0)
-                SenderHMAC = HMAC.Decode(reader);
+            if ((flags & Flag_AtoRP) == 0) SenderHMAC = HMAC.Decode(reader);
         }
     }
     /// <summary>
-    /// is sent from next hop to previous hop, when the next hop receives some packet from neighbor
+    /// is sent from next hop to previous hop, when the next hop receives some packet from neighbor, or from registering peer (RP->A). stops UDP retransmission of a request packet
     /// </summary>
-    class DrpNextHopResponsePacket
+    class NextHopResponsePacket
     {
-        RemotePeerToken16 SenderToken16;
-        byte ReservedFlagsMustBeZero;
-        RegistrationPublicKey RequesterPublicKey_RequestID;
-        DrpNextHopResponseCode StatusCode;
-        HMAC SenderHMAC;
+        public static byte Flag_RPtoA = 0x01; // set if packet is transmitted from RP to A, is zero otherwise
+
+        public RemotePeerToken16 SenderToken16; // is not transmitted in RP->A packet
+        public RegistrationPublicKey RequesterPublicKey_RequestID;
+        public NextHopResponseCode StatusCode;
+        /// <summary>
+        /// signature of sender neighbor peer
+        /// is NULL for RP->A packet
+        /// uses common secret of neighbors within P2P connection
+        /// </summary>
+        public HMAC SenderHMAC;
+        
+        public byte[] Encode(byte flags)
+        {
+            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+
+            writer.Write((byte)DrpPacketType.NextHopResponsePacket);
+            writer.Write(flags);
+            if ((flags & Flag_RPtoA) == 0) SenderToken16.Encode(writer);
+            RequesterPublicKey_RequestID.Encode(writer);
+            writer.Write((byte)StatusCode);          
+            if ((flags & Flag_RPtoA) == 0) SenderHMAC.Encode(writer);            
+            return ms.ToArray();
+        }
+        /// <param name="reader">is positioned after first byte = packet type</param>
+        public NextHopResponsePacket(BinaryReader reader)
+        {
+            var flags = reader.ReadByte();
+            if ((flags & Flag_RPtoA) == 0) SenderToken16 = RemotePeerToken16.Decode(reader);
+            RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
+            StatusCode = (NextHopResponseCode)reader.ReadByte();           
+            if ((flags & Flag_RPtoA) == 0) SenderHMAC = HMAC.Decode(reader);
+        }
     }
-    enum DrpNextHopResponseCode
+    enum NextHopResponseCode
     {
         received, // is sent to previous hop immediately when packet is proxied, to avoid retransmissions      
         rejected_overloaded,
@@ -208,13 +231,15 @@ namespace Dcomms.DRP
     }
     
     /// <summary>
+    /// response to REGISTER SYN request, 
     /// is sent from neighbor=responder=N to M, from M to RP, from RP to A
     /// ответ от N к A идет по тому же пути, узлы помнят обратный путь по RequestId
     /// </summary>
     class RegisterSynAckPacket
     {
-        RemotePeerToken16 SenderToken16;
-        byte ReservedFlagsMustBeZero;
+        public static byte Flag_RPtoA = 0x01; // set if packet is transmitted from RP to registering A, otherwise it is zero
+             
+        RemotePeerToken16 SenderToken16; // is not sent from RP to A
         DrpResponderStatusCode NeighborStatusCode;
         /// <summary>
         /// not null only for (status=connected) (N->X-M-RP-A)
@@ -222,14 +247,38 @@ namespace Dcomms.DRP
         /// </summary>
         EncryptedP2pStreamTxParameters NeighborEndpoint_EncryptedByRequesterPublicKey;
        
+        RegistrationPublicKey RequesterPublicKey_RequestID; // public key of requester (A)
+        /// <summary>
+        /// against flood by this packet in future, without N (against replay attack)
+        /// is copied from REISTER SYN request packet by N and put into the SYN-ACK response
+        /// seconds since 2019-01-01 UTC, 32 bits are enough for 136 years
+        /// </summary>
+        public uint RegisterSynTimestamp32S;
 
-        RegistrationPublicKey RequesterPublicKey_RequestID;
-        RegistrationPublicKey NeighborPublicKey; // pub key of RP, M, N
-        byte[] NeighborSignature; // signature of entire packet
+        RegistrationPublicKey NeighborPublicKey; // public key of responder (neighbor, N)
+        RegistrationSignature NeighborSignature; // {NeighborStatusCode,NeighborEndpoint_EncryptedByRequesterPublicKey,RequesterPublicKey_RequestID,RegisterSynTimestamp32S,NeighborPublicKey }
 
-        HMAC SenderHMAC; // is NULL for RP->A
+        HMAC SenderHMAC; // is not sent from RP to A
+        IPEndPoint RequesterEndpoint; // is sent only from RP to A to provide public IP:port of A
 
-        IPEndPoint RequesterEndpoint; // is sent only from RP to A to provide public IP:port
+        /// <summary>
+        /// decodes the packet, decrypts NeighborEndpoint_EncryptedByRequesterPublicKey, verifies NeighborSignature
+        /// </summary>
+        /// <param name="reader">is positioned after first byte = packet type</param>
+        /// <param name="requesterPublicKey">is used to decrypt NeighborEndpoint_EncryptedByRequesterPublicKey</param>
+        public RegisterSynAckPacket(BinaryReader reader, RegistrationPublicKey requesterPublicKey)
+        {
+            var flags = reader.ReadByte();
+            if ((flags & Flag_RPtoA) == 0) SenderToken16 = RemotePeerToken16.Decode(reader);
+
+            NeighborStatusCode = (DrpResponderStatusCode)reader.ReadByte();
+            NeighborEndpoint_EncryptedByRequesterPublicKey = EncryptedP2pStreamTxParameters.Decode(reader, requesterPublicKey);
+
+            xx
+
+            if ((flags & Flag_RPtoA) == 0)
+                SenderHMAC = HMAC.Decode(reader);
+        }
     }
 
     /// <summary>
@@ -264,6 +313,19 @@ namespace Dcomms.DRP
         IPEndPoint DestinationEndpoint; // IP address + UDP port + salt(?) 
         RemotePeerToken16 RemotePeerToken16;
         byte[] KeyForHMAC;
+        /// <summary>
+        /// decrypts packet
+        /// </summary>
+        public EncryptedP2pStreamTxParameters(BinaryReader reader, RegistrationPrivateKey privateKey, ICryptoLibrary cryptoLibrary)
+        {
+            reader.ReadBytes();
+            cryptoLibrary.DecryptEd25519();
+        }
+
+        public void Encode(BinaryWriter writer, RegistrationPublicKey publicKey, ICryptoLibrary cryptoLibrary)
+        {
+            writer.Write();
+        }
     }
 
     /// <summary>

@@ -55,5 +55,12 @@ namespace Dcomms.Cryptography
             Ed25519.GeneratePublicKey(privateKey, 0, publicKey, 0);
             return publicKey;
         }
+
+
+        byte[] EncryptEc25519()
+        {
+
+        }
+
     }
 }
