@@ -1,4 +1,5 @@
-﻿using Org.BouncyCastle.Crypto.Parameters;
+﻿using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
 using Org.BouncyCastle.Math.EC.Rfc8032;
 using System;
@@ -55,12 +56,22 @@ namespace Dcomms.Cryptography
             Ed25519.GeneratePublicKey(privateKey, 0, publicKey, 0);
             return publicKey;
         }
-
-
-        byte[] EncryptEc25519()
+        void ICryptoLibrary.GenerateEcdh25519Keypair(out byte[] localEcdhPrivateKey, out byte[] localEcdhPublicKey)
         {
-
+            X25519PrivateKeyParameters privateKey = new X25519PrivateKeyParameters(new Org.BouncyCastle.Security.SecureRandom());
+            localEcdhPrivateKey = privateKey.GetEncoded();
+            localEcdhPublicKey = privateKey.GeneratePublicKey().GetEncoded();
         }
-
+        byte[] ICryptoLibrary.DeriveEcdh25519SharedSecret(byte[] localPrivateKey, byte[] remotePublicKey)
+        {
+            var sharedSecret = new byte[CryptoLibraries.Ecdh25519SharedSecretKeySize];
+            new X25519PrivateKeyParameters(localPrivateKey, 0)
+                .GenerateSecret(
+                    new X25519PublicKeyParameters(remotePublicKey, 0),
+                    sharedSecret,
+                    0
+                );
+            return sharedSecret;
+        }
     }
 }

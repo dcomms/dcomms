@@ -115,8 +115,9 @@ namespace Dcomms.DRP
         public static byte Flag_AtoRP = 0x01; // set if packet is transmitted from registering A to RP, otherwise it is zero
         
         public RemotePeerToken16 SenderToken16; // is not transmitted in A->RP request
- 
+
         public RegistrationPublicKey RequesterPublicKey_RequestID; // used to verify signature // used also as request ID
+        public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new P2P connection
         /// <summary>
         /// against flood by this packet in future, without A (against replay attack)
         /// seconds since 2019-01-01 UTC, 32 bits are enough for 136 years
@@ -124,7 +125,7 @@ namespace Dcomms.DRP
         public uint Timestamp32S;
 
         public byte MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood // 32-byte xor distance compressed into 8 bits (log2)
-        public RegistrationSignature RequesterSignature; // {RequesterPublicKey_RequestID,Timestamp32S,MinimalDistanceToNeighbor} // is verified by N, MAY be verified by proxies
+        public RegistrationSignature RequesterSignature; // {RequesterPublicKey_RequestID,RequesterEcdhePublicKey,Timestamp32S,MinimalDistanceToNeighbor} // is verified by N, MAY be verified by proxies
 
         /// <summary>
         /// is transmitted only from A to RP
@@ -157,6 +158,8 @@ namespace Dcomms.DRP
             writer.Write(flags);
             if ((flags & Flag_AtoRP) == 0) SenderToken16.Encode(writer);
             RequesterPublicKey_RequestID.Encode(writer);
+            RequesterEcdhePublicKey.Encode(writer);
+
             writer.Write(Timestamp32S);
             writer.Write(MinimalDistanceToNeighbor);
             RequesterSignature.Encode(writer);
@@ -176,9 +179,12 @@ namespace Dcomms.DRP
             var flags = reader.ReadByte();
             if ((flags & Flag_AtoRP) == 0) SenderToken16 = RemotePeerToken16.Decode(reader);
             RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
+            RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
+
             Timestamp32S = reader.ReadUInt32();
             MinimalDistanceToNeighbor = reader.ReadByte();
             RequesterSignature = RegistrationSignature.Decode(reader);
+              //todo: verify
             if ((flags & Flag_AtoRP) != 0) ProofOfWork2 = reader.ReadBytes(64);
             NumberOfHopsRemaining = reader.ReadByte();
             if ((flags & Flag_AtoRP) == 0) SenderHMAC = HMAC.Decode(reader);
@@ -241,11 +247,12 @@ namespace Dcomms.DRP
              
         RemotePeerToken16 SenderToken16; // is not sent from RP to A
         DrpResponderStatusCode NeighborStatusCode;
+        EcdhPublicKey NeighborEcdhePublicKey;
         /// <summary>
         /// not null only for (status=connected) (N->X-M-RP-A)
         /// IP address of N with salt, encrypted for A
         /// </summary>
-        EncryptedP2pStreamTxParameters NeighborEndpoint_EncryptedByRequesterPublicKey;
+        P2pStreamTxParameters ToNeighborTxParameters;
        
         RegistrationPublicKey RequesterPublicKey_RequestID; // public key of requester (A)
         /// <summary>
@@ -266,15 +273,19 @@ namespace Dcomms.DRP
         /// </summary>
         /// <param name="reader">is positioned after first byte = packet type</param>
         /// <param name="requesterPublicKey">is used to decrypt NeighborEndpoint_EncryptedByRequesterPublicKey</param>
-        public RegisterSynAckPacket(BinaryReader reader, RegistrationPublicKey requesterPublicKey)
+        public RegisterSynAckPacket(BinaryReader reader)
         {
             var flags = reader.ReadByte();
             if ((flags & Flag_RPtoA) == 0) SenderToken16 = RemotePeerToken16.Decode(reader);
 
             NeighborStatusCode = (DrpResponderStatusCode)reader.ReadByte();
-            NeighborEndpoint_EncryptedByRequesterPublicKey = EncryptedP2pStreamTxParameters.Decode(reader, requesterPublicKey);
 
-            xx
+            // todo ecdhe, decrypt
+
+            throw new NotImplementedException();
+        //    ToNeighborTxParameters = P2pStreamTxParameters.Decode(reader, requesterPublicKey);
+
+          //  xx
 
             if ((flags & Flag_RPtoA) == 0)
                 SenderHMAC = HMAC.Decode(reader);
@@ -304,27 +315,26 @@ namespace Dcomms.DRP
 
     /// <summary>
     /// parameters to transmit DRP pings and proxied packets from local peer to remote peer
-    /// sent from remote peer to local peer via REGISTER channel
+    /// sent from remote peer to local peer via REGISTER channel, encrypted using ECDHE shared key
     /// parameters to connect to remote peer, encrypted by local peer's public key
     /// </summary>
-    class EncryptedP2pStreamTxParameters
+    class P2pStreamTxParameters
     {
         // all following fields are encrypted with destination (remote) peer's public key
         IPEndPoint DestinationEndpoint; // IP address + UDP port + salt(?) 
         RemotePeerToken16 RemotePeerToken16;
-        byte[] KeyForHMAC;
+
         /// <summary>
         /// decrypts packet
         /// </summary>
-        public EncryptedP2pStreamTxParameters(BinaryReader reader, RegistrationPrivateKey privateKey, ICryptoLibrary cryptoLibrary)
+        public P2pStreamTxParameters(BinaryReader reader, byte[] sharedKey, ICryptoLibrary cryptoLibrary)
         {
-            reader.ReadBytes();
-            cryptoLibrary.DecryptEd25519();
+          //  reader.ReadBytes();
         }
 
-        public void Encode(BinaryWriter writer, RegistrationPublicKey publicKey, ICryptoLibrary cryptoLibrary)
+        public void Encode(BinaryWriter writer, byte[] sharedKey, ICryptoLibrary cryptoLibrary)
         {
-            writer.Write();
+           // writer.Write();
         }
     }
 
@@ -338,7 +348,7 @@ namespace Dcomms.DRP
         RemotePeerToken16 SenderToken16;
         byte ReservedFlagsMustBeZero;
         RegistrationPublicKey RequesterPublicKey_RequestID;
-        EncryptedP2pStreamTxParameters  RequesterEndoint_encryptedByNeighborPublicKey; // IP address of A + UDP port + salt // initiall IP address of A comes from RP  // possible attacks by RP???
+        P2pStreamTxParameters  ToRequesterTxParaemters; // encrypted // IP address of A + UDP port + salt // initial IP address of A comes from RP  // possible attacks by RP???
         byte[] RequesterSignature; // is verified by N; MAY be verified by  RP, N
 
         HMAC SenderHMAC; // is NULL for A->RP

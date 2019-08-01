@@ -115,6 +115,26 @@ namespace Dcomms.CCP
 
         });
 
+        public DelegateCommand TestEcdh25519 => new DelegateCommand(() =>
+        {
+
+            var sw = Stopwatch.StartNew();
+            int n = 10000;
+            for (int i = 0; i < n; i++)
+            {
+                _cryptoLibrary.GenerateEcdh25519Keypair(out var privateKeyA, out var publicKeyA);
+                _cryptoLibrary.GenerateEcdh25519Keypair(out var privateKeyB, out var publicKeyB);
+
+                var sharedKeyAB = _cryptoLibrary.DeriveEcdh25519SharedSecret(privateKeyA, publicKeyB);
+                var sharedKeyBA = _cryptoLibrary.DeriveEcdh25519SharedSecret(privateKeyB, publicKeyA);
+             
+            }
+            sw.Stop();
+
+            _wtl($"Ecdh25519: { (double)n / sw.Elapsed.TotalSeconds } fullABop/sec");
+            // asv huawei 
+
+        });
 
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
         {

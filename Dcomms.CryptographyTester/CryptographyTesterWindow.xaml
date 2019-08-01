@@ -20,6 +20,8 @@
         <StackPanel Orientation="Vertical">
             <Button Command="{Binding TestPoW_CCP_hello0}" Content="test CCP hello0 PoW" />
             <Button Command="{Binding TestEd25519}" Content="TestEd25519" />
+            <Button Command="{Binding TestEcdh25519}" Content="TestEcdh25519" />
+            
         </StackPanel>
     </StackPanel>
 </Window>

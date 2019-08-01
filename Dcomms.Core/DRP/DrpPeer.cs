@@ -161,14 +161,17 @@ namespace Dcomms.DRP
             #endregion
 
             #region register SYN
+            //todo ecdh generate local keypair
+
             // calculate PoW2
             var registerSynPacket = new RegisterSynPacket
             {
                 RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
+              //  RequesterEcdhePublicKey = todo,
                 Timestamp32S = Timestamp32S,
                 MinimalDistanceToNeighbor = 0,
                 NumberOfHopsRemaining = 10,
-                SenderToken16 = new RemotePeerToken16()
+                
             };
             GenerateRegisterSynPow2(registerSynPacket, pow1ResponsePacket.ProofOfWork2Request);
             registerSynPacket.RequesterSignature = new RegistrationSignature
@@ -548,6 +551,9 @@ namespace Dcomms.DRP
         readonly DrpPeerRegistrationConfiguration _registrationConfiguration;
         public DrpPeerRegistrationConfiguration RegistrationConfiguration => _registrationConfiguration;
         readonly IDrpRegisteredPeerUser _user;
+        public byte[] Ecdhe25519PublicKey;
+        public byte[] Ecdhe25519PrivateKey;
+        public byte[] Ecdhe25519SharedSecret;
         public LocalDrpPeer(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
         {
             _registrationConfiguration = registrationConfiguration;
@@ -609,7 +615,7 @@ namespace Dcomms.DRP
     {
         DrpPeerConnectionInitiatedBy InitiatedBy;
         RegistrationPublicKey RemotePeerPublicKey;
-        SecretHeyForHmac SecretKeyForHmac;
+        byte[] SharedEcdheSecretKey; // for p2p packets. for encryption and hmac authentication
 
         ConnectedDrpPeerRating Rating;
 

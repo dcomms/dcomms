@@ -47,13 +47,30 @@ namespace Dcomms.DRP
             return r;
         }
     }
-    class SecretHeyForHmac
+    public class EcdhPublicKey
     {
-        public byte[] secretkey; // is same at 2 neighbor peers
+        byte ReservedFlagsMustBeZero; // will include "type" = "ec25519 ecdh" by default
+        byte[] ecdh25519PublicKey; 
+
+        public void Encode(BinaryWriter writer)
+        {
+            writer.Write(ReservedFlagsMustBeZero);
+            if (ecdh25519PublicKey.Length != CryptoLibraries.Ecdh25519PublicKeySize) throw new ArgumentException();
+            writer.Write(ecdh25519PublicKey);
+        }
+        public static EcdhPublicKey Decode(BinaryReader reader)
+        {
+            var r = new EcdhPublicKey();
+            r.ReservedFlagsMustBeZero = reader.ReadByte();
+            r.ecdh25519PublicKey = reader.ReadBytes(CryptoLibraries.Ecdh25519PublicKeySize);
+            // todo: check if it is valid point on curve  - do we really need to check it?
+            return r;
+        }
     }
+  
     class HMAC
     {
-        byte ReservedFlagsMustBeZero; // will include "type" = "sha256 by default"
+        byte ReservedFlagsMustBeZero; // will include "type" = "ecdhe->KDF->sharedkey -> +plainText -> sha256" by default
         public byte[] hmac; // 32 bytes for hmac_sha256
         public void Encode(BinaryWriter writer)
         {
