@@ -1,0 +1,13 @@
+---- todo: 
+-- https://ru.wikipedia.org/wiki/Подбрасывание_монеты_по_телефону
+--IV near AES data, before cryptogram. random data, generated at A or N
+--are signatures really needed?  A, N   in reg. packets
+--make sure timestamp inside every signature
+--make sure not reaching UDP payload  size:  508 bytes
+
+https://tools.ietf.org/html/rfc1122
+
+
+
+
+
