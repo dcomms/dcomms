@@ -8,4 +8,8 @@ namespace Dcomms
     {
 
     }
+    class BrokenCipherException: ApplicationException
+    {
+
+    }
 }

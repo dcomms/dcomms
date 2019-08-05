@@ -50,7 +50,7 @@ namespace Dcomms.DRP
     public class EcdhPublicKey
     {
         byte ReservedFlagsMustBeZero; // will include "type" = "ec25519 ecdh" by default
-        byte[] ecdh25519PublicKey; 
+        public byte[] ecdh25519PublicKey; 
 
         public void Encode(BinaryWriter writer)
         {

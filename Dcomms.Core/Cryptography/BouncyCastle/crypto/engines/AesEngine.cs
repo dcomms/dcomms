@@ -431,7 +431,7 @@ namespace Org.BouncyCastle.Crypto.Engines
 
         private byte[] s;
 
-        private const int BLOCK_SIZE = 16;
+        public const int BLOCK_SIZE = 16;
 
         /**
         * default constructor - 128 bit block size.

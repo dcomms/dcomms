@@ -1,4 +1,5 @@
 ﻿using Dcomms.Cryptography;
+using Dcomms.DRP.Packets;
 using Dcomms.DSP;
 using System;
 using System.Collections.Generic;
@@ -109,7 +110,7 @@ namespace Dcomms.DRP
                     {
                         try
                         {
-                            if (await RegisterAsync(localDrpPeer, rpEndpoint) == false)
+                            if (await RegisterAsync(localDrpPeer, rpEndpoint) == null)
                                 continue;
 
                             //  on error or timeout try next rendezvous server
@@ -129,8 +130,8 @@ namespace Dcomms.DRP
             return localDrpPeer;
         }
 
-        /// <returns>false if registration failed with timeout or some error code</returns>
-        public async Task<bool> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint rpEndpoint)
+        /// <returns>null if registration failed with timeout or some error code</returns>
+        public async Task<ConnectedDrpPeer> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint rpEndpoint)
         {
             WriteToLog_reg_requesterSide_debug($"connecting to RP {rpEndpoint}...");
 
@@ -148,30 +149,30 @@ namespace Dcomms.DRP
             if (rpPow1ResponsePacketData == null)
             {
                 WriteToLog_reg_requesterSide_debug($"... connection to RP {rpEndpoint} timed out");
-                return false;
+                return null;
             }
 
             var pow1ResponsePacket = new RegisterPow1ResponsePacket(PacketProcedures.CreateBinaryReader(rpPow1ResponsePacketData, 1));
-            if (pow1ResponsePacket.StatusCode != RegisterPowResponseStatusCode.succeeded_Pow2Challenge)
+            if (pow1ResponsePacket.StatusCode != RegisterPow1ResponseStatusCode.succeeded_Pow2Challenge)
             {
                 WriteToLog_reg_requesterSide_debug($"... connection to RP {rpEndpoint} failed with status {pow1ResponsePacket.StatusCode}");
                 // error: go to next RP
-                return false;
+                return null;
             }
             #endregion
 
             #region register SYN
-            //todo ecdh generate local keypair
-
+            _cryptoLibrary.GenerateEcdh25519Keypair(out var localEcdhe25519PrivateKey, out var localEcdhe25519PublicKey);
+            var neighborConnection = new ConnectedDrpPeer(ConnectedDrpPeerInitiatedBy.localPeer);
+      
             // calculate PoW2
             var registerSynPacket = new RegisterSynPacket
             {
-                RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
-              //  RequesterEcdhePublicKey = todo,
+                RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,  
                 Timestamp32S = Timestamp32S,
                 MinimalDistanceToNeighbor = 0,
                 NumberOfHopsRemaining = 10,
-                
+                RequesterEcdhePublicKey = new EcdhPublicKey { ecdh25519PublicKey = localEcdhe25519PublicKey }
             };
             GenerateRegisterSynPow2(registerSynPacket, pow1ResponsePacket.ProofOfWork2Request);
             registerSynPacket.RequesterSignature = new RegistrationSignature
@@ -180,7 +181,7 @@ namespace Dcomms.DRP
                     PacketProcedures.JoinFields(registerSynPacket.RequesterPublicKey_RequestID.ed25519publicKey, registerSynPacket.Timestamp32S, registerSynPacket.MinimalDistanceToNeighbor),
                     localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey.ed25519privateKey)
             };
-            var registerSynPacketData = registerSynPacket.Encode(RegisterSynPacket.Flag_AtoRP);
+            var registerSynPacketData = registerSynPacket.Encode(null);
 
             var registerSynPacket_NextHopResponsePacketData = await SendUdpRequestAsync(
                         new PendingLowLevelUdpRequest(rpEndpoint,
@@ -192,13 +193,13 @@ namespace Dcomms.DRP
             if (registerSynPacket_NextHopResponsePacketData == null)
             {
                 WriteToLog_reg_requesterSide_debug($"... connection to RP {rpEndpoint} timed out (DrpNextHopResponsePacket)");
-                return false;
+                return null;
             }
             var registerSynPacket_NextHopResponse = new NextHopResponsePacket(PacketProcedures.CreateBinaryReader(registerSynPacket_NextHopResponsePacketData, 1));
             if (registerSynPacket_NextHopResponse.StatusCode != NextHopResponseCode.received)
             {
                 WriteToLog_reg_requesterSide_debug($"... connection to RP {rpEndpoint} failed with status {registerSynPacket_NextHopResponse.StatusCode} (DrpNextHopResponsePacket)");
-                return false;
+                return null;
             }
             #endregion
 
@@ -212,19 +213,28 @@ namespace Dcomms.DRP
             if (registerSynAckPacketData == null)
             {
                 WriteToLog_reg_requesterSide_debug($"...connection to neighbor via RP {rpEndpoint} timed out (RegisterSynAckPacket)");
-                return false;
+                return null;
             }
-            var registerSynAckPacket = new RegisterSynAckPacket(PacketProcedures.CreateBinaryReader(registerSynAckPacketData, 1));
+            var registerSynAckPacket = RegisterSynAckPacket.DecodeAtRequester(PacketProcedures.CreateBinaryReader(registerSynAckPacketData, 1), 
+                registerSynPacket, localEcdhe25519PrivateKey, _cryptoLibrary, out var txParameters);
+            neighborConnection.TxParameters = txParameters;
+
+
             // verify signature of N
 
+            // generate localReceiverTxparamaters   generate local senderToken32,   get local public IP
 
-            //    connect to neighbor N, retransmit, get signed confirmation from N
-            
+            // send ACK, encode local 
+
+
+            //    connect to neighbor N using pings, retransmit, get signed confirmation from N
+
             // await   
-            
+
             // send registration confirmed packet
-            
-            return true;
+
+            localDrpPeer.ConnectedPeers.Add(neighborConnection);
+            return neighborConnection;
         }
         /// <returns>bytes of IP address</returns>
         async Task<byte[]> SendPublicApiRequestAsync(string url)
@@ -551,15 +561,13 @@ namespace Dcomms.DRP
         readonly DrpPeerRegistrationConfiguration _registrationConfiguration;
         public DrpPeerRegistrationConfiguration RegistrationConfiguration => _registrationConfiguration;
         readonly IDrpRegisteredPeerUser _user;
-        public byte[] Ecdhe25519PublicKey;
-        public byte[] Ecdhe25519PrivateKey;
-        public byte[] Ecdhe25519SharedSecret;
+
         public LocalDrpPeer(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
         {
             _registrationConfiguration = registrationConfiguration;
             _user = user;
         }
-        List<ConnectedDrpPeer> ConnectedPeers; // neighbors
+        public List<ConnectedDrpPeer> ConnectedPeers = new List<ConnectedDrpPeer>(); // neighbors
         /// <summary>
         /// main routing procedure
         /// selects next peer (hop) to proxy packet
@@ -606,34 +614,6 @@ namespace Dcomms.DRP
         void OnReceivedMessage(byte[] message);
     }
 
-    enum DrpPeerConnectionInitiatedBy
-    {
-        localPeer, // local peer connected to remote peer via REGISTER procedure
-        remotePeer // re mote peer connected to local peer via REGISTER procedure
-    }
-    class ConnectedDrpPeer
-    {
-        DrpPeerConnectionInitiatedBy InitiatedBy;
-        RegistrationPublicKey RemotePeerPublicKey;
-        byte[] SharedEcdheSecretKey; // for p2p packets. for encryption and hmac authentication
-
-        ConnectedDrpPeerRating Rating;
-
-        IirFilterCounter RxInviteRateRps;
-        IirFilterCounter RxRegisterRateRps;
-
-        float MaxTxInviteRateRps, MaxTxRegiserRaateRps; // sent by remote peer via ping
-        IirFilterCounter TxInviteRateRps, TxRegisterRateRps;
-        List<TxRegisterRequestState> PendingTxRegisterRequests;
-        List<TxInviteRequestState> PendingTxInviteRequests;
-    }
-    class ConnectedDrpPeerRating
-    {
-        IirFilterAverage PingRttMs;
-        TimeSpan Age => throw new NotImplementedException();
-        float RecentRegisterRequestsSuccessRate => throw new NotImplementedException(); // target of sybil-looped-traffic attack
-        float RecentInviteRequestsSuccessRate => throw new NotImplementedException(); // target of sybil-looped-traffic attack
-    }
     /// <summary>
     /// contains recent RDRs;  RAM-based database
     /// is used to prioritize requests in case of DoS

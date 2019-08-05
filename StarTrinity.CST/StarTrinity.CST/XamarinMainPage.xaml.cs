@@ -20,7 +20,7 @@ namespace StarTrinity.CST
             _cstApp = new CstApp(this);
             this.BindingContext = _cstApp;
 
-#if DEBUG
+#if DEBUG || true
             cryptographyTesterPage.BindingContext = new Dcomms.CCP.CryptographyTester((msg)=>
             {
                 cryptographyTesterOutput.Text = msg;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Text;
 
 namespace Dcomms
@@ -159,7 +160,28 @@ namespace Dcomms
             if (length == 0) return null;
             return reader.ReadBytes(length);
         }
-       
+
+        public static void EncodeIPEndPointIpv4(BinaryWriter writer, IPEndPoint endpoint)
+        {
+            writer.Write(endpoint.Address.GetAddressBytes());
+            writer.Write((UInt16)endpoint.Port);
+        }
+        public static IPEndPoint DecodeIPEndPointIpv4(BinaryReader reader)
+        {
+            return new IPEndPoint(new IPAddress(DecodeByteArray256(reader)), reader.ReadUInt16());
+        }
+
+        public static void EncodeIPEndPoint(BinaryWriter writer, IPEndPoint endpoint)
+        {
+            EncodeByteArray256(writer, endpoint.Address.GetAddressBytes());
+            writer.Write((UInt16)endpoint.Port);
+        }
+        public static IPEndPoint DecodeIPEndPoint(BinaryReader reader)
+        {
+            return new IPEndPoint(new IPAddress(reader.ReadBytes(4)), reader.ReadUInt16());
+        }
+
+
         public static byte[] JoinFields(byte[] f1, uint f2, byte f3)
         {
             CreateBinaryWriter(out var ms, out var writer);

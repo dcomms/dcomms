@@ -4,9 +4,11 @@
 --are signatures really needed?  A, N   in reg. packets
 --make sure timestamp inside every signature
 --make sure not reaching UDP payload  size:  508 bytes
-
 https://tools.ietf.org/html/rfc1122
 
+
+DH exchange alternative: 
+https://en.wikipedia.org/wiki/Interlock_protocol
 
 
 

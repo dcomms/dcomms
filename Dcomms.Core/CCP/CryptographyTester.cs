@@ -132,7 +132,35 @@ namespace Dcomms.CCP
             sw.Stop();
 
             _wtl($"Ecdh25519: { (double)n / sw.Elapsed.TotalSeconds } fullABop/sec");
-            // asv huawei 
+         
+        });
+
+
+        public DelegateCommand TestAes => new DelegateCommand(() =>
+        {
+            _cryptoLibrary.GenerateEcdh25519Keypair(out var privateKeyA, out var publicKeyA);
+            _cryptoLibrary.GenerateEcdh25519Keypair(out var privateKeyB, out var publicKeyB);
+
+            var sharedKeyAB = _cryptoLibrary.DeriveEcdh25519SharedSecret(privateKeyA, publicKeyB);
+            var sharedKeyBA = _cryptoLibrary.DeriveEcdh25519SharedSecret(privateKeyB, publicKeyA);
+
+            var input = new byte[4+2+2    + 8];  // ip addr 4 bytes; port 2 bytes; token16 2 bytes
+            for (byte i = 0; i < input.Length; i++)
+                input[i] = i;
+            var output = new byte[input.Length];
+            var decrypted = new byte[input.Length];
+
+            var iv = _cryptoLibrary.GetHashSHA256(sharedKeyAB).Take(16).ToArray();
+            var sw = Stopwatch.StartNew();
+            int n = 300000;
+            for (int i = 0; i < n; i++)
+            {
+                _cryptoLibrary.ProcessSingleAesBlock(true, sharedKeyAB, iv, input, output);
+                _cryptoLibrary.ProcessSingleAesBlock(false, sharedKeyAB, iv, output, decrypted);
+            }
+            sw.Stop();
+
+            _wtl($"AES: { (double)n / sw.Elapsed.TotalSeconds } fullOp/sec");           
 
         });
 

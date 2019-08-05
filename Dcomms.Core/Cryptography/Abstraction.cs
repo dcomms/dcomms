@@ -20,6 +20,8 @@ namespace Dcomms.Cryptography
         
         void GenerateEcdh25519Keypair(out byte[] localEcdhPrivateKey, out byte[] localEcdhPublicKey);
         byte[] DeriveEcdh25519SharedSecret(byte[] localPrivateKey, byte[] remotePublicKey);
+
+        void ProcessSingleAesBlock(bool encryptOrDecrypt, byte[] key, byte[] iv, byte[] input, byte[] output);
     }
 
     public static class CryptoLibraries
@@ -32,5 +34,8 @@ namespace Dcomms.Cryptography
         public static readonly int Ecdh25519PrivateKeySize = Org.BouncyCastle.Crypto.Parameters.X25519PrivateKeyParameters.KeySize;
         public static readonly int Ecdh25519PublicKeySize = Org.BouncyCastle.Crypto.Parameters.X25519PublicKeyParameters.KeySize;
         public static readonly int Ecdh25519SharedSecretKeySize = Org.BouncyCastle.Crypto.Parameters.X25519PrivateKeyParameters.SecretSize;
+
+
+        public static readonly int AesBlockSize = Org.BouncyCastle.Crypto.Engines.AesEngine.BLOCK_SIZE;
     }
 }

@@ -1,4 +1,6 @@
-﻿using Org.BouncyCastle.Crypto.Generators;
+﻿using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
 using Org.BouncyCastle.Math.EC.Rfc8032;
@@ -72,6 +74,12 @@ namespace Dcomms.Cryptography
                     0
                 );
             return sharedSecret;
+        }
+        void ICryptoLibrary.ProcessSingleAesBlock(bool encryptOrDecrypt, byte[] key, byte[] iv, byte[] input, byte[] output)
+        {
+            var cbcBlockCipher = new CbcBlockCipher(new AesEngine());
+            cbcBlockCipher.Init(encryptOrDecrypt, new ParametersWithIV(new KeyParameter(key), iv));
+            cbcBlockCipher.ProcessBlock(input, 0, output, 0);
         }
     }
 }

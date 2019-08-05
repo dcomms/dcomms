@@ -261,12 +261,13 @@
     </ContentPage>
     <ContentPage Title="dev" x:Name="cryptographyTesterPage" >       
         <ScrollView>
-            <StackLayout Padding="10" >
-                <Button Text="test hello0" Command="{Binding TestPoW_CCP_hello0}" />
-                <Button Text="test Ed25519" Command="{Binding TestEd25519}" />
-                <Button Text="test Ecdh25519" Command="{Binding TestEcdh25519}" />
-                <Label x:Name="cryptographyTesterOutput" LineBreakMode="WordWrap" />                
-            </StackLayout>            
+           <StackLayout Padding="10" >
+              <Button Text="test hello0" Command="{Binding TestPoW_CCP_hello0}" />
+              <Button Text="test Ed25519" Command="{Binding TestEd25519}" />
+              <Button Text="test Ecdh25519" Command="{Binding TestEcdh25519}" />
+              <Button Text="test AES" Command="{Binding TestAes}" />              
+              <Label x:Name="cryptographyTesterOutput" LineBreakMode="WordWrap" />                
+           </StackLayout>            
         </ScrollView>
     </ContentPage>
     <!--<ContentPage Title="About" Padding="10">
