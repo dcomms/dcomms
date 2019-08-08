@@ -15,16 +15,17 @@ namespace Dcomms.DRP
     /// is needed  1) for faster lookup of remote peer by first 16 of 32 bits 2) to have multiple DRP peer reg IDs running at same UDP port
     /// is unique at remote (responder) peer; is used to identify local (sender) peer at remote peer (together with HMAC)
     /// </summary>
-    public class RemotePeerToken32
+    public class P2pConnectionToken32
     {
         public uint Token32;
+        public ushort Token16 => (ushort)(Token32 & 0x0000FFFF);
         public void Encode(BinaryWriter writer)
         {
             writer.Write(Token32);
         }
-        public static RemotePeerToken32 Decode(BinaryReader reader)
+        public static P2pConnectionToken32 Decode(BinaryReader reader)
         {
-            var r = new RemotePeerToken32();
+            var r = new P2pConnectionToken32();
             r.Token32 = reader.ReadUInt32();
             return r;
         }
@@ -39,9 +40,10 @@ namespace Dcomms.DRP
     /// </summary>
     public class P2pStreamParameters
     {
-        public RemotePeerToken32 RemotePeerToken32;
+        public P2pConnectionToken32 RemotePeerToken32;
         public IPEndPoint RemoteEndpoint; // IP address + UDP port // where to send packets
-     
+        byte[] SharedDhSecret;
+        
         public static P2pStreamParameters DecryptAtRegisterRequester(byte[] localPrivateEcdhKey, RegisterSynPacket localRegisterSyn,
             RegisterSynAckPacket remoteRegisterSynAck, ICryptoLibrary cryptoLibrary)
         {
@@ -49,17 +51,17 @@ namespace Dcomms.DRP
 
             var r = new P2pStreamParameters();
 
-            var sharedDhSecret = cryptoLibrary.DeriveEcdh25519SharedSecret(localPrivateEcdhKey, remoteRegisterSynAck.NeighborEcdhePublicKey.ecdh25519PublicKey);
+            r.SharedDhSecret = cryptoLibrary.DeriveEcdh25519SharedSecret(localPrivateEcdhKey, remoteRegisterSynAck.NeighborEcdhePublicKey.ecdh25519PublicKey);
 
             var ms = new MemoryStream();      
             using (var writer = new BinaryWriter(ms))
             {
-                localRegisterSyn.GetCommonRequesterAndResponderFields(writer);
-                remoteRegisterSynAck.GetCommonRequesterAndResponderFields(writer);
+                localRegisterSyn.GetCommonRequesterAndResponderFields(writer, true);
+                remoteRegisterSynAck.GetCommonRequesterAndResponderFields(writer, false, false);
             }
             var iv = cryptoLibrary.GetHashSHA256(ms.ToArray());
 
-            ms.Write(sharedDhSecret, 0, sharedDhSecret.Length);
+            ms.Write(r.SharedDhSecret, 0, r.SharedDhSecret.Length);
             var aesKey = cryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
 
             var toNeighborTxParametersDecrypted = new byte[remoteRegisterSynAck.ToNeighborTxParametersEncrypted.Length];
@@ -69,25 +71,93 @@ namespace Dcomms.DRP
             using (var reader = new BinaryReader(new MemoryStream(toNeighborTxParametersDecrypted)))
             {
                 r.RemoteEndpoint = PacketProcedures.DecodeIPEndPointIpv4(reader);
-                r.RemotePeerToken32 = RemotePeerToken32.Decode(reader);
-                var magic32 = reader.ReadUInt32();
-                if (magic32 != Magic32_ipv4) throw new BrokenCipherException();
+                r.RemotePeerToken32 = P2pConnectionToken32.Decode(reader);
+                var magic16 = reader.ReadUInt16();
+                if (magic16 != Magic16_ipv4_responderToRequester) throw new BrokenCipherException();
             }
             
             return r;
         }
-        const uint Magic32_ipv4 = 0x692A60C1;
-        public static P2pStreamParameters CreateForRegisterResponder()
+        const ushort Magic16_ipv4_responderToRequester = 0x60C1; // is used to validate decrypted data
+        public static P2pStreamParameters DecryptAtRegisterResponder()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// when sending ACK
+        /// </summary>
+        public static byte[] EncryptAtRegisterRequester(byte[] localPrivateEcdhKey, 
+            RegisterSynPacket localRegisterSyn, RegisterSynAckPacket remoteRegisterSynAck, RegisterAckPacket localRegisterAckPacket, 
+            P2pStreamParameters localRxParameters, ICryptoLibrary cryptoLibrary)
+        {
+            if ((remoteRegisterSynAck.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
+
+            var r = new P2pStreamParameters();
+
+            var sharedDhSecret = cryptoLibrary.DeriveEcdh25519SharedSecret(localPrivateEcdhKey, remoteRegisterSynAck.NeighborEcdhePublicKey.ecdh25519PublicKey);
+
+            var ms = new MemoryStream();
+            using (var writer = new BinaryWriter(ms))
+            {
+                localRegisterSyn.GetCommonRequesterAndResponderFields(writer, true);
+                remoteRegisterSynAck.GetCommonRequesterAndResponderFields(writer, true, true);
+                localRegisterAckPacket.GetCommonRequesterAndResponderFields(writer, false, false);
+            }
+            var iv = cryptoLibrary.GetHashSHA256(ms.ToArray());
+
+            ms.Write(sharedDhSecret, 0, sharedDhSecret.Length);
+            var aesKey = cryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+
+            // encode localRxParameters
+            PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
+            PacketProcedures.EncodeIPEndPointIpv4(wRxParameters, localRxParameters.RemoteEndpoint); // 6
+            localRxParameters.RemotePeerToken32.Encode(wRxParameters); // 4
+            wRxParameters.Write(Magic16_ipv4_requesterToResponder);    // 2
+            wRxParameters.Write(cryptoLibrary.GetRandomBytes(4));      // 4
+            
+            var localRxParametersDecrypted = msRxParameters.ToArray(); // total 16 bytes
+            var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
+            cryptoLibrary.ProcessSingleAesBlock(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
+            
+            return localRxParametersEncrypted;
+        }
+        const ushort Magic16_ipv4_requesterToResponder = 0xBFA4; // is used to validate decrypted data
+        
+
+     //   IAuthenticatedEncryptor Encryptor;
+     //   IAuthenticatedDecryptor Decryptor;
+        byte[] SharedAuthKeyForHMAC; //  this key is shared secret, known only at requester (A) and neighbor (N), it is used for HMAC
+        public void InitializeNeighborTxRxStreams(RegisterSynPacket registerSynPacket, RegisterSynAckPacket registerSynAckPacket, RegisterAckPacket registerAckPacket, ICryptoLibrary cryptoLibrary)
+        {
+            var ms = new MemoryStream();
+            using (var writer = new BinaryWriter(ms))
+            {
+                registerSynPacket.GetCommonRequesterAndResponderFields(writer, true);
+                registerSynAckPacket.GetCommonRequesterAndResponderFields(writer, true, true);
+                registerAckPacket.GetCommonRequesterAndResponderFields(writer, false, false);
+            }
+            var iv = cryptoLibrary.GetHashSHA256(ms.ToArray());
+
+            ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
+
+            SharedAuthKeyForHMAC = cryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+           
+            //Encryptor = cryptoLibrary.CreateAesEncyptor(iv, aesKey);
+            //Decryptor = cryptoLibrary.CreateAesDecyptor(iv, aesKey);
+        }
+        public HMAC GetLocalSenderHmac(ICryptoLibrary cryptoLibarary, byte[] data)
+        {
+            if (SharedAuthKeyForHMAC == null) throw new InvalidOperationException();
+            return new HMAC
+            {
+                hmacSha256 = cryptoLibarary.GetSha256HMAC(SharedAuthKeyForHMAC, data)
+            };
+            
+        }
 
 
-        //public HMAC GetLocalSenderHmac(RegisterSynPacket registerSyn)
-        //{
-        //    throw new NotImplementedException();
-        //}
+
 
 
     }

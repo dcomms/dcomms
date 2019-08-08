@@ -1,9 +1,12 @@
-﻿using Org.BouncyCastle.Crypto.Engines;
+﻿using Org.BouncyCastle.Crypto.Digests;
+using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto.Macs;
 using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
 using Org.BouncyCastle.Math.EC.Rfc8032;
+using Org.BouncyCastle.Security;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,7 +16,18 @@ using System.Text;
 namespace Dcomms.Cryptography
 {
     class CryptoLibrary1 : ICryptoLibrary
-    {       
+    {
+        SecureRandom _secureRandom2 = new SecureRandom();
+        SecureRandom _secureRandom = new SecureRandom();
+
+        byte[] ICryptoLibrary.GetRandomBytes(int count)
+        {
+            var r = new byte[count];
+            _secureRandom.NextBytes(r);
+            return r;
+        }
+
+
         readonly SHA256 _sha256 = SHA256.Create();
         byte[] ICryptoLibrary.GetHashSHA256(byte[] data)
         {
@@ -33,7 +47,7 @@ namespace Dcomms.Cryptography
         byte[] ICryptoLibrary.GeneratePrivateKeyEd25519()
         {
             var data = new byte[Ed25519.SecretKeySize];
-            Ed25519.GeneratePrivateKey(new Org.BouncyCastle.Security.SecureRandom(), data);
+            Ed25519.GeneratePrivateKey(_secureRandom2, data);
             return data;
         }
 
@@ -60,7 +74,7 @@ namespace Dcomms.Cryptography
         }
         void ICryptoLibrary.GenerateEcdh25519Keypair(out byte[] localEcdhPrivateKey, out byte[] localEcdhPublicKey)
         {
-            X25519PrivateKeyParameters privateKey = new X25519PrivateKeyParameters(new Org.BouncyCastle.Security.SecureRandom());
+            X25519PrivateKeyParameters privateKey = new X25519PrivateKeyParameters(_secureRandom2);
             localEcdhPrivateKey = privateKey.GetEncoded();
             localEcdhPublicKey = privateKey.GeneratePublicKey().GetEncoded();
         }
@@ -80,6 +94,16 @@ namespace Dcomms.Cryptography
             var cbcBlockCipher = new CbcBlockCipher(new AesEngine());
             cbcBlockCipher.Init(encryptOrDecrypt, new ParametersWithIV(new KeyParameter(key), iv));
             cbcBlockCipher.ProcessBlock(input, 0, output, 0);
+        }
+
+        byte[] ICryptoLibrary.GetSha256HMAC(byte[] key, byte[] data)
+        {
+            var hmac = new HMac(new Sha256Digest());
+            hmac.Init(new KeyParameter(key));
+            var result = new byte[hmac.GetMacSize()];
+            hmac.BlockUpdate(data, 0, data.Length);
+            hmac.DoFinal(result, 0);
+            return result;
         }
     }
 }

@@ -182,13 +182,5 @@ namespace Dcomms
         }
 
 
-        public static byte[] JoinFields(byte[] f1, uint f2, byte f3)
-        {
-            CreateBinaryWriter(out var ms, out var writer);
-            writer.Write(f1);
-            writer.Write(f2);
-            writer.Write(f3);
-            return ms.ToArray();
-        }
     }
 }

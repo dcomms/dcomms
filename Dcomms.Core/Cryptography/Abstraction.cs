@@ -8,6 +8,8 @@ namespace Dcomms.Cryptography
 {
     public interface ICryptoLibrary
     {
+        byte[] GetRandomBytes(int count);
+
         byte[] GetHashSHA256(byte[] data);
         byte[] GetHashSHA512(byte[] data);
         byte[] GetHashSHA512(Stream data);
@@ -22,6 +24,7 @@ namespace Dcomms.Cryptography
         byte[] DeriveEcdh25519SharedSecret(byte[] localPrivateKey, byte[] remotePublicKey);
 
         void ProcessSingleAesBlock(bool encryptOrDecrypt, byte[] key, byte[] iv, byte[] input, byte[] output);
+        byte[] GetSha256HMAC(byte[] key, byte[] data);
     }
 
     public static class CryptoLibraries

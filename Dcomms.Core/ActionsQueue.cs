@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -31,7 +32,6 @@ namespace Dcomms
                 tcs.SetResult(true);
             });
             return tcs.Task;
-
         }
         public void ExecuteQueued()
         {
@@ -54,11 +54,117 @@ namespace Dcomms
                     _onException(exc);
                 }
             }
+
+            ExecuteDelayedActions();
         }
 
         public void Dispose()
         {
             _isDisposing = true;
         }
+
+
+        #region delayed events
+        static readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+        private static TimeSpan Time => _stopwatch.Elapsed;
+        public void EnqueueDelayed(TimeSpan delay, Action a) // is executed only engine thread
+        {
+            //if (delay.TotalMinutes > 10)
+            //{
+            //    Logs.WriteToLog(LogModule.ssk, null, LogLevel.Warning, "adding delayed action '{0}' with timeout '{1}', it can cause memory leak. at {2}",
+            //        eventHandler, delay, new StackTrace()
+            //        );
+            //}
+
+            int eventsSortedByDueTimeIndex = _eventsSortedByDueTimeCounter++ % DelayedActionsSortedByDueTimeArraySize;
+            var eventsSortedByDueTime = _delayedActionsSortedByDueTime[eventsSortedByDueTimeIndex]; 
+            // select one of linked lists (queues), sequentially.   using of only 1 linked list is slow
+            var t = Time + delay;
+            var e = new DelayedAction(a, t);
+
+            // linkedlist example:  100sec   102sec  104sec   108sec
+            //      inserting:           105sec     108sec    109sec     99sec
+
+            // enumerate linkedlist of events starting from end to find an item where to insert
+            for (var item = eventsSortedByDueTime.Last; ;)
+            {
+                if (item == null) break;
+                if (item.Value.DueTime < t)
+                {
+                    eventsSortedByDueTime.AddAfter(item, e);
+                    return;
+                }
+
+                item = item.Previous;
+            }
+
+            eventsSortedByDueTime.AddFirst(e);
+        }
+        public Task<bool> WaitAsync(TimeSpan delay) // is executed only engine thread
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            EnqueueDelayed(delay, () =>
+            {
+                tcs.SetResult(true);
+            });
+            return tcs.Task;
+        }
+                        
+        private class DelayedAction
+        {
+            public readonly Action EventHandler;
+            public readonly TimeSpan DueTime;
+            public DelayedAction(Action eventHandler, TimeSpan dueTime)
+            {
+                this.EventHandler = eventHandler;
+                this.DueTime = dueTime;
+            }
+        }
+
+        private const int DelayedActionsSortedByDueTimeArraySize = 128;
+        private readonly LinkedList<DelayedAction>[] _delayedActionsSortedByDueTime = CreateEventsSortedByDueTime();
+        static LinkedList<DelayedAction>[] CreateEventsSortedByDueTime()
+        {
+            var r = new LinkedList<DelayedAction>[DelayedActionsSortedByDueTimeArraySize];
+            for (int i = 0; i < DelayedActionsSortedByDueTimeArraySize; i++)
+                r[i] = new LinkedList<DelayedAction>();
+            return r;
+        }
+        void ExecuteDelayedActions()
+        {
+            // linkedlist example:  100sec   102sec  104sec   108sec
+            //       now:              10sec    102sec
+
+            var now = Time;
+            foreach (var eventsSortedByDueTime in _delayedActionsSortedByDueTime)
+            {
+                for (var item = eventsSortedByDueTime.First; ;)
+                {
+                    if (item == null) break;
+                    var e = item.Value;
+                    if (e.DueTime > now) break;
+
+                    // go to next item
+                    var itemToRemove = item;
+                    item = item.Next;
+
+                    // execute item
+                    try
+                    {
+                        e.EventHandler();
+                    }
+                    catch (Exception exc)
+                    {
+                        _onException(exc);
+                    }
+                    if (_isDisposing) return;
+
+                    // remove executed item
+                    eventsSortedByDueTime.Remove(itemToRemove);
+                }
+            }
+        }
+        private int _eventsSortedByDueTimeCounter = 0;    
+        #endregion
     }
 }

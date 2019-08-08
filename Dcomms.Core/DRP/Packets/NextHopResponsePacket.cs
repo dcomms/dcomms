@@ -15,7 +15,7 @@ namespace Dcomms.DRP.Packets
     {
         public static byte Flag_RPtoA = 0x01; // set if packet is transmitted from RP to A, is zero otherwise
 
-        public RemotePeerToken32 SenderToken32; // is not transmitted in RP->A packet
+        public P2pConnectionToken32 SenderToken32; // is not transmitted in RP->A packet
         public RegistrationPublicKey RequesterPublicKey_RequestID;
         public NextHopResponseCode StatusCode;
         /// <summary>
@@ -41,7 +41,7 @@ namespace Dcomms.DRP.Packets
         public NextHopResponsePacket(BinaryReader reader)
         {
             var flags = reader.ReadByte();
-            if ((flags & Flag_RPtoA) == 0) SenderToken32 = RemotePeerToken32.Decode(reader);
+            if ((flags & Flag_RPtoA) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
             RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             StatusCode = (NextHopResponseCode)reader.ReadByte();
             if ((flags & Flag_RPtoA) == 0) SenderHMAC = HMAC.Decode(reader);

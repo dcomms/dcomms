@@ -12,7 +12,7 @@ namespace Dcomms.DRP.Packets
     /// </summary>
     class InviteRequestPacket
     {
-        RemotePeerToken32 SenderToken32;
+        P2pConnectionToken32 SenderToken32;
         byte ReservedFlagsMustBeZero;
         // requestID={RequesterPublicKey|DestinationResponderPublicKey}
 
@@ -40,7 +40,7 @@ namespace Dcomms.DRP.Packets
     /// </summary>
     class InviteResponsePacket
     {
-        RemotePeerToken32 SenderToken32;
+        P2pConnectionToken32 SenderToken32;
         byte ReservedFlagsMustBeZero;
         // requestID={RequesterPublicKey|DestinationResponderPublicKey}
 

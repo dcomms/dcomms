@@ -38,13 +38,16 @@ namespace Dcomms.DRP.Packets
         public uint RegisterSynTimestamp32S;
 
         public RegistrationPublicKey NeighborPublicKey; // public key of responder (neighbor, N)
-        public RegistrationSignature NeighborSignature; // {NeighborStatusCode,NeighborEndpoint_EncryptedByRequesterPublicKey,RequesterPublicKey_RequestID,RegisterSynTimestamp32S,NeighborPublicKey }
-       
+        /// <summary>
+        /// signs fields: {NeighborStatusCode,NeighborEcdhePublicKey,ToNeighborTxParametersEncrypted,RequesterPublicKey_RequestID,RegisterSynTimestamp32S,NeighborPublicKey }
+        /// </summary>
+        public RegistrationSignature NeighborSignature; 
+
         HMAC SenderHMAC; // is not sent from RP to A
-        public IPEndPoint RequesterEndpoint; // is sent only from RP to A to provide public IP:port of A
+        public IPEndPoint RequesterEndpoint; // is sent only from RP to A, to provide public IP:port of A, for UDP hole punching  // not signed, not encrypted
 
         /// <summary>
-        /// decodes the packet, decrypts NeighborEndpoint_EncryptedByRequesterPublicKey, verifies NeighborSignature
+        /// decodes the packet, decrypts ToNeighborTxParametersEncrypted, verifies NeighborSignature, verifies match to register SYN
         /// </summary>
         /// <param name="reader">is positioned after first byte = packet type</param>
         public static RegisterSynAckPacket DecodeAtRequester(BinaryReader reader, RegisterSynPacket registerSyn, byte[] localEcdhPrivateKey, 
@@ -60,28 +63,37 @@ namespace Dcomms.DRP.Packets
             r.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             r.RegisterSynTimestamp32S = reader.ReadUInt32();
             r.NeighborPublicKey = RegistrationPublicKey.Decode(reader);
-            r.NeighborSignature = RegistrationSignature.Decode(reader);
-
+            r.NeighborSignature = RegistrationSignature.DecodeAndVerify(reader, cryptoLibrary, w => r.GetCommonRequesterAndResponderFields(w, false, true), r.NeighborPublicKey);
+            r.AssertMatchToRegisterSyn(registerSyn);
+            
             txParameters = P2pStreamParameters.DecryptAtRegisterRequester(localEcdhPrivateKey, registerSyn, r, cryptoLibrary);
-
             r.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
-
-            //  xx
 
             // if ((flags & Flag_RPtoA) == 0)
             //     SenderHMAC = HMAC.Decode(reader);
             return r;
         }
+        void AssertMatchToRegisterSyn(RegisterSynPacket registerSyn)
+        {
+            if (registerSyn.RequesterPublicKey_RequestID.Equals(this.RequesterPublicKey_RequestID) == false)
+                throw new UnmatchedResponseFieldsException();
+            if (registerSyn.Timestamp32S != this.RegisterSynTimestamp32S)
+                throw new UnmatchedResponseFieldsException();
+        }
 
-        public void GetCommonRequesterAndResponderFields(BinaryWriter writer)
+
+        /// <summary>
+        /// fields for neighbor's signature and for AEAD hash
+        /// </summary>
+        public void GetCommonRequesterAndResponderFields(BinaryWriter writer, bool includeSignature, bool includeTxParameters)
         {
             writer.Write((byte)NeighborStatusCode);
             NeighborEcdhePublicKey.Encode(writer);
-            writer.Write(ToNeighborTxParametersEncrypted);
+            if (includeTxParameters) writer.Write(ToNeighborTxParametersEncrypted);
             RequesterPublicKey_RequestID.Encode(writer);
             writer.Write(RegisterSynTimestamp32S);
             NeighborPublicKey.Encode(writer);
-            NeighborSignature.Encode(writer);
+            if (includeSignature) NeighborSignature.Encode(writer);
         }
     }
 }

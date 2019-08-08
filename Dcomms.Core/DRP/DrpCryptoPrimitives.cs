@@ -24,6 +24,11 @@ namespace Dcomms.DRP
             r.ed25519publicKey = reader.ReadBytes(CryptoLibraries.Ed25519PublicKeySize);
             return r;
         }
+        public override bool Equals(object obj)
+        {
+            var obj2 = (RegistrationPublicKey)obj;
+            return obj2.ReservedFlagsMustBeZero == this.ReservedFlagsMustBeZero && MiscProcedures.EqualByteArrays(obj2.ed25519publicKey, this.ed25519publicKey);
+        }
     }
     public class RegistrationPrivateKey
     {
@@ -33,6 +38,18 @@ namespace Dcomms.DRP
     {
         byte ReservedFlagsMustBeZero; // will include "type" = "ed25519 by default"
         public byte[] ed25519signature;
+
+        public static RegistrationSignature Sign(ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, RegistrationPrivateKey privateKey)
+        {
+            var r = new RegistrationSignature();
+            var ms = new MemoryStream(); using (var writer = new BinaryWriter(ms)) writeSignedFields(writer);
+            r.ed25519signature = cryptoLibrary.SignEd25519(
+                    ms.ToArray(),
+                    privateKey.ed25519privateKey);
+            return r;
+        }
+
+
         public void Encode(BinaryWriter writer)
         {
             writer.Write(ReservedFlagsMustBeZero);
@@ -44,6 +61,16 @@ namespace Dcomms.DRP
             var r = new RegistrationSignature();
             r.ReservedFlagsMustBeZero = reader.ReadByte();
             r.ed25519signature = reader.ReadBytes(CryptoLibraries.Ed25519SignatureSize);
+            return r;
+        }
+        public static RegistrationSignature DecodeAndVerify(BinaryReader reader, ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, RegistrationPublicKey publicKey)
+        {
+            var r = Decode(reader);            
+            var signedData = new MemoryStream();
+            using (var writer = new BinaryWriter(signedData))
+                writeSignedFields(writer);
+            if (cryptoLibrary.VerifyEd25519(signedData.ToArray(), r.ed25519signature, publicKey.ed25519publicKey) == false)
+                throw new BadSignatureException();         
             return r;
         }
     }
@@ -68,22 +95,22 @@ namespace Dcomms.DRP
         }
     }
   
-    class HMAC
+    public class HMAC
     {
         byte ReservedFlagsMustBeZero; // will include "type" = "ecdhe->KDF->sharedkey -> +plainText -> sha256" by default
-        public byte[] hmac; // 32 bytes for hmac_sha256
+        public byte[] hmacSha256; // 32 bytes for hmac_sha256
         public void Encode(BinaryWriter writer)
         {
             writer.Write(ReservedFlagsMustBeZero);
-            if (hmac.Length != 32) throw new ArgumentException();
-            writer.Write(hmac);
+            if (hmacSha256.Length != 32) throw new ArgumentException();
+            writer.Write(hmacSha256);
         }
 
         public static HMAC Decode(BinaryReader reader)
         {
             var r = new HMAC();
             r.ReservedFlagsMustBeZero = reader.ReadByte();
-            r.hmac = reader.ReadBytes(32);
+            r.hmacSha256 = reader.ReadBytes(32);
             return r;
         }
     }

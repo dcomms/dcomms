@@ -20,7 +20,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         static byte Flag_AtoRP = 0x01; 
 
-        public RemotePeerToken32 SenderToken32; // is not transmitted in A->RP request
+        public P2pConnectionToken32 SenderToken32; // is not transmitted in A->RP request
 
         public RegistrationPublicKey RequesterPublicKey_RequestID; // used to verify signature // used also as request ID
         public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new P2P connection
@@ -80,7 +80,7 @@ namespace Dcomms.DRP.Packets
             if (txParametersToPeerNeighbor != null)
                 txParametersToPeerNeighbor.RemotePeerToken32.Encode(writer);
 
-            GetCommonRequesterAndResponderFields(writer);
+            GetCommonRequesterAndResponderFields(writer, true);
 
             if (txParametersToPeerNeighbor == null)
             {
@@ -93,19 +93,22 @@ namespace Dcomms.DRP.Packets
            
             return ms.ToArray();
         }
-        public void GetCommonRequesterAndResponderFields(BinaryWriter writer)
+        /// <summary>
+        /// used for signature at requester; as source AEAD hash
+        /// </summary>
+        public void GetCommonRequesterAndResponderFields(BinaryWriter writer, bool includeRequesterSignature)
         {
             RequesterPublicKey_RequestID.Encode(writer);
             RequesterEcdhePublicKey.Encode(writer);
             writer.Write(Timestamp32S);
             writer.Write(MinimalDistanceToNeighbor);
-            RequesterSignature.Encode(writer);
+            if (includeRequesterSignature) RequesterSignature.Encode(writer);
         }
         /// <param name="reader">is positioned after first byte = packet type</param>
         public RegisterSynPacket(BinaryReader reader)
         {
             var flags = reader.ReadByte();
-            if ((flags & Flag_AtoRP) == 0) SenderToken32 = RemotePeerToken32.Decode(reader);
+            if ((flags & Flag_AtoRP) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
 
             RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
