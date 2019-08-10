@@ -29,6 +29,10 @@ namespace Dcomms.DRP
             r.Token32 = reader.ReadUInt32();
             return r;
         }
+        public override bool Equals(object obj)
+        {
+            return ((P2pConnectionToken32)obj).Token32 == this.Token32;
+        }
     }
 
     /// <summary>
@@ -146,7 +150,7 @@ namespace Dcomms.DRP
             //Encryptor = cryptoLibrary.CreateAesEncyptor(iv, aesKey);
             //Decryptor = cryptoLibrary.CreateAesDecyptor(iv, aesKey);
         }
-        public HMAC GetLocalSenderHmac(ICryptoLibrary cryptoLibarary, byte[] data)
+        public HMAC GetSharedHmac(ICryptoLibrary cryptoLibarary, byte[] data)
         {
             if (SharedAuthKeyForHMAC == null) throw new InvalidOperationException();
             return new HMAC
@@ -155,11 +159,11 @@ namespace Dcomms.DRP
             };
 
         }
-        public HMAC GetLocalSenderHmac(ICryptoLibrary cryptoLibarary, Action<BinaryWriter> data)
+        public HMAC GetSharedHmac(ICryptoLibrary cryptoLibarary, Action<BinaryWriter> data)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             data(w);
-            return GetLocalSenderHmac(cryptoLibarary, ms.ToArray());
+            return GetSharedHmac(cryptoLibarary, ms.ToArray());
         }
     }
 }

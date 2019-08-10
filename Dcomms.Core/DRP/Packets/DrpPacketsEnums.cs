@@ -15,6 +15,9 @@ namespace Dcomms.DRP.Packets
         NextHopResponsePacket = 4,
         RegisterSynAckPacket = 5,
         RegisterAckPacket = 6,
+        PingRequestPacket = 7,
+        PingResponsePacket = 8,
+        RegisterConfirmationPacket = 9,
     }
           
     public enum DrpResponderStatusCode

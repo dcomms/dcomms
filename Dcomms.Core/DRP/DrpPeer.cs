@@ -221,7 +221,7 @@ namespace Dcomms.DRP
                             new byte[] { (byte)DrpPacketType.RegisterSynAckPacket },
                             null,
                             DateTimeNowUtc,
-                            TimeSpan.FromSeconds(10)
+                            10
                         ));
             if (registerSynAckPacketData == null)
             {
@@ -256,8 +256,7 @@ namespace Dcomms.DRP
                     localRxParamtersToEncrypt,
                     _cryptoLibrary
                     );
-            registerAckPacket.RequesterSignature = txParameters.GetLocalSenderHmac(_cryptoLibrary, w => registerAckPacket.GetCommonRequesterAndResponderFields(w, false, true),
-                localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
+            registerAckPacket.RequesterHMAC = txParameters.GetSharedHmac(_cryptoLibrary, w => registerAckPacket.GetCommonRequesterAndResponderFields(w, false, true));
             var registerAckPacketData = registerAckPacket.Encode(null);
 
             var registerAckPacket_NextHopResponsePacketData = await SendUdpRequestAsync(
@@ -282,23 +281,43 @@ namespace Dcomms.DRP
             var neighborWaitTimeMs = synToSynAckTimeMs * 0.5 - 100; if (neighborWaitTimeMs < 0) neighborWaitTimeMs = 0;
             if (neighborWaitTimeMs > 20)
             {
-                await _engineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(neighborWaitTimeMs));
+                await _engineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(neighborWaitTimeMs)); // wait until the registerACK reaches neighbor N via peers
             }
 
             // get shared IV from hashes of syn,synack,ack packets (common fields)
             neighborConnection.TxParameters.InitializeNeighborTxRxStreams(registerSynPacket, registerSynAckPacket, registerAckPacket, _cryptoLibrary);
 
-            var localPingRequestPacket = neighborConnection.CreatePingRequestPacket();
-
-            byte[] localPingRequestPacketData = localPingRequestPacket.Encode();
-
-            // TODO   connect to neighbor N using pings (10 times ), retransmit, get ping request and   signed confirmation from N
-
-            // await   
-
-            // send registration confirmed packet
+            #region send ping request directly to neighbor N, retransmit
+            var pingRequestPacket = neighborConnection.CreatePingRequestPacket(_cryptoLibrary);
+            byte[] pingRequestPacketData = pingRequestPacket.Encode();
+            var pingResponsePacketData = await SendUdpRequestAsync(
+                        new PendingLowLevelUdpRequest(txParameters.RemoteEndpoint,
+                            new byte[] { (byte)DrpPacketType.PingResponsePacket },
+                            pingRequestPacketData,
+                            DateTimeNowUtc, 5, 0.1, 1.05
+                        )
+                        ); // wait for pingResponse from N
+            if (pingResponsePacketData == null)
+            {
+                WriteToLog_reg_requesterSide_debug($"... connection to N {txParameters.RemoteEndpoint} timed out (no response to ping)");
+                return null;
+            }
+            var pingResponsePacket = PingResponsePacket.DecodeAndVerify(_cryptoLibrary,
+                PacketProcedures.CreateBinaryReader(pingResponsePacketData, 1), pingRequestPacket, neighborConnection,
+                true, registerSynPacket, registerSynAckPacket);
 
             localDrpPeer.ConnectedPeers.Add(neighborConnection);
+            #endregion
+
+
+            // send registration confirmation packet to RP->X->N
+            var registerConfirmationPacket = new RegisterConfirmationPacket
+            {
+                RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
+                NeighborP2pConnectionSetupSignature = pingResponsePacket.P2pConnectionSetupSignature,
+                RequesterSignature = xx
+            };
+
             return neighborConnection;
         }
         /// <returns>bytes of IP address</returns>
@@ -528,23 +547,23 @@ namespace Dcomms.DRP
             public DateTime NextRetransmissionTimeUTC;
             public TaskCompletionSource<byte[]> TaskCompletionSource = new TaskCompletionSource<byte[]>();
             TimeSpan CurrentRetransmissionTimeout;
-            public PendingLowLevelUdpRequest(IPEndPoint remoteEndpoint, byte[] responseFirstBytes, byte[] requestPacketData, DateTime timeUtc, TimeSpan? expirationTimeout = null)
+            public PendingLowLevelUdpRequest(IPEndPoint remoteEndpoint, byte[] responseFirstBytes, byte[] requestPacketData, DateTime timeUtc, 
+                double expirationTimeoutS = 2, double initialRetransmissionTimeoutS = 0.2, double retransmissionTimeoutIncrement = 1.5)
             {
-                ExpirationTimeUTC = timeUtc + (expirationTimeout ?? ExpirationTimeout);
-                CurrentRetransmissionTimeout = InitialRetransmissionTimeout;
-                NextRetransmissionTimeUTC = timeUtc + InitialRetransmissionTimeout;
+                _retransmissionTimeoutIncrement = retransmissionTimeoutIncrement;
+                ExpirationTimeUTC = timeUtc.AddSeconds(expirationTimeoutS);
+                CurrentRetransmissionTimeout = TimeSpan.FromSeconds(initialRetransmissionTimeoutS);
+                NextRetransmissionTimeUTC = timeUtc + CurrentRetransmissionTimeout;
                 RemoteEndpoint = remoteEndpoint;
                 ResponseFirstBytes = responseFirstBytes;
                 RequestPacketData = requestPacketData;
             }
             public void OnRetransmitted()
             {
-                CurrentRetransmissionTimeout = TimeSpan.FromTicks((long)(CurrentRetransmissionTimeout.Ticks * RetransmissionTimeoutIncrement));
+                CurrentRetransmissionTimeout = TimeSpan.FromTicks((long)(CurrentRetransmissionTimeout.Ticks * _retransmissionTimeoutIncrement));
                 NextRetransmissionTimeUTC += CurrentRetransmissionTimeout;
             }
-            static readonly TimeSpan ExpirationTimeout = TimeSpan.FromSeconds(2);
-            static readonly TimeSpan InitialRetransmissionTimeout = TimeSpan.FromSeconds(0.2);
-            static readonly float RetransmissionTimeoutIncrement = 1.5f;
+            readonly double _retransmissionTimeoutIncrement;
         }
         LinkedList<PendingLowLevelUdpRequest> _pendingLowLevelUdpRequests = new LinkedList<PendingLowLevelUdpRequest>(); // accessed by engine thread only
                 

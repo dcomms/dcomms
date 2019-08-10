@@ -62,12 +62,12 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// used for signature at requester; as source for p2p stream AEAD hash
         /// </summary>
-        public void GetCommonRequesterAndResponderFields(BinaryWriter writer, bool includeRequesterSignature, bool includeTxParameters)
+        public void GetCommonRequesterAndResponderFields(BinaryWriter writer, bool includeRequesterHMAC, bool includeTxParameters)
         {
             RequesterPublicKey_RequestID.Encode(writer);
             writer.Write(RegisterSynTimestamp32S);
             if (includeTxParameters) writer.Write(ToRequesterTxParametersEncrypted);
-            if (includeRequesterSignature) RequesterSignature.Encode(writer);
+            if (includeRequesterHMAC) RequesterHMAC.Encode(writer);
         }
         /// <param name="reader">is positioned after first byte = packet type</param>
         public RegisterAckPacket(BinaryReader reader)
@@ -77,9 +77,8 @@ namespace Dcomms.DRP.Packets
 
             RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             RegisterSynTimestamp32S = reader.ReadUInt32();
-            RequesterSignature = RegistrationSignature.Decode(reader);
+            RequesterHMAC = HMAC.Decode(reader);
             //todo: verify, at responder
-
          
             if ((flags & Flag_AtoRP) == 0) throw new NotImplementedException();
             //SenderHMAC = HMAC.Decode(reader);

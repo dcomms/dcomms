@@ -113,6 +113,12 @@ namespace Dcomms.DRP
             r.hmacSha256 = reader.ReadBytes(32);
             return r;
         }
+        public override bool Equals(object obj)
+        {
+            var obj2 = (HMAC)obj;
+            if (obj2.ReservedFlagsMustBeZero != this.ReservedFlagsMustBeZero) return false;
+            return MiscProcedures.EqualByteArrays(obj2.hmacSha256, this.hmacSha256);
+        }
     }
 
 }
