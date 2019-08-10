@@ -137,12 +137,12 @@ namespace Dcomms.DRP
                 registerSynAckPacket.GetCommonRequesterAndResponderFields(writer, true, true);
                 registerAckPacket.GetCommonRequesterAndResponderFields(writer, false, false);
             }
-            var iv = cryptoLibrary.GetHashSHA256(ms.ToArray());
-
+            var iv = cryptoLibrary.GetHashSHA256(ms.ToArray()); // todo use for encryption
+              
             ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
 
             SharedAuthKeyForHMAC = cryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
-           
+
             //Encryptor = cryptoLibrary.CreateAesEncyptor(iv, aesKey);
             //Decryptor = cryptoLibrary.CreateAesDecyptor(iv, aesKey);
         }
@@ -153,12 +153,13 @@ namespace Dcomms.DRP
             {
                 hmacSha256 = cryptoLibarary.GetSha256HMAC(SharedAuthKeyForHMAC, data)
             };
-            
+
         }
-
-
-
-
-
+        public HMAC GetLocalSenderHmac(ICryptoLibrary cryptoLibarary, Action<BinaryWriter> data)
+        {
+            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            data(w);
+            return GetLocalSenderHmac(cryptoLibarary, ms.ToArray());
+        }
     }
 }

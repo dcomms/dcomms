@@ -256,7 +256,8 @@ namespace Dcomms.DRP
                     localRxParamtersToEncrypt,
                     _cryptoLibrary
                     );
-            registerAckPacket.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary, w => registerAckPacket.GetCommonRequesterAndResponderFields(w, false, true), localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
+            registerAckPacket.RequesterSignature = txParameters.GetLocalSenderHmac(_cryptoLibrary, w => registerAckPacket.GetCommonRequesterAndResponderFields(w, false, true),
+                localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
             var registerAckPacketData = registerAckPacket.Encode(null);
 
             var registerAckPacket_NextHopResponsePacketData = await SendUdpRequestAsync(
