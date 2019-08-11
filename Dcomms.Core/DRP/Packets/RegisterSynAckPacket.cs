@@ -19,7 +19,7 @@ namespace Dcomms.DRP.Packets
         public static byte Flag_ipv6 = 0x02;  // set if responder is accessible via ipv6 address. default (0) means ipv4
         public byte Flags;
 
-        // RemotePeerToken16 SenderToken16; // is not sent from RP to A
+        P2pConnectionToken32 SenderToken32; // is not sent from RP to A
         public DrpResponderStatusCode NeighborStatusCode;
         public EcdhPublicKey NeighborEcdhePublicKey;
         /// <summary>
@@ -45,6 +45,7 @@ namespace Dcomms.DRP.Packets
 
         HMAC SenderHMAC; // is not sent from RP to A
         public IPEndPoint RequesterEndpoint; // is sent only from RP to A, to provide public IP:port of A, for UDP hole punching  // not signed, not encrypted
+        public NextHopAckSequenceNumber16 NhaSeq16; // is not sent from RP to A
 
         /// <summary>
         /// decodes the packet, decrypts ToNeighborTxParametersEncrypted, verifies NeighborSignature, verifies match to register SYN
@@ -67,7 +68,8 @@ namespace Dcomms.DRP.Packets
             r.AssertMatchToRegisterSyn(registerSyn);
             
             txParameters = P2pStreamParameters.DecryptAtRegisterRequester(localEcdhPrivateKey, registerSyn, r, cryptoLibrary);
-            r.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+            if ((r.Flags & Flag_RPtoA) != 0) r.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+            if ((r.Flags & Flag_RPtoA) == 0) r.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
 
             // if ((flags & Flag_RPtoA) == 0)
             //     SenderHMAC = HMAC.Decode(reader);

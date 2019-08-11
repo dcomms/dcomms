@@ -9,14 +9,16 @@ namespace Dcomms.DRP.Packets
     /// A=requester
     /// B=responder
     /// A->N->X->B1
+    /// 
+    /// requestID={RequesterPublicKey|DestinationResponderPublicKey}
     /// </summary>
     class InviteRequestPacket
     {
-        P2pConnectionToken32 SenderToken32;
         byte ReservedFlagsMustBeZero;
-        // requestID={RequesterPublicKey|DestinationResponderPublicKey}
+        P2pConnectionToken32 SenderToken32;
 
-        //     todo timestamp into signature
+
+        uint Timestamp32S;
         byte[] DirectChannelEndointA_encryptedByResponderPublicKey; // with salt // can be decrypted only by B
         /// <summary>
         /// todo: look at noise protocol
@@ -34,18 +36,18 @@ namespace Dcomms.DRP.Packets
         /// authorizes peer that sends the packet
         /// </summary>
         HMAC SenderHMAC;
+        NextHopAckSequenceNumber16 NhaSeq16;
     }
     /// <summary>
     /// B1->X->N->A (rejected/confirmed)
+    /// requestID={RequesterPublicKey|DestinationResponderPublicKey}
     /// </summary>
     class InviteResponsePacket
     {
         P2pConnectionToken32 SenderToken32;
         byte ReservedFlagsMustBeZero;
-        // requestID={RequesterPublicKey|DestinationResponderPublicKey}
-
-        //     todo timestamp
-
+        
+        uint InviteRequestTimestamp32S;
         RegistrationPublicKey RequesterPublicKey; // A public key 
         RegistrationPublicKey DestinationResponderPublicKey; // B public key
 
@@ -59,5 +61,6 @@ namespace Dcomms.DRP.Packets
         /// authorizes peer that sends the packet
         /// </summary>
         HMAC SenderHMAC;
+        NextHopAckSequenceNumber16 NhaSeq16;
     }
 }

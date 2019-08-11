@@ -18,7 +18,7 @@ namespace Dcomms.DRP.Packets
         /// 1: if packet is transmitted from registering A to RP, 
         /// 0: if packet is transmitted between neighbor peers (from sender to receiver). SenderHMAC is sent 
         /// </summary>
-        static byte Flag_AtoRP = 0x01; 
+        static byte Flag_AtoRP = 0x01;
 
         public P2pConnectionToken32 SenderToken32; // is not transmitted in A->RP request
 
@@ -63,7 +63,8 @@ namespace Dcomms.DRP.Packets
         /// is NULL for A->RP packet
         /// uses common secret of neighbors within p2p connection
         /// </summary>
-     //   public HMAC SenderHMAC;
+        public HMAC SenderHMAC;
+        public NextHopAckSequenceNumber16 NhaSeq16;
 
         public RegisterSynPacket()
         {
@@ -88,9 +89,13 @@ namespace Dcomms.DRP.Packets
                 writer.Write(ProofOfWork2);
             }
             writer.Write(NumberOfHopsRemaining);
-         //   if (txParametersToPeerNeighbor != null)
-         //       txParametersToPeerNeighbor.GetLocalSenderHmac(this).Encode(writer);
-           
+            if (txParametersToPeerNeighbor != null)
+            {
+                throw new NotImplementedException();
+             //   txParametersToPeerNeighbor.GetSharedHmac(cryptoLibrary, this.GetFieldsForSenderHmac).Encode(writer);
+            }
+            NhaSeq16.Encode(writer);
+
             return ms.ToArray();
         }
         /// <summary>
@@ -120,8 +125,10 @@ namespace Dcomms.DRP.Packets
 
             if ((flags & Flag_AtoRP) != 0) ProofOfWork2 = reader.ReadBytes(64);
             NumberOfHopsRemaining = reader.ReadByte();
-            if ((flags & Flag_AtoRP) == 0) throw new NotImplementedException();
-                //SenderHMAC = HMAC.Decode(reader);
+            if ((flags & Flag_AtoRP) == 0)
+                SenderHMAC = HMAC.Decode(reader);
+
+            NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
         }
     }
 }

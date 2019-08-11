@@ -150,12 +150,12 @@ namespace Dcomms.DRP
             //Encryptor = cryptoLibrary.CreateAesEncyptor(iv, aesKey);
             //Decryptor = cryptoLibrary.CreateAesDecyptor(iv, aesKey);
         }
-        public HMAC GetSharedHmac(ICryptoLibrary cryptoLibarary, byte[] data)
+        public HMAC GetSharedHmac(ICryptoLibrary cryptoLibrary, byte[] data)
         {
             if (SharedAuthKeyForHMAC == null) throw new InvalidOperationException();
             return new HMAC
             {
-                hmacSha256 = cryptoLibarary.GetSha256HMAC(SharedAuthKeyForHMAC, data)
+                hmacSha256 = cryptoLibrary.GetSha256HMAC(SharedAuthKeyForHMAC, data)
             };
 
         }

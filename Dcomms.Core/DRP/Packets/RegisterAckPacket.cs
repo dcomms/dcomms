@@ -36,6 +36,7 @@ namespace Dcomms.DRP.Packets
         public byte[] ToRequesterTxParametersEncrypted;
 
         HMAC SenderHMAC; // is NULL for A->RP
+        public NextHopAckSequenceNumber16 NhaSeq16;
 
         public RegisterAckPacket()
         {
@@ -53,9 +54,10 @@ namespace Dcomms.DRP.Packets
                 txParametersToPeerNeighbor.RemotePeerToken32.Encode(writer);
 
             GetCommonRequesterAndResponderFields(writer, true, true);
-                       
+
             //   if (txParametersToPeerNeighbor != null)
             //       txParametersToPeerNeighbor.GetLocalSenderHmac(this).Encode(writer);
+            NhaSeq16.Encode(writer);
 
             return ms.ToArray();
         }
@@ -79,9 +81,14 @@ namespace Dcomms.DRP.Packets
             RegisterSynTimestamp32S = reader.ReadUInt32();
             RequesterHMAC = HMAC.Decode(reader);
             //todo: verify, at responder
-         
-            if ((flags & Flag_AtoRP) == 0) throw new NotImplementedException();
-            //SenderHMAC = HMAC.Decode(reader);
+
+            if ((flags & Flag_AtoRP) == 0)
+            {
+                throw new NotImplementedException();
+                //SenderHMAC = HMAC.Decode(reader);
+            }
+
+            NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
         }
     }
 }

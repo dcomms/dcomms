@@ -13,10 +13,10 @@ namespace Dcomms.DRP.Packets
     /// </summary>
     class NextHopAckPacket
     {
+        public NextHopAckSequenceNumber16 NhaSeq16;
         public const byte Flag_RPtoA = 0x01; // set if packet is transmitted from RP to A, is zero otherwise
         byte Flags;
         public P2pConnectionToken32 SenderToken32; // is not transmitted in RP->A packet
-        public NextHopAckSequenceNumber16 NhaSeq16;
         public NextHopResponseCode StatusCode;
         /// <summary>
         /// signature of sender neighbor peer
@@ -25,14 +25,17 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public HMAC SenderHMAC;
 
+        public static void EncodeHeader(BinaryWriter writer, NextHopAckSequenceNumber16 nhaSeq16)
+        {
+            writer.Write((byte)DrpPacketType.NextHopAckPacket);
+            nhaSeq16.Encode(writer);
+        }
         public byte[] Encode(byte flags)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
-
-            writer.Write((byte)DrpPacketType.NextHopAckPacket);
+            EncodeHeader(writer, NhaSeq16);
             writer.Write(flags);
             if ((flags & Flag_RPtoA) == 0) SenderToken32.Encode(writer);
-            NhaSeq16.Encode(writer);
             writer.Write((byte)StatusCode);
             if ((flags & Flag_RPtoA) == 0) SenderHMAC.Encode(writer);
             return ms.ToArray();
@@ -40,20 +43,34 @@ namespace Dcomms.DRP.Packets
         /// <param name="reader">is positioned after first byte = packet type</param>
         public NextHopAckPacket(BinaryReader reader)
         {
+            NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
             var flags = reader.ReadByte();
             if ((flags & Flag_RPtoA) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
-            NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
             StatusCode = (NextHopResponseCode)reader.ReadByte();
             if ((flags & Flag_RPtoA) == 0) SenderHMAC = HMAC.Decode(reader);
         }
     }
     enum NextHopResponseCode
     {
-        received, // is sent to previous hop immediately when packet is proxied, to avoid retransmissions      
+        accepted, // is sent to previous hop immediately when packet is proxied, to stop retransmission timer
         rejected_overloaded,
         rejected_rateExceeded, // anti-ddos
     }
 
+
+
+    class NextHopTimeoutException : ApplicationException
+    {
+
+    }
+    class NextHopRejectedException : ApplicationException
+    {
+        public NextHopRejectedException(NextHopResponseCode responseCode)
+            : base($"Next hop rejected request with status = {responseCode}")
+        {
+
+        }
+    }
 
 
     /// <summary>

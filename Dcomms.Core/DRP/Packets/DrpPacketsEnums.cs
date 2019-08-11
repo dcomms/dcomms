@@ -12,7 +12,7 @@ namespace Dcomms.DRP.Packets
         RegisterPow1RequestPacket = 1,
         RegisterPow1ResponsePacket = 2,
         RegisterSynPacket = 3,
-        NextHopResponsePacket = 4,
+        NextHopAckPacket = 4,
         RegisterSynAckPacket = 5,
         RegisterAckPacket = 6,
         PingRequestPacket = 7,
