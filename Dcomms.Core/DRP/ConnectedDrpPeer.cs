@@ -30,9 +30,10 @@ namespace Dcomms.DRP
         IirFilterCounter TxInviteRateRps, TxRegisterRateRps;
         List<TxRegisterRequestState> PendingTxRegisterRequests;
         List<TxInviteRequestState> PendingTxInviteRequests;
-
-        public ConnectedDrpPeer(ConnectedDrpPeerInitiatedBy initiatedBy)
+        readonly DrpPeerEngine _engine;
+        public ConnectedDrpPeer(DrpPeerEngine engine, ConnectedDrpPeerInitiatedBy initiatedBy)
         {
+            _engine = engine;
             InitiatedBy = initiatedBy;
         }
 
@@ -47,6 +48,23 @@ namespace Dcomms.DRP
             };
             r.SenderHMAC = TxParameters.GetSharedHmac(cryptoLibrary, r.GetSignedFields);
             return r;
+        }
+        public void OnTimer100ms(DateTime timeNowUTC) // engine thread
+        {
+            try
+            {todo
+                // remove timed out connected peers (neighbors)
+
+                // send ping requests
+            }
+            catch (Exception exc)
+            {
+                _engine.HandleGeneralException($"error in ConnectedDrpPeer timer procedure: {exc}");
+            }
+        }
+        public void OnReceivedPingResponse(TimeSpan requestResponseDelay)
+        {
+            xx
         }
     }
     class ConnectedDrpPeerRating
