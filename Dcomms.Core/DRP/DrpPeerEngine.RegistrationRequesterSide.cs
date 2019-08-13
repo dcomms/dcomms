@@ -71,13 +71,13 @@ namespace Dcomms.DRP
             WriteToLog_reg_requesterSide_debug($"connecting to RP {rpEndpoint}...");
 
             #region PoW1
-            var registerPow1RequestPacketData = GenerateRegisterPow1RequestPacket(localDrpPeer.LocalPublicIpAddressForRegistration.GetAddressBytes(), Timestamp32S);
+            var registerPow1RequestPacket = GenerateRegisterPow1RequestPacket(localDrpPeer.LocalPublicIpAddressForRegistration.GetAddressBytes(), Timestamp32S);
 
             // send register pow1 request
             var rpPow1ResponsePacketData = await SendUdpRequestAsync(
                         new PendingLowLevelUdpRequest(rpEndpoint,
-                            new byte[] { (byte)DrpPacketType.RegisterPow1ResponsePacket },
-                            registerPow1RequestPacketData,
+                            RegisterPow1ResponsePacket.GetHeaderBytes(registerPow1RequestPacket.Pow1RequestId),
+                            registerPow1RequestPacket.Encode(),
                             DateTimeNowUtc
                         ));
             //  wait for response, retransmit
@@ -253,7 +253,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// performs PoW#1 (stateless proof of work)
         /// </summary>
-        byte[] GenerateRegisterPow1RequestPacket(byte[] clientPublicIp, uint timeSec32UTC)
+        RegisterPow1RequestPacket GenerateRegisterPow1RequestPacket(byte[] clientPublicIp, uint timeSec32UTC)
         {
             var packet = new RegisterPow1RequestPacket();
             packet.Timestamp32S = timeSec32UTC;
@@ -266,10 +266,8 @@ namespace Dcomms.DRP
                 if (Pow1IsOK(packet, clientPublicIp)) break;
             }
 
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
-            packet.Encode(writer);
-            var packetData = ms.ToArray();
-            return packetData;
+            packet.Pow1RequestId = (uint)rnd.Next();
+            return packet;
         }
         void GenerateRegisterSynPow2(RegisterSynPacket packet, byte[] proofOfWork2Request)
         {

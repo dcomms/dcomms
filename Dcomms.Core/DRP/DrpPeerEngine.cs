@@ -45,6 +45,7 @@ namespace Dcomms.DRP
         public DrpPeerEngine(DrpPeerEngineConfiguration configuration)
         {
             Configuration = configuration;
+            Initialize(configuration);
             _seq16Counter = (ushort)_insecureRandom.Next(ushort.MaxValue);
             _engineThreadQueue = new ActionsQueue(exc => HandleExceptionInEngineThread(exc));
 
@@ -58,6 +59,7 @@ namespace Dcomms.DRP
             _engineThread.Name = "DRP engine";
             _engineThread.Start();
         }
+        partial void Initialize(DrpPeerEngineConfiguration configuration);
         public void Dispose()
         {
             if (_disposing) throw new InvalidOperationException();
@@ -102,40 +104,8 @@ namespace Dcomms.DRP
         internal void OnReceivedUnauthorizedSourceIpPacket(IPEndPoint remoteEndpoint)
         {
         }
-        #endregion
-
-        #region registration RP-side
-        bool Pow1IsOK(RegisterPow1RequestPacket packet, byte[] clientPublicIP)
+        internal void OnReceivedBadRegisterSynPow1(IPEndPoint remoteEndpoint)
         {
-            var ms = new MemoryStream(sizeof(uint) + packet.ProofOfWork1.Length + clientPublicIP.Length);
-            using (var writer = new BinaryWriter(ms))
-            {
-                writer.Write(packet.Timestamp32S);
-                writer.Write(packet.ProofOfWork1);
-                writer.Write(clientPublicIP);
-            }            
-            var hash = _cryptoLibrary.GetHashSHA512(ms);
-            if (hash[4] != 7 || (hash[5] != 7 && hash[5] != 8)
-                //     || hash[6] > 100
-                )
-                return false;
-            else return true;
-        }
-        bool Pow2IsOK(RegisterSynPacket packet, byte[] proofOrWork2Request)
-        {
-            var ms = new MemoryStream(packet.RequesterPublicKey_RequestID.ed25519publicKey.Length + proofOrWork2Request.Length + packet.ProofOfWork2.Length);
-            using (var writer = new BinaryWriter(ms))
-            {
-                writer.Write(packet.RequesterPublicKey_RequestID.ed25519publicKey);
-                writer.Write(proofOrWork2Request);
-                writer.Write(packet.ProofOfWork2);
-            }
-            var hash = _cryptoLibrary.GetHashSHA512(ms);
-            if (hash[4] != 7 || (hash[5] != 7 && hash[5] != 8)
-                //     || hash[6] > 100
-                )
-                return false;
-            else return true;
         }
         #endregion
 
@@ -169,8 +139,7 @@ namespace Dcomms.DRP
 
             if (packetType == DrpPacketType.RegisterPow1RequestPacket)
             {
-                // if packet from new peer (register syn)
-                //    process register pow  like in ccp
+                ProcessRegisterPow1RequestPacket(remoteEndpoint, udpPayloadData);
                 return;
             }
 
@@ -307,6 +276,14 @@ namespace Dcomms.DRP
         public TimeSpan PingRequestsInterval = TimeSpan.FromSeconds(2);
         public double PingRetransmissionInterval_RttRatio = 2.0; // "how much time to wait until sending another ping request?" - coefficient, relative to previously measured RTT
         public TimeSpan ConnectedPeersRemovalTimeout => PingRequestsInterval + TimeSpan.FromSeconds(2);
+
+
+        public uint RegisterPow1_RecentUniqueDataResetPeriodS = 10 * 60;
+        public int RegisterPow1_MaxTimeDifferenceS = 20 * 60;
+        public bool RespondToRegisterPow1Errors = false;
+
+        public TimeSpan Pow2RequestStatesTablePeriod = TimeSpan.FromSeconds(5);
+        public int Pow2RequestStatesTableMaxSize = 100000;
     }
     public class DrpPeerRegistrationConfiguration
     {
