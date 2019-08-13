@@ -8,15 +8,19 @@ namespace Dcomms
     {
 
     }
-    class BrokenCipherException : ApplicationException // todo handle attacks that raise such exceptions
+    class PossibleMitmException : ApplicationException
     {
 
     }
-    class UnmatchedResponseFieldsException : ApplicationException // todo handle attacks that raise such exceptions   - it is MITM
+    class BrokenCipherException : PossibleMitmException // todo handle attacks that raise such exceptions
     {
 
     }
-    class BadSignatureException : ApplicationException // todo handle attacks that raise such exceptions   - it is MITM
+    class UnmatchedResponseFieldsException : PossibleMitmException // todo handle attacks that raise such exceptions   - it is MITM
+    {
+
+    }
+    class BadSignatureException : PossibleMitmException // todo handle attacks that raise such exceptions   - it is MITM
     {
 
     }

@@ -9,7 +9,7 @@ namespace Dcomms.DRP
     /// "contact point" of local user in the regID space
     /// can be "registered" or "registering"
     /// </summary>
-    public class LocalDrpPeer
+    public class LocalDrpPeer: IDisposable
     {
         public IPAddress LocalPublicIpAddressForRegistration;
        // LocalDrpPeerState State;

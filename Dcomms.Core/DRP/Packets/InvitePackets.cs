@@ -14,8 +14,8 @@ namespace Dcomms.DRP.Packets
     /// </summary>
     class InviteRequestPacket
     {
-        byte ReservedFlagsMustBeZero;
         P2pConnectionToken32 SenderToken32;
+        byte ReservedFlagsMustBeZero;
 
 
         uint Timestamp32S;

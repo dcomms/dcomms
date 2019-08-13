@@ -11,7 +11,6 @@ namespace Dcomms.DRP
     /// </summary>
     public partial class DrpPeerEngine
     {
-
         class PendingLowLevelUdpRequest
         {
             public IPEndPoint RemoteEndpoint;
@@ -71,8 +70,12 @@ namespace Dcomms.DRP
         async Task<byte[]> SendUdpRequestAsync(PendingLowLevelUdpRequest request)
         {
             request.InitialTxTimeUTC = DateTimeNowUtc;
-            _socket.Send(request.RequestPacketData, request.RequestPacketData.Length, request.RemoteEndpoint);
+            SendPacket(request.RequestPacketData, request.RemoteEndpoint);          
             return await WaitForUdpResponseAsync(request);
+        }
+		internal void SendPacket(byte[] udpPayload, IPEndPoint remoteEndpoint)
+        {
+            _socket.Send(udpPayload, udpPayload.Length, remoteEndpoint);
         }
         async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
         {
@@ -99,7 +102,7 @@ namespace Dcomms.DRP
                 else if (timeNowUTC > request.NextRetransmissionTimeUTC)
                 {
                     request.OnRetransmitted();
-                    _socket.Send(request.RequestPacketData, request.RequestPacketData.Length, request.RemoteEndpoint);
+                    SendPacket(request.RequestPacketData, request.RemoteEndpoint);
                 }
                 item = item.Next;
             }

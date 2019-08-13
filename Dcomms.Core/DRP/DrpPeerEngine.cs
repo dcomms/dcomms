@@ -32,25 +32,19 @@ namespace Dcomms.DRP
         Thread _receiverThread;
         UdpClient _socket;
         ActionsQueue _engineThreadQueue;
-        Random _insecureRandom = new Random();
+        readonly Random _insecureRandom = new Random();
+        internal Random InsecureRandom => _insecureRandom;
         Dictionary<RegistrationPublicKey, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationPublicKey, LocalDrpPeer>(); // accessed only by manager thread
-        P2pConnectionToken32 GenerateNewUniqueLocalRxToken32()
-        {
-            for (int i = 0; i < 100; i++)
-            {
-                var r = new P2pConnectionToken32 { Token32 = (uint)_insecureRandom.Next() };
-                var rToken16 = r.Token16;
-                if (LocalPeers.Values.Any(lp => lp.ConnectedPeers.Any(cp => cp.LocalRxToken32.Token16 == rToken16)) == false)
-                    return r;
-            }
-            throw new Exception();
-        }
+       
+        internal ConnectedDrpPeer[] ConnectedPeersByToken16 = new ConnectedDrpPeer[ushort.MaxValue];
         DrpPeerEngine _engine;
         ushort _seq16Counter;
         internal NextHopAckSequenceNumber16 GetNewNhaSeq16() => new NextHopAckSequenceNumber16 { Seq16 = _seq16Counter++ };
+        public DrpPeerEngineConfiguration Configuration { get; private set; }
 
         public DrpPeerEngine(DrpPeerEngineConfiguration configuration)
         {
+            Configuration = configuration;
             _seq16Counter = (ushort)_insecureRandom.Next(ushort.MaxValue);
             _engineThreadQueue = new ActionsQueue(exc => HandleExceptionInEngineThread(exc));
 
@@ -101,9 +95,12 @@ namespace Dcomms.DRP
             HandleException(exc, $"exception while connecting to RP {rpEndpoint}");
             // todo: analyse if it is malformed packet received from attacker's RP
         }
-        public void HandleGeneralException(string message)
+        internal void HandleGeneralException(string message)
         {
 
+        }
+        internal void OnReceivedUnauthorizedSourceIpPacket(IPEndPoint remoteEndpoint)
+        {
         }
         #endregion
 
@@ -184,6 +181,25 @@ namespace Dcomms.DRP
                 if (PendingUdpRequests_ProcessPacket(remoteEndpoint, udpPayloadData, receivedAtUtc))
                     return;
 
+                switch (packetType)
+                {
+                    case DrpPacketType.PingRequestPacket:
+                        {
+                            var localRxToken16 = PingRequestPacket.DecodeToken16FromUdpPayloadData(udpPayloadData);
+                            var connectedPeer = ConnectedPeersByToken16[localRxToken16];
+                            if (connectedPeer != null)
+                                connectedPeer.OnReceivedPingRequestPacket(remoteEndpoint, udpPayloadData);
+                        } break;
+                    case DrpPacketType.PingResponsePacket:
+                        {
+                            var localRxToken16 = PingResponsePacket.DecodeToken16FromUdpPayloadData(udpPayloadData);
+                            var connectedPeer = ConnectedPeersByToken16[localRxToken16];
+                            if (connectedPeer != null)
+                                connectedPeer.OnReceivedPingResponsePacket(remoteEndpoint, udpPayloadData, receivedAtUtc);
+                        } break;
+                }
+
+
                 // if packet is from existing connected peer (ping, proxied invite/register)
                 //   see which peer sends this packet by streamID, authentcate by source IP:port and  HMAC
                 //   update and limit rx packet rate - blacklist regID
@@ -235,12 +251,16 @@ namespace Dcomms.DRP
             // for every connected peer
             foreach (var localPeer in LocalPeers.Values)
             {
+              _restart_loop:
                 foreach (var connectedPeer in localPeer.ConnectedPeers)
-                    connectedPeer.OnTimer100ms(timeNowUTC);
+                {
+                    connectedPeer.OnTimer100ms(timeNowUTC, out var needToRestartLoop);
+                    if (needToRestartLoop)
+                        goto _restart_loop;                   
+                }
             }
             //   update IIR counters for rates
             //   send ping in case of inactivity
-            //   remove dead connected peers (no reply to ping)
             //   retransmit packets
             //   clean timed out requests, raise timeout events
 
@@ -284,6 +304,9 @@ namespace Dcomms.DRP
     public class DrpPeerEngineConfiguration
     {
         public ushort? LocalPort;
+        public TimeSpan PingRequestsInterval = TimeSpan.FromSeconds(2);
+        public double PingRetransmissionInterval_RttRatio = 2.0; // "how much time to wait until sending another ping request?" - coefficient, relative to previously measured RTT
+        public TimeSpan ConnectedPeersRemovalTimeout => PingRequestsInterval + TimeSpan.FromSeconds(2);
     }
     public class DrpPeerRegistrationConfiguration
     {
