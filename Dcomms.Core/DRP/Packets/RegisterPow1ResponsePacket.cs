@@ -25,9 +25,9 @@ namespace Dcomms.DRP.Packets
                 writer.Write(ProofOfWork2Request);
             return ms.ToArray();
         }
-        /// <param name="reader">is positioned after first byte = packet type</param>
-        public RegisterPow1ResponsePacket(BinaryReader reader)
+        public RegisterPow1ResponsePacket(byte[] rpPow1ResponsePacketData)
         {
+            var reader = PacketProcedures.CreateBinaryReader(rpPow1ResponsePacketData, 1);
             ReservedFlagsMustBeZero = reader.ReadByte();
             StatusCode = (RegisterPow1ResponseStatusCode)reader.ReadByte();
             if (StatusCode == RegisterPow1ResponseStatusCode.succeeded_Pow2Challenge)

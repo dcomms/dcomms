@@ -87,7 +87,7 @@ namespace Dcomms.DRP
                 return null;
             }
 
-            var pow1ResponsePacket = new RegisterPow1ResponsePacket(PacketProcedures.CreateBinaryReader(rpPow1ResponsePacketData, 1));
+            var pow1ResponsePacket = new RegisterPow1ResponsePacket(rpPow1ResponsePacketData);
             if (pow1ResponsePacket.StatusCode != RegisterPow1ResponseStatusCode.succeeded_Pow2Challenge)
             {
                 WriteToLog_reg_requesterSide_debug($"... connection to RP {rpEndpoint} failed with status {pow1ResponsePacket.StatusCode}");
@@ -136,7 +136,7 @@ namespace Dcomms.DRP
                     WriteToLog_reg_requesterSide_debug($"...connection to neighbor via RP {rpEndpoint} timed out (RegisterSynAckPacket)");
                     return null;
                 }
-                var registerSynAckPacket = RegisterSynAckPacket.DecodeAtRequester(PacketProcedures.CreateBinaryReader(registerSynAckPacketData, 1),
+                var registerSynAckPacket = RegisterSynAckPacket.DecodeAtRequester(registerSynAckPacketData,
                     registerSynPacket, localEcdhe25519PrivateKey, _cryptoLibrary, out var txParameters);
                 #endregion
 
@@ -181,7 +181,7 @@ namespace Dcomms.DRP
                 localDrpPeer.ConnectedPeers.Add(neighborConnection);
 
                 #region send ping request directly to neighbor N, retransmit               
-                var pingRequestPacket = neighborConnection.CreatePingRequestPacket();
+                var pingRequestPacket = neighborConnection.CreatePingRequestPacket(true);
                 pendingPingRequest = new PendingLowLevelUdpRequest(txParameters.RemoteEndpoint,
                                 new byte[] { (byte)DrpPacketType.PingResponsePacket },
                                 pingRequestPacket.Encode(),
@@ -195,7 +195,7 @@ namespace Dcomms.DRP
                     return null;
                 }
                 pingResponsePacket = PingResponsePacket.DecodeAndVerify(_cryptoLibrary,
-                    PacketProcedures.CreateBinaryReader(pingResponsePacketData, 1), pingRequestPacket, neighborConnection,
+                    pingResponsePacketData, pingRequestPacket, neighborConnection,
                     true, registerSynPacket, registerSynAckPacket);
                 if (pingResponsePacket.SenderToken32 != neighborConnection.LocalRxToken32) throw new UnmatchedResponseFieldsException();
                 #endregion

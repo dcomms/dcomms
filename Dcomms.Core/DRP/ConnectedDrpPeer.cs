@@ -28,8 +28,9 @@ namespace Dcomms.DRP
         IirFilterCounter RxRegisterRateRps;
 
         PingRequestPacket _latestPingRequestPacketSent;
+        PingRequestPacket _latestPingRequestPacketReceived;// float MaxTxInviteRateRps, MaxTxRegiserRateRps; // sent by remote peer via ping
         DateTime? _latestPingRequestPacketSentTime;
-        // float MaxTxInviteRateRps, MaxTxRegiserRateRps; // sent by remote peer via ping
+        
         PingResponsePacket _latestReceivedPingResponsePacket;
         TimeSpan? _latestRequestResponseDelay;
 
@@ -68,7 +69,7 @@ namespace Dcomms.DRP
             _engine.ConnectedPeersByToken16[LocalRxToken32.Token16] = null;
         }
 
-        public PingRequestPacket CreatePingRequestPacket()
+        public PingRequestPacket CreatePingRequestPacket(bool requestP2pConnectionSetupSignature)
         {
             var r = new PingRequestPacket
             {
@@ -77,7 +78,9 @@ namespace Dcomms.DRP
                 MaxRxRegisterRateRps = 10, //todo get from some local capabilities   like number of neighbors
                 PingRequestId32 = (uint)_rngForPingRequestId32.Next(),
             };
-            r.SenderHMAC = TxParameters.GetSharedHmac(_engine.CryptoLibrary, r.GetSignedFields);
+            if (requestP2pConnectionSetupSignature)
+                r.Flags |= PingRequestPacket.Flags_P2pConnectionSetupSignatureRequested;
+            r.SenderHMAC = TxParameters.GetSharedHmac(_engine.CryptoLibrary, r.GetSignedFieldsForSenderHMAC);
             return r;
         }
         public void OnTimer100ms(DateTime timeNowUTC, out bool needToRestartLoop) // engine thread
@@ -111,7 +114,7 @@ namespace Dcomms.DRP
         }
         void SendPingRequestOnTimer()
         {
-            var pingRequestPacket = CreatePingRequestPacket();
+            var pingRequestPacket = CreatePingRequestPacket(false);
             _engine.SendPacket(pingRequestPacket.Encode(), TxParameters.RemoteEndpoint);
             _latestPingRequestPacketSent = pingRequestPacket;
             _latestPingRequestPacketSentTime = _engine.DateTimeNowUtc;
@@ -144,7 +147,7 @@ namespace Dcomms.DRP
             try
             {
                 var pingResponsePacket = PingResponsePacket.DecodeAndVerify(_engine.CryptoLibrary,
-                    PacketProcedures.CreateBinaryReader(udpPayloadData, 1),
+                    udpPayloadData,
                     null, this,
                     false, null, null);
                 OnReceivedVerifiedPingResponse(pingResponsePacket, receivedAtUtc, null);
@@ -173,19 +176,29 @@ namespace Dcomms.DRP
             }
             try
             {
-                var pingRequestPacket = PingRequestPacket.DecodeAndVerify();
+                var pingRequestPacket = PingRequestPacket.DecodeAndVerify(udpPayloadData, this, _engine.CryptoLibrary);
+                _latestPingRequestPacketReceived = pingRequestPacket;
                 var pingResponsePacket = new PingResponsePacket
                 {
-                    PingRequestTimestampMs32 = pingRequestPacket.TimestampMs32
+                    PingRequestId32 = pingRequestPacket.PingRequestId32,
+                    SenderToken32 = TxParameters.RemotePeerToken32,
                 };
-                pingResponsePacket.Encode();
+                if ((pingRequestPacket.Flags & PingRequestPacket.Flags_P2pConnectionSetupSignatureRequested) != 0)
+                {
+                    //   pingResponsePacket.P2pConnectionSetupSignature = xxx;
+                    // todo implement it for N: pass reg.syn packets into here
+                    throw new NotImplementedException();
+                }
+                pingResponsePacket.SenderHMAC = TxParameters.GetSharedHmac(_engine.CryptoLibrary, pingResponsePacket.GetSignedFieldsForSenderHMAC);            
+                _engine.SendPacket(pingResponsePacket.Encode(), TxParameters.RemoteEndpoint);
             }
             catch (PossibleMitmException exc)
             {
-                _engine.HandleGeneralException($"breaking p2p connection on MITM exception: {exc}");
+                _engine.HandleGeneralException($"breaking P2P connection on MITM exception: {exc}");
                 this.Dispose();
             }
         }
+       
     }
     class ConnectedDrpPeerRating
     {

@@ -212,15 +212,15 @@ namespace Dcomms.CCP
                     break;
             }
         }
-        void ProcessPacket_SentHello0(ICcpRemoteEndpoint remoteEndpoint, byte[] data) //receiver thread
+        void ProcessPacket_SentHello0(ICcpRemoteEndpoint remoteEndpoint, byte[] udpPayloadData) //receiver thread
         {
-            if (data[0] != (byte)CcpPacketType.ServerHelloPacket0)
+            if (udpPayloadData[0] != (byte)CcpPacketType.ServerHelloPacket0)
             {
                 OnReceivedBadPacket(remoteEndpoint, "invalid packet type 3457"); // unexpected packet
                 return;
             }
 
-            var responsePacket = new ServerHelloPacket0(PacketProcedures.CreateBinaryReader(data, 1));
+            var responsePacket = new ServerHelloPacket0(udpPayloadData);
             
             // validate  responsePacket.ClientHelloToken
             if (!MiscProcedures.EqualByteArrays(_cnonce0, responsePacket.Cnonce0))

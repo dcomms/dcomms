@@ -109,8 +109,9 @@ namespace Dcomms.CCP
             }
             return ms.ToArray();
         }
-        public ServerHelloPacket0(BinaryReader reader) // after first byte = packet type
+        public ServerHelloPacket0(byte[] udpPayloadData)
         {
+            var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
             Flags = reader.ReadUInt16();
             Status = (ServerHello0Status)reader.ReadByte();
             Cnonce0 = PacketProcedures.DecodeByteArray256(reader);

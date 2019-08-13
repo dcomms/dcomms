@@ -55,7 +55,7 @@ namespace Dcomms.DRP
             if (nextHopResponsePacketData == null)
                 throw new NextHopTimeoutException();
 
-            var nextHopResponsePacket = new NextHopAckPacket(PacketProcedures.CreateBinaryReader(nextHopResponsePacketData, 1));
+            var nextHopResponsePacket = new NextHopAckPacket(nextHopResponsePacketData);
             if (nextHopResponsePacket.StatusCode != NextHopResponseCode.accepted)
                 throw new NextHopRejectedException(nextHopResponsePacket.StatusCode);
             return nextHopResponsePacket;

@@ -40,9 +40,9 @@ namespace Dcomms.DRP.Packets
             if ((flags & Flag_RPtoA) == 0) SenderHMAC.Encode(writer);
             return ms.ToArray();
         }
-        /// <param name="reader">is positioned after first byte = packet type</param>
-        public NextHopAckPacket(BinaryReader reader)
+        public NextHopAckPacket(byte[] nextHopResponsePacketData)
         {
+            var reader = PacketProcedures.CreateBinaryReader(nextHopResponsePacketData, 1);
             NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
             var flags = reader.ReadByte();
             if ((flags & Flag_RPtoA) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);

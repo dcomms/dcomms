@@ -9,7 +9,8 @@ namespace Dcomms.DRP.Packets
     public class PingRequestPacket
     {
         public P2pConnectionToken32 SenderToken32;
-        public byte ReservedFlags;
+        public const byte Flags_P2pConnectionSetupSignatureRequested = 0x01;
+        public byte Flags;
         public uint PingRequestId32; // is used to avoid mismatch between delyed responses and requests // is used as salt also
         public float? MaxRxInviteRateRps;   // zero means NULL // signal from sender "how much I can receive via this p2p connection"
         public float? MaxRxRegisterRateRps; // zero means NULL // signal from sender "how much I can receive via this p2p connection"
@@ -19,10 +20,14 @@ namespace Dcomms.DRP.Packets
         {
             return (ushort)Math.Round(Math.Min(65535, (rps ?? 0) * 100));
         }
-        public void GetSignedFields(BinaryWriter writer)
+        static float? RpsFromUint16(ushort v)
+        {
+            return v != 0 ? (float?)((float)v * 0.01) : null;
+        }
+        public void GetSignedFieldsForSenderHMAC(BinaryWriter writer)
         {
             SenderToken32.Encode(writer);
-            writer.Write(ReservedFlags);
+            writer.Write(Flags);
             writer.Write(PingRequestId32);
             writer.Write(RpsToUint16(MaxRxInviteRateRps));
             writer.Write(RpsToUint16(MaxRxRegisterRateRps));
@@ -31,13 +36,39 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             writer.Write((byte)DrpPacketType.PingRequestPacket);
-            GetSignedFields(writer);
+            GetSignedFieldsForSenderHMAC(writer);
             return ms.ToArray();
         }
 
         public static ushort DecodeToken16FromUdpPayloadData(byte[] udpPayloadData)
         { // first byte is packet type. then 4 bytes are P2pConnectionToken32
             return (ushort)(udpPayloadData[1] | (udpPayloadData[2] << 8));
+        }
+
+        public static PingRequestPacket DecodeAndVerify(byte[] udpPayloadData, ConnectedDrpPeer connectedPeerWhoSentTheRequest, ICryptoLibrary cryptoLibrary)
+        {
+            var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
+
+            var r = new PingRequestPacket();
+            r.SenderToken32 = P2pConnectionToken32.Decode(reader);
+            r.Flags = reader.ReadByte();              
+            r.PingRequestId32 = reader.ReadUInt32();
+            r.MaxRxInviteRateRps = RpsFromUint16(reader.ReadUInt16());
+            r.MaxRxRegisterRateRps = RpsFromUint16(reader.ReadUInt16());
+            r.SenderHMAC = HMAC.Decode(reader);
+            
+            // verify SenderToken32
+            if (!r.SenderToken32.Equals(connectedPeerWhoSentTheRequest.LocalRxToken32))
+                throw new BadSignatureException();
+
+            // verify SenderHMAC
+            if (r.SenderHMAC.Equals(
+                connectedPeerWhoSentTheRequest.TxParameters.GetSharedHmac(cryptoLibrary, r.GetSignedFieldsForSenderHMAC)
+                ) == false)
+                throw new BadSignatureException();
+
+            return r;
+
         }
     }
     public class PingResponsePacket
@@ -61,7 +92,8 @@ namespace Dcomms.DRP.Packets
         public HMAC SenderHMAC; // signs { Flags,SenderToken32,(optional)P2pConnectionSetupSignature,PingRequestTimestampMs32 }
 
         /// <param name="reader">is positioned after first byte = packet type</param>
-        public static PingResponsePacket DecodeAndVerify(ICryptoLibrary cryptoLibrary, BinaryReader reader, 
+        public static PingResponsePacket DecodeAndVerify(ICryptoLibrary cryptoLibrary,
+            byte[] udpPayloadData, 
             PingRequestPacket optionalPingRequestPacketToCheckRequestId32, 
             ConnectedDrpPeer connectedPeerWhoSentTheResponse, 
             bool requireSignature,
@@ -69,6 +101,7 @@ namespace Dcomms.DRP.Packets
             RegisterSynAckPacket registerSynAckPacket
             )
         {
+            var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
             var r = new PingResponsePacket();
             r.SenderToken32 = P2pConnectionToken32.Decode(reader);
             r.Flags = reader.ReadByte();            
@@ -123,11 +156,16 @@ namespace Dcomms.DRP.Packets
             registerSynAckPacket.NeighborPublicKey.Encode(writer);
             writer.Write(P2pConnectionSetupSignature_MagicNumber);
         }
-
-
-
-
-
-
+               
+        public byte[] Encode()
+        {
+            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            writer.Write((byte)DrpPacketType.PingResponsePacket);
+            Flags = 0;
+            if (P2pConnectionSetupSignature != null) Flags |= Flags_P2pConnectionSetupSignatureExists;
+            GetSignedFieldsForSenderHMAC(writer);
+            SenderHMAC.Encode(writer);
+            return ms.ToArray();
+        }
     }
 }

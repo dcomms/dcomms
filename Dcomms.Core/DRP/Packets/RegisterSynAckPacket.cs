@@ -51,9 +51,10 @@ namespace Dcomms.DRP.Packets
         /// decodes the packet, decrypts ToNeighborTxParametersEncrypted, verifies NeighborSignature, verifies match to register SYN
         /// </summary>
         /// <param name="reader">is positioned after first byte = packet type</param>
-        public static RegisterSynAckPacket DecodeAtRequester(BinaryReader reader, RegisterSynPacket registerSyn, byte[] localEcdhPrivateKey, 
+        public static RegisterSynAckPacket DecodeAtRequester(byte[] registerSynAckPacketData, RegisterSynPacket registerSyn, byte[] localEcdhPrivateKey, 
             ICryptoLibrary cryptoLibrary, out P2pStreamParameters txParameters)
         {
+            var reader = PacketProcedures.CreateBinaryReader(registerSynAckPacketData, 1);
             var r = new RegisterSynAckPacket();
             r.Flags = reader.ReadByte();
             if ((r.Flags & Flag_RPtoA) == 0) throw new InvalidOperationException();  // SenderToken16 = RemotePeerToken16.Decode(reader);
