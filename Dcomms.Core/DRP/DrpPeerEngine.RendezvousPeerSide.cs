@@ -124,7 +124,76 @@ namespace Dcomms.DRP
             };
             SendPacket(response.Encode(), remoteEndpoint);
         }
+        
+        /// <summary>
+        /// is executed by receiver thread
+        /// </summary>
+        void ProcessRegisterSynAtoRpPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData)
+        {  
+            var pow2RequestState = _pow2RequestsTable.TryGetPow2RequestState(remoteEndpoint);
+            if (pow2RequestState == null)
+            {
+                OnReceivedRegisterSynAtoRpPacketFromUnknownSource(remoteEndpoint);
+                return;
+            }
 
+            var registerSynPacket = new RegisterSynPacket(udpPayloadData);
+
+            if (!Pow2IsOK(registerSynPacket, pow2RequestState.ProofOfWork2Request))
+            {
+                OnReceivedRegisterSynAtoRpPacketWithBadPow2(remoteEndpoint);
+                // no response
+                return;
+            }
+
+            // questionable:    hello1IPlimit table:  limit number of requests  per 1 minute from every IPv4 block: max 100? requests per 1 minute from 1 block
+            //   ------------ possible attack on hello1IPlimit  table???
+
+            _engineThreadQueue.Enqueue(() =>
+            {             
+                RouteRegistrationRequest(registerSynPacket, out var proxyTo, out var acceptAt); // routing
+
+                if (acceptAt != null)
+                {   // accept the registration request here, at RP
+                    TryBeginAcceptRegisterRequest(acceptAt, registerSynPacket, remoteEndpoint);
+                }
+                else if (proxyTo != null)
+                {  // todo proxy
+                    throw new NotImplementedException();
+                }
+                else throw new Exception();
+            });
+        }
+        /// <summary>
+        /// main routing procedure for REGISTER requests
+        /// </summary>
+        void RouteRegistrationRequest(RegisterSynPacket registerSynPacket, out ConnectedDrpPeer proxyTo, out LocalDrpPeer acceptAt)
+        {
+            proxyTo = null;
+            acceptAt = null;
+            RegistrationPublicKeyDistance minDistance = null;
+            foreach (var localPeer in LocalPeers.Values)
+            {
+                foreach (var connectedPeer in localPeer.ConnectedPeers)
+                {
+                    var distanceToConnectedPeer = registerSynPacket.RequesterPublicKey_RequestID.GetDistanceTo(connectedPeer.RemotePeerPublicKey);
+                    if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
+                    {
+                        minDistance = distanceToConnectedPeer;
+                        proxyTo = connectedPeer;
+                        acceptAt = null;
+                    }
+                }
+                var distanceToLocalPeer = registerSynPacket.RequesterPublicKey_RequestID.GetDistanceTo(localPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey);
+                if (minDistance == null || minDistance.IsGreaterThan(distanceToLocalPeer))
+                {
+                    minDistance = distanceToLocalPeer;
+                    proxyTo = null;
+                    acceptAt = localPeer;
+                }
+            }
+            if (minDistance == null) throw new Exception();
+        }
     }
 
 

@@ -107,6 +107,10 @@ namespace Dcomms.DRP
         internal void OnReceivedBadRegisterSynPow1(IPEndPoint remoteEndpoint)
         {
         }
+        internal void OnReceivedRegisterSynAtoRpPacketFromUnknownSource(IPEndPoint remoteEndpoint)
+        { }
+        internal void OnReceivedRegisterSynAtoRpPacketWithBadPow2(IPEndPoint remoteEndpoint)
+        { }
         #endregion
 
         #region receiver thread
@@ -141,6 +145,14 @@ namespace Dcomms.DRP
             {
                 ProcessRegisterPow1RequestPacket(remoteEndpoint, udpPayloadData);
                 return;
+            }
+            else if (packetType == DrpPacketType.RegisterSynPacket)
+            {
+                if (RegisterSynPacket.IsAtoRP(udpPayloadData))
+                {
+                    ProcessRegisterSynAtoRpPacket(remoteEndpoint, udpPayloadData);
+                    return;
+                }
             }
 
             var receivedAtUtc = DateTimeNowUtc;
@@ -231,11 +243,9 @@ namespace Dcomms.DRP
             //   update IIR counters for rates
             //   send ping in case of inactivity
             //   retransmit packets
+
             //   clean timed out requests, raise timeout events
-
-            // expand neighborhood
-
-            // send test packets between local registered peers
+            CleanPendingAcceptedRegisterRequests_Timer100ms(timeNowUTC);
 
             // retransmit lowlevel udp requests
             PendingUdpRequests_OnTimer100ms(timeNowUTC);
@@ -298,50 +308,4 @@ namespace Dcomms.DRP
         void OnReceivedMessage(byte[] message);
     }
 
-    /// <summary>
-    /// contains recent RDRs;  RAM-based database
-    /// is used to prioritize requests in case of DoS
-    /// 50 neighbors, 1 req per second, 1 hour: 180K records: 2.6MB
-    /// </summary>
-    class RequestDetailsRecordsHistory
-    {
-        LinkedList<RequestDetailsRecord> Records; // newest first
-    }
-    class RequestDetailsRecord
-    {
-        RegistrationPublicKey Sender;
-        RegistrationPublicKey Receiver;
-        RegistrationPublicKey Requester;
-        RegistrationPublicKey Responder;
-        DateTime RequestCreatedTimeUTC;
-        DateTime RequestFinishedTimeUTC;
-        DrpResponderStatusCode Status;
-    }
-    enum RequestType
-    {
-        invite,
-        register
-    }
-
-    class TxRequestState
-    {
-        DateTime WhenCreatedUTC; // is taken from local clock
-        DateTime LatestTxUTC; // is taken from local clock
-        int TxPacketsCount; // is incremented when UDP packet is retransmitted
-
-        ConnectedDrpPeer ReceivedFrom;
-        ConnectedDrpPeer ProxiedTo;
-    }
-
-    class TxRegisterRequestState: TxRequestState
-    {
-        RegistrationPublicKey RequesterPublicKey_RequestID;
-    }
-
-    class TxInviteRequestState: TxRequestState
-    {
-        // requestID={RequesterPublicKey|DestinationResponderPublicKey}
-        RegistrationPublicKey RequesterPublicKey; // A public key 
-        RegistrationPublicKey DestinationResponderPublicKey; // B public key
-    }
 }

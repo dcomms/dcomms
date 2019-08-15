@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
 using System.Text;
 
 namespace Dcomms.DRP
@@ -29,7 +30,35 @@ namespace Dcomms.DRP
             var obj2 = (RegistrationPublicKey)obj;
             return obj2.ReservedFlagsMustBeZero == this.ReservedFlagsMustBeZero && MiscProcedures.EqualByteArrays(obj2.ed25519publicKey, this.ed25519publicKey);
         }
+        public override int GetHashCode()
+        {
+            xx
+        }
+        public RegistrationPublicKeyDistance GetDistanceTo(RegistrationPublicKey another) => new RegistrationPublicKeyDistance(this, another);
+       
     }
+    public class RegistrationPublicKeyDistance
+    {
+        readonly BigInteger _distance;
+        public unsafe RegistrationPublicKeyDistance(RegistrationPublicKey rpk1, RegistrationPublicKey rpk2)
+        {
+            var xorResult = new byte[rpk1.ed25519publicKey.Length];
+            fixed (byte* p1 = rpk1.ed25519publicKey, p2 = rpk2.ed25519publicKey, p3 = xorResult)
+            {
+                long* x1 = (long*)p1, x2 = (long*)p2, x3 = (long*)p3;
+                int l = xorResult.Length / 8;
+                for (int i = 0; i < l; i++, x1++, x2++, x3++)
+                    *x3 = *x1 ^ *x2;
+            }           
+            _distance = new BigInteger(xorResult);
+        }
+        public bool IsGreaterThan(RegistrationPublicKeyDistance another)
+        {
+            return this._distance.CompareTo(another._distance) > 0;
+        }
+    }
+
+
     public class RegistrationPrivateKey
     {
         public byte[] ed25519privateKey;

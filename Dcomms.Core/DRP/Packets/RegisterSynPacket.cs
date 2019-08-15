@@ -20,6 +20,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         static byte Flag_AtoRP = 0x01;
 
+        public bool AtoRP => SenderToken32 == null;
         public P2pConnectionToken32 SenderToken32; // is not transmitted in A->RP request
 
         public RegistrationPublicKey RequesterPublicKey_RequestID; // used to verify signature // used also as request ID
@@ -109,9 +110,11 @@ namespace Dcomms.DRP.Packets
             writer.Write(MinimalDistanceToNeighbor);
             if (includeRequesterSignature) RequesterSignature.Encode(writer);
         }
-        /// <param name="reader">is positioned after first byte = packet type</param>
-        public RegisterSynPacket(BinaryReader reader)
+
+        public RegisterSynPacket(byte[] udpPayloadData)
         {
+            var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
+
             var flags = reader.ReadByte();
             if ((flags & Flag_AtoRP) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
 
@@ -129,6 +132,11 @@ namespace Dcomms.DRP.Packets
                 SenderHMAC = HMAC.Decode(reader);
 
             NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
+        }
+        public static bool IsAtoRP(byte[] udpPayloadData)
+        {
+            var flags = udpPayloadData[1];
+           return (flags & Flag_AtoRP) != 0;
         }
     }
 }
