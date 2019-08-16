@@ -32,7 +32,7 @@ namespace Dcomms.DRP
         }
         public override int GetHashCode()
         {
-            xx
+            return MiscProcedures.GetArrayHashCode(ed25519publicKey) ^ ReservedFlagsMustBeZero;
         }
         public RegistrationPublicKeyDistance GetDistanceTo(RegistrationPublicKey another) => new RegistrationPublicKeyDistance(this, another);
        
@@ -94,13 +94,18 @@ namespace Dcomms.DRP
         }
         public static RegistrationSignature DecodeAndVerify(BinaryReader reader, ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, RegistrationPublicKey publicKey)
         {
-            var r = Decode(reader);            
+            var r = Decode(reader);  
+            if (!r.Verify(cryptoLibrary, writeSignedFields, publicKey)) throw new BadSignatureException();     
+            return r;
+        }
+        public bool Verify(ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, RegistrationPublicKey publicKey)
+        {
             var signedData = new MemoryStream();
             using (var writer = new BinaryWriter(signedData))
                 writeSignedFields(writer);
-            if (cryptoLibrary.VerifyEd25519(signedData.ToArray(), r.ed25519signature, publicKey.ed25519publicKey) == false)
-                throw new BadSignatureException();         
-            return r;
+            if (cryptoLibrary.VerifyEd25519(signedData.ToArray(), ed25519signature, publicKey.ed25519publicKey) == false)
+                return false;
+            return true;
         }
     }
     public class EcdhPublicKey

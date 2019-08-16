@@ -51,13 +51,17 @@ namespace Dcomms.DRP.Packets
         /// decodes the packet, decrypts ToNeighborTxParametersEncrypted, verifies NeighborSignature, verifies match to register SYN
         /// </summary>
         /// <param name="reader">is positioned after first byte = packet type</param>
-        public static RegisterSynAckPacket DecodeAtRequester(byte[] registerSynAckPacketData, RegisterSynPacket registerSyn, byte[] localEcdhPrivateKey, 
+        public static RegisterSynAckPacket DecodeAndVerifyAtRequester(byte[] registerSynAckPacketData, RegisterSynPacket registerSyn, byte[] localEcdhPrivateKey, 
             ICryptoLibrary cryptoLibrary, out P2pStreamParameters txParameters)
         {
             var reader = PacketProcedures.CreateBinaryReader(registerSynAckPacketData, 1);
             var r = new RegisterSynAckPacket();
             r.Flags = reader.ReadByte();
-            if ((r.Flags & Flag_RPtoA) == 0) throw new InvalidOperationException();  // SenderToken16 = RemotePeerToken16.Decode(reader);
+            if ((r.Flags & Flag_RPtoA) == 0)
+            {
+                throw new InvalidOperationException(); 
+                // SenderToken16 = RemotePeerToken16.Decode(reader);
+            }
             if ((r.Flags & Flag_ipv6) != 0) throw new InvalidOperationException();
             r.NeighborStatusCode = (DrpResponderStatusCode)reader.ReadByte();
             r.NeighborEcdhePublicKey = EcdhPublicKey.Decode(reader);
@@ -97,6 +101,35 @@ namespace Dcomms.DRP.Packets
             writer.Write(RegisterSynTimestamp32S);
             NeighborPublicKey.Encode(writer);
             if (includeSignature) NeighborSignature.Encode(writer);
+        }
+
+        /// <param name="txParametersToPeerNeighbor">is not null for packets between registered peers</param>
+        public byte[] EncodeAtResponder(P2pStreamParameters txParametersToPeerNeighbor)
+        {
+            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+
+            writer.Write((byte)DrpPacketType.RegisterSynPacket);
+            byte flags = 0;
+            if (txParametersToPeerNeighbor != null) flags |= Flag_RPtoA;
+            writer.Write(flags);
+            if (txParametersToPeerNeighbor != null)
+                txParametersToPeerNeighbor.RemotePeerToken32.Encode(writer);
+
+            GetCommonRequesterAndResponderFields(writer, true, true);
+
+            if (txParametersToPeerNeighbor != null)
+            {
+                throw new NotImplementedException();
+                //   txParametersToPeerNeighbor.GetSharedHmac(cryptoLibrary, this.GetFieldsForSenderHmac).Encode(writer);
+                NhaSeq16.Encode(writer);
+            }
+            else
+            {
+                PacketProcedures.EncodeIPEndPointIpv4(writer, RequesterEndpoint);
+            }
+
+            return ms.ToArray();
+
         }
     }
 }

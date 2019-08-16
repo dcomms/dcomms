@@ -112,7 +112,8 @@ namespace Dcomms.DRP
                     MinimalDistanceToNeighbor = 0,
                     NumberOfHopsRemaining = 10,
                     RequesterEcdhePublicKey = new EcdhPublicKey { ecdh25519PublicKey = localEcdhe25519PublicKey },
-                    NhaSeq16 = GetNewNhaSeq16()
+                    NhaSeq16 = GetNewNhaSeq16(),
+                    RpEndpoint = rpEndpoint
                 };
                 GenerateRegisterSynPow2(registerSynPacket, pow1ResponsePacket.ProofOfWork2Request);
                 registerSynPacket.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary,
@@ -136,7 +137,7 @@ namespace Dcomms.DRP
                     WriteToLog_reg_requesterSide_debug($"...connection to neighbor via RP {rpEndpoint} timed out (RegisterSynAckPacket)");
                     return null;
                 }
-                var registerSynAckPacket = RegisterSynAckPacket.DecodeAtRequester(registerSynAckPacketData,
+                var registerSynAckPacket = RegisterSynAckPacket.DecodeAndVerifyAtRequester(registerSynAckPacketData,
                     registerSynPacket, localEcdhe25519PrivateKey, _cryptoLibrary, out var txParameters);
                 #endregion
 

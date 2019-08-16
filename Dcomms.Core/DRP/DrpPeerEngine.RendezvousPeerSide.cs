@@ -128,7 +128,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// is executed by receiver thread
         /// </summary>
-        void ProcessRegisterSynAtoRpPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData)
+        void ProcessRegisterSynAtoRpPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc)
         {  
             var pow2RequestState = _pow2RequestsTable.TryGetPow2RequestState(remoteEndpoint);
             if (pow2RequestState == null)
@@ -155,7 +155,7 @@ namespace Dcomms.DRP
 
                 if (acceptAt != null)
                 {   // accept the registration request here, at RP
-                    TryBeginAcceptRegisterRequest(acceptAt, registerSynPacket, remoteEndpoint);
+                    TryBeginAcceptRegisterRequest(acceptAt, registerSynPacket, remoteEndpoint, receivedAtUtc);
                 }
                 else if (proxyTo != null)
                 {  // todo proxy

@@ -163,6 +163,7 @@ namespace Dcomms
 
         public static void EncodeIPEndPointIpv4(BinaryWriter writer, IPEndPoint endpoint)
         {
+            if (endpoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new ArgumentException();
             writer.Write(endpoint.Address.GetAddressBytes());
             writer.Write((UInt16)endpoint.Port);
         }

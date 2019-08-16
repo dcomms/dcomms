@@ -25,19 +25,23 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public HMAC SenderHMAC;
 
+        public NextHopAckPacket()
+        { }
         public static void EncodeHeader(BinaryWriter writer, NextHopAckSequenceNumber16 nhaSeq16)
         {
             writer.Write((byte)DrpPacketType.NextHopAckPacket);
             nhaSeq16.Encode(writer);
         }
-        public byte[] Encode(byte flags)
+        public byte[] Encode(bool rpToA)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             EncodeHeader(writer, NhaSeq16);
+            byte flags = 0;
+            if (rpToA) flags |= Flag_RPtoA;
             writer.Write(flags);
-            if ((flags & Flag_RPtoA) == 0) SenderToken32.Encode(writer);
+            if (rpToA == false) SenderToken32.Encode(writer);
             writer.Write((byte)StatusCode);
-            if ((flags & Flag_RPtoA) == 0) SenderHMAC.Encode(writer);
+            if (rpToA == false) SenderHMAC.Encode(writer);
             return ms.ToArray();
         }
         public NextHopAckPacket(byte[] nextHopResponsePacketData)

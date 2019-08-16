@@ -237,6 +237,18 @@ namespace Dcomms
                 return true;
             }
         }
+        public static unsafe int GetArrayHashCode(byte[] a)
+        {
+            fixed (byte* p = a)
+            {
+                byte* x = p;
+                int l = a.Length;
+                int r = 0;
+                for (int i = 0; i < l / 4; i++, x += 4)
+                    r ^= *((int*)x);                
+                return r;
+            }
+        }
 
         public static unsafe bool EqualByteArrayHeader(byte[] header, byte[] array)
         {

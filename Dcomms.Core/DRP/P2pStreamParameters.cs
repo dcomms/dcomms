@@ -83,6 +83,47 @@ namespace Dcomms.DRP
             return r;
         }
         const ushort Magic16_ipv4_responderToRequester = 0x60C1; // is used to validate decrypted data
+
+
+        /// <summary>
+        /// when sending SYN-ACK
+        /// </summary>
+        public static byte[] EncryptAtRegisterResponder(byte[] localPrivateEcdhKey,
+            RegisterSynPacket remoteRegisterSyn, RegisterSynAckPacket localRegisterSynAck,
+            P2pConnectionToken32 localRxToken32, ICryptoLibrary cryptoLibrary)
+        {
+            if (remoteRegisterSyn.AtoRP == false) throw new NotImplementedException();
+            if (remoteRegisterSyn.RpEndpoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new NotImplementedException();
+            
+            var sharedDhSecret = cryptoLibrary.DeriveEcdh25519SharedSecret(localPrivateEcdhKey, remoteRegisterSyn.RequesterEcdhePublicKey.ecdh25519PublicKey);
+
+            var ms = new MemoryStream();
+            using (var writer = new BinaryWriter(ms))
+            {
+                remoteRegisterSyn.GetCommonRequesterAndResponderFields(writer, true);
+                localRegisterSynAck.GetCommonRequesterAndResponderFields(writer, false, false);
+            }
+            var iv = cryptoLibrary.GetHashSHA256(ms.ToArray());
+
+            ms.Write(sharedDhSecret, 0, sharedDhSecret.Length);
+            var aesKey = cryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+
+            // encode localRxParameters
+            PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
+            PacketProcedures.EncodeIPEndPointIpv4(wRxParameters, remoteRegisterSyn.RpEndpoint); // 6
+            localRxToken32.Encode(wRxParameters); // 4
+            wRxParameters.Write(Magic16_ipv4_responderToRequester);    // 2
+            wRxParameters.Write(cryptoLibrary.GetRandomBytes(4));      // 4
+
+            var localRxParametersDecrypted = msRxParameters.ToArray(); // total 16 bytes
+            var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
+            cryptoLibrary.ProcessSingleAesBlock(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
+
+            return localRxParametersEncrypted;
+        }
+        
+
+
         public static P2pStreamParameters DecryptAtRegisterResponder()
         {
             throw new NotImplementedException();

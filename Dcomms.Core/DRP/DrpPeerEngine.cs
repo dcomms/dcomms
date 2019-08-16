@@ -71,7 +71,7 @@ namespace Dcomms.DRP
             _receiverThread.Join();
         }
 
-        #region error handlers / dev vision
+        #region error handlers / dev vision / anti-fraud
         void HandleException(Exception exc, string description)
         {
             //todo report to log/dev vision
@@ -111,6 +111,10 @@ namespace Dcomms.DRP
         { }
         internal void OnReceivedRegisterSynAtoRpPacketWithBadPow2(IPEndPoint remoteEndpoint)
         { }
+        void OnReceivedBadSignature(IPEndPoint remoteEndpoint)
+        {
+
+        }
         #endregion
 
         #region receiver thread
@@ -146,16 +150,17 @@ namespace Dcomms.DRP
                 ProcessRegisterPow1RequestPacket(remoteEndpoint, udpPayloadData);
                 return;
             }
-            else if (packetType == DrpPacketType.RegisterSynPacket)
+
+            var receivedAtUtc = DateTimeNowUtc;
+            if (packetType == DrpPacketType.RegisterSynPacket)
             {
                 if (RegisterSynPacket.IsAtoRP(udpPayloadData))
                 {
-                    ProcessRegisterSynAtoRpPacket(remoteEndpoint, udpPayloadData);
+                    ProcessRegisterSynAtoRpPacket(remoteEndpoint, udpPayloadData, receivedAtUtc);
                     return;
                 }
             }
 
-            var receivedAtUtc = DateTimeNowUtc;
             _engineThreadQueue.Enqueue(() =>
             {
                 // process responses to  low-level UDP requests
@@ -244,8 +249,8 @@ namespace Dcomms.DRP
             //   send ping in case of inactivity
             //   retransmit packets
 
-            //   clean timed out requests, raise timeout events
-            CleanPendingAcceptedRegisterRequests_Timer100ms(timeNowUTC);
+
+            PendingAcceptedRegisterRequests_OnTimer100ms(timeNowUTC);
 
             // retransmit lowlevel udp requests
             PendingUdpRequests_OnTimer100ms(timeNowUTC);
@@ -286,14 +291,14 @@ namespace Dcomms.DRP
         public TimeSpan PingRequestsInterval = TimeSpan.FromSeconds(2);
         public double PingRetransmissionInterval_RttRatio = 2.0; // "how much time to wait until sending another ping request?" - coefficient, relative to previously measured RTT
         public TimeSpan ConnectedPeersRemovalTimeout => PingRequestsInterval + TimeSpan.FromSeconds(2);
-
-
+        
         public uint RegisterPow1_RecentUniqueDataResetPeriodS = 10 * 60;
         public int RegisterPow1_MaxTimeDifferenceS = 20 * 60;
         public bool RespondToRegisterPow1Errors = false;
 
         public TimeSpan Pow2RequestStatesTablePeriod = TimeSpan.FromSeconds(5);
         public int Pow2RequestStatesTableMaxSize = 100000;
+        public int Timestamp32S_MaxDifferenceToAccept = 20 * 60;
     }
     public class DrpPeerRegistrationConfiguration
     {

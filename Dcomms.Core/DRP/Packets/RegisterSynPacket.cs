@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Text;
 
 namespace Dcomms.DRP.Packets
@@ -66,6 +67,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public HMAC SenderHMAC;
         public NextHopAckSequenceNumber16 NhaSeq16;
+        public IPEndPoint RpEndpoint; // is transmitted only in A->RP request, unencrypted  // makes sense when RP is behind NAT (e.g amazon) and does not know its public IP
 
         public RegisterSynPacket()
         {
@@ -96,6 +98,8 @@ namespace Dcomms.DRP.Packets
              //   txParametersToPeerNeighbor.GetSharedHmac(cryptoLibrary, this.GetFieldsForSenderHmac).Encode(writer);
             }
             NhaSeq16.Encode(writer);
+            if (txParametersToPeerNeighbor == null)
+                PacketProcedures.EncodeIPEndPoint(writer, RpEndpoint);
 
             return ms.ToArray();
         }
@@ -124,12 +128,10 @@ namespace Dcomms.DRP.Packets
             MinimalDistanceToNeighbor = reader.ReadByte();
             RequesterSignature = RegistrationSignature.Decode(reader);
             
-            //todo: verify, at responder
-
             if ((flags & Flag_AtoRP) != 0) ProofOfWork2 = reader.ReadBytes(64);
             NumberOfHopsRemaining = reader.ReadByte();
-            if ((flags & Flag_AtoRP) == 0)
-                SenderHMAC = HMAC.Decode(reader);
+            if ((flags & Flag_AtoRP) == 0) SenderHMAC = HMAC.Decode(reader);
+            if ((flags & Flag_AtoRP) != 0) RpEndpoint = PacketProcedures.DecodeIPEndPointIpv4(reader);
 
             NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
         }
