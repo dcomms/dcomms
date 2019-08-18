@@ -155,7 +155,7 @@ namespace Dcomms.DRP
 
                 if (acceptAt != null)
                 {   // accept the registration request here, at RP
-                    TryBeginAcceptRegisterRequest(acceptAt, registerSynPacket, remoteEndpoint, receivedAtUtc);
+                    _ = AcceptRegisterRequestAsync(acceptAt, registerSynPacket, remoteEndpoint, receivedAtUtc);
                 }
                 else if (proxyTo != null)
                 {  // todo proxy

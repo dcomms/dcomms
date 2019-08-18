@@ -73,7 +73,7 @@ namespace Dcomms.DRP.Packets
         {
         }
         /// <param name="txParametersToPeerNeighbor">is not null for packets between registered peers</param>
-        public byte[] Encode(P2pStreamParameters txParametersToPeerNeighbor)
+        public byte[] Encode(EstablishedP2pStreamParameters txParametersToPeerNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 

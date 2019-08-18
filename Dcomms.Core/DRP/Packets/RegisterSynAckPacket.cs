@@ -52,7 +52,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         /// <param name="reader">is positioned after first byte = packet type</param>
         public static RegisterSynAckPacket DecodeAndVerifyAtRequester(byte[] registerSynAckPacketData, RegisterSynPacket registerSyn, byte[] localEcdhPrivateKey, 
-            ICryptoLibrary cryptoLibrary, out P2pStreamParameters txParameters)
+            ICryptoLibrary cryptoLibrary, out EstablishedP2pStreamParameters txParameters)
         {
             var reader = PacketProcedures.CreateBinaryReader(registerSynAckPacketData, 1);
             var r = new RegisterSynAckPacket();
@@ -72,7 +72,7 @@ namespace Dcomms.DRP.Packets
             r.NeighborSignature = RegistrationSignature.DecodeAndVerify(reader, cryptoLibrary, w => r.GetCommonRequesterAndResponderFields(w, false, true), r.NeighborPublicKey);
             r.AssertMatchToRegisterSyn(registerSyn);
             
-            txParameters = P2pStreamParameters.DecryptAtRegisterRequester(localEcdhPrivateKey, registerSyn, r, cryptoLibrary);
+            txParameters = EstablishedP2pStreamParameters.DecryptAtRegisterRequester(localEcdhPrivateKey, registerSyn, r, cryptoLibrary);
             if ((r.Flags & Flag_RPtoA) != 0) r.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
             if ((r.Flags & Flag_RPtoA) == 0) r.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
 
@@ -104,7 +104,7 @@ namespace Dcomms.DRP.Packets
         }
 
         /// <param name="txParametersToPeerNeighbor">is not null for packets between registered peers</param>
-        public byte[] EncodeAtResponder(P2pStreamParameters txParametersToPeerNeighbor)
+        public byte[] EncodeAtResponder(EstablishedP2pStreamParameters txParametersToPeerNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 

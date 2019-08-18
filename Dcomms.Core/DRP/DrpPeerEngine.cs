@@ -115,6 +115,10 @@ namespace Dcomms.DRP
         {
 
         }
+        void HandleExceptionWhileConnectingToA(IPEndPoint remoteEndpoint, Exception exc)
+        {
+
+        }
         #endregion
 
         #region receiver thread
@@ -250,7 +254,7 @@ namespace Dcomms.DRP
             //   retransmit packets
 
 
-            PendingAcceptedRegisterRequests_OnTimer100ms(timeNowUTC);
+           // PendingAcceptedRegisterRequests_OnTimer100ms(timeNowUTC);
 
             // retransmit lowlevel udp requests
             PendingUdpRequests_OnTimer100ms(timeNowUTC);
@@ -299,6 +303,17 @@ namespace Dcomms.DRP
         public TimeSpan Pow2RequestStatesTablePeriod = TimeSpan.FromSeconds(5);
         public int Pow2RequestStatesTableMaxSize = 100000;
         public int Timestamp32S_MaxDifferenceToAccept = 20 * 60;
+
+        public TimeSpan PendingRegisterRequestsTimeout = TimeSpan.FromSeconds(20);
+
+        public double UdpLowLevelRequests_ExpirationTimeoutS = 2;
+        public double UdpLowLevelRequests_InitialRetransmissionTimeoutS = 0.2;
+        public double UdpLowLevelRequests_RetransmissionTimeoutIncrement = 1.5;
+        public double RegSynAckRequesterSideTimoutS = 10;
+
+        public double AtoN_PingRequests_ExpirationTimeoutS = 5;
+        public double AtoN_PingRequests_InitialRetransmissionTimeoutS = 0.1;
+        public double AtoN_PingRequests_RetransmissionTimeoutIncrement = 1.05;
     }
     public class DrpPeerRegistrationConfiguration
     {

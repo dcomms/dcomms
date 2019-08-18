@@ -5,65 +5,103 @@ using System.Text;
 
 namespace Dcomms.DRP
 {
-    /// <summary>
-    /// instance exists when SynAck response is sent and 
-    /// </summary>
-    class PendingAcceptedRegisterRequest : IDisposable
-    {
-        enum State
-        {
-            sentSynAck,
-            receivedAck,
-        }
-        State _state;
+    ///// <summary>
+    ///// instance exists when SynAck response is sent and 
+    ///// </summary>
+    //class PendingAcceptedRegisterRequest : IDisposable
+    //{
+    //    enum State
+    //    {
+    //        sentSynAck,
+    //        receivedNextHopResponseToSynAck, 
+    //        receivedAck,
+    //        disposed
+    //    }
+    //    State _state;
       
-        DateTime _createdAtUtc; // is taken from local clock
-      //  DateTime LatestTxUTC; // is taken from local clock
-      //  int TxPacketsCount; // is incremented when UDP packet is retransmitted
+    //    DateTime _createdAtUtc; // is taken from local clock
+    //    PendingLowLevelUdpRequest _pendingSynAckRequest;
 
-       // ConnectedDrpPeer ReceivedFrom;
-        //  ConnectedDrpPeer ProxiedTo; // null if terminated by local peer
+    //    TimeSpan CurrentRetransmissionTimeout;
+    //    //  DateTime LatestTxUTC; // is taken from local clock
+    //    //  int TxPacketsCount; // is incremented when UDP packet is retransmitted
+
+    //    // ConnectedDrpPeer ReceivedFrom;
+    //    //  ConnectedDrpPeer ProxiedTo; // null if terminated by local peer
 
 
-        readonly RegisterSynPacket _registerSynPacket;
-        readonly RegisterSynAckPacket _registerSynAckPacket;
-        readonly byte[] _localEcdhe25519PrivateKey;
-        readonly byte[] _registerSynAckUdpPayload;
+    //    readonly RegisterSynPacket _registerSynPacket;
+    //    readonly RegisterSynAckPacket _registerSynAckPacket;
+    //    readonly byte[] _localEcdhe25519PrivateKey;
+    //    readonly byte[] _registerSynAckUdpPayload;
+    //    readonly DrpPeerEngine _drpPeerEngine;
 
-        internal ConnectedDrpPeer NewConnectionToRequester; // goes into "connected peers" only after registerACK // or gets disposed on timeout
+    //    PendingLowLevelUdpRequest RegisterSynAckLowLevelUdpRequest; //todo retransmit regSynAck  until NextHopAckPacket   (if sent from proxier) or until RegAck (if SYN was sent by A)
 
-        public PendingAcceptedRegisterRequest(RegisterSynPacket registerSynPacket, RegisterSynAckPacket registerSynAckPacket, 
-            byte[] registerSynAckUdpPayload, byte[] localEcdhe25519PrivateKey, DateTime registerSynTimeUtc)
-        {
-            _localEcdhe25519PrivateKey = localEcdhe25519PrivateKey;
-            _registerSynPacket = registerSynPacket;
-            _registerSynAckPacket = registerSynAckPacket;
-            _registerSynAckUdpPayload = registerSynAckUdpPayload;
-            _createdAtUtc = registerSynTimeUtc;
+    //    internal ConnectedDrpPeer NewConnectionToRequester; // goes into "connected peers" only after registerACK // or gets disposed on timeout
 
-            NewConnectionToRequester = new ConnectedDrpPeer();
-        }
-        public void Dispose()
-        {
-            if (NewConnectionToRequester != null)
-                NewConnectionToRequester.Dispose();
-        }
+    //    /// <summary>
+    //    /// is executed when synAck is transmitted by responder
+    //    /// </summary>
+    //    public PendingAcceptedRegisterRequest(DrpPeerEngine drpPeerEngine, RegisterSynPacket registerSynPacket, RegisterSynAckPacket registerSynAckPacket, 
+    //        byte[] registerSynAckUdpPayload, byte[] localEcdhe25519PrivateKey, DateTime registerSynTimeUtc)
+    //    {
+    //        _drpPeerEngine = drpPeerEngine;
+    //        _localEcdhe25519PrivateKey = localEcdhe25519PrivateKey;
+    //        _registerSynPacket = registerSynPacket;
+    //        _registerSynAckPacket = registerSynAckPacket;
+    //        _registerSynAckUdpPayload = registerSynAckUdpPayload;
+    //        _createdAtUtc = registerSynTimeUtc;
+            
+    //       // _lastTimeTransmittedSynAck = registerSynTimeUtc + drpPeerEngine.Configuration.;
+    //    }
+    //    public void Dispose()
+    //    {
+    //        _state = State.disposed;
+    //        if (NewConnectionToRequester != null)
+    //            NewConnectionToRequester.Dispose();
+    //    }
 
-        public void OnTimer_100ms(DateTime timeNowUTC, out bool needToRestartLoop)
-        {
-            //todo retransmit regSynAck  until NextHopAckPacket   (if sent from proxier)        or until RegAck (if SYN was sent by A)
-            //             SendPacket(_registerSynAckUdpPayload, remoteEndpoint);
+    //    public void OnTimer_100ms(DateTime timeNowUTC, out bool needToRestartLoop)
+    //    {
+    //        needToRestartLoop = false;
 
-            // todo expire timer - delete the instance
-            //    dispose();
-        }
+    //        //switch (_state)
+    //        //{
+    //        //    case State.sentSynAck:
+    //        //        if (timeNowUTC > _lastTimeTransmittedSynAck)
+    //        //        //todo retransmit regSynAck  until NextHopAckPacket   (if sent from proxier)        or until RegAck (if SYN was sent by A)
+    //        //        //             SendPacket(_registerSynAckUdpPayload, remoteEndpoint);
+    //        //        break;
+    //        //}
 
-        public void OnReceivedAck()
-        {
-            // pass to "conencted peers"   // set NewConnectionToRequester=null (will not be disposed by this instance)
+                       
+            
+            
+    //        // dispose the instance in timer expiry
+    //        //if (timeNowUTC > _createdAtUtc + _drpPeerEngine.Configuration.PendingRegisterRequestsTimeout)
+    //        //{
+    //        //    _drpPeerEngine.PendingAcceptedRegisterRequests.Remove(this._registerSynPacket.RequesterPublicKey_RequestID);
+    //        //    this.Dispose();
+    //        //}
+    //    }
 
-        }
-    }
+    //    public void OnReceivedAck()
+    //    {
+    //        //todo call this
+    //        // pass to "connected peers"   // set NewConnectionToRequester=null (will not be disposed by this instance)
+
+    //        _state = State.receivedAck;
+    //    }
+
+
+    //    public void OnNextHopResponse()
+    //    {
+    //        //todo call this
+    //        _state = State.receivedNextHopResponseToSynAck;
+
+    //    }
+    //}
 
     //class PendingInviteRequestState : PendingRequest
     //{

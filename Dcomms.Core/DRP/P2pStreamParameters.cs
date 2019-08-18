@@ -42,18 +42,18 @@ namespace Dcomms.DRP
     /// is negotiated via REGISTER channel
     /// all fields are encrypted when transmitted over REGISTER channel, using single-block AES and shared ECDH key
     /// </summary>
-    public class P2pStreamParameters
+    public class EstablishedP2pStreamParameters
     {
         public P2pConnectionToken32 RemotePeerToken32;
         public IPEndPoint RemoteEndpoint; // IP address + UDP port // where to send packets
         byte[] SharedDhSecret;
         
-        public static P2pStreamParameters DecryptAtRegisterRequester(byte[] localPrivateEcdhKey, RegisterSynPacket localRegisterSyn,
+        public static EstablishedP2pStreamParameters DecryptAtRegisterRequester(byte[] localPrivateEcdhKey, RegisterSynPacket localRegisterSyn,
             RegisterSynAckPacket remoteRegisterSynAck, ICryptoLibrary cryptoLibrary)
         {
             if ((remoteRegisterSynAck.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
 
-            var r = new P2pStreamParameters();
+            var r = new EstablishedP2pStreamParameters();
 
             r.SharedDhSecret = cryptoLibrary.DeriveEcdh25519SharedSecret(localPrivateEcdhKey, remoteRegisterSynAck.NeighborEcdhePublicKey.ecdh25519PublicKey);
 
@@ -124,7 +124,7 @@ namespace Dcomms.DRP
         
 
 
-        public static P2pStreamParameters DecryptAtRegisterResponder()
+        public static EstablishedP2pStreamParameters DecryptAtRegisterResponder()
         {
             throw new NotImplementedException();
         }
@@ -134,11 +134,11 @@ namespace Dcomms.DRP
         /// </summary>
         public static byte[] EncryptAtRegisterRequester(byte[] localPrivateEcdhKey, 
             RegisterSynPacket localRegisterSyn, RegisterSynAckPacket remoteRegisterSynAck, RegisterAckPacket localRegisterAckPacket, 
-            P2pStreamParameters localRxParameters, ICryptoLibrary cryptoLibrary)
+            EstablishedP2pStreamParameters localRxParameters, ICryptoLibrary cryptoLibrary)
         {
             if ((remoteRegisterSynAck.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
 
-            var r = new P2pStreamParameters();
+            var r = new EstablishedP2pStreamParameters();
 
             var sharedDhSecret = cryptoLibrary.DeriveEcdh25519SharedSecret(localPrivateEcdhKey, remoteRegisterSynAck.NeighborEcdhePublicKey.ecdh25519PublicKey);
 

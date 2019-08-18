@@ -41,13 +41,26 @@ namespace Dcomms.DRP.Packets
         public RegisterAckPacket()
         {
         }
-        public byte[] Encode(P2pStreamParameters txParametersToPeerNeighbor)
+        public static void EncodeHeader(BinaryWriter writer, EstablishedP2pStreamParameters p2pParams, RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S)
+        {
+            writer.Write((byte)DrpPacketType.RegisterAckPacket);
+            byte flags = 0;
+            if (p2pParams == null) flags |= Flag_AtoRP;
+            writer.Write(flags);
+
+            if (p2pParams != null)
+                p2pParams.RemotePeerToken32.Encode(writer);
+
+            requesterPublicKey_RequestID.Encode(writer);
+            writer.Write(registerSynTimestamp32S);
+        }
+        public byte[] Encode(EstablishedP2pStreamParameters txParametersToPeerNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             
             writer.Write((byte)DrpPacketType.RegisterAckPacket);
             byte flags = 0;
-            if (txParametersToPeerNeighbor != null) flags |= Flag_AtoRP;
+            if (txParametersToPeerNeighbor == null) flags |= Flag_AtoRP;
             writer.Write(flags);
 
             if (txParametersToPeerNeighbor != null)
@@ -71,9 +84,10 @@ namespace Dcomms.DRP.Packets
             if (includeTxParameters) writer.Write(ToRequesterTxParametersEncrypted);
             if (includeRequesterHMAC) RequesterHMAC.Encode(writer);
         }
-        /// <param name="reader">is positioned after first byte = packet type</param>
-        public RegisterAckPacket(BinaryReader reader)
+        public RegisterAckPacket(byte[] registerAckPacketData)
         {
+            var reader = PacketProcedures.CreateBinaryReader(registerAckPacketData, 1);
+
             var flags = reader.ReadByte();
             if ((flags & Flag_AtoRP) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
 

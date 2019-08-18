@@ -7,50 +7,26 @@ using System.Threading.Tasks;
 namespace Dcomms.DRP
 {
 	/// <summary>
-    /// low-level requests, retransmissions   -- used for registration only
+    /// low-level requests, retransmissions  
+    /// used for registration requester-side and for synAck responder-side
     /// </summary>
     public partial class DrpPeerEngine
     {
-        class PendingLowLevelUdpRequest
-        {
-            public IPEndPoint RemoteEndpoint;
-            public byte[] ResponseFirstBytes;
-            public byte[] RequestPacketData; // is null when no need to retransmit request packet during the waiting
-            public DateTime ExpirationTimeUTC;
-            public DateTime NextRetransmissionTimeUTC;
-            public TaskCompletionSource<byte[]> TaskCompletionSource = new TaskCompletionSource<byte[]>();
-            public DateTime? ResponseReceivedAtUtc;
-            TimeSpan CurrentRetransmissionTimeout;
-            public PendingLowLevelUdpRequest(IPEndPoint remoteEndpoint, byte[] responseFirstBytes, byte[] requestPacketData, DateTime timeUtc,
-                double expirationTimeoutS = 2, double initialRetransmissionTimeoutS = 0.2, double retransmissionTimeoutIncrement = 1.5)
-            {
-                _retransmissionTimeoutIncrement = retransmissionTimeoutIncrement;
-                ExpirationTimeUTC = timeUtc.AddSeconds(expirationTimeoutS);
-                CurrentRetransmissionTimeout = TimeSpan.FromSeconds(initialRetransmissionTimeoutS);
-                NextRetransmissionTimeUTC = timeUtc + CurrentRetransmissionTimeout;
-                RemoteEndpoint = remoteEndpoint;
-                ResponseFirstBytes = responseFirstBytes;
-                RequestPacketData = requestPacketData;
-            }
-            public void OnRetransmitted()
-            {
-                CurrentRetransmissionTimeout = TimeSpan.FromTicks((long)(CurrentRetransmissionTimeout.Ticks * _retransmissionTimeoutIncrement));
-                NextRetransmissionTimeUTC += CurrentRetransmissionTimeout;
-            }
-            readonly double _retransmissionTimeoutIncrement;
-            public DateTime? InitialTxTimeUTC;
-        }
-        LinkedList<PendingLowLevelUdpRequest> _pendingLowLevelUdpRequests = new LinkedList<PendingLowLevelUdpRequest>(); // accessed by engine thread only
+        /// <summary>
+        /// accessed by engine thread only 
+        /// todo optimize by having a dictionary based on sorted arrayHeader data
+        /// </summary>
+        LinkedList<PendingLowLevelUdpRequest> _pendingLowLevelUdpRequests = new LinkedList<PendingLowLevelUdpRequest>(); 
 
-        async Task<NextHopAckPacket> SendUdpRequestAsync_WaitForNextHopAck(byte[] requestPacketData, IPEndPoint remoteEndpoint, NextHopAckSequenceNumber16 nhaSeq16)
+        async Task<NextHopAckPacket> SendUdpRequestAsync_Retransmit_WaitForNextHopAck(byte[] requestPacketData, IPEndPoint remoteEndpoint, NextHopAckSequenceNumber16 nhaSeq16)
         {
             PacketProcedures.CreateBinaryWriter(out var responseFirstBytesMS, out var responseFirstBytesW);
             NextHopAckPacket.EncodeHeader(responseFirstBytesW, nhaSeq16);
-            var nextHopResponsePacketData = await SendUdpRequestAsync(
+            var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(remoteEndpoint,
-                         responseFirstBytesMS.ToArray(),
-                         requestPacketData,
-                         DateTimeNowUtc
+                         responseFirstBytesMS.ToArray(), DateTimeNowUtc, Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
+                         requestPacketData,                      
+                         Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
                      ));
             if (nextHopResponsePacketData == null)
                 throw new NextHopTimeoutException();
@@ -61,13 +37,26 @@ namespace Dcomms.DRP
             return nextHopResponsePacket;
         }
 
+        async Task<byte[]> SendUdpRequestAsync_Retransmit_WaitForResponse(byte[] requestPacketData, IPEndPoint remoteEndpoint, byte[] responseFirstBytes)
+        {
+            var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
+                     new PendingLowLevelUdpRequest(remoteEndpoint,
+                         responseFirstBytes, DateTimeNowUtc, Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
+                         requestPacketData,
+                         Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
+                     ));
+            if (nextHopResponsePacketData == null)
+                throw new NextHopTimeoutException();
+            return nextHopResponsePacketData;
+        }
+
         /// <summary>
         /// sends udp packet
         /// expects response from same IPEndpoint, with specified first bytes 
         /// retransmits the packet if no response
         /// returns null on timeout
         /// </summary>
-        async Task<byte[]> SendUdpRequestAsync(PendingLowLevelUdpRequest request)
+        async Task<byte[]> SendUdpRequestAsync_Retransmit(PendingLowLevelUdpRequest request)
         {
             request.InitialTxTimeUTC = DateTimeNowUtc;
             SendPacket(request.RequestPacketData, request.RemoteEndpoint);          
@@ -129,5 +118,41 @@ namespace Dcomms.DRP
             }
             return false;
         }
+    }
+
+    /// <summary>
+    /// waits for expirationTimeoutS timeout, or for response packet from remoteEndpoint with first bytes = responseFirstBytes
+    /// optionally retransmits the request
+    /// </summary>
+    class PendingLowLevelUdpRequest
+    {
+        public IPEndPoint RemoteEndpoint;
+        public byte[] ResponseFirstBytes;
+        public byte[] RequestPacketData; // is null when no need to retransmit request packet during the waiting
+        public DateTime ExpirationTimeUTC;
+        public DateTime? NextRetransmissionTimeUTC; // is null when no need to retransmit request packet during the waiting
+        public TaskCompletionSource<byte[]> TaskCompletionSource = new TaskCompletionSource<byte[]>();
+        public DateTime? ResponseReceivedAtUtc;
+        double? _currentRetransmissionTimeoutS;
+        public PendingLowLevelUdpRequest(IPEndPoint remoteEndpoint, byte[] responseFirstBytes, DateTime timeUtc, 
+            double expirationTimeoutS,
+            byte[] requestPacketData = null, double? initialRetransmissionTimeoutS = null, double? retransmissionTimeoutIncrement = null)
+        {
+            _retransmissionTimeoutIncrement = retransmissionTimeoutIncrement;
+            ExpirationTimeUTC = timeUtc.AddSeconds(expirationTimeoutS);
+            _currentRetransmissionTimeoutS = initialRetransmissionTimeoutS;
+            if (_currentRetransmissionTimeoutS.HasValue) NextRetransmissionTimeUTC = timeUtc.AddSeconds(_currentRetransmissionTimeoutS.Value);
+            RemoteEndpoint = remoteEndpoint;
+            ResponseFirstBytes = responseFirstBytes;
+            RequestPacketData = requestPacketData;
+        }
+        public void OnRetransmitted()
+        {
+            if (NextRetransmissionTimeUTC == null) throw new InvalidOperationException();
+            _currentRetransmissionTimeoutS *= _retransmissionTimeoutIncrement;
+            NextRetransmissionTimeUTC = NextRetransmissionTimeUTC.Value.AddSeconds(_currentRetransmissionTimeoutS.Value);
+        }
+        readonly double? _retransmissionTimeoutIncrement;
+        public DateTime? InitialTxTimeUTC;
     }
 }
