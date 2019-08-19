@@ -73,7 +73,11 @@ namespace Dcomms.DRP.Packets
     }
     public class PingResponsePacket
     {
+        /// <summary>
+        /// authenticates sender peer at receiver side
+        /// </summary>
         public P2pConnectionToken32 SenderToken32;
+        public uint PingRequestId32;  // must match to request
         byte Flags;
         const byte Flags_P2pConnectionSetupSignatureExists = 0x01;
         /// <summary>
@@ -88,7 +92,6 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public RegistrationSignature P2pConnectionSetupSignature;
 
-        public uint PingRequestId32;  // must match to request
         public HMAC SenderHMAC; // signs { Flags,SenderToken32,(optional)P2pConnectionSetupSignature,PingRequestTimestampMs32 }
 
         /// <param name="reader">is positioned after first byte = packet type</param>
@@ -104,6 +107,7 @@ namespace Dcomms.DRP.Packets
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
             var r = new PingResponsePacket();
             r.SenderToken32 = P2pConnectionToken32.Decode(reader);
+            r.PingRequestId32 = reader.ReadUInt32();
             r.Flags = reader.ReadByte();            
  
             // verify signature of N
@@ -116,7 +120,6 @@ namespace Dcomms.DRP.Packets
                 if (requireSignature) throw new UnmatchedResponseFieldsException();
             }
 
-            r.PingRequestId32 = reader.ReadUInt32();
             r.SenderHMAC = HMAC.Decode(reader);
 
             // verify PingRequestId32
@@ -140,13 +143,25 @@ namespace Dcomms.DRP.Packets
             return (ushort)(udpPayloadData[1] | (udpPayloadData[2] << 8));
         }
 
+        public static LowLevelUdpResponseScanner GetScanner(P2pConnectionToken32 senderToken32, uint pingRequestId32)
+        {
+            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            w.Write((byte)DrpPacketType.PingResponsePacket);
+            GetHeaderFields(w, senderToken32, pingRequestId32);
+            return new LowLevelUdpResponseScanner { ResponseFirstBytes = ms.ToArray() };
+        }
+        static void GetHeaderFields(BinaryWriter writer, P2pConnectionToken32 senderToken32, uint pingRequestId32)
+        {
+            senderToken32.Encode(writer);
+            writer.Write(pingRequestId32);
+        }
+
         public void GetSignedFieldsForSenderHMAC(BinaryWriter writer)
         {
-            SenderToken32.Encode(writer);
+            GetHeaderFields(writer, SenderToken32, PingRequestId32);
             writer.Write(Flags);
             if (P2pConnectionSetupSignature != null)
                 P2pConnectionSetupSignature.Encode(writer);
-            writer.Write(PingRequestId32);
         }
         const ushort P2pConnectionSetupSignature_MagicNumber = 0x7827;
         static void GetSignedFieldsForP2pConnectionSetupSignature(BinaryWriter writer, RegisterSynPacket registerSynPacket, RegisterSynAckPacket registerSynAckPacket)
@@ -167,5 +182,6 @@ namespace Dcomms.DRP.Packets
             SenderHMAC.Encode(writer);
             return ms.ToArray();
         }
+
     }
 }

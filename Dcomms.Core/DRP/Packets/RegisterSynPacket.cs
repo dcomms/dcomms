@@ -34,7 +34,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public uint Timestamp32S;
 
-        public byte MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood // 32-byte xor distance compressed into 8 bits (log2)
+        public uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood 
 
         /// <summary>
         /// signs fields: {RequesterPublicKey_RequestID,RequesterEcdhePublicKey,Timestamp32S,MinimalDistanceToNeighbor}
@@ -73,7 +73,7 @@ namespace Dcomms.DRP.Packets
         {
         }
         /// <param name="txParametersToPeerNeighbor">is not null for packets between registered peers</param>
-        public byte[] Encode(EstablishedP2pStreamParameters txParametersToPeerNeighbor)
+        public byte[] Encode(P2pStreamParameters txParametersToPeerNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
@@ -125,7 +125,7 @@ namespace Dcomms.DRP.Packets
             RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
             Timestamp32S = reader.ReadUInt32();
-            MinimalDistanceToNeighbor = reader.ReadByte();
+            MinimalDistanceToNeighbor = reader.ReadUInt32();
             RequesterSignature = RegistrationSignature.Decode(reader);
             
             if ((flags & Flag_AtoRP) != 0) ProofOfWork2 = reader.ReadBytes(64);

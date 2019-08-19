@@ -76,7 +76,7 @@ namespace Dcomms.DRP
             // send register pow1 request
             var rpPow1ResponsePacketData = await SendUdpRequestAsync_Retransmit(
                         new PendingLowLevelUdpRequest(rpEndpoint,
-                            RegisterPow1ResponsePacket.GetHeaderBytes(registerPow1RequestPacket.Pow1RequestId),
+                            RegisterPow1ResponsePacket.GetScanner(registerPow1RequestPacket.Pow1RequestId),
                             DateTimeNowUtc,
                             Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
                             registerPow1RequestPacket.Encode(),
@@ -84,19 +84,10 @@ namespace Dcomms.DRP
                             Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
                         ));
             //  wait for response, retransmit
-            if (rpPow1ResponsePacketData == null)
-            {
-                WriteToLog_reg_requesterSide_debug($"... connection to RP {rpEndpoint} timed out");
-                return null;
-            }
-
+            if (rpPow1ResponsePacketData == null) throw new DrpTimeoutException();
             var pow1ResponsePacket = new RegisterPow1ResponsePacket(rpPow1ResponsePacketData);
             if (pow1ResponsePacket.StatusCode != RegisterPow1ResponseStatusCode.succeeded_Pow2Challenge)
-            {
-                WriteToLog_reg_requesterSide_debug($"... connection to RP {rpEndpoint} failed with status {pow1ResponsePacket.StatusCode}");
-                // error: go to next RP
-                return null;
-            }
+                throw new Pow1RejectedException(pow1ResponsePacket.StatusCode);
             #endregion
 
             _cryptoLibrary.GenerateEcdh25519Keypair(out var localEcdhe25519PrivateKey, out var localEcdhe25519PublicKey);
@@ -106,7 +97,6 @@ namespace Dcomms.DRP
             try
             {
                 #region register SYN
-
                 // calculate PoW2
                 var registerSynPacket = new RegisterSynPacket
                 {
@@ -130,13 +120,10 @@ namespace Dcomms.DRP
 
                 #region wait for RegisterSynAckPacket
                 var registerSynAckPacketData = await WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(rpEndpoint,
-                                new byte[] { (byte)DrpPacketType.RegisterSynAckPacket }, DateTimeNowUtc, Configuration.RegSynAckRequesterSideTimoutS                               
+                                RegisterSynAckPacket.GetScanner(registerSynPacket.RequesterPublicKey_RequestID, registerSynPacket.Timestamp32S),
+                                DateTimeNowUtc, Configuration.RegSynAckRequesterSideTimoutS                               
                             ));
-                if (registerSynAckPacketData == null)
-                {
-                    WriteToLog_reg_requesterSide_debug($"...connection to neighbor via RP {rpEndpoint} timed out (RegisterSynAckPacket)");
-                    return null;
-                }
+                if (registerSynAckPacketData == null) throw new DrpTimeoutException();
                 var registerSynAckPacket = RegisterSynAckPacket.DecodeAndVerifyAtRequester(registerSynAckPacketData,
                     registerSynPacket, localEcdhe25519PrivateKey, _cryptoLibrary, out var txParameters);
                 #endregion
@@ -154,13 +141,13 @@ namespace Dcomms.DRP
                     RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
                     NhaSeq16 = GetNewNhaSeq16()
                 };
-                var localRxParamtersToEncrypt = new EstablishedP2pStreamParameters
+                var localRxParamtersToEncrypt = new P2pStreamParameters
                 {
                     RemoteEndpoint = registerSynAckPacket.RequesterEndpoint, // comes from RP, and it is a subject of attack by RP or MITM on the way to RP
                     RemotePeerToken32 = neighborConnection.LocalRxToken32
                 };
                 registerAckPacket.ToRequesterTxParametersEncrypted =
-                    EstablishedP2pStreamParameters.EncryptAtRegisterRequester(
+                    P2pStreamParameters.EncryptAtRegisterRequester(
                         localEcdhe25519PrivateKey,
                         registerSynPacket, registerSynAckPacket, registerAckPacket,
                         localRxParamtersToEncrypt,
@@ -185,23 +172,19 @@ namespace Dcomms.DRP
                 #region send ping request directly to neighbor N, retransmit               
                 var pingRequestPacket = neighborConnection.CreatePingRequestPacket(true);
                 pendingPingRequest = new PendingLowLevelUdpRequest(txParameters.RemoteEndpoint,
-                                new byte[] { (byte)DrpPacketType.PingResponsePacket }, DateTimeNowUtc,
-                                Configuration.AtoN_PingRequests_ExpirationTimeoutS,
+                                PingResponsePacket.GetScanner(neighborConnection.LocalRxToken32, pingRequestPacket.PingRequestId32),
+                                DateTimeNowUtc,
+                                Configuration.InitialPingRequests_ExpirationTimeoutS,
                                 pingRequestPacket.Encode(),
-                                Configuration.AtoN_PingRequests_InitialRetransmissionTimeoutS,
-                                Configuration.AtoN_PingRequests_RetransmissionTimeoutIncrement
+                                Configuration.InitialPingRequests_InitialRetransmissionTimeoutS,
+                                Configuration.InitialPingRequests_RetransmissionTimeoutIncrement
                             );
 
                 var pingResponsePacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pingResponse from N
-                if (pingResponsePacketData == null)
-                {
-                    WriteToLog_reg_requesterSide_debug($"... connection to N {txParameters.RemoteEndpoint} timed out (no response to ping)");
-                    return null;
-                }
+                if (pingResponsePacketData == null) throw new DrpTimeoutException();
                 pingResponsePacket = PingResponsePacket.DecodeAndVerify(_cryptoLibrary,
                     pingResponsePacketData, pingRequestPacket, neighborConnection,
                     true, registerSynPacket, registerSynAckPacket);
-                if (pingResponsePacket.SenderToken32 != neighborConnection.LocalRxToken32) throw new UnmatchedResponseFieldsException();
                 #endregion
             }
             catch

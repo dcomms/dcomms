@@ -9,7 +9,7 @@ namespace Dcomms.DRP
 {
     public class RegistrationPublicKey
     {
-        byte ReservedFlagsMustBeZero; // will include "type" = "ed25519 by default"
+        byte ReservedFlagsMustBeZero; // will include "type" = "ed25519 by default" // will include "type of distance metric"
         public byte[] ed25519publicKey;
 
         public void Encode(BinaryWriter writer)
@@ -39,22 +39,22 @@ namespace Dcomms.DRP
     }
     public class RegistrationPublicKeyDistance
     {
-        readonly BigInteger _distance;
+        int _distance; // 32 bytes of reg. public key: split into 16 dimensions of 2 bytes //   manhattan distance: https://en.wikipedia.org/wiki/Taxicab_geometry
         public unsafe RegistrationPublicKeyDistance(RegistrationPublicKey rpk1, RegistrationPublicKey rpk2)
         {
-            var xorResult = new byte[rpk1.ed25519publicKey.Length];
-            fixed (byte* p1 = rpk1.ed25519publicKey, p2 = rpk2.ed25519publicKey, p3 = xorResult)
+            if (rpk1.ed25519publicKey.Length != rpk2.ed25519publicKey.Length) throw new ArgumentException();
+            _distance = 0;
+            fixed (byte* rpk1a = rpk1.ed25519publicKey, rpk2a = rpk2.ed25519publicKey)                
             {
-                long* x1 = (long*)p1, x2 = (long*)p2, x3 = (long*)p3;
-                int l = xorResult.Length / 8;
-                for (int i = 0; i < l; i++, x1++, x2++, x3++)
-                    *x3 = *x1 ^ *x2;
+                short* rpk1aPtr = (short*)rpk1a, rpk2aPtr = (short*)rpk2a;
+                int l = rpk1.ed25519publicKey.Length;
+                for (int i = 0; i < l; i++, rpk1aPtr++, rpk2aPtr++)
+                    _distance += Math.Abs(unchecked(*rpk1aPtr - *rpk2aPtr));
             }           
-            _distance = new BigInteger(xorResult);
         }
         public bool IsGreaterThan(RegistrationPublicKeyDistance another)
         {
-            return this._distance.CompareTo(another._distance) > 0;
+            return this._distance > another._distance;
         }
     }
 

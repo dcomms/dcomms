@@ -16,11 +16,11 @@ namespace Dcomms.DRP.Packets
         public RegisterPow1ResponseStatusCode StatusCode;
         public byte[] ProofOfWork2Request; // 16 bytes
 
-        public static byte[] GetHeaderBytes(uint pow1RequestId)
+        public static LowLevelUdpResponseScanner GetScanner(uint pow1RequestId)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             GetHeaderBytes(writer, pow1RequestId);
-            return ms.ToArray();
+            return new LowLevelUdpResponseScanner { ResponseFirstBytes = ms.ToArray() };
         }
         static void GetHeaderBytes(BinaryWriter writer, uint pow1RequestId)
         {

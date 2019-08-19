@@ -27,10 +27,16 @@ namespace Dcomms.DRP.Packets
 
         public NextHopAckPacket()
         { }
-        public static void EncodeHeader(BinaryWriter writer, NextHopAckSequenceNumber16 nhaSeq16)
+        public static LowLevelUdpResponseScanner GetScanner(NextHopAckSequenceNumber16 nhaSeq16)
         {
-            writer.Write((byte)DrpPacketType.NextHopAckPacket);
-            nhaSeq16.Encode(writer);
+            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            EncodeHeader(w, nhaSeq16);
+            return new LowLevelUdpResponseScanner { ResponseFirstBytes = ms.ToArray() };
+        }
+        static void EncodeHeader(BinaryWriter w, NextHopAckSequenceNumber16 nhaSeq16)
+        {
+            w.Write((byte)DrpPacketType.NextHopAckPacket);
+            nhaSeq16.Encode(w);
         }
         public byte[] Encode(bool rpToA)
         {
@@ -63,7 +69,7 @@ namespace Dcomms.DRP.Packets
 
 
 
-    class NextHopTimeoutException : ApplicationException
+    class DrpTimeoutException : ApplicationException // next hop or RP, or whatever responder timed out
     {
 
     }
@@ -71,6 +77,14 @@ namespace Dcomms.DRP.Packets
     {
         public NextHopRejectedException(NextHopResponseCode responseCode)
             : base($"Next hop rejected request with status = {responseCode}")
+        {
+
+        }
+    }
+    class Pow1RejectedException : ApplicationException
+    {
+        public Pow1RejectedException(RegisterPow1ResponseStatusCode responseCode)
+            : base($"RP rejected PoW1 request with status = {responseCode}")
         {
 
         }

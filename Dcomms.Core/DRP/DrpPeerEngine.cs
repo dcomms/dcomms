@@ -311,9 +311,9 @@ namespace Dcomms.DRP
         public double UdpLowLevelRequests_RetransmissionTimeoutIncrement = 1.5;
         public double RegSynAckRequesterSideTimoutS = 10;
 
-        public double AtoN_PingRequests_ExpirationTimeoutS = 5;
-        public double AtoN_PingRequests_InitialRetransmissionTimeoutS = 0.1;
-        public double AtoN_PingRequests_RetransmissionTimeoutIncrement = 1.05;
+        public double InitialPingRequests_ExpirationTimeoutS = 5;
+        public double InitialPingRequests_InitialRetransmissionTimeoutS = 0.1;
+        public double InitialPingRequests_RetransmissionTimeoutIncrement = 1.05;
     }
     public class DrpPeerRegistrationConfiguration
     {
