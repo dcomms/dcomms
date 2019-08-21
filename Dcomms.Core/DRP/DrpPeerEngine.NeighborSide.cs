@@ -65,7 +65,7 @@ namespace Dcomms.DRP
                 try
                 {
                     registerSynAckPacket.ToNeighborTxParametersEncrypted = P2pStreamParameters.EncryptAtRegisterResponder(localEcdhe25519PrivateKey,
-						registerSynPacket, registerSynAckPacket, newConnection.LocalRxToken32, _cryptoLibrary);
+						registerSynPacket, registerSynAckPacket, newConnection.LocalRxToken32, _cryptoLibrary, out var sharedDhSecret);
                     registerSynAckPacket.NeighborSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         w2 => registerSynAckPacket.GetCommonRequesterAndResponderFields(w2, false, true),
                         acceptAt.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
@@ -81,7 +81,7 @@ namespace Dcomms.DRP
                     if (registerSynPacket.AtoRP)
                     { // wait for reg ACK
                         var regAckUdpPayload = await SendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, remoteEndpoint, regAckScanner);
-                        registerAckPacket = RegisterAckPacket.DecodeAndVerifyAtResponder(_cryptoLibrary, regAckUdpPayload, localEcdhe25519PrivateKey, 
+                        registerAckPacket = RegisterAckPacket.DecodeAndVerifyAtResponder(_cryptoLibrary, regAckUdpPayload, sharedDhSecret, 
 							registerSynPacket, registerSynAckPacket, out var txParameters);  // verifies hmac, decrypts endpoint of A
                         newConnection.TxParameters = txParameters;
                     }

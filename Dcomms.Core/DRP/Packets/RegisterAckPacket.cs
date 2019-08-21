@@ -98,7 +98,7 @@ namespace Dcomms.DRP.Packets
         }
         /// <param name="txParameters">for direct p2p stream from N to A</param>
         public static RegisterAckPacket DecodeAndVerifyAtResponder(ICryptoLibrary cryptoLibrary, byte[] registerAckPacketData,
-            byte[] localPrivateEcdhKey, RegisterSynPacket remoteRegisterSyn,
+            byte[] sharedDhSecret, RegisterSynPacket remoteRegisterSyn,
             RegisterSynAckPacket localRegisterSynAck,
             out P2pStreamParameters txParameters)
         {
@@ -111,7 +111,7 @@ namespace Dcomms.DRP.Packets
             r.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             r.RegisterSynTimestamp32S = reader.ReadUInt32();
             r.ToRequesterTxParametersEncrypted = reader.ReadBytes(16);
-            txParameters = P2pStreamParameters.DecryptAtRegisterResponder(cryptoLibrary, localPrivateEcdhKey, remoteRegisterSyn, localRegisterSynAck, r);
+            txParameters = P2pStreamParameters.DecryptAtRegisterResponder(cryptoLibrary, sharedDhSecret, remoteRegisterSyn, localRegisterSynAck, r);
 
             r.RequesterHMAC = HMAC.Decode(reader);
             if (r.RequesterHMAC.Equals(txParameters.GetSharedHmac(cryptoLibrary, w => r.GetCommonRequesterAndResponderFields(w, false, true))) == false)

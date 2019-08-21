@@ -91,7 +91,7 @@ namespace Dcomms.DRP
             if (timeDifferenceSec > Configuration.RegisterPow1_MaxTimeDifferenceS)
             {
                 // respond with error "try again with valid clock" - legitimate user has to get valid clock from some time server and synchronize itself with the server
-                if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1(remoteEndpoint, RegisterPow1ResponseStatusCode.rejected_badtimestamp, packet.Pow1RequestId);
+                if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1withError(remoteEndpoint, RegisterPow1ResponseStatusCode.rejected_badtimestamp, packet.Pow1RequestId);
                 return false;
             }
 
@@ -111,11 +111,11 @@ namespace Dcomms.DRP
             else
             {
                 // respond with error "try again with unique PoW data"
-                if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1(remoteEndpoint, RegisterPow1ResponseStatusCode.rejected_tryagainRightNowWithThisServer, packet.Pow1RequestId);
+                if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1withError(remoteEndpoint, RegisterPow1ResponseStatusCode.rejected_tryagainRightNowWithThisServer, packet.Pow1RequestId);
                 return false;
             }             
         }
-        void RespondToRegisterPow1(IPEndPoint remoteEndpoint, RegisterPow1ResponseStatusCode statusCode, uint pow1RequestId)
+        void RespondToRegisterPow1withError(IPEndPoint remoteEndpoint, RegisterPow1ResponseStatusCode statusCode, uint pow1RequestId)
         {
             var response = new RegisterPow1ResponsePacket
             {
@@ -235,8 +235,8 @@ namespace Dcomms.DRP
                 _nextPeriodSwitchTimeRel = timeNowRel + _config.Pow2RequestStatesTablePeriod;
             }
 
-            var existingSnonce0 = TryGetPow2RequestState(remoteEndpoint);
-            if (existingSnonce0 != null) return existingSnonce0;
+            var existingPow2RequestState = TryGetPow2RequestState(remoteEndpoint);
+            if (existingPow2RequestState != null) return existingPow2RequestState;
 
             var r = new Pow2RequestState
             {

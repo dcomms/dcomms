@@ -46,7 +46,7 @@ namespace Dcomms.DRP
     {
         public P2pConnectionToken32 RemotePeerToken32;
         public IPEndPoint RemoteEndpoint; // IP address + UDP port // where to send packets
-        byte[] SharedDhSecret;
+        public byte[] SharedDhSecret;
         
         /// <returns>parameters to transmit direct (p2p) packets form requester A to neighbor N</returns>
         public static P2pStreamParameters DecryptAtRegisterRequester(byte[] localPrivateEcdhKey, RegisterSynPacket localRegisterSyn,
@@ -91,12 +91,12 @@ namespace Dcomms.DRP
         /// </summary>
         public static byte[] EncryptAtRegisterResponder(byte[] localPrivateEcdhKey,
             RegisterSynPacket remoteRegisterSyn, RegisterSynAckPacket localRegisterSynAck,
-            P2pConnectionToken32 localRxToken32, ICryptoLibrary cryptoLibrary)
+            P2pConnectionToken32 localRxToken32, ICryptoLibrary cryptoLibrary, out byte[] sharedDhSecret)
         {
             if (remoteRegisterSyn.AtoRP == false) throw new NotImplementedException();
             if (remoteRegisterSyn.RpEndpoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new NotImplementedException();
             
-            var sharedDhSecret = cryptoLibrary.DeriveEcdh25519SharedSecret(localPrivateEcdhKey, remoteRegisterSyn.RequesterEcdhePublicKey.ecdh25519PublicKey);
+            sharedDhSecret = cryptoLibrary.DeriveEcdh25519SharedSecret(localPrivateEcdhKey, remoteRegisterSyn.RequesterEcdhePublicKey.ecdh25519PublicKey);
 
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
@@ -126,14 +126,13 @@ namespace Dcomms.DRP
 
 
         /// <returns>parameters to transmit direct (p2p) packets form neighbor N to requester A</returns>
-        public static P2pStreamParameters DecryptAtRegisterResponder(ICryptoLibrary cryptoLibrary, byte[] localPrivateEcdhKey, RegisterSynPacket remoteRegisterSyn,
+        public static P2pStreamParameters DecryptAtRegisterResponder(ICryptoLibrary cryptoLibrary, byte[] sharedDhSecret, RegisterSynPacket remoteRegisterSyn,
             RegisterSynAckPacket localRegisterSynAck, RegisterAckPacket remoteRegisterAck)
         {
             if ((remoteRegisterAck.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
 
             var r = new P2pStreamParameters();
-
-            r.SharedDhSecret = cryptoLibrary.DeriveEcdh25519SharedSecret(localPrivateEcdhKey, remoteRegisterSyn.RequesterEcdhePublicKey.ecdh25519PublicKey);
+            r.SharedDhSecret = sharedDhSecret;
 
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
@@ -166,16 +165,12 @@ namespace Dcomms.DRP
         /// <summary>
         /// when sending ACK
         /// </summary>
-        public static byte[] EncryptAtRegisterRequester(byte[] localPrivateEcdhKey, 
+        public static byte[] EncryptAtRegisterRequester(byte[] sharedDhSecret, 
             RegisterSynPacket localRegisterSyn, RegisterSynAckPacket remoteRegisterSynAck, RegisterAckPacket localRegisterAckPacket, 
-            P2pStreamParameters localRxParameters, ICryptoLibrary cryptoLibrary)
+            ConnectedDrpPeer connectionToNeighbor, ICryptoLibrary cryptoLibrary)
         {
             if ((remoteRegisterSynAck.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
-
-            var r = new P2pStreamParameters();
-
-            var sharedDhSecret = cryptoLibrary.DeriveEcdh25519SharedSecret(localPrivateEcdhKey, remoteRegisterSynAck.NeighborEcdhePublicKey.ecdh25519PublicKey);
-
+            
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
@@ -190,8 +185,8 @@ namespace Dcomms.DRP
 
             // encode localRxParameters
             PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
-            PacketProcedures.EncodeIPEndPointIpv4(wRxParameters, localRxParameters.RemoteEndpoint); // 6
-            localRxParameters.RemotePeerToken32.Encode(wRxParameters); // 4
+            PacketProcedures.EncodeIPEndPointIpv4(wRxParameters, connectionToNeighbor.LocalEndpoint); // 6
+            connectionToNeighbor.LocalRxToken32.Encode(wRxParameters); // 4
             wRxParameters.Write(Magic16_ipv4_requesterToResponder);    // 2
             wRxParameters.Write(cryptoLibrary.GetRandomBytes(4));      // 4
             

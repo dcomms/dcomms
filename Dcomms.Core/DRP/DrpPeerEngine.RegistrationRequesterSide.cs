@@ -141,16 +141,16 @@ namespace Dcomms.DRP
                     RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
                     NhaSeq16 = GetNewNhaSeq16()
                 };
-                var localRxParamtersToEncrypt = new P2pStreamParameters
-                {
-                    RemoteEndpoint = registerSynAckPacket.RequesterEndpoint, // comes from RP, and it is a subject of attack by RP or MITM on the way to RP
-                    RemotePeerToken32 = neighborConnection.LocalRxToken32
-                };
+               // var localRxParamtersToEncrypt = new P2pStreamParameters
+              //  {
+               //     RemoteEndpoint = registerSynAckPacket.RequesterEndpoint, // comes from RP, and it is a subject of attack by RP or MITM on the way to RP
+              //      RemotePeerToken32 = neighborConnection.LocalRxToken32
+             //   };
                 registerAckPacket.ToRequesterTxParametersEncrypted =
                     P2pStreamParameters.EncryptAtRegisterRequester(
-                        localEcdhe25519PrivateKey,
+                        txParameters.SharedDhSecret,
                         registerSynPacket, registerSynAckPacket, registerAckPacket,
-                        localRxParamtersToEncrypt,
+                        neighborConnection,
                         _cryptoLibrary
                         );
                 registerAckPacket.RequesterHMAC = txParameters.GetSharedHmac(_cryptoLibrary, w => registerAckPacket.GetCommonRequesterAndResponderFields(w, false, true));

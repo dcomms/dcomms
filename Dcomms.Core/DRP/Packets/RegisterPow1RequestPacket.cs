@@ -23,7 +23,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public byte[] ProofOfWork1;
         /// <summary>
-        /// must be copied by RP into response
+        /// must be copied by RP into RegisterPow1ResponsePacket
         /// </summary>
         public uint Pow1RequestId;
 

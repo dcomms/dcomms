@@ -52,7 +52,7 @@ namespace Dcomms.DRP.Packets
         /// decodes the packet, decrypts ToNeighborTxParametersEncrypted, verifies NeighborSignature, verifies match to register SYN
         /// </summary>
         /// <param name="reader">is positioned after first byte = packet type</param>    
-        public static RegisterSynAckPacket DecodeAndVerifyAtRequester(byte[] registerSynAckPacketData, RegisterSynPacket registerSyn, byte[] localEcdhPrivateKey, 
+        public static RegisterSynAckPacket DecodeAndVerifyAtRequester(byte[] registerSynAckPacketData, RegisterSynPacket localRegisterSyn, byte[] localEcdhPrivateKey, 
             ICryptoLibrary cryptoLibrary, out P2pStreamParameters localToRemoteTxParameters)
         {
             var reader = PacketProcedures.CreateBinaryReader(registerSynAckPacketData, 1);
@@ -67,9 +67,9 @@ namespace Dcomms.DRP.Packets
             r.ToNeighborTxParametersEncrypted = reader.ReadBytes(16);
             r.NeighborPublicKey = RegistrationPublicKey.Decode(reader);
             r.NeighborSignature = RegistrationSignature.DecodeAndVerify(reader, cryptoLibrary, w => r.GetCommonRequesterAndResponderFields(w, false, true), r.NeighborPublicKey);
-            r.AssertMatchToRegisterSyn(registerSyn);
+            r.AssertMatchToRegisterSyn(localRegisterSyn);
             
-            localToRemoteTxParameters = P2pStreamParameters.DecryptAtRegisterRequester(localEcdhPrivateKey, registerSyn, r, cryptoLibrary);
+            localToRemoteTxParameters = P2pStreamParameters.DecryptAtRegisterRequester(localEcdhPrivateKey, localRegisterSyn, r, cryptoLibrary);
             if ((r.Flags & Flag_RPtoA) != 0) r.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
             if ((r.Flags & Flag_RPtoA) == 0) r.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
 
@@ -77,11 +77,11 @@ namespace Dcomms.DRP.Packets
             //     SenderHMAC = HMAC.Decode(reader);
             return r;
         }
-        void AssertMatchToRegisterSyn(RegisterSynPacket registerSyn)
+        void AssertMatchToRegisterSyn(RegisterSynPacket localRegisterSyn)
         {
-            if (registerSyn.RequesterPublicKey_RequestID.Equals(this.RequesterPublicKey_RequestID) == false)
+            if (localRegisterSyn.RequesterPublicKey_RequestID.Equals(this.RequesterPublicKey_RequestID) == false)
                 throw new UnmatchedResponseFieldsException();
-            if (registerSyn.Timestamp32S != this.RegisterSynTimestamp32S)
+            if (localRegisterSyn.Timestamp32S != this.RegisterSynTimestamp32S)
                 throw new UnmatchedResponseFieldsException();
         }
 
