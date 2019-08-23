@@ -41,7 +41,7 @@ namespace Dcomms.DRP
             aConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _a.CryptoLibrary.GeneratePrivateKeyEd25519() };
             aConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = _a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
 
-            _a.RegisterAsync(aConfig, new User());
+            _a.BeginRegister(aConfig, new User());
                        
         }
         public void Dispose()

@@ -17,9 +17,21 @@ namespace Dcomms.DRP
         /// <summary>
         /// returns control only when LocalDrpPeer is registered and ready for operation ("local user logged in")
         /// </summary>
-        public async Task<LocalDrpPeer> RegisterAsync(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
+        public void BeginRegister(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user, Action<LocalDrpPeer> cb = null)
         {
-            await _engineThreadQueue.EnqueueAsync();
+            WriteToLog_reg_requesterSide_detail($">> BeginRegister()");
+                       
+            _engineThreadQueue.Enqueue(async () =>
+            {
+                var r = await BeginRegister2(registrationConfiguration, user);
+                if (cb != null) cb(r);
+            });
+            
+        }
+
+        async Task<LocalDrpPeer> BeginRegister2(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
+        {
+            WriteToLog_reg_requesterSide_detail($"@BeginRegister2() engine thread");
 
             var localDrpPeer = new LocalDrpPeer(this, registrationConfiguration, user);
             LocalPeers.Add(registrationConfiguration.LocalPeerRegistrationPublicKey, localDrpPeer);
@@ -31,10 +43,12 @@ namespace Dcomms.DRP
                 if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://ip.seeip.org/");
                 if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://bot.whatismyipaddress.com");
                 if (localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
+             
                 localDrpPeer.LocalPublicIpAddressForRegistration = new IPAddress(localPublicIp);
                 WriteToLog_reg_requesterSide_detail($"resolved local public IP = {localDrpPeer.LocalPublicIpAddressForRegistration}");
-
                 await _engineThreadQueue.EnqueueAsync();
+                WriteToLog_reg_requesterSide_detail($"@ engine thread");
+
                 foreach (var rpEndpoint in registrationConfiguration.RendezvousPeerEndpoints) // try to connect to rendezvous peers, one by one
                 {
                     if (MiscProcedures.EqualByteArrays(rpEndpoint.Address.GetAddressBytes(), localPublicIp) == true)
@@ -56,24 +70,27 @@ namespace Dcomms.DRP
                         }
                     }
                 }
+
+                WriteToLog_reg_requesterSide_detail($"@RegisterAsync() returned {localDrpPeer}");
+                return localDrpPeer;
             }
             else
             {
-                WriteToLog_reg_requesterSide_detail($"resolving local public IP...");
+                throw new ArgumentException();
             }
-
-            return localDrpPeer;
         }
 
         /// <returns>null if registration failed with timeout or some error code</returns>
         public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint rpEndpoint) // engine thread
         {
-            WriteToLog_reg_requesterSide_detail($"connecting to RP {rpEndpoint}...");
+            WriteToLog_reg_requesterSide_detail($"connecting to RP {rpEndpoint}");
 
             #region PoW1
+            WriteToLog_reg_requesterSide_detail($"generating PoW1 request");
             var registerPow1RequestPacket = GenerateRegisterPow1RequestPacket(localDrpPeer.LocalPublicIpAddressForRegistration.GetAddressBytes(), Timestamp32S);
 
             // send register pow1 request
+            WriteToLog_reg_requesterSide_detail($"sending PoW1 request");
             var rpPow1ResponsePacketData = await SendUdpRequestAsync_Retransmit(
                         new PendingLowLevelUdpRequest(rpEndpoint,
                             RegisterPow1ResponsePacket.GetScanner(registerPow1RequestPacket.Pow1RequestId),
@@ -86,6 +103,7 @@ namespace Dcomms.DRP
             //  wait for response, retransmit
             if (rpPow1ResponsePacketData == null) throw new DrpTimeoutException();
             var pow1ResponsePacket = new RegisterPow1ResponsePacket(rpPow1ResponsePacketData);
+            WriteToLog_reg_requesterSide_detail($"got PoW1 response with status={pow1ResponsePacket.StatusCode}");
             if (pow1ResponsePacket.StatusCode != RegisterPow1ResponseStatusCode.succeeded_Pow2Challenge)
                 throw new Pow1RejectedException(pow1ResponsePacket.StatusCode);
             #endregion
@@ -107,6 +125,7 @@ namespace Dcomms.DRP
                     NhaSeq16 = GetNewNhaSeq16(),
                     RpEndpoint = rpEndpoint
                 };
+                WriteToLog_reg_requesterSide_detail($"calculating PoW2");
                 GenerateRegisterSynPow2(registerSynPacket, pow1ResponsePacket.ProofOfWork2Request);
                 registerSynPacket.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary,
                     w => registerSynPacket.GetCommonRequesterAndResponderFields(w, false),
@@ -114,20 +133,20 @@ namespace Dcomms.DRP
                     );
                 var synToSynAckStopwatch = Stopwatch.StartNew();
 
-                WriteToLog_reg_requesterSide_detail($"sending regSyn");
+                WriteToLog_reg_requesterSide_detail($"sending syn");
                 await SendUdpRequestAsync_Retransmit_WaitForNextHopAck(registerSynPacket.Encode(null), rpEndpoint, registerSynPacket.NhaSeq16);
 
                 #endregion
 
                 #region wait for RegisterSynAckPacket
-                WriteToLog_reg_requesterSide_detail($"waiting for regSynAck");
+                WriteToLog_reg_requesterSide_detail($"waiting for synAck");
                 var registerSynAckPacketData = await WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(rpEndpoint,
                                 RegisterSynAckPacket.GetScanner(registerSynPacket.RequesterPublicKey_RequestID, registerSynPacket.Timestamp32S),
                                 DateTimeNowUtc, Configuration.RegSynAckRequesterSideTimoutS                               
                             ));
                 if (registerSynAckPacketData == null) throw new DrpTimeoutException();
                 var registerSynAckPacket = RegisterSynAckPacket.DecodeAndVerifyAtRequester(registerSynAckPacketData, registerSynPacket, connectionToNeighbor);
-                WriteToLog_reg_requesterSide_detail($"verified regSynAck");
+                WriteToLog_reg_requesterSide_detail($"verified synAck");
                 #endregion
 
                 connectionToNeighbor.LocalEndpoint = registerSynAckPacket.RequesterEndpoint;
@@ -146,7 +165,7 @@ namespace Dcomms.DRP
                 connectionToNeighbor.InitializeNeighborTxRxStreams(registerSynPacket, registerSynAckPacket, registerAckPacket);
                 registerAckPacket.RequesterHMAC = connectionToNeighbor.GetSharedHmac(w => registerAckPacket.GetCommonRequesterAndResponderFields(w, false, true));
                 var registerAckPacketData = registerAckPacket.Encode(null);
-                WriteToLog_reg_requesterSide_detail($"sending regAck");
+                WriteToLog_reg_requesterSide_detail($"sending ack");
                 await SendUdpRequestAsync_Retransmit_WaitForNextHopAck(registerAckPacket.Encode(null), rpEndpoint, registerAckPacket.NhaSeq16);
                 #endregion
 
@@ -208,7 +227,7 @@ namespace Dcomms.DRP
                 WriteToLog_reg_requesterSide_mediumPain($"... registration confirmation request failed: {exc}");
             }
             #endregion
-
+              
             return connectionToNeighbor;
         }
         /// <returns>bytes of IP address</returns>

@@ -16,7 +16,7 @@ namespace Dcomms
     public class CryptographyTester1
     {
         readonly VisionChannel _visionChannel;
-        public CryptographyTester(VisionChannel visionChannel)
+        public CryptographyTester1(VisionChannel visionChannel)
         {
             _visionChannel = visionChannel;
         }

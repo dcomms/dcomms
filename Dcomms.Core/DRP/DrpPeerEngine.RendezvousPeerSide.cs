@@ -22,13 +22,12 @@ namespace Dcomms.DRP
                 writer.Write(packet.Timestamp32S);
                 writer.Write(packet.ProofOfWork1);
                 writer.Write(clientPublicIP);
+                ms.Position = 0;
+                var hash = _cryptoLibrary.GetHashSHA512(ms);
+
+                if (hash[4] != 7 || (hash[5] != 7 && hash[5] != 8)) return false;
+                else return true;
             }
-            var hash = _cryptoLibrary.GetHashSHA512(ms);
-            if (hash[4] != 7 || (hash[5] != 7 && hash[5] != 8)
-                //     || hash[6] > 100
-                )
-                return false;
-            else return true;
         }
         bool Pow2IsOK(RegisterSynPacket packet, byte[] proofOrWork2Request)
         {
@@ -38,13 +37,12 @@ namespace Dcomms.DRP
                 writer.Write(packet.RequesterPublicKey_RequestID.ed25519publicKey);
                 writer.Write(proofOrWork2Request);
                 writer.Write(packet.ProofOfWork2);
+                ms.Position = 0;
+
+                var hash = _cryptoLibrary.GetHashSHA512(ms);
+                if (hash[4] != 7 || (hash[5] != 7 && hash[5] != 8)) return false;
+                else return true;
             }
-            var hash = _cryptoLibrary.GetHashSHA512(ms);
-            if (hash[4] != 7 || (hash[5] != 7 && hash[5] != 8)
-                //     || hash[6] > 100
-                )
-                return false;
-            else return true;
         }
 
         UniqueDataTracker _recentUniquePow1Data;

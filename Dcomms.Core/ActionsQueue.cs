@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dcomms
@@ -26,7 +27,7 @@ namespace Dcomms
         }
         public Task<bool> EnqueueAsync()
         {
-            var tcs = new TaskCompletionSource<bool>();            
+            var tcs = new TaskCompletionSource<bool>();
             Enqueue(() =>
             {
                 tcs.SetResult(true);
@@ -35,6 +36,7 @@ namespace Dcomms
         }
         public void ExecuteQueued()
         {
+            var x = Thread.CurrentThread.ManagedThreadId;
             for (; ; )
             {
                 Action a;
