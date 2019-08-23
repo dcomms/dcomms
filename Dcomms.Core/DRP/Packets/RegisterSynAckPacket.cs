@@ -52,37 +52,36 @@ namespace Dcomms.DRP.Packets
         /// decodes the packet, decrypts ToNeighborTxParametersEncrypted, verifies NeighborSignature, verifies match to register SYN
         /// </summary>
         /// <param name="reader">is positioned after first byte = packet type</param>    
-        public static RegisterSynAckPacket DecodeAndVerifyAtRequester(byte[] registerSynAckPacketData, RegisterSynPacket localRegisterSyn, byte[] localEcdhPrivateKey, 
-            ICryptoLibrary cryptoLibrary, out P2pStreamParameters localToRemoteTxParameters)
+        public static RegisterSynAckPacket DecodeAndVerifyAtRequester(byte[] registerSynAckPacketData, RegisterSynPacket localRegisterSyn, ConnectionToNeighbor connectionToNeighbor)
         {
             var reader = PacketProcedures.CreateBinaryReader(registerSynAckPacketData, 1);
-            var r = new RegisterSynAckPacket();
-            r.Flags = reader.ReadByte();
-            if ((r.Flags & Flag_RPtoA) == 0) r.SenderToken32 = P2pConnectionToken32.Decode(reader);           
-            if ((r.Flags & Flag_ipv6) != 0) throw new InvalidOperationException();
-            r.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
-            r.RegisterSynTimestamp32S = reader.ReadUInt32();
-            r.NeighborStatusCode = (DrpResponderStatusCode)reader.ReadByte();
-            r.NeighborEcdhePublicKey = EcdhPublicKey.Decode(reader);
-            r.ToNeighborTxParametersEncrypted = reader.ReadBytes(16);
-            r.NeighborPublicKey = RegistrationPublicKey.Decode(reader);
-            r.NeighborSignature = RegistrationSignature.DecodeAndVerify(reader, cryptoLibrary, w => r.GetCommonRequesterAndResponderFields(w, false, true), r.NeighborPublicKey);
-            r.AssertMatchToRegisterSyn(localRegisterSyn);
-            
-            localToRemoteTxParameters = P2pStreamParameters.DecryptAtRegisterRequester(localEcdhPrivateKey, localRegisterSyn, r, cryptoLibrary);
-            if ((r.Flags & Flag_RPtoA) != 0) r.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
-            if ((r.Flags & Flag_RPtoA) == 0) r.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
+            var registerSynAck = new RegisterSynAckPacket();
+            registerSynAck.Flags = reader.ReadByte();
+            if ((registerSynAck.Flags & Flag_RPtoA) == 0) registerSynAck.SenderToken32 = P2pConnectionToken32.Decode(reader);           
+            if ((registerSynAck.Flags & Flag_ipv6) != 0) throw new InvalidOperationException();
+            registerSynAck.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
+            registerSynAck.RegisterSynTimestamp32S = reader.ReadUInt32();
+            registerSynAck.NeighborStatusCode = (DrpResponderStatusCode)reader.ReadByte();
+            registerSynAck.NeighborEcdhePublicKey = EcdhPublicKey.Decode(reader);
+            registerSynAck.ToNeighborTxParametersEncrypted = reader.ReadBytes(16);
+            registerSynAck.NeighborPublicKey = RegistrationPublicKey.Decode(reader);
+            registerSynAck.NeighborSignature = RegistrationSignature.DecodeAndVerify(reader, connectionToNeighbor.Engine.CryptoLibrary, w => registerSynAck.GetCommonRequesterAndResponderFields(w, false, true), registerSynAck.NeighborPublicKey);
+            registerSynAck.AssertMatchToRegisterSyn(localRegisterSyn);
+
+            connectionToNeighbor.DecryptAtRegisterRequester(localRegisterSyn, registerSynAck);
+            if ((registerSynAck.Flags & Flag_RPtoA) != 0) registerSynAck.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+            if ((registerSynAck.Flags & Flag_RPtoA) == 0) registerSynAck.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
 
             // if ((flags & Flag_RPtoA) == 0)
             //     SenderHMAC = HMAC.Decode(reader);
-            return r;
+            return registerSynAck;
         }
         void AssertMatchToRegisterSyn(RegisterSynPacket localRegisterSyn)
         {
             if (localRegisterSyn.RequesterPublicKey_RequestID.Equals(this.RequesterPublicKey_RequestID) == false)
-                throw new UnmatchedResponseFieldsException();
+                throw new UnmatchedFieldsException();
             if (localRegisterSyn.Timestamp32S != this.RegisterSynTimestamp32S)
-                throw new UnmatchedResponseFieldsException();
+                throw new UnmatchedFieldsException();
         }
 
 
@@ -100,21 +99,21 @@ namespace Dcomms.DRP.Packets
             if (includeSignature) NeighborSignature.Encode(writer);
         }
 
-        /// <param name="txParametersToPeerNeighbor">is not null for packets between registered peers</param>
-        public byte[] EncodeAtResponder(P2pStreamParameters txParametersToPeerNeighbor)
+        /// <param name="connectionToNeighbor">is not null for packets between registered peers</param>
+        public byte[] EncodeAtResponder(ConnectionToNeighbor connectionToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
             writer.Write((byte)DrpPacketType.RegisterSynPacket);
             byte flags = 0;
-            if (txParametersToPeerNeighbor != null) flags |= Flag_RPtoA;
+            if (connectionToNeighbor == null) flags |= Flag_RPtoA;
             writer.Write(flags);
-            if (txParametersToPeerNeighbor != null)
-                txParametersToPeerNeighbor.RemotePeerToken32.Encode(writer);
+            if (connectionToNeighbor != null)
+                connectionToNeighbor.RemotePeerToken32.Encode(writer);
 
             GetCommonRequesterAndResponderFields(writer, true, true);
 
-            if (txParametersToPeerNeighbor != null)
+            if (connectionToNeighbor != null)
             {
                 throw new NotImplementedException();
                 //   txParametersToPeerNeighbor.GetSharedHmac(cryptoLibrary, this.GetFieldsForSenderHmac).Encode(writer);

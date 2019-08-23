@@ -36,17 +36,17 @@ namespace Dcomms.DRP.Packets
             if (includeMagicNumber) writer.Write(RequesterSignature_MagicNumber);
         }
 
-        /// <param name="txParametersToPeerNeighbor">is not null for packets between registered peers</param>
-        public byte[] Encode(P2pStreamParameters txParametersToPeerNeighbor)
+        /// <param name="connectionToNeighbor">is not null for packets between registered peers</param>
+        public byte[] Encode(ConnectionToNeighbor connectionToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
             writer.Write((byte)DrpPacketType.RegisterConfirmationPacket);
             byte flags = 0;
-            if (txParametersToPeerNeighbor != null) flags |= Flag_AtoRP;
+            if (connectionToNeighbor == null) flags |= Flag_AtoRP;
             writer.Write(flags);
-            if (txParametersToPeerNeighbor != null)
-                txParametersToPeerNeighbor.RemotePeerToken32.Encode(writer);
+            if (connectionToNeighbor != null)
+                connectionToNeighbor.RemotePeerToken32.Encode(writer);
 
             GetCommonFields(writer, false);
 

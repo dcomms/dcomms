@@ -9,8 +9,9 @@ namespace Dcomms.DRP
 {
     partial class DrpPeerEngine
     {
-        async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterSynPacket registerSynPacket, IPEndPoint remoteEndpoint, DateTime requestReceivedAtUtc) // engine thread
+        async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterSynPacket registerSynPacket, IPEndPoint remoteEndpoint) // engine thread
         {
+            WriteToLog_reg_responderSide_detail(">> AcceptRegisterRequestAsync()", $"remoteEndpoint={remoteEndpoint}");
             if (_pendingRegisterRequests.Contains(registerSynPacket.RequesterPublicKey_RequestID)) return; // it is a duplicate reg SYN request
             _pendingRegisterRequests.Add(registerSynPacket.RequesterPublicKey_RequestID);
             try
@@ -44,19 +45,10 @@ namespace Dcomms.DRP
                     throw new NotImplementedException();
                 }
                 SendPacket(nextHopAckPacket.Encode(registerSynPacket.AtoRP), remoteEndpoint);
+                WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"sent nextHopAck");
 
-                _cryptoLibrary.GenerateEcdh25519Keypair(out var localEcdhe25519PrivateKey, out var localEcdhe25519PublicKey);
 
-                var registerSynAckPacket = new RegisterSynAckPacket
-                {
-                    NeighborEcdhePublicKey = new EcdhPublicKey { ecdh25519PublicKey = localEcdhe25519PublicKey },
-                    NeighborPublicKey = acceptAt.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
-                    NeighborStatusCode = DrpResponderStatusCode.confirmed,
-                    NhaSeq16 = GetNewNhaSeq16(),
-                    RegisterSynTimestamp32S = registerSynPacket.Timestamp32S
-                };
-
-                var newConnection = new ConnectedDrpPeer(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer)
+                var newConnectionToNeighbor = new ConnectionToNeighbor(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer)
                 {
                     LocalEndpoint = registerSynPacket.RpEndpoint,
 					RemotePeerPublicKey = registerSynPacket.RequesterPublicKey_RequestID					
@@ -64,8 +56,15 @@ namespace Dcomms.DRP
                 byte[] registerSynAckUdpPayload;
                 try
                 {
-                    registerSynAckPacket.ToNeighborTxParametersEncrypted = P2pStreamParameters.EncryptAtRegisterResponder(localEcdhe25519PrivateKey,
-						registerSynPacket, registerSynAckPacket, newConnection.LocalRxToken32, _cryptoLibrary, out var sharedDhSecret);
+                    var registerSynAckPacket = new RegisterSynAckPacket
+                    {
+                        NeighborEcdhePublicKey = new EcdhPublicKey { ecdh25519PublicKey = newConnectionToNeighbor.LocalEcdhe25519PublicKey },
+                        NeighborPublicKey = acceptAt.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
+                        NeighborStatusCode = DrpResponderStatusCode.confirmed,
+                        NhaSeq16 = GetNewNhaSeq16(),
+                        RegisterSynTimestamp32S = registerSynPacket.Timestamp32S
+                    };
+                    registerSynAckPacket.ToNeighborTxParametersEncrypted = newConnectionToNeighbor.EncryptAtRegisterResponder(registerSynPacket, registerSynAckPacket);
                     registerSynAckPacket.NeighborSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         w2 => registerSynAckPacket.GetCommonRequesterAndResponderFields(w2, false, true),
                         acceptAt.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
@@ -73,44 +72,50 @@ namespace Dcomms.DRP
 
                     registerSynAckUdpPayload = registerSynAckPacket.EncodeAtResponder(null);
                     SendPacket(registerSynAckUdpPayload, remoteEndpoint);
-												
-                    
+                    WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"sent synAck");
+
+
                     var regAckScanner = RegisterAckPacket.GetScanner(null, registerSynPacket.RequesterPublicKey_RequestID, registerSynPacket.Timestamp32S);
                    // var regAckHeader = ms3.ToArray();
                     RegisterAckPacket registerAckPacket;
                     if (registerSynPacket.AtoRP)
                     { // wait for reg ACK
                         var regAckUdpPayload = await SendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, remoteEndpoint, regAckScanner);
-                        registerAckPacket = RegisterAckPacket.DecodeAndVerifyAtResponder(_cryptoLibrary, regAckUdpPayload, sharedDhSecret, 
-							registerSynPacket, registerSynAckPacket, out var txParameters);  // verifies hmac, decrypts endpoint of A
-                        newConnection.TxParameters = txParameters;
+
+                        WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"received regAck");
+                        registerAckPacket = RegisterAckPacket.DecodeAndVerifyAtResponder(regAckUdpPayload, registerSynPacket, registerSynAckPacket, newConnectionToNeighbor); // verifies hmac, decrypts endpoint of A
                     }
                     else
                     {// todo  retransmit until NHA; at same time (!!!)  wait for regACK
                         throw new NotImplementedException(); // vanilla natural
                     }
 
-                    acceptAt.ConnectedPeers.Add(newConnection); // added to list here in order to respond to ping requests from A
+
+                    WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"verified regAck");
+                    acceptAt.ConnectedPeers.Add(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A
 					
 					// send ping
-                    var pingRequestPacket = newConnection.CreatePingRequestPacket(true);
+                    var pingRequestPacket = newConnectionToNeighbor.CreatePingRequestPacket(true);
                     
-                    var pendingPingRequest = new PendingLowLevelUdpRequest(newConnection.TxParameters.RemoteEndpoint,
-                                    PingResponsePacket.GetScanner(newConnection.LocalRxToken32, pingRequestPacket.PingRequestId32), DateTimeNowUtc,
+                    var pendingPingRequest = new PendingLowLevelUdpRequest(newConnectionToNeighbor.RemoteEndpoint,
+                                    PingResponsePacket.GetScanner(newConnectionToNeighbor.LocalRxToken32, pingRequestPacket.PingRequestId32), DateTimeNowUtc,
                                     Configuration.InitialPingRequests_ExpirationTimeoutS,
                                     pingRequestPacket.Encode(),
                                     Configuration.InitialPingRequests_InitialRetransmissionTimeoutS,
                                     Configuration.InitialPingRequests_RetransmissionTimeoutIncrement
                                 );
+
+                    WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"sent pingRequest");
                     var pingResponsePacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pingResponse from A
                     if (pingResponsePacketData == null) throw new DrpTimeoutException();
                     var pingResponsePacket = PingResponsePacket.DecodeAndVerify(_cryptoLibrary,
-                        pingResponsePacketData, pingRequestPacket, newConnection,
-                        true, registerSynPacket, registerSynAckPacket);                  
+                        pingResponsePacketData, pingRequestPacket, newConnectionToNeighbor,
+                        true, registerSynPacket, registerSynAckPacket);
+                    WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"verified pingResponse");
                 }
                 catch
                 {
-                    newConnection.Dispose();
+                    newConnectionToNeighbor.Dispose();
                     throw;
                 }
             }

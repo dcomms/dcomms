@@ -155,7 +155,7 @@ namespace Dcomms.DRP
 
                 if (acceptAt != null)
                 {   // accept the registration request here, at RP
-                    _ = AcceptRegisterRequestAsync(acceptAt, registerSynPacket, remoteEndpoint, receivedAtUtc);
+                    _ = AcceptRegisterRequestAsync(acceptAt, registerSynPacket, remoteEndpoint);
                 }
                 else if (proxyTo != null)
                 {  // todo proxy
@@ -167,7 +167,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// main routing procedure for REGISTER requests
         /// </summary>
-        void RouteRegistrationRequest(RegisterSynPacket registerSynPacket, out ConnectedDrpPeer proxyTo, out LocalDrpPeer acceptAt)
+        void RouteRegistrationRequest(RegisterSynPacket registerSynPacket, out ConnectionToNeighbor proxyTo, out LocalDrpPeer acceptAt)
         {
             proxyTo = null;
             acceptAt = null;

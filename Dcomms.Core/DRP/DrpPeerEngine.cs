@@ -1,6 +1,7 @@
 ﻿using Dcomms.Cryptography;
 using Dcomms.DRP.Packets;
 using Dcomms.DSP;
+using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -36,7 +37,7 @@ namespace Dcomms.DRP
         internal Random InsecureRandom => _insecureRandom;
         Dictionary<RegistrationPublicKey, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationPublicKey, LocalDrpPeer>(); // accessed only by manager thread
        
-        internal ConnectedDrpPeer[] ConnectedPeersByToken16 = new ConnectedDrpPeer[ushort.MaxValue];
+        internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue];
         DrpPeerEngine _engine;
         ushort _seq16Counter;
         internal NextHopAckSequenceNumber16 GetNewNhaSeq16() => new NextHopAckSequenceNumber16 { Seq16 = _seq16Counter++ };
@@ -72,34 +73,43 @@ namespace Dcomms.DRP
         }
 
         #region error handlers / dev vision / anti-fraud
-        void HandleException(Exception exc, string description)
-        {
-            //todo report to log/dev vision
-        }
+        const string VisionChannelObjectName_reg_requesterSide = "reg.requester";
+        const string VisionChannelObjectName_reg_responderSide = "reg.responder";
+        const string VisionChannelObjectName_engineThread = "engineThread";
+        const string VisionChannelObjectName_receiverThread = "receiverThread";
+      
         void HandleExceptionInReceiverThread(Exception exc)
         {
-            //todo report to log/dev vision
+            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_receiverThread, null) <= AttentionLevel.strongPain)
+                Configuration.VisionChannel?.Emit(VisionChannelObjectName_receiverThread, null, AttentionLevel.strongPain, $"exception: {exc}");
         }
         void HandleExceptionInEngineThread(Exception exc)
         {
-            //todo report to log/dev vision
+            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_engineThread, null) <= AttentionLevel.strongPain)
+                Configuration.VisionChannel?.Emit(VisionChannelObjectName_engineThread, null, AttentionLevel.strongPain, $"exception: {exc}");
         }
-        void WriteToLog_reg_requesterSide_debug(string message)
+        void WriteToLog_reg_requesterSide_detail(string message)
         {
-
+            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_reg_requesterSide, null) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.Emit(VisionChannelObjectName_reg_requesterSide, null, AttentionLevel.detail, message);
         }
-        void WriteToLog_reg_requesterSide_warning(string message)
+        void WriteToLog_reg_requesterSide_mediumPain(string message)
         {
+            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_reg_requesterSide, null) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(VisionChannelObjectName_reg_requesterSide, null, AttentionLevel.detail, message);
 
         }
         void HandleExceptionWhileConnectingToRP(IPEndPoint rpEndpoint, Exception exc)
         {
-            HandleException(exc, $"exception while connecting to RP {rpEndpoint}");
+            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_reg_requesterSide, null) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(VisionChannelObjectName_reg_requesterSide, null, AttentionLevel.detail, $"exception while connecting to RP {rpEndpoint}: {exc}");
+
             // todo: analyse if it is malformed packet received from attacker's RP
         }
         internal void HandleGeneralException(string message)
         {
-
+            if (Configuration.VisionChannel?.GetAttentionTo(null, null) <= AttentionLevel.strongPain)
+                Configuration.VisionChannel?.Emit(null, null, AttentionLevel.strongPain, $"general exception: {message}");
         }
         internal void OnReceivedUnauthorizedSourceIpPacket(IPEndPoint remoteEndpoint)
         {
@@ -113,11 +123,16 @@ namespace Dcomms.DRP
         { }
         void OnReceivedBadSignature(IPEndPoint remoteEndpoint)
         {
-
         }
         void HandleExceptionWhileConnectingToA(IPEndPoint remoteEndpoint, Exception exc)
         {
-
+            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_reg_responderSide, null) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(VisionChannelObjectName_reg_responderSide, null, AttentionLevel.detail, $"exception while connecting to A {remoteEndpoint}: {exc}");
+        }
+        void WriteToLog_reg_responderSide_detail(string sourceCodePlaceId, string message = null)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_reg_responderSide, sourceCodePlaceId) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.Emit(VisionChannelObjectName_reg_responderSide, sourceCodePlaceId, AttentionLevel.detail, message);
         }
         #endregion
 
@@ -275,7 +290,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// creates an instance of TxRequestState, starts retransmission timer
         /// </summary>
-        bool TrySendRequestViaConnectedPeer(ConnectedDrpPeer connectedPeer, RegistrationPublicKey remotePeerRegistrationPublicKey)
+        bool TrySendRequestViaConnectedPeer(ConnectionToNeighbor connectedPeer, RegistrationPublicKey remotePeerRegistrationPublicKey)
         {
             // assert tx rate is not exceeded  -- return false
 
@@ -314,6 +329,8 @@ namespace Dcomms.DRP
         public double InitialPingRequests_ExpirationTimeoutS = 5;
         public double InitialPingRequests_InitialRetransmissionTimeoutS = 0.1;
         public double InitialPingRequests_RetransmissionTimeoutIncrement = 1.05;
+
+        public VisionChannel VisionChannel;
     }
     public class DrpPeerRegistrationConfiguration
     {

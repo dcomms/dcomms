@@ -16,7 +16,7 @@ namespace Dcomms
     {
 
     }
-    class UnmatchedResponseFieldsException : PossibleMitmException // todo handle attacks that raise such exceptions   - it is MITM
+    class UnmatchedFieldsException : PossibleMitmException // todo handle attacks that raise such exceptions   - it is MITM
     {
 
     }

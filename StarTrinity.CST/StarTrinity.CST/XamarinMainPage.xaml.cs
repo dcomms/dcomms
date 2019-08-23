@@ -1,4 +1,5 @@
 ﻿using Dcomms.SUBT.GUI;
+using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,10 +22,12 @@ namespace StarTrinity.CST
             this.BindingContext = _cstApp;
 
 #if DEBUG || true
-            cryptographyTesterPage.BindingContext = new Dcomms.CCP.CryptographyTester((msg)=>
-            {
-                cryptographyTesterOutput.Text = msg;
-            });
+            cryptographyTesterPage.BindingContext = new Dcomms.CCP.CryptographyTester(
+                new SimplestVisionChannel((msg)=>
+                    {
+                        cryptographyTesterOutput.Text = msg;
+                    })
+               );
 #else
             this.Children.Remove(cryptographyTesterPage);
 #endif

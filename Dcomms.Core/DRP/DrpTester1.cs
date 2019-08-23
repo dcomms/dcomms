@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Dcomms.Vision;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
@@ -17,17 +18,17 @@ namespace Dcomms.DRP
 
         const int RpLocalPort = 6789;
         DrpPeerEngine _rp, _a;
-        public DrpTester1()
+        public DrpTester1(VisionChannel visionChannel)
         {
             _rp = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
-                LocalPort = RpLocalPort
+                LocalPort = RpLocalPort,
+                VisionChannel = visionChannel
             });
 
             _a = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
-
-
+                VisionChannel = visionChannel
             });
 
 

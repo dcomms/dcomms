@@ -23,13 +23,13 @@ namespace Dcomms.DRP
             _registrationConfiguration = registrationConfiguration;
             _user = user;
         }
-        public List<ConnectedDrpPeer> ConnectedPeers = new List<ConnectedDrpPeer>(); // neighbors
+        public List<ConnectionToNeighbor> ConnectedPeers = new List<ConnectionToNeighbor>(); // neighbors
         /// <summary>
         /// main routing procedure
         /// selects next peer (hop) to proxy packet
         /// returns null in case of flood
         /// </summary>
-        ConnectedDrpPeer TryRouteRequest(RegistrationPublicKey targetRegistrationPublicKey)
+        ConnectionToNeighbor TryRouteRequest(RegistrationPublicKey targetRegistrationPublicKey)
         {
             // enumerate conn. peers
             //   skip flooded tx connections (where tx rate is exceeded)

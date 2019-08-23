@@ -6,24 +6,34 @@
         xmlns:local="clr-namespace:Dcomms.CryptographyTester"
         mc:Ignorable="d"
         Title="Dcomms Cryptography Tester" Height="450" Width="800">
-    <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="20">
-        <StackPanel Orientation="Horizontal">
-            <Button Content="sha256" Command="{Binding TestSha256}"/>
-            <TextBlock Text="input size:" />
-            <TextBox Text="{Binding TestSha256inputSize}" />
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="20">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="sha256" Command="{Binding TestSha256}"/>
+                <TextBlock Text="input size:" />
+                <TextBox Text="{Binding TestSha256inputSize}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Button Content="sha512" Command="{Binding TestSha512}"/>
+                <TextBlock Text="input size:" />
+                <TextBox Text="{Binding TestSha512inputSize}" />
+            </StackPanel>
+            <StackPanel Orientation="Vertical">
+                <Button Command="{Binding TestPoW_CCP_hello0}" Content="test CCP hello0 PoW" />
+                <Button Command="{Binding TestEd25519}" Content="TestEd25519" />
+                <Button Command="{Binding TestEcdh25519}" Content="TestEcdh25519" />
+                <Button Command="{Binding TestAes}" Content="TestAes" />
+                <Button Command="{Binding CreateDrpTester1}" Content="CreateDrpTester1" />
+            </StackPanel>
         </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Button Content="sha512" Command="{Binding TestSha512}"/>
-            <TextBlock Text="input size:" />
-            <TextBox Text="{Binding TestSha512inputSize}" />
-        </StackPanel>
-        <StackPanel Orientation="Vertical">
-            <Button Command="{Binding TestPoW_CCP_hello0}" Content="test CCP hello0 PoW" />
-            <Button Command="{Binding TestEd25519}" Content="TestEd25519" />
-            <Button Command="{Binding TestEcdh25519}" Content="TestEcdh25519" />
-            <Button Command="{Binding TestAes}" Content="TestAes" />
+
+        <Grid x:Name="visionGui" Grid.Column="1">
+            <ListView ItemsSource="{Binding LogMessages}" DisplayMemberPath="Text" />
             
-            
-        </StackPanel>
-    </StackPanel>
+        </Grid>
+    </Grid>
 </Window>

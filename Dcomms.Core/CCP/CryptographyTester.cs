@@ -1,5 +1,7 @@
 ﻿using Dcomms.CCP;
 using Dcomms.Cryptography;
+using Dcomms.DRP;
+using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,10 +15,10 @@ namespace Dcomms.CCP
 {
     public class CryptographyTester
     {
-        readonly Action<string> _wtl;
-        public CryptographyTester(Action<string> wtl)
+        readonly VisionChannel _visionChannel;
+        public CryptographyTester(VisionChannel visionChannel)
         {
-            _wtl = wtl;
+            _visionChannel = visionChannel;
         }
 
         ICryptoLibrary _cryptoLibrary = CryptoLibraries.Library;
@@ -34,10 +36,9 @@ namespace Dcomms.CCP
             }
             sw.Stop();
             var callsPerSec = (double)n / sw.Elapsed.TotalSeconds;
-            _wtl($"calls per sec: {callsPerSec}");
+            _visionChannel.Emit(null, null, AttentionLevel.detail, $"calls per sec: {callsPerSec}");
         });
-
-
+        
         public int TestSha512inputSize { get; set; } = 128;
         public DelegateCommand TestSha512 => new DelegateCommand(() =>
         {
@@ -52,7 +53,7 @@ namespace Dcomms.CCP
             }
             sw.Stop();
             var callsPerSec = (double)n / sw.Elapsed.TotalSeconds;
-            _wtl($"calls per sec: {callsPerSec}");
+            _visionChannel.Emit(null, null, AttentionLevel.detail, $"calls per sec: {callsPerSec}");
         });
 
         public DelegateCommand TestPoW_CCP_hello0 => new DelegateCommand(() =>
@@ -76,7 +77,7 @@ namespace Dcomms.CCP
                 if (sw.Elapsed.TotalMilliseconds > maxMs) maxMs = sw.Elapsed.TotalMilliseconds;
             }
 
-            _wtl($"delays: {sb}.\r\nmax: {maxMs}ms\r\naverage: {totalMs/n}ms"); 
+            _visionChannel.Emit(null, null, AttentionLevel.detail, $"delays: {sb}.\r\nmax: {maxMs}ms\r\naverage: {totalMs/n}ms"); 
             // asv huawei 
 
         });
@@ -110,11 +111,10 @@ namespace Dcomms.CCP
             swVerify.Stop();
             var verificationsPerSecond = (double)nVerify / swVerify.Elapsed.TotalSeconds;
 
-            _wtl($"Ed25519: { signaturesPerSecond } sign/sec, { verificationsPerSecond } ver/sec");
+            _visionChannel.Emit(null, null, AttentionLevel.detail, $"Ed25519: { signaturesPerSecond } sign/sec, { verificationsPerSecond } ver/sec");
             // asv huawei 
 
         });
-
         public DelegateCommand TestEcdh25519 => new DelegateCommand(() =>
         {
 
@@ -131,11 +131,10 @@ namespace Dcomms.CCP
             }
             sw.Stop();
 
-            _wtl($"Ecdh25519: { (double)n / sw.Elapsed.TotalSeconds } fullABop/sec");
+            _visionChannel.Emit(null, null, AttentionLevel.detail, $"Ecdh25519: { (double)n / sw.Elapsed.TotalSeconds } fullABop/sec");
          
         });
-
-
+        
         public DelegateCommand TestAes => new DelegateCommand(() =>
         {
             _cryptoLibrary.GenerateEcdh25519Keypair(out var privateKeyA, out var publicKeyA);
@@ -160,9 +159,17 @@ namespace Dcomms.CCP
             }
             sw.Stop();
 
-            _wtl($"AES: { (double)n / sw.Elapsed.TotalSeconds } fullOp/sec");           
+            _visionChannel.Emit(null, null, AttentionLevel.detail, $"AES: { (double)n / sw.Elapsed.TotalSeconds } fullOp/sec");           
 
         });
+        
+        DrpTester1 _drpTester1;
+        public DelegateCommand CreateDrpTester1 => new DelegateCommand(() =>
+        {
+            if (_drpTester1 != null) throw new InvalidOperationException();
+            _drpTester1 = new DrpTester1(_visionChannel);
+        });
+
 
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
         {

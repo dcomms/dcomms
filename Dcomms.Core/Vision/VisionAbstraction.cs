@@ -41,25 +41,43 @@ namespace Dcomms.Vision
 
     /// <summary>
     /// provides link from executing code to developer
-    /// sends various signals to developer
+    /// sends various signals to developer via CCP, via GUI display, via log files
     /// 
-    /// relies on CCP
+    /// (optionally) relies on CCP
     /// </summary>
-    public class VisionChannelAtClient
+    public abstract class VisionChannel
     {
-        CcpClient _ccpClient;
-        
-
-        public AttentionLevel HasAttentionTo(string objectName, string sourceCodePlaceId)
+        public virtual AttentionLevel GetAttentionTo(string objectName, string sourceCodePlaceId) => AttentionLevel.deepDetail;
+        public abstract void Emit(string objectName, string sourceCodePlaceId, AttentionLevel level, string message);
+        public virtual void Emit(string objectName, string sourceCodePlaceId, double value, double? lightPainThresholdL, double? mediumPainThresholdL)
         {
-            throw new NotImplementedException();
+            if (value > mediumPainThresholdL)
+            {
+                if (GetAttentionTo(objectName, sourceCodePlaceId) <= AttentionLevel.mediumPain)
+                    Emit(objectName, sourceCodePlaceId, AttentionLevel.mediumPain, $"value={value} is above threshold {mediumPainThresholdL}");
+            }
+            else if (value > mediumPainThresholdL)
+            {
+                if (GetAttentionTo(objectName, sourceCodePlaceId) <= AttentionLevel.lightPain)
+                    Emit(objectName, sourceCodePlaceId, AttentionLevel.lightPain, $"value={value} is above threshold {lightPainThresholdL}");
+            }
+            else
+            {
+                if (GetAttentionTo(objectName, sourceCodePlaceId) <= AttentionLevel.detail)
+                    Emit(objectName, sourceCodePlaceId, AttentionLevel.detail, $"value={value}");
+            }
         }
-        public void Emit(string objectName, string sourceCodePlaceId, AttentionLevel level, string message)
+    }
+    public class SimplestVisionChannel : VisionChannel
+    {
+        readonly Action<string> _wtl;
+        public SimplestVisionChannel(Action<string> wtl)
         {
+            _wtl = wtl;
         }
-        public void Emit(string objectName, string sourceCodePlaceId, double value, double? lightPainThresholdL, double? painThresholdL)
+        public override void Emit(string objectName, string sourceCodePlaceId, AttentionLevel level, string message)
         {
-
+            _wtl($"{sourceCodePlaceId} {message}");
         }
     }
 }

@@ -72,33 +72,33 @@ namespace Dcomms.DRP.Packets
         public RegisterSynPacket()
         {
         }
-        /// <param name="txParametersToPeerNeighbor">is not null for packets between registered peers</param>
-        public byte[] Encode(P2pStreamParameters txParametersToPeerNeighbor)
+        /// <param name="connectionToNeighbor">is not null for packets between registered peers</param>
+        public byte[] Encode(ConnectionToNeighbor connectionToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
             writer.Write((byte)DrpPacketType.RegisterSynPacket);
             byte flags = 0;
-            if (txParametersToPeerNeighbor != null) flags |= Flag_AtoRP;
+            if (connectionToNeighbor == null) flags |= Flag_AtoRP;
             writer.Write(flags);
-            if (txParametersToPeerNeighbor != null)
-                txParametersToPeerNeighbor.RemotePeerToken32.Encode(writer);
+            if (connectionToNeighbor != null)
+                connectionToNeighbor.RemotePeerToken32.Encode(writer);
 
             GetCommonRequesterAndResponderFields(writer, true);
 
-            if (txParametersToPeerNeighbor == null)
+            if (connectionToNeighbor == null)
             {
                 if (ProofOfWork2.Length != 64) throw new ArgumentException();
                 writer.Write(ProofOfWork2);
             }
             writer.Write(NumberOfHopsRemaining);
-            if (txParametersToPeerNeighbor != null)
+            if (connectionToNeighbor != null)
             {
                 throw new NotImplementedException();
              //   txParametersToPeerNeighbor.GetSharedHmac(cryptoLibrary, this.GetFieldsForSenderHmac).Encode(writer);
             }
             NhaSeq16.Encode(writer);
-            if (txParametersToPeerNeighbor == null)
+            if (connectionToNeighbor == null)
                 PacketProcedures.EncodeIPEndPoint(writer, RpEndpoint);
 
             return ms.ToArray();

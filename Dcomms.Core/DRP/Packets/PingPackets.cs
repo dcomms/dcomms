@@ -45,7 +45,7 @@ namespace Dcomms.DRP.Packets
             return (ushort)(udpPayloadData[1] | (udpPayloadData[2] << 8));
         }
 
-        public static PingRequestPacket DecodeAndVerify(byte[] udpPayloadData, ConnectedDrpPeer connectedPeerWhoSentTheRequest, ICryptoLibrary cryptoLibrary)
+        public static PingRequestPacket DecodeAndVerify(byte[] udpPayloadData, ConnectionToNeighbor connectedPeerWhoSentTheRequest)
         {
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
 
@@ -63,7 +63,7 @@ namespace Dcomms.DRP.Packets
 
             // verify SenderHMAC
             if (r.SenderHMAC.Equals(
-                connectedPeerWhoSentTheRequest.TxParameters.GetSharedHmac(cryptoLibrary, r.GetSignedFieldsForSenderHMAC)
+                connectedPeerWhoSentTheRequest.GetSharedHmac(r.GetSignedFieldsForSenderHMAC)
                 ) == false)
                 throw new BadSignatureException();
 
@@ -98,7 +98,7 @@ namespace Dcomms.DRP.Packets
         public static PingResponsePacket DecodeAndVerify(ICryptoLibrary cryptoLibrary,
             byte[] udpPayloadData, 
             PingRequestPacket optionalPingRequestPacketToCheckRequestId32, 
-            ConnectedDrpPeer connectedPeerWhoSentTheResponse, 
+            ConnectionToNeighbor connectedPeerWhoSentTheResponse, 
             bool requireSignature,
             RegisterSynPacket registerSynPacket, 
             RegisterSynAckPacket registerSynAckPacket
@@ -117,23 +117,21 @@ namespace Dcomms.DRP.Packets
                     connectedPeerWhoSentTheResponse.RemotePeerPublicKey);
             else
             {
-                if (requireSignature) throw new UnmatchedResponseFieldsException();
+                if (requireSignature) throw new UnmatchedFieldsException();
             }
 
             r.SenderHMAC = HMAC.Decode(reader);
 
             // verify PingRequestId32
             if (r.PingRequestId32 != optionalPingRequestPacketToCheckRequestId32.PingRequestId32)
-                throw new UnmatchedResponseFieldsException();
+                throw new UnmatchedFieldsException();
 
             // verify SenderToken32
             if (!r.SenderToken32.Equals(connectedPeerWhoSentTheResponse.LocalRxToken32))
-                throw new UnmatchedResponseFieldsException();
+                throw new UnmatchedFieldsException();
 
             // verify SenderHMAC
-            if (r.SenderHMAC.Equals(
-                connectedPeerWhoSentTheResponse.TxParameters.GetSharedHmac(cryptoLibrary, r.GetSignedFieldsForSenderHMAC)
-                ) == false)
+            if (r.SenderHMAC.Equals(connectedPeerWhoSentTheResponse.GetSharedHmac(r.GetSignedFieldsForSenderHMAC)) == false)
                 throw new BadSignatureException();
           
             return r;
