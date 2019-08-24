@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace Dcomms
@@ -277,8 +278,7 @@ namespace Dcomms
                 }
             }
         }
-
-
+        
         static unsafe bool EqualByteArrayHeader2(byte* pHeader, int headerLength, byte* pArray, int arrayLength)
         {
             if (headerLength > arrayLength)
@@ -292,6 +292,10 @@ namespace Dcomms
             if ((l & 2) != 0) { if (*((short*)x1) != *((short*)x2)) return false; x1 += 2; x2 += 2; }
             if ((l & 1) != 0) if (*((byte*)x1) != *((byte*)x2)) return false;
             return true;      
+        }
+        public static string ByteArrayToString(byte[] a)
+        {
+            return String.Join(";", a.Select(x => x.ToString()));
         }
     }
     public class AverageSingle

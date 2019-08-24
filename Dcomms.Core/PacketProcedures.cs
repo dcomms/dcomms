@@ -169,7 +169,7 @@ namespace Dcomms
         }
         public static IPEndPoint DecodeIPEndPointIpv4(BinaryReader reader)
         {
-            return new IPEndPoint(new IPAddress(DecodeByteArray256(reader)), reader.ReadUInt16());
+            return new IPEndPoint(new IPAddress(reader.ReadBytes(4)), reader.ReadUInt16());
         }
 
         public static void EncodeIPEndPoint(BinaryWriter writer, IPEndPoint endpoint)
@@ -179,7 +179,7 @@ namespace Dcomms
         }
         public static IPEndPoint DecodeIPEndPoint(BinaryReader reader)
         {
-            return new IPEndPoint(new IPAddress(reader.ReadBytes(4)), reader.ReadUInt16());
+            return new IPEndPoint(new IPAddress(DecodeByteArray256(reader)), reader.ReadUInt16());
         }
 
 

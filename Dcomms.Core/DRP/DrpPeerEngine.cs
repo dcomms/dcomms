@@ -95,7 +95,7 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_engineThread, null) <= AttentionLevel.strongPain)
                 Configuration.VisionChannel?.Emit(VisionChannelObjectName_engineThread, null, AttentionLevel.strongPain, $"exception: {exc}");
         }
-        void WriteToLog_reg_requesterSide_detail(string message)
+        internal void WriteToLog_reg_requesterSide_detail(string message)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_reg_requesterSide, null) <= AttentionLevel.detail)
                 Configuration.VisionChannel?.Emit(VisionChannelObjectName_reg_requesterSide, null, AttentionLevel.detail, message);

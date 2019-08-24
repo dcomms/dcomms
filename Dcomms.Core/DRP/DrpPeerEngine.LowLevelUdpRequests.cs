@@ -20,9 +20,11 @@ namespace Dcomms.DRP
 
         async Task<NextHopAckPacket> SendUdpRequestAsync_Retransmit_WaitForNextHopAck(byte[] requestPacketData, IPEndPoint remoteEndpoint, NextHopAckSequenceNumber16 nhaSeq16)
         {
+            var nhaScanner = NextHopAckPacket.GetScanner(nhaSeq16);
+            WriteToLog_reg_responderSide_detail(null, $"waiting for nextHopAck, scanner: {MiscProcedures.ByteArrayToString(nhaScanner.ResponseFirstBytes)} nhaSeq={nhaSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(remoteEndpoint,
-                         NextHopAckPacket.GetScanner(nhaSeq16), 
+                         nhaScanner, 
                          DateTimeNowUtc, Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
                          requestPacketData,                      
                          Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
@@ -100,13 +102,17 @@ namespace Dcomms.DRP
         /// is executed by engine thread
         /// </summary>
         /// <returns>
-        /// reue if the response is linked to request, and the packet is processed
+        /// true if the response is linked to request, and the packet is processed
         /// </returns>
         bool PendingUdpRequests_ProcessPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc)
         {
             for (var item = _pendingLowLevelUdpRequests.First; item != null; item = item.Next)
             {
                 var request = item.Value;
+
+                WriteToLog_receiver_detail($"matching to pending request... remoteEndpoint={remoteEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)} " +
+                    $"request.RemoteEndpoint={request.RemoteEndpoint} request.ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
+
                 if (request.RemoteEndpoint.Equals(remoteEndpoint) && request.ResponseScanner.Scan(udpPayloadData))
                 {
                     _pendingLowLevelUdpRequests.Remove(item);

@@ -95,7 +95,7 @@ namespace Dcomms.DRP.Packets
             if (connectionToNeighbor != null)
             {
                 throw new NotImplementedException();
-             //   txParametersToPeerNeighbor.GetSharedHmac(cryptoLibrary, this.GetFieldsForSenderHmac).Encode(writer);
+                //   txParametersToPeerNeighbor.GetSharedHmac(cryptoLibrary, this.GetFieldsForSenderHmac).Encode(writer);
             }
             NhaSeq16.Encode(writer);
             if (connectionToNeighbor == null)
@@ -131,9 +131,8 @@ namespace Dcomms.DRP.Packets
             if ((flags & Flag_AtoRP) != 0) ProofOfWork2 = reader.ReadBytes(64);
             NumberOfHopsRemaining = reader.ReadByte();
             if ((flags & Flag_AtoRP) == 0) SenderHMAC = HMAC.Decode(reader);
-            if ((flags & Flag_AtoRP) != 0) RpEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
-
             NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
+            if ((flags & Flag_AtoRP) != 0) RpEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
         }
         public static bool IsAtoRP(byte[] udpPayloadData)
         {

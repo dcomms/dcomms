@@ -51,7 +51,7 @@ namespace Dcomms.DRP
 
                     localDrpPeer.LocalPublicIpAddressForRegistration = new IPAddress(localPublicIp);
                     WriteToLog_reg_requesterSide_detail($"resolved local public IP = {localDrpPeer.LocalPublicIpAddressForRegistration}");
-                    WriteToLog_reg_requesterSide_detail($"@ engine thread");
+                    WriteToLog_reg_requesterSide_detail($"@engine thread");
                     await _engineThreadQueue.EnqueueAsync();
                 }
                 else
@@ -142,7 +142,7 @@ namespace Dcomms.DRP
                     );
                 var synToSynAckStopwatch = Stopwatch.StartNew();
 
-                WriteToLog_reg_requesterSide_detail($"sending syn");
+                WriteToLog_reg_requesterSide_detail($"sending syn, waiting for NextHopAck. NhaSeq16={registerSynPacket.NhaSeq16}");
                 await SendUdpRequestAsync_Retransmit_WaitForNextHopAck(registerSynPacket.Encode(null), rpEndpoint, registerSynPacket.NhaSeq16);
 
                 #endregion

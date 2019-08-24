@@ -31,7 +31,8 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             EncodeHeader(w, nhaSeq16);
-            return new LowLevelUdpResponseScanner { ResponseFirstBytes = ms.ToArray() };
+            var r = new LowLevelUdpResponseScanner { ResponseFirstBytes = ms.ToArray() };
+            return r;
         }
         static void EncodeHeader(BinaryWriter w, NextHopAckSequenceNumber16 nhaSeq16)
         {
@@ -111,6 +112,7 @@ namespace Dcomms.DRP.Packets
         {
             return ((NextHopAckSequenceNumber16)obj).Seq16 == this.Seq16;
         }
+        public override string ToString() => $"hhaSeq{Seq16}";
     }
 
 }

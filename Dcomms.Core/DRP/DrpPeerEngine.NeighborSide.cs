@@ -11,8 +11,12 @@ namespace Dcomms.DRP
     {
         async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterSynPacket registerSynPacket, IPEndPoint remoteEndpoint) // engine thread
         {
-            WriteToLog_reg_responderSide_detail(">> AcceptRegisterRequestAsync()", $"remoteEndpoint={remoteEndpoint}");
-            if (_pendingRegisterRequests.Contains(registerSynPacket.RequesterPublicKey_RequestID)) return; // it is a duplicate reg SYN request
+            WriteToLog_reg_responderSide_detail(">> AcceptRegisterRequestAsync()", $"remoteEndpoint={remoteEndpoint}, NhaSeq16={registerSynPacket.NhaSeq16}, rpEndpoint={registerSynPacket.RpEndpoint}");
+            if (_pendingRegisterRequests.Contains(registerSynPacket.RequesterPublicKey_RequestID))
+            {
+                SendNextHopAckResponseToSyn(registerSynPacket, remoteEndpoint);
+                return; // it is a duplicate reg SYN request: NextHopAck got lost
+            }
             _pendingRegisterRequests.Add(registerSynPacket.RequesterPublicKey_RequestID);
             try
             {               
@@ -30,23 +34,8 @@ namespace Dcomms.DRP
                         )
                     )
                     throw new BadSignatureException();
-                   
 
-                // respond with NextHopAckPacket   
-                var nextHopAckPacket = new NextHopAckPacket
-                {
-                    NhaSeq16 = registerSynPacket.NhaSeq16,
-                    StatusCode = NextHopResponseCode.accepted
-                };
-                if (registerSynPacket.AtoRP == false)
-                {
-                    //  nextHopAckPacket.SenderToken32 = x;
-                    //  nextHopAckPacket.SenderHMAC = x;
-                    throw new NotImplementedException();
-                }
-                SendPacket(nextHopAckPacket.Encode(registerSynPacket.AtoRP), remoteEndpoint);
-                WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"sent nextHopAck");
-
+                SendNextHopAckResponseToSyn(registerSynPacket, remoteEndpoint);
 
                 var newConnectionToNeighbor = new ConnectionToNeighbor(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer)
                 {
@@ -129,6 +118,25 @@ namespace Dcomms.DRP
                 _pendingRegisterRequests.Remove(registerSynPacket.RequesterPublicKey_RequestID);
             }
         }
+
+        void SendNextHopAckResponseToSyn(RegisterSynPacket registerSynPacket, IPEndPoint remoteEndpoint)
+        {
+            var nextHopAckPacket = new NextHopAckPacket
+            {
+                NhaSeq16 = registerSynPacket.NhaSeq16,
+                StatusCode = NextHopResponseCode.accepted
+            };
+            if (registerSynPacket.AtoRP == false)
+            {
+                //  nextHopAckPacket.SenderToken32 = x;
+                //  nextHopAckPacket.SenderHMAC = x;
+                throw new NotImplementedException();
+            }
+            var nextHopAckPacketData = nextHopAckPacket.Encode(registerSynPacket.AtoRP);
+            SendPacket(nextHopAckPacketData, remoteEndpoint);
+            WriteToLog_reg_responderSide_detail(null, $"sent nextHopAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(nextHopAckPacketData)} nhaSeq={registerSynPacket.NhaSeq16}");
+        }
+
 		bool ValidateReceivedTimestamp32S(uint receivedTimestamp32S)
         {
             var differenceS = Math.Abs((int)receivedTimestamp32S - Timestamp32S);

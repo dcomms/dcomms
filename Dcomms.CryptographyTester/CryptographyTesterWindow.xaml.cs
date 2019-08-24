@@ -31,11 +31,11 @@ namespace Dcomms.CryptographyTester
             {
                 var msg = new LogMessage
                 {
-                    Text = $"[{Thread.CurrentThread.ManagedThreadId} {GetCurrentThreadId()}] {objectName} {sourceCodePlaceId} {message}"
+                    Text = $"[{Thread.CurrentThread.ManagedThreadId}] {objectName} {sourceCodePlaceId} {message}"
                 };
                 App.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    LogMessages.Add(msg);
+                    LogMessages.Insert(0, msg);
                 }));
             }
         }
