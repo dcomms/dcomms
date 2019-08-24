@@ -65,7 +65,7 @@ namespace Dcomms
             if (unchecked(timeSec32UTC - _latestResetTimeSec32UTC) > _recentUniqueDataResetPeriodS)
                 Reset(timeSec32UTC);
 
-            int numberOfDwords = inputData.Length << 2;
+            int numberOfDwords = inputData.Length >> 2;
 
             fixed (byte* dwordFlagBitsPtr = _dwordFlagBits)
             {
@@ -112,6 +112,9 @@ namespace Dcomms
                 // counter-measure against attack #1: if server sees that it is under attack (too many unique values filled) - then it automatically resets the unique values
                 Reset(timeSec32UTC);
             }
+
+
+
             return true;
         }
     }

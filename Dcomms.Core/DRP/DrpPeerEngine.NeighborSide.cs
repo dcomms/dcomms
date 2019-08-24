@@ -57,12 +57,13 @@ namespace Dcomms.DRP
                 try
                 {
                     var registerSynAckPacket = new RegisterSynAckPacket
-                    {
+                    {                        
+                        RequesterPublicKey_RequestID = registerSynPacket.RequesterPublicKey_RequestID,
+                        RegisterSynTimestamp32S = registerSynPacket.Timestamp32S,
                         NeighborEcdhePublicKey = new EcdhPublicKey { ecdh25519PublicKey = newConnectionToNeighbor.LocalEcdhe25519PublicKey },
                         NeighborPublicKey = acceptAt.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
                         NeighborStatusCode = DrpResponderStatusCode.confirmed,
                         NhaSeq16 = GetNewNhaSeq16(),
-                        RegisterSynTimestamp32S = registerSynPacket.Timestamp32S
                     };
                     registerSynAckPacket.ToNeighborTxParametersEncrypted = newConnectionToNeighbor.EncryptAtRegisterResponder(registerSynPacket, registerSynAckPacket);
                     registerSynAckPacket.NeighborSignature = RegistrationSignature.Sign(_cryptoLibrary,

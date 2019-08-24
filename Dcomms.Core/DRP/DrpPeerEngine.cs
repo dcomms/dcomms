@@ -75,9 +75,16 @@ namespace Dcomms.DRP
         #region error handlers / dev vision / anti-fraud
         const string VisionChannelObjectName_reg_requesterSide = "reg.requester";
         const string VisionChannelObjectName_reg_responderSide = "reg.responder";
+        const string VisionChannelObjectName_reg_rpSide = "reg.rp";
         const string VisionChannelObjectName_engineThread = "engineThread";
         const string VisionChannelObjectName_receiverThread = "receiverThread";
-      
+
+        void WriteToLog_receiver_detail(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_receiverThread, null) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.Emit(VisionChannelObjectName_receiverThread, null, AttentionLevel.detail, message);
+
+        }
         void HandleExceptionInReceiverThread(Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_receiverThread, null) <= AttentionLevel.strongPain)
@@ -163,7 +170,7 @@ namespace Dcomms.DRP
         void ProcessReceivedUdpPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData) // receiver thread
         {
             var packetType = (DrpPacketType)udpPayloadData[0];
-
+            WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint}");
             if (packetType == DrpPacketType.RegisterPow1RequestPacket)
             {
                 ProcessRegisterPow1RequestPacket(remoteEndpoint, udpPayloadData);
@@ -307,6 +314,7 @@ namespace Dcomms.DRP
     public class DrpPeerEngineConfiguration
     {
         public ushort? LocalPort;
+        public IPAddress LocalForcedPublicIpForRegistration;
         public TimeSpan PingRequestsInterval = TimeSpan.FromSeconds(2);
         public double PingRetransmissionInterval_RttRatio = 2.0; // "how much time to wait until sending another ping request?" - coefficient, relative to previously measured RTT
         public TimeSpan ConnectedPeersRemovalTimeout => PingRequestsInterval + TimeSpan.FromSeconds(2);

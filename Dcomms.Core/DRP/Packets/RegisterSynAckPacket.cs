@@ -20,7 +20,7 @@ namespace Dcomms.DRP.Packets
         public byte Flags;
 
         P2pConnectionToken32 SenderToken32; // is not sent from RP to A
-        RegistrationPublicKey RequesterPublicKey_RequestID; // public key of requester (A)
+        public RegistrationPublicKey RequesterPublicKey_RequestID; // public key of requester (A)
         /// <summary>
         /// against flood by this packet in future, without N (against replay attack)
         /// is copied from REGISTER SYN request packet by N and put into the SYN-ACK response

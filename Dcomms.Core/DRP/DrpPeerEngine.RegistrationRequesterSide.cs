@@ -28,35 +28,44 @@ namespace Dcomms.DRP
             });
             
         }
-
+        public LocalDrpPeer CreateLocalPeer(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
+        {
+            var localDrpPeer = new LocalDrpPeer(this, registrationConfiguration, user);
+            LocalPeers.Add(registrationConfiguration.LocalPeerRegistrationPublicKey, localDrpPeer);
+            return localDrpPeer;
+        }
         async Task<LocalDrpPeer> BeginRegister2(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
         {
             WriteToLog_reg_requesterSide_detail($"@BeginRegister2() engine thread");
 
-            var localDrpPeer = new LocalDrpPeer(this, registrationConfiguration, user);
-            LocalPeers.Add(registrationConfiguration.LocalPeerRegistrationPublicKey, localDrpPeer);
-
+            var localDrpPeer = CreateLocalPeer(registrationConfiguration, user);
             if (registrationConfiguration.RendezvousPeerEndpoints.Length != 0)
             {
-                WriteToLog_reg_requesterSide_detail($"resolving local public IP...");
-                var localPublicIp = await SendPublicIpAddressApiRequestAsync("http://api.ipify.org/");
-                if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://ip.seeip.org/");
-                if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://bot.whatismyipaddress.com");
-                if (localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
-             
-                localDrpPeer.LocalPublicIpAddressForRegistration = new IPAddress(localPublicIp);
-                WriteToLog_reg_requesterSide_detail($"resolved local public IP = {localDrpPeer.LocalPublicIpAddressForRegistration}");
-                await _engineThreadQueue.EnqueueAsync();
-                WriteToLog_reg_requesterSide_detail($"@ engine thread");
+                if (Configuration.LocalForcedPublicIpForRegistration == null)
+                {
+                    WriteToLog_reg_requesterSide_detail($"resolving local public IP...");
+                    var localPublicIp = await SendPublicIpAddressApiRequestAsync("http://api.ipify.org/");
+                    if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://ip.seeip.org/");
+                    if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://bot.whatismyipaddress.com");
+                    if (localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
+
+                    localDrpPeer.LocalPublicIpAddressForRegistration = new IPAddress(localPublicIp);
+                    WriteToLog_reg_requesterSide_detail($"resolved local public IP = {localDrpPeer.LocalPublicIpAddressForRegistration}");
+                    WriteToLog_reg_requesterSide_detail($"@ engine thread");
+                    await _engineThreadQueue.EnqueueAsync();
+                }
+                else
+                    localDrpPeer.LocalPublicIpAddressForRegistration = Configuration.LocalForcedPublicIpForRegistration;
+
 
                 foreach (var rpEndpoint in registrationConfiguration.RendezvousPeerEndpoints) // try to connect to rendezvous peers, one by one
                 {
-                    if (MiscProcedures.EqualByteArrays(rpEndpoint.Address.GetAddressBytes(), localPublicIp) == true)
-                    {
-                        WriteToLog_reg_requesterSide_detail($"not connecting to RP {rpEndpoint}: same IP address as local public IP");
-                    }
-                    else
-                    {
+                   // if (MiscProcedures.EqualByteArrays(rpEndpoint.Address.GetAddressBytes(), localDrpPeer.LocalPublicIpAddressForRegistration.GetAddressBytes()) == true)
+                  //  {
+                  //      WriteToLog_reg_requesterSide_detail($"not connecting to RP {rpEndpoint}: same IP address as local public IP");
+                  //  }
+                   // else
+                  //  {
                         try
                         {
                             if (await RegisterAsync(localDrpPeer, rpEndpoint) == null)
@@ -68,7 +77,7 @@ namespace Dcomms.DRP
                         {
                             HandleExceptionWhileConnectingToRP(rpEndpoint, exc);
                         }
-                    }
+                  //  }
                 }
 
                 WriteToLog_reg_requesterSide_detail($"@RegisterAsync() returned {localDrpPeer}");

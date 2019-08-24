@@ -25,14 +25,20 @@ namespace Dcomms.DRP
                 LocalPort = RpLocalPort,
                 VisionChannel = visionChannel
             });
+            var rpConfig = new DrpPeerRegistrationConfiguration
+            {
+                NumberOfNeighborsToKeep = 10
+            };
+            rpConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _rp.CryptoLibrary.GeneratePrivateKeyEd25519() };
+            rpConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = _rp.CryptoLibrary.GetPublicKeyEd25519(rpConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
+            _rp.CreateLocalPeer(rpConfig, new User());
+
 
             _a = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
-                VisionChannel = visionChannel
-            });
-
-
-
+                VisionChannel = visionChannel,
+                LocalForcedPublicIpForRegistration = IPAddress.Loopback
+            });   
             var aConfig = new DrpPeerRegistrationConfiguration
             {
                 RendezvousPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, RpLocalPort) },
