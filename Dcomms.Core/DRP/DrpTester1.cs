@@ -23,7 +23,8 @@ namespace Dcomms.DRP
             _rp = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 LocalPort = RpLocalPort,
-                VisionChannel = visionChannel
+                VisionChannel = visionChannel,
+                VisionChannelSourceId = "RP"
             });
             var rpConfig = new DrpPeerRegistrationConfiguration
             {
@@ -32,12 +33,12 @@ namespace Dcomms.DRP
             rpConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _rp.CryptoLibrary.GeneratePrivateKeyEd25519() };
             rpConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = _rp.CryptoLibrary.GetPublicKeyEd25519(rpConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
             _rp.CreateLocalPeer(rpConfig, new User());
-
-
+            
             _a = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 VisionChannel = visionChannel,
-                LocalForcedPublicIpForRegistration = IPAddress.Loopback
+                LocalForcedPublicIpForRegistration = IPAddress.Loopback,
+                VisionChannelSourceId = "A"
             });   
             var aConfig = new DrpPeerRegistrationConfiguration
             {
@@ -47,8 +48,7 @@ namespace Dcomms.DRP
             aConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _a.CryptoLibrary.GeneratePrivateKeyEd25519() };
             aConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = _a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
 
-            _a.BeginRegister(aConfig, new User());
-                       
+            _a.BeginRegister(aConfig, new User());                       
         }
         public void Dispose()
         {

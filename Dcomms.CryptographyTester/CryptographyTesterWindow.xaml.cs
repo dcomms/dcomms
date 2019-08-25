@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -24,14 +25,14 @@ namespace Dcomms.CryptographyTester
         public class CryptographyTesterMainWindowVisionChannel: VisionChannel
         {
             public ObservableCollection<LogMessage> LogMessages { get; private set; } = new ObservableCollection<LogMessage>();
-            [DllImport("kernel32.dll")]
-            static extern uint GetCurrentThreadId();
-
-            public override void Emit(string objectName, string sourceCodePlaceId, AttentionLevel level, string message)
+            readonly Stopwatch _sw = Stopwatch.StartNew();
+            readonly DateTime _started = DateTime.Now;
+            string TimeNowStr => (_started + _sw.Elapsed).ToString("HH:mm:ss.fff");
+            public override void Emit(string sourceId, string objectName, AttentionLevel level, string message)
             {
                 var msg = new LogMessage
                 {
-                    Text = $"[{Thread.CurrentThread.ManagedThreadId}] {objectName} {sourceCodePlaceId} {message}"
+                    Text = $"{TimeNowStr} [{Thread.CurrentThread.ManagedThreadId} {sourceId}] {objectName} {message}"
                 };
                 App.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {

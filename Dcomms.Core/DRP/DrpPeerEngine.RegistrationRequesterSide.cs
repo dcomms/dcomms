@@ -174,7 +174,7 @@ namespace Dcomms.DRP
                 connectionToNeighbor.InitializeNeighborTxRxStreams(registerSynPacket, registerSynAckPacket, registerAckPacket);
                 registerAckPacket.RequesterHMAC = connectionToNeighbor.GetSharedHmac(w => registerAckPacket.GetCommonRequesterAndResponderFields(w, false, true));
                 var registerAckPacketData = registerAckPacket.Encode(null);
-                WriteToLog_reg_requesterSide_detail($"sending ack");
+                WriteToLog_reg_requesterSide_detail($"sending ack, waiting for NextHopAck");
                 await SendUdpRequestAsync_Retransmit_WaitForNextHopAck(registerAckPacket.Encode(null), rpEndpoint, registerAckPacket.NhaSeq16);
                 #endregion
 
@@ -202,7 +202,7 @@ namespace Dcomms.DRP
                 if (pingResponsePacketData == null) throw new DrpTimeoutException();
                 pingResponsePacket = PingResponsePacket.DecodeAndVerify(_cryptoLibrary,
                     pingResponsePacketData, pingRequestPacket, connectionToNeighbor,
-                    true, registerSynPacket, registerSynAckPacket);
+                    true);
                 WriteToLog_reg_requesterSide_detail($"verified pingResponse");
                 #endregion
             }

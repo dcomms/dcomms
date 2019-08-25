@@ -11,7 +11,7 @@ namespace Dcomms.DRP
     {
         async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterSynPacket registerSynPacket, IPEndPoint remoteEndpoint) // engine thread
         {
-            WriteToLog_reg_responderSide_detail(">> AcceptRegisterRequestAsync()", $"remoteEndpoint={remoteEndpoint}, NhaSeq16={registerSynPacket.NhaSeq16}, rpEndpoint={registerSynPacket.RpEndpoint}");
+            WriteToLog_reg_responderSide_detail($"accepting registration: remoteEndpoint={remoteEndpoint}, NhaSeq16={registerSynPacket.NhaSeq16}, rpEndpoint={registerSynPacket.RpEndpoint}");
             if (_pendingRegisterRequests.Contains(registerSynPacket.RequesterPublicKey_RequestID))
             {
                 SendNextHopAckResponseToSyn(registerSynPacket, remoteEndpoint);
@@ -62,26 +62,24 @@ namespace Dcomms.DRP
 
                     registerSynAckUdpPayload = registerSynAckPacket.EncodeAtResponder(null);
                     SendPacket(registerSynAckUdpPayload, remoteEndpoint);
-                    WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"sent synAck");
+                    WriteToLog_reg_responderSide_detail($"sent synAck");
 
 
                     var regAckScanner = RegisterAckPacket.GetScanner(null, registerSynPacket.RequesterPublicKey_RequestID, registerSynPacket.Timestamp32S);
-                   // var regAckHeader = ms3.ToArray();
                     RegisterAckPacket registerAckPacket;
                     if (registerSynPacket.AtoRP)
                     { // wait for reg ACK
                         var regAckUdpPayload = await SendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, remoteEndpoint, regAckScanner);
-
-                        WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"received regAck");
+                        WriteToLog_reg_responderSide_detail($"received ack");
                         registerAckPacket = RegisterAckPacket.DecodeAndVerifyAtResponder(regAckUdpPayload, registerSynPacket, registerSynAckPacket, newConnectionToNeighbor); // verifies hmac, decrypts endpoint of A
                     }
                     else
                     {// todo  retransmit until NHA; at same time (!!!)  wait for regACK
-                        throw new NotImplementedException(); // vanilla natural
+                        throw new NotImplementedException(); 
                     }
 
 
-                    WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"verified regAck");
+                    WriteToLog_reg_responderSide_detail($"verified ack");
                     acceptAt.ConnectedPeers.Add(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A
 					
 					// send ping
@@ -95,13 +93,13 @@ namespace Dcomms.DRP
                                     Configuration.InitialPingRequests_RetransmissionTimeoutIncrement
                                 );
 
-                    WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"sent pingRequest");
+                    WriteToLog_reg_responderSide_detail($"sent pingRequest");
                     var pingResponsePacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pingResponse from A
                     if (pingResponsePacketData == null) throw new DrpTimeoutException();
                     var pingResponsePacket = PingResponsePacket.DecodeAndVerify(_cryptoLibrary,
                         pingResponsePacketData, pingRequestPacket, newConnectionToNeighbor,
-                        true, registerSynPacket, registerSynAckPacket);
-                    WriteToLog_reg_responderSide_detail("AcceptRegisterRequestAsync()", $"verified pingResponse");
+                        true);
+                    WriteToLog_reg_responderSide_detail($"verified pingResponse");
                 }
                 catch
                 {
@@ -134,7 +132,7 @@ namespace Dcomms.DRP
             }
             var nextHopAckPacketData = nextHopAckPacket.Encode(registerSynPacket.AtoRP);
             SendPacket(nextHopAckPacketData, remoteEndpoint);
-            WriteToLog_reg_responderSide_detail(null, $"sent nextHopAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(nextHopAckPacketData)} nhaSeq={registerSynPacket.NhaSeq16}");
+            WriteToLog_reg_responderSide_detail($"sent nextHopAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(nextHopAckPacketData)} nhaSeq={registerSynPacket.NhaSeq16}");
         }
 
 		bool ValidateReceivedTimestamp32S(uint receivedTimestamp32S)

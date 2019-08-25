@@ -295,7 +295,7 @@ namespace Dcomms
         }
         public static string ByteArrayToString(byte[] a)
         {
-            return String.Join(";", a.Select(x => x.ToString()));
+            return String.Join("", a.Select(x => x.ToString("X2")));
         }
     }
     public class AverageSingle

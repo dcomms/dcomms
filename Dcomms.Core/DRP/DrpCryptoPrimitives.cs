@@ -153,6 +153,7 @@ namespace Dcomms.DRP
             if (obj2.ReservedFlagsMustBeZero != this.ReservedFlagsMustBeZero) return false;
             return MiscProcedures.EqualByteArrays(obj2.hmacSha256, this.hmacSha256);
         }
+        public override string ToString() => MiscProcedures.ByteArrayToString(hmacSha256);
     }
 
 }

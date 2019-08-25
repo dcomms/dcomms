@@ -21,7 +21,7 @@ namespace Dcomms.DRP
         async Task<NextHopAckPacket> SendUdpRequestAsync_Retransmit_WaitForNextHopAck(byte[] requestPacketData, IPEndPoint remoteEndpoint, NextHopAckSequenceNumber16 nhaSeq16)
         {
             var nhaScanner = NextHopAckPacket.GetScanner(nhaSeq16);
-            WriteToLog_reg_responderSide_detail(null, $"waiting for nextHopAck, scanner: {MiscProcedures.ByteArrayToString(nhaScanner.ResponseFirstBytes)} nhaSeq={nhaSeq16}");
+            WriteToLog_reg_responderSide_detail($"waiting for nextHopAck, scanner: {MiscProcedures.ByteArrayToString(nhaScanner.ResponseFirstBytes)} nhaSeq={nhaSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(remoteEndpoint,
                          nhaScanner, 
@@ -110,8 +110,8 @@ namespace Dcomms.DRP
             {
                 var request = item.Value;
 
-                WriteToLog_receiver_detail($"matching to pending request... remoteEndpoint={remoteEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)} " +
-                    $"request.RemoteEndpoint={request.RemoteEndpoint} request.ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
+            //    WriteToLog_receiver_detail($"matching to pending request... remoteEndpoint={remoteEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)} " +
+            //        $"request.RemoteEndpoint={request.RemoteEndpoint} request.ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
 
                 if (request.RemoteEndpoint.Equals(remoteEndpoint) && request.ResponseScanner.Scan(udpPayloadData))
                 {

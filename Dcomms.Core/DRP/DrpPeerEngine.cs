@@ -37,7 +37,7 @@ namespace Dcomms.DRP
         internal Random InsecureRandom => _insecureRandom;
         Dictionary<RegistrationPublicKey, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationPublicKey, LocalDrpPeer>(); // accessed only by manager thread
        
-        internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue];
+        internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
         DrpPeerEngine _engine;
         ushort _seq16Counter;
         internal NextHopAckSequenceNumber16 GetNewNhaSeq16() => new NextHopAckSequenceNumber16 { Seq16 = _seq16Counter++ };
@@ -78,45 +78,49 @@ namespace Dcomms.DRP
         const string VisionChannelObjectName_reg_rpSide = "reg.rp";
         const string VisionChannelObjectName_engineThread = "engineThread";
         const string VisionChannelObjectName_receiverThread = "receiverThread";
-
+        const string VisionChannelObjectName_ping = "ping";
+        internal void WriteToLog_ping_detail(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_ping) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_ping, AttentionLevel.detail, message);
+        }
         void WriteToLog_receiver_detail(string message)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_receiverThread, null) <= AttentionLevel.detail)
-                Configuration.VisionChannel?.Emit(VisionChannelObjectName_receiverThread, null, AttentionLevel.detail, message);
-
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_receiverThread) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_receiverThread, AttentionLevel.detail, message);
         }
         void HandleExceptionInReceiverThread(Exception exc)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_receiverThread, null) <= AttentionLevel.strongPain)
-                Configuration.VisionChannel?.Emit(VisionChannelObjectName_receiverThread, null, AttentionLevel.strongPain, $"exception: {exc}");
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_receiverThread) <= AttentionLevel.strongPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_receiverThread, AttentionLevel.strongPain, $"exception: {exc}");
         }
         void HandleExceptionInEngineThread(Exception exc)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_engineThread, null) <= AttentionLevel.strongPain)
-                Configuration.VisionChannel?.Emit(VisionChannelObjectName_engineThread, null, AttentionLevel.strongPain, $"exception: {exc}");
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_engineThread) <= AttentionLevel.strongPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_engineThread, AttentionLevel.strongPain, $"exception: {exc}");
         }
         internal void WriteToLog_reg_requesterSide_detail(string message)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_reg_requesterSide, null) <= AttentionLevel.detail)
-                Configuration.VisionChannel?.Emit(VisionChannelObjectName_reg_requesterSide, null, AttentionLevel.detail, message);
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide, AttentionLevel.detail, message);
         }
         void WriteToLog_reg_requesterSide_mediumPain(string message)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_reg_requesterSide, null) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(VisionChannelObjectName_reg_requesterSide, null, AttentionLevel.detail, message);
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide, AttentionLevel.detail, message);
 
         }
         void HandleExceptionWhileConnectingToRP(IPEndPoint rpEndpoint, Exception exc)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_reg_requesterSide, null) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(VisionChannelObjectName_reg_requesterSide, null, AttentionLevel.detail, $"exception while connecting to RP {rpEndpoint}: {exc}");
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide, AttentionLevel.detail, $"exception while connecting to RP {rpEndpoint}: {exc}");
 
             // todo: analyse if it is malformed packet received from attacker's RP
         }
         internal void HandleGeneralException(string message)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(null, null) <= AttentionLevel.strongPain)
-                Configuration.VisionChannel?.Emit(null, null, AttentionLevel.strongPain, $"general exception: {message}");
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, null) <= AttentionLevel.strongPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, null, AttentionLevel.strongPain, $"general exception: {message}");
         }
         internal void OnReceivedUnauthorizedSourceIpPacket(IPEndPoint remoteEndpoint)
         {
@@ -133,13 +137,13 @@ namespace Dcomms.DRP
         }
         void HandleExceptionWhileConnectingToA(IPEndPoint remoteEndpoint, Exception exc)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_reg_responderSide, null) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(VisionChannelObjectName_reg_responderSide, null, AttentionLevel.detail, $"exception while connecting to A {remoteEndpoint}: {exc}");
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_responderSide) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_responderSide, AttentionLevel.detail, $"exception while connecting to A {remoteEndpoint}: {exc}");
         }
-        void WriteToLog_reg_responderSide_detail(string sourceCodePlaceId, string message = null)
+        void WriteToLog_reg_responderSide_detail(string message)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(VisionChannelObjectName_reg_responderSide, sourceCodePlaceId) <= AttentionLevel.detail)
-                Configuration.VisionChannel?.Emit(VisionChannelObjectName_reg_responderSide, sourceCodePlaceId, AttentionLevel.detail, message);
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_responderSide) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_responderSide, AttentionLevel.detail, message);
         }
         #endregion
 
@@ -177,16 +181,16 @@ namespace Dcomms.DRP
                 return;
             }
 
-            var receivedAtUtc = DateTimeNowUtc;
             if (packetType == DrpPacketType.RegisterSynPacket)
             {
                 if (RegisterSynPacket.IsAtoRP(udpPayloadData))
                 {
-                    ProcessRegisterSynAtoRpPacket(remoteEndpoint, udpPayloadData, receivedAtUtc);
+                    ProcessRegisterSynAtoRpPacket(remoteEndpoint, udpPayloadData);
                     return;
                 }
             }
 
+            var receivedAtUtc = DateTimeNowUtc;
             _engineThreadQueue.Enqueue(() =>
             {
                 // process responses to  low-level UDP requests
@@ -339,6 +343,7 @@ namespace Dcomms.DRP
         public double InitialPingRequests_RetransmissionTimeoutIncrement = 1.05;
 
         public VisionChannel VisionChannel;
+        public string VisionChannelSourceId;
     }
     public class DrpPeerRegistrationConfiguration
     {

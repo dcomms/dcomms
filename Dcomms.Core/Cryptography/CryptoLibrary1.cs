@@ -29,7 +29,7 @@ namespace Dcomms.Cryptography
 
 
         readonly SHA256 _sha256 = SHA256.Create();
-        byte[] ICryptoLibrary.GetHashSHA256(byte[] data)
+        public byte[] GetHashSHA256(byte[] data)
         {
             return _sha256.ComputeHash(data);
         }
@@ -101,7 +101,11 @@ namespace Dcomms.Cryptography
             var hmac = new HMac(new Sha256Digest());
             hmac.Init(new KeyParameter(key));
             var result = new byte[hmac.GetMacSize()];
-            hmac.BlockUpdate(data, 0, data.Length);
+
+            var sha256Hash = GetHashSHA256(data);
+            hmac.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+           // hmac.BlockUpdate(data, 0, data.Length);
+
             hmac.DoFinal(result, 0);
             return result;
         }

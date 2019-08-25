@@ -104,7 +104,7 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
-            writer.Write((byte)DrpPacketType.RegisterSynPacket);
+            writer.Write((byte)DrpPacketType.RegisterSynAckPacket);
             byte flags = 0;
             if (connectionToNeighbor == null) flags |= Flag_RPtoA;
             writer.Write(flags);
@@ -121,7 +121,7 @@ namespace Dcomms.DRP.Packets
             }
             else
             {
-                PacketProcedures.EncodeIPEndPointIpv4(writer, RequesterEndpoint);
+                PacketProcedures.EncodeIPEndPoint(writer, RequesterEndpoint);
             }
 
             return ms.ToArray();
