@@ -30,8 +30,12 @@ namespace Dcomms.DRP
     /// </summary>
     public class ConnectionToNeighbor: IDisposable
     {
-        #region tx parameters (parameters to transmit direct (p2p) packets from local peer to neighbor)
+        internal byte[] SharedAuthKeyForHMAC; //  this key is shared secret, known only at requester (A) and neighbor (N), it is used for HMAC
+        RegisterSynPacket _syn;
+        RegisterSynAckPacket _synAck;
+        RegisterAckPacket _ack;
 
+        #region tx parameters (parameters to transmit direct (p2p) packets from local peer to neighbor)
         public P2pConnectionToken32 RemotePeerToken32;
         public IPEndPoint RemoteEndpoint; // IP address + UDP port // where to send packets
         internal byte[] SharedDhSecret;
@@ -43,21 +47,21 @@ namespace Dcomms.DRP
         {
             if ((remoteRegisterSynAck.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
             
-            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, remoteRegisterSynAck.NeighborEcdhePublicKey.ecdh25519PublicKey);
+            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, remoteRegisterSynAck.ResponderEcdhePublicKey.ecdh25519PublicKey);
 
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                localRegisterSyn.GetCommonRequesterAndResponderFields(writer, true);
-                remoteRegisterSynAck.GetCommonRequesterAndResponderFields(writer, false, false);
+                localRegisterSyn.GetCommonRequesterProxierResponderFields(writer, true);
+                remoteRegisterSynAck.GetCommonRequesterProxierResponderFields(writer, false, false);
            
                 var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
                 ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
                 var aesKey = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
 
-                var toNeighborTxParametersDecrypted = new byte[remoteRegisterSynAck.ToNeighborTxParametersEncrypted.Length];
-                _engine.CryptoLibrary.ProcessSingleAesBlock(false, aesKey, iv, remoteRegisterSynAck.ToNeighborTxParametersEncrypted, toNeighborTxParametersDecrypted);
+                var toNeighborTxParametersDecrypted = new byte[remoteRegisterSynAck.ToResponderTxParametersEncrypted.Length];
+                _engine.CryptoLibrary.ProcessSingleAesBlock(false, aesKey, iv, remoteRegisterSynAck.ToResponderTxParametersEncrypted, toNeighborTxParametersDecrypted);
 
                 // parse toNeighborTxParametersDecrypted
                 using (var reader = new BinaryReader(new MemoryStream(toNeighborTxParametersDecrypted)))
@@ -78,16 +82,16 @@ namespace Dcomms.DRP
         /// </summary>
         public byte[] EncryptAtRegisterResponder(RegisterSynPacket remoteRegisterSyn, RegisterSynAckPacket localRegisterSynAck)
         {
-            if (remoteRegisterSyn.AtoRP == false) throw new NotImplementedException();
-            if (remoteRegisterSyn.RpEndpoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new NotImplementedException();
+            if (remoteRegisterSyn.AtoEP == false) throw new NotImplementedException();
+            if (remoteRegisterSyn.EpEndpoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new NotImplementedException();
 
             SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, remoteRegisterSyn.RequesterEcdhePublicKey.ecdh25519PublicKey);
 
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                remoteRegisterSyn.GetCommonRequesterAndResponderFields(writer, true);
-                localRegisterSynAck.GetCommonRequesterAndResponderFields(writer, false, false);
+                remoteRegisterSyn.GetCommonRequesterProxierResponderFields(writer, true);
+                localRegisterSynAck.GetCommonRequesterProxierResponderFields(writer, false, false);
 
                 var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();;
                 ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
@@ -96,7 +100,7 @@ namespace Dcomms.DRP
                            
                 // encode localRxParameters
                 PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
-                PacketProcedures.EncodeIPEndPointIpv4(wRxParameters, remoteRegisterSyn.RpEndpoint); // 6
+                PacketProcedures.EncodeIPEndPointIpv4(wRxParameters, remoteRegisterSyn.EpEndpoint); // 6
                 LocalRxToken32.Encode(wRxParameters); // 4
                 wRxParameters.Write(Magic16_ipv4_responderToRequester);    // 2
                 wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(4));      // 4
@@ -118,9 +122,9 @@ namespace Dcomms.DRP
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                remoteRegisterSyn.GetCommonRequesterAndResponderFields(writer, true);
-                localRegisterSynAck.GetCommonRequesterAndResponderFields(writer, true, true);
-                remoteRegisterAck.GetCommonRequesterAndResponderFields(writer, false, false);
+                remoteRegisterSyn.GetCommonRequesterProxierResponderFields(writer, true);
+                localRegisterSynAck.GetCommonRequesterProxierResponderFields(writer, true, true);
+                remoteRegisterAck.GetCommonRequesterProxierResponderFields(writer, false, false);
             
                 var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
@@ -154,9 +158,9 @@ namespace Dcomms.DRP
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                localRegisterSyn.GetCommonRequesterAndResponderFields(writer, true);
-                remoteRegisterSynAck.GetCommonRequesterAndResponderFields(writer, true, true);
-                localRegisterAckPacket.GetCommonRequesterAndResponderFields(writer, false, false);
+                localRegisterSyn.GetCommonRequesterProxierResponderFields(writer, true);
+                remoteRegisterSynAck.GetCommonRequesterProxierResponderFields(writer, true, true);
+                localRegisterAckPacket.GetCommonRequesterProxierResponderFields(writer, false, false);
            
                 var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
@@ -183,19 +187,24 @@ namespace Dcomms.DRP
 
         //   IAuthenticatedEncryptor Encryptor;
         //   IAuthenticatedDecryptor Decryptor;
-        internal byte[] SharedAuthKeyForHMAC; //  this key is shared secret, known only at requester (A) and neighbor (N), it is used for HMAC
 
         /// <summary>
         /// initializes SharedAuthKeyForHMAC
         /// </summary>
-        public void InitializeNeighborTxRxStreams(RegisterSynPacket registerSynPacket, RegisterSynAckPacket registerSynAckPacket, RegisterAckPacket registerAckPacket)
+        public void InitializeNeighborTxRxStreams(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
         {
+            if (_disposed) throw new ObjectDisposedException(_name);
+
+            _syn = syn;
+            _synAck = synAck;
+            _ack = ack;
+
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                registerSynPacket.GetCommonRequesterAndResponderFields(writer, true);
-                registerSynAckPacket.GetCommonRequesterAndResponderFields(writer, true, true);
-                registerAckPacket.GetCommonRequesterAndResponderFields(writer, false, true);
+                syn.GetCommonRequesterProxierResponderFields(writer, true);
+                synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
+                ack.GetCommonRequesterProxierResponderFields(writer, false, true);
            
                 //  var iv = cryptoLibrary.GetHashSHA256(ms.ToArray()); // todo use for encryption
 
@@ -209,6 +218,7 @@ namespace Dcomms.DRP
         }
         public HMAC GetSharedHmac(byte[] data)
         {
+            if (_disposed) throw new ObjectDisposedException(_name);
             if (SharedAuthKeyForHMAC == null) throw new InvalidOperationException();
             var r = new HMAC
             {
@@ -225,11 +235,8 @@ namespace Dcomms.DRP
             return GetSharedHmac(ms.ToArray());
         }
         #endregion
-
-
-
+               
         public ConnectedDrpPeerInitiatedBy InitiatedBy;
-      //  public P2pStreamParameters TxParameters;
         public RegistrationPublicKey RemotePeerPublicKey;
         public readonly P2pConnectionToken32 LocalRxToken32; // is generated by local peer
         /// <summary>
@@ -261,6 +268,8 @@ namespace Dcomms.DRP
         readonly LocalDrpPeer _localDrpPeer;
         readonly byte[] LocalEcdhe25519PrivateKey;
         public readonly byte[] LocalEcdhe25519PublicKey;
+        bool _disposed;
+        readonly string _name = "ConnectionToNeighbor";
         public ConnectionToNeighbor(DrpPeerEngine engine, LocalDrpPeer localDrpPeer, ConnectedDrpPeerInitiatedBy initiatedBy)
         {
             _localDrpPeer = localDrpPeer;
@@ -283,14 +292,17 @@ namespace Dcomms.DRP
             
             _engine.CryptoLibrary.GenerateEcdh25519Keypair(out LocalEcdhe25519PrivateKey, out LocalEcdhe25519PublicKey);
         }
-        public void Dispose()
+        public void Dispose() // may be called twice
         {
+            if (_disposed) return;
+            _disposed = true;
             _localDrpPeer.ConnectedPeers.Remove(this);
             _engine.ConnectedPeersByToken16[LocalRxToken32.Token16] = null;
         }
 
-        public PingRequestPacket CreatePingRequestPacket(bool requestP2pConnectionSetupSignature)
+        public PingRequestPacket CreatePingRequestPacket(bool requestRegistrationConfirmationSignature)
         {
+            if (_disposed) throw new ObjectDisposedException(_name);
             var r = new PingRequestPacket
             {
                 SenderToken32 = RemotePeerToken32,
@@ -298,14 +310,15 @@ namespace Dcomms.DRP
                 MaxRxRegisterRateRps = 10, //todo get from some local capabilities   like number of neighbors
                 PingRequestId32 = (uint)_rngForPingRequestId32.Next(),
             };
-            if (requestP2pConnectionSetupSignature)
-                r.Flags |= PingRequestPacket.Flags_P2pConnectionSetupSignatureRequested;
+            if (requestRegistrationConfirmationSignature)
+                r.Flags |= PingRequestPacket.Flags_RegistrationConfirmationSignatureRequested;
             r.SenderHMAC = GetSharedHmac(r.GetSignedFieldsForSenderHMAC);
             return r;
         }
         public void OnTimer100ms(DateTime timeNowUTC, out bool needToRestartLoop) // engine thread
         {
             needToRestartLoop = false;
+            if (_disposed) return;
             try
             {
                 // remove timed out connected peers (neighbors)
@@ -360,9 +373,9 @@ namespace Dcomms.DRP
             _engine.WriteToLog_ping_detail($"measured RTT: {requestResponseDelay}");
             _latestRequestResponseDelay = requestResponseDelay;
         }
-
         internal void OnReceivedPingResponsePacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc) // engine thread
         {
+            if (_disposed) return;
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
             {
                 _engine.OnReceivedUnauthorizedSourceIpPacket(remoteEndpoint);
@@ -387,9 +400,9 @@ namespace Dcomms.DRP
                 this.Dispose();
             }
         }
-
         internal void OnReceivedPingRequestPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData) // engine thread
         {
+            if (_disposed) return;
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
             {
                 _engine.OnReceivedUnauthorizedSourceIpPacket(remoteEndpoint);
@@ -406,9 +419,8 @@ namespace Dcomms.DRP
                 };
                 if ((pingRequestPacket.Flags & PingRequestPacket.Flags_P2pConnectionSetupSignatureRequested) != 0)
                 {
-                    pingResponsePacket.P2pConnectionSetupSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
-                        w => PingResponsePacket.GetSignedFieldsForP2pConnectionSetupSignature(w, pingResponsePacket, this), 
-                        _localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);                
+                    pingResponsePacket.ResponderRegistrationConfirmationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
+                        GetResponderRegistrationConfirmationSignatureFields, _localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);                
                 }
                 pingResponsePacket.SenderHMAC = GetSharedHmac(pingResponsePacket.GetSignedFieldsForSenderHMAC);
               //  _engine.WriteToLog_ping_detail($"sending ping response with senderHMAC={pingResponsePacket.SenderHMAC}");
@@ -420,9 +432,15 @@ namespace Dcomms.DRP
                 this.Dispose();
             }
         }
-       
+        internal void GetResponderRegistrationConfirmationSignatureFields(BinaryWriter w)
+        {
+            RegisterConfirmationPacket.GetResponderRegistrationConfirmationSignatureFields(w, _syn, _synAck, _ack);
+        }
+        internal void GetRequesterRegistrationConfirmationSignatureFields(BinaryWriter w, RegistrationSignature responderRegistrationConfirmationSignature)
+        {
+            RegisterConfirmationPacket.GetRequesterRegistrationConfirmationSignatureFields(w, responderRegistrationConfirmationSignature, _syn, _synAck, _ack);
+        }
     }
-
 
     /// <summary>
     /// is generated by remote peer; token of local peer at remote peer;
@@ -449,9 +467,7 @@ namespace Dcomms.DRP
             return ((P2pConnectionToken32)obj).Token32 == this.Token32;
         }
     }
-
-
-
+       
     class ConnectedDrpPeerRating
     {
         IirFilterAverage PingRttMs;

@@ -11,16 +11,12 @@ namespace Dcomms.DRP
     {
         async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterSynPacket registerSynPacket, IPEndPoint remoteEndpoint) // engine thread
         {
-            WriteToLog_reg_responderSide_detail($"accepting registration: remoteEndpoint={remoteEndpoint}, NhaSeq16={registerSynPacket.NhaSeq16}, rpEndpoint={registerSynPacket.RpEndpoint}");
-            if (_pendingRegisterRequests.Contains(registerSynPacket.RequesterPublicKey_RequestID))
-            {
-                SendNextHopAckResponseToSyn(registerSynPacket, remoteEndpoint);
-                return; // it is a duplicate reg SYN request: NextHopAck got lost
-            }
+            WriteToLog_reg_responderSide_detail($"accepting registration: remoteEndpoint={remoteEndpoint}, NhaSeq16={registerSynPacket.NhaSeq16}, rpEndpoint={registerSynPacket.EpEndpoint}");
+           
             _pendingRegisterRequests.Add(registerSynPacket.RequesterPublicKey_RequestID);
             try
             {               
-                if (registerSynPacket.AtoRP == false)
+                if (registerSynPacket.AtoEP == false)
                 {
                     //todo check hmac of proxy sender
                     throw new NotImplementedException();
@@ -29,7 +25,7 @@ namespace Dcomms.DRP
                 // check signature of requester (A)
                 if (!ValidateReceivedTimestamp32S(registerSynPacket.Timestamp32S) ||
                         !registerSynPacket.RequesterSignature.Verify(_cryptoLibrary,
-                            w => registerSynPacket.GetCommonRequesterAndResponderFields(w, false),
+                            w => registerSynPacket.GetCommonRequesterProxierResponderFields(w, false),
                             registerSynPacket.RequesterPublicKey_RequestID
                         )
                     )
@@ -39,7 +35,7 @@ namespace Dcomms.DRP
 
                 var newConnectionToNeighbor = new ConnectionToNeighbor(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer)
                 {
-                    LocalEndpoint = registerSynPacket.RpEndpoint,
+                    LocalEndpoint = registerSynPacket.EpEndpoint,
 					RemotePeerPublicKey = registerSynPacket.RequesterPublicKey_RequestID					
                 };
                 byte[] registerSynAckUdpPayload;
@@ -49,16 +45,16 @@ namespace Dcomms.DRP
                     {                        
                         RequesterPublicKey_RequestID = registerSynPacket.RequesterPublicKey_RequestID,
                         RegisterSynTimestamp32S = registerSynPacket.Timestamp32S,
-                        NeighborEcdhePublicKey = new EcdhPublicKey { ecdh25519PublicKey = newConnectionToNeighbor.LocalEcdhe25519PublicKey },
-                        NeighborPublicKey = acceptAt.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
-                        NeighborStatusCode = DrpResponderStatusCode.confirmed,
+                        ResponderEcdhePublicKey = new EcdhPublicKey { ecdh25519PublicKey = newConnectionToNeighbor.LocalEcdhe25519PublicKey },
+                        ResponderPublicKey = acceptAt.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
+                        ResponderStatusCode = DrpResponderStatusCode.confirmed,
                         NhaSeq16 = GetNewNhaSeq16(),
                     };
-                    registerSynAckPacket.ToNeighborTxParametersEncrypted = newConnectionToNeighbor.EncryptAtRegisterResponder(registerSynPacket, registerSynAckPacket);
-                    registerSynAckPacket.NeighborSignature = RegistrationSignature.Sign(_cryptoLibrary,
-                        w2 => registerSynAckPacket.GetCommonRequesterAndResponderFields(w2, false, true),
+                    registerSynAckPacket.ToResponderTxParametersEncrypted = newConnectionToNeighbor.EncryptAtRegisterResponder(registerSynPacket, registerSynAckPacket);
+                    registerSynAckPacket.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
+                        w2 => registerSynAckPacket.GetCommonRequesterProxierResponderFields(w2, false, true),
                         acceptAt.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
-                    if (registerSynPacket.AtoRP) registerSynAckPacket.RequesterEndpoint = remoteEndpoint;
+                    if (registerSynPacket.AtoEP) registerSynAckPacket.RequesterEndpoint = remoteEndpoint;
 
                     registerSynAckUdpPayload = registerSynAckPacket.EncodeAtResponder(null);
                     SendPacket(registerSynAckUdpPayload, remoteEndpoint);
@@ -67,8 +63,8 @@ namespace Dcomms.DRP
 
                     var regAckScanner = RegisterAckPacket.GetScanner(null, registerSynPacket.RequesterPublicKey_RequestID, registerSynPacket.Timestamp32S);
                     RegisterAckPacket registerAckPacket;
-                    if (registerSynPacket.AtoRP)
-                    { // wait for reg ACK
+                    if (registerSynPacket.AtoEP)
+                    { // wait for reg ACK, retransmitting SynAck
                         var regAckUdpPayload = await SendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, remoteEndpoint, regAckScanner);
                         WriteToLog_reg_responderSide_detail($"received ack");
                         registerAckPacket = RegisterAckPacket.DecodeAndVerifyAtResponder(regAckUdpPayload, registerSynPacket, registerSynAckPacket, newConnectionToNeighbor); // verifies hmac, decrypts endpoint of A
@@ -80,9 +76,12 @@ namespace Dcomms.DRP
 
 
                     WriteToLog_reg_responderSide_detail($"verified ack");
-                    acceptAt.ConnectedPeers.Add(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A
-					
-					// send ping
+                    acceptAt.ConnectedPeers.Add(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A                    
+                    SendNextHopAckResponseToAck(registerAckPacket, remoteEndpoint); // send NHA to ACK
+
+                    _ = WaitForRegistrationConfirmationRequestAsync(remoteEndpoint, registerSynPacket, newConnectionToNeighbor);
+
+                    #region send pingRequest, verify pingResponse
                     var pingRequestPacket = newConnectionToNeighbor.CreatePingRequestPacket(true);
                     
                     var pendingPingRequest = new PendingLowLevelUdpRequest(newConnectionToNeighbor.RemoteEndpoint,
@@ -100,6 +99,8 @@ namespace Dcomms.DRP
                         pingResponsePacketData, pingRequestPacket, newConnectionToNeighbor,
                         true);
                     WriteToLog_reg_responderSide_detail($"verified pingResponse");
+                    #endregion
+
                 }
                 catch
                 {
@@ -116,6 +117,23 @@ namespace Dcomms.DRP
                 _pendingRegisterRequests.Remove(registerSynPacket.RequesterPublicKey_RequestID);
             }
         }
+        async Task WaitForRegistrationConfirmationRequestAsync(IPEndPoint remoteEndpoint, RegisterSynPacket syn, ConnectionToNeighbor newConnectionToNeighbor)
+        {
+            try
+            {
+                var regCfmScanner = RegisterConfirmationPacket.GetScanner(syn.RequesterPublicKey_RequestID, syn.Timestamp32S);              
+                var regCfmUdpPayload = await SendUdpRequestAsync_Retransmit_WaitForResponse(null, remoteEndpoint, regCfmScanner);
+                WriteToLog_reg_responderSide_detail($"received CFM");
+                var registerCfmPacket = RegisterConfirmationPacket.DecodeAndVerifyAtResponder(regCfmUdpPayload, newConnectionToNeighbor);
+
+                SendNextHopAckResponseToCfm(registerCfmPacket, remoteEndpoint);
+            }
+			catch (Exception exc)
+            {
+                newConnectionToNeighbor.Dispose();
+                HandleExceptionWhileConnectingToA(remoteEndpoint, exc);
+            }
+        }
 
         void SendNextHopAckResponseToSyn(RegisterSynPacket registerSynPacket, IPEndPoint remoteEndpoint)
         {
@@ -124,18 +142,55 @@ namespace Dcomms.DRP
                 NhaSeq16 = registerSynPacket.NhaSeq16,
                 StatusCode = NextHopResponseCode.accepted
             };
-            if (registerSynPacket.AtoRP == false)
+            if (registerSynPacket.AtoEP == false)
             {
                 //  nextHopAckPacket.SenderToken32 = x;
                 //  nextHopAckPacket.SenderHMAC = x;
                 throw new NotImplementedException();
             }
-            var nextHopAckPacketData = nextHopAckPacket.Encode(registerSynPacket.AtoRP);
-            SendPacket(nextHopAckPacketData, remoteEndpoint);
-            WriteToLog_reg_responderSide_detail($"sent nextHopAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(nextHopAckPacketData)} nhaSeq={registerSynPacket.NhaSeq16}");
+            var nextHopAckPacketData = nextHopAckPacket.Encode(registerSynPacket.AtoEP);
+            
+            RespondToRequestAndRetransmissions(registerSynPacket.OriginalUdpPayloadData, nextHopAckPacketData, remoteEndpoint);
+
+         //   WriteToLog_reg_responderSide_detail($"sent nextHopAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(nextHopAckPacketData)} nhaSeq={registerSynPacket.NhaSeq16}");
         }
 
-		bool ValidateReceivedTimestamp32S(uint receivedTimestamp32S)
+        void SendNextHopAckResponseToAck(RegisterAckPacket registerAckPacket, IPEndPoint remoteEndpoint)
+        {
+            var nextHopAckPacket = new NextHopAckPacket
+            {
+                NhaSeq16 = registerAckPacket.NhaSeq16,
+                StatusCode = NextHopResponseCode.accepted
+            };
+            if (registerAckPacket.AtoEP == false)
+            {
+                //  nextHopAckPacket.SenderToken32 = x;
+                //  nextHopAckPacket.SenderHMAC = x;
+                throw new NotImplementedException();
+            }
+            var nextHopAckPacketData = nextHopAckPacket.Encode(registerAckPacket.AtoEP);
+
+            RespondToRequestAndRetransmissions(registerAckPacket.OriginalUdpPayloadData, nextHopAckPacketData, remoteEndpoint);
+        }
+
+        void SendNextHopAckResponseToCfm(RegisterConfirmationPacket registerCfmPacket, IPEndPoint remoteEndpoint)
+        {
+            var nextHopAckPacket = new NextHopAckPacket
+            {
+                NhaSeq16 = registerCfmPacket.NhaSeq16,
+                StatusCode = NextHopResponseCode.accepted
+            };
+            if (registerCfmPacket.AtoEP == false)
+            {
+                //  nextHopAckPacket.SenderToken32 = x;
+                //  nextHopAckPacket.SenderHMAC = x;
+                throw new NotImplementedException();
+            }
+            var nextHopAckPacketData = nextHopAckPacket.Encode(registerCfmPacket.AtoEP);
+            RespondToRequestAndRetransmissions(registerCfmPacket.OriginalUdpPayloadData, nextHopAckPacketData, remoteEndpoint);
+        }
+
+        bool ValidateReceivedTimestamp32S(uint receivedTimestamp32S)
         {
             var differenceS = Math.Abs((int)receivedTimestamp32S - Timestamp32S);
             return differenceS < Configuration.Timestamp32S_MaxDifferenceToAccept;

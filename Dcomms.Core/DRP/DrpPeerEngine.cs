@@ -113,9 +113,9 @@ namespace Dcomms.DRP
         void HandleExceptionWhileConnectingToRP(IPEndPoint rpEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide, AttentionLevel.detail, $"exception while connecting to RP {rpEndpoint}: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide, AttentionLevel.detail, $"exception while connecting to EP {rpEndpoint}: {exc}");
 
-            // todo: analyse if it is malformed packet received from attacker's RP
+            // todo: analyse if it is malformed packet received from attacker's EP
         }
         internal void HandleGeneralException(string message)
         {
@@ -193,9 +193,8 @@ namespace Dcomms.DRP
             var receivedAtUtc = DateTimeNowUtc;
             _engineThreadQueue.Enqueue(() =>
             {
-                // process responses to  low-level UDP requests
-                if (PendingUdpRequests_ProcessPacket(remoteEndpoint, udpPayloadData, receivedAtUtc))
-                    return;
+                if (RespondersToRetransmittedRequests_ProcessPacket(remoteEndpoint, udpPayloadData)) return;
+                if (PendingUdpRequests_ProcessPacket(remoteEndpoint, udpPayloadData, receivedAtUtc)) return;
 
                 switch (packetType)
                 {
@@ -234,7 +233,6 @@ namespace Dcomms.DRP
                 //   process ping request/response: reply; measure RTT
 
             });
-
         }
         #endregion
 
@@ -284,6 +282,9 @@ namespace Dcomms.DRP
 
             // retransmit lowlevel udp requests
             PendingUdpRequests_OnTimer100ms(timeNowUTC);
+
+            // remove expired responders
+            RespondersToRetransmittedRequests_OnTimer100ms(timeNowUTC);
         }
         #endregion
 
@@ -313,8 +314,6 @@ namespace Dcomms.DRP
         }
     }
 
-
-
     public class DrpPeerEngineConfiguration
     {
         public ushort? LocalPort;
@@ -341,13 +340,14 @@ namespace Dcomms.DRP
         public double InitialPingRequests_ExpirationTimeoutS = 5;
         public double InitialPingRequests_InitialRetransmissionTimeoutS = 0.1;
         public double InitialPingRequests_RetransmissionTimeoutIncrement = 1.05;
+        public TimeSpan ResponderToRetransmittedRequestsTimeout = TimeSpan.FromSeconds(30);
 
         public VisionChannel VisionChannel;
         public string VisionChannelSourceId;
     }
     public class DrpPeerRegistrationConfiguration
     {
-        public IPEndPoint[] RendezvousPeerEndpoints; // in case when local peer IP = rendezvous peer IP, it is skipped
+        public IPEndPoint[] EntryPeerEndpoints; // in case when local peer IP = entry peer IP, it is skipped
         public RegistrationPublicKey LocalPeerRegistrationPublicKey;
         public RegistrationPrivateKey LocalPeerRegistrationPrivateKey;
         public int? NumberOfNeighborsToKeep;

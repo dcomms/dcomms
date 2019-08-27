@@ -24,7 +24,7 @@ namespace Dcomms.DRP
             {
                 LocalPort = RpLocalPort,
                 VisionChannel = visionChannel,
-                VisionChannelSourceId = "RP"
+                VisionChannelSourceId = "EP"
             });
             var rpConfig = new DrpPeerRegistrationConfiguration
             {
@@ -42,7 +42,7 @@ namespace Dcomms.DRP
             });   
             var aConfig = new DrpPeerRegistrationConfiguration
             {
-                RendezvousPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, RpLocalPort) },
+                EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, RpLocalPort) },
                 NumberOfNeighborsToKeep = 10
             };
             aConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _a.CryptoLibrary.GeneratePrivateKeyEd25519() };

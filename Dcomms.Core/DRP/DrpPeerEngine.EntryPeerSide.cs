@@ -169,7 +169,7 @@ namespace Dcomms.DRP
                 RouteRegistrationRequest(registerSynPacket, out var proxyTo, out var acceptAt); // routing
 
                 if (acceptAt != null)
-                {   // accept the registration request here, at RP
+                {   // accept the registration request here, at EP
                     _ = AcceptRegisterRequestAsync(acceptAt, registerSynPacket, remoteEndpoint);
                 }
                 else if (proxyTo != null)

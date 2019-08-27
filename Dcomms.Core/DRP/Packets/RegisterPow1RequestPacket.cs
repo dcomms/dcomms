@@ -7,8 +7,8 @@ namespace Dcomms.DRP.Packets
 {
     /// <summary>
     /// A = requester
-    /// RP = rendezvous server, proxy peer
-    /// is sent from A to RP when A connects to the P2P network
+    /// EP = entry server, proxy peer
+    /// is sent from A to EP when A connects to the P2P network
     /// protects system against IP spoofing
     /// </summary>
     class RegisterPow1RequestPacket
@@ -23,7 +23,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public byte[] ProofOfWork1;
         /// <summary>
-        /// must be copied by RP into RegisterPow1ResponsePacket
+        /// must be copied by EP into RegisterPow1ResponsePacket
         /// </summary>
         public uint Pow1RequestId;
 

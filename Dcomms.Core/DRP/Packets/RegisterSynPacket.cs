@@ -8,21 +8,21 @@ namespace Dcomms.DRP.Packets
 {
 
     /// <summary>
-    /// REGISTER SYN request, is sent from A to RP
-    /// is sent from RP to M, from M to N
+    /// REGISTER SYN request, is sent from A to EP
+    /// is sent from EP to M, from M to N
     /// is sent over established P2P UDP channels that are kept alive by pings.  
     /// proxy sender peer is authenticated by source IP:UDP port and SenderHMAC
     /// </summary>
     public class RegisterSynPacket
     {
         /// <summary>
-        /// 1: if packet is transmitted from registering A to RP, 
+        /// 1: if packet is transmitted from registering A to EP, 
         /// 0: if packet is transmitted between neighbor peers (from sender to receiver). SenderHMAC is sent 
         /// </summary>
-        static byte Flag_AtoRP = 0x01;
+        static byte Flag_AtoEP = 0x01;
 
-        public bool AtoRP => SenderToken32 == null;
-        public P2pConnectionToken32 SenderToken32; // is not transmitted in A->RP request
+        public bool AtoEP => SenderToken32 == null;
+        public P2pConnectionToken32 SenderToken32; // is not transmitted in A->EP request
 
         public RegistrationPublicKey RequesterPublicKey_RequestID; // used to verify signature // used also as request ID
         public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new P2P connection
@@ -48,26 +48,26 @@ namespace Dcomms.DRP.Packets
 
 
         /// <summary>
-        /// is transmitted only from A to RP
+        /// is transmitted only from A to EP
         /// sha512(RequesterPublicKey_RequestID|ProofOrWork2Request|ProofOfWork2) has byte[6]=7    
         /// 64 bytes
         /// </summary>
         public byte[] ProofOfWork2;
         /// <summary>
-        /// RP knows size of network.  he knows distance RP-A.  he knows "average number of hops" for this distance
-        /// RP limits this field by "average number of hops"
+        /// EP knows size of network.  he knows distance EP-A.  he knows "average number of hops" for this distance
+        /// EP limits this field by "average number of hops"
         /// is decremented by peers
         /// </summary>
         public byte NumberOfHopsRemaining;
 
         /// <summary>
-        /// signature of latest proxy sender: RP,M,X
-        /// is NULL for A->RP packet
+        /// signature of latest proxy sender: EP,M,X
+        /// is NULL for A->EP packet
         /// uses common secret of neighbors within p2p connection
         /// </summary>
         public HMAC SenderHMAC;
         public NextHopAckSequenceNumber16 NhaSeq16;
-        public IPEndPoint RpEndpoint; // is transmitted only in A->RP request, unencrypted  // makes sense when RP is behind NAT (e.g amazon) and does not know its public IP
+        public IPEndPoint EpEndpoint; // is transmitted only in A->EP request, unencrypted  // makes sense when EP is behind NAT (e.g amazon) and does not know its public IP
 
         public RegisterSynPacket()
         {
@@ -79,12 +79,12 @@ namespace Dcomms.DRP.Packets
 
             writer.Write((byte)DrpPacketType.RegisterSynPacket);
             byte flags = 0;
-            if (connectionToNeighbor == null) flags |= Flag_AtoRP;
+            if (connectionToNeighbor == null) flags |= Flag_AtoEP;
             writer.Write(flags);
             if (connectionToNeighbor != null)
                 connectionToNeighbor.RemotePeerToken32.Encode(writer);
 
-            GetCommonRequesterAndResponderFields(writer, true);
+            GetCommonRequesterProxierResponderFields(writer, true);
 
             if (connectionToNeighbor == null)
             {
@@ -99,14 +99,14 @@ namespace Dcomms.DRP.Packets
             }
             NhaSeq16.Encode(writer);
             if (connectionToNeighbor == null)
-                PacketProcedures.EncodeIPEndPoint(writer, RpEndpoint);
+                PacketProcedures.EncodeIPEndPoint(writer, EpEndpoint);
 
             return ms.ToArray();
         }
         /// <summary>
         /// used for signature at requester; as source AEAD hash
         /// </summary>
-        public void GetCommonRequesterAndResponderFields(BinaryWriter writer, bool includeRequesterSignature)
+        public void GetCommonRequesterProxierResponderFields(BinaryWriter writer, bool includeRequesterSignature)
         {
             RequesterPublicKey_RequestID.Encode(writer);
             RequesterEcdhePublicKey.Encode(writer);
@@ -114,13 +114,14 @@ namespace Dcomms.DRP.Packets
             writer.Write(MinimalDistanceToNeighbor);
             if (includeRequesterSignature) RequesterSignature.Encode(writer);
         }
-
+        public readonly byte[] OriginalUdpPayloadData;
         public RegisterSynPacket(byte[] udpPayloadData)
         {
+            OriginalUdpPayloadData = udpPayloadData;
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
 
             var flags = reader.ReadByte();
-            if ((flags & Flag_AtoRP) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
+            if ((flags & Flag_AtoEP) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
 
             RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
@@ -128,16 +129,16 @@ namespace Dcomms.DRP.Packets
             MinimalDistanceToNeighbor = reader.ReadUInt32();
             RequesterSignature = RegistrationSignature.Decode(reader);
             
-            if ((flags & Flag_AtoRP) != 0) ProofOfWork2 = reader.ReadBytes(64);
+            if ((flags & Flag_AtoEP) != 0) ProofOfWork2 = reader.ReadBytes(64);
             NumberOfHopsRemaining = reader.ReadByte();
-            if ((flags & Flag_AtoRP) == 0) SenderHMAC = HMAC.Decode(reader);
+            if ((flags & Flag_AtoEP) == 0) SenderHMAC = HMAC.Decode(reader);
             NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
-            if ((flags & Flag_AtoRP) != 0) RpEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+            if ((flags & Flag_AtoEP) != 0) EpEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
         }
         public static bool IsAtoRP(byte[] udpPayloadData)
         {
             var flags = udpPayloadData[1];
-           return (flags & Flag_AtoRP) != 0;
+           return (flags & Flag_AtoEP) != 0;
         }
     }
 }

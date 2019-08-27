@@ -6,7 +6,7 @@ using System.Text;
 namespace Dcomms.DRP.Packets
 {
     /// <summary>
-    /// verifies UDP/IP path from RP to A, check UDP.sourceIP
+    /// verifies UDP/IP path from EP to A, check UDP.sourceIP
     /// can be used for UDP reflection attacks
     /// </summary>
     class RegisterPow1ResponsePacket

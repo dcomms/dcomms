@@ -10,16 +10,16 @@ namespace Dcomms.DRP.Packets
 
     /// <summary>
     /// response to REGISTER SYN request, 
-    /// is sent from neighbor/responder/N to M, from M to RP, from RP to requester/A
+    /// is sent from neighbor/responder/N to M, from M to EP, from EP to requester/A
     /// ответ от N к A идет по тому же пути, узлы помнят обратный путь по RequestId
     /// </summary>
     public class RegisterSynAckPacket
     {
-        public static byte Flag_RPtoA = 0x01; // set if packet is transmitted from RP to registering A, otherwise it is zero
+        public static byte Flag_EPtoA = 0x01; // set if packet is transmitted from EP to registering A, otherwise it is zero
         public static byte Flag_ipv6 = 0x02;  // set if responder is accessible via ipv6 address. default (0) means ipv4
         public byte Flags;
 
-        P2pConnectionToken32 SenderToken32; // is not sent from RP to A
+        P2pConnectionToken32 SenderToken32; // is not sent from EP to A
         public RegistrationPublicKey RequesterPublicKey_RequestID; // public key of requester (A)
         /// <summary>
         /// against flood by this packet in future, without N (against replay attack)
@@ -27,25 +27,33 @@ namespace Dcomms.DRP.Packets
         /// seconds since 2019-01-01 UTC, 32 bits are enough for 136 years
         /// </summary>
         public uint RegisterSynTimestamp32S;
-        public DrpResponderStatusCode NeighborStatusCode;
-        public EcdhPublicKey NeighborEcdhePublicKey;
+        public DrpResponderStatusCode ResponderStatusCode;
+        public EcdhPublicKey ResponderEcdhePublicKey;
         /// <summary>
-        /// not null only for (status=connected) (N->X-M-RP-A)
+        /// not null only for (status=connected) (N->X-M-EP-A)
         /// IP address of N with salt, encrypted for A
         /// 16 bytes for ipv4 address of neighbor, 32 bytes for ipv6
         /// </summary>
-        public byte[] ToNeighborTxParametersEncrypted;
+        public byte[] ToResponderTxParametersEncrypted;
 
 
-        public RegistrationPublicKey NeighborPublicKey; // public key of responder (neighbor, N)
+        public RegistrationPublicKey ResponderPublicKey; // public key of responder (neighbor, N)
         /// <summary>
-        /// signs fields: {NeighborStatusCode,NeighborEcdhePublicKey,ToNeighborTxParametersEncrypted,RequesterPublicKey_RequestID,RegisterSynTimestamp32S,NeighborPublicKey }
+        /// signs fields:
+        /// {
+        ///   RequesterPublicKey_RequestID,
+        ///   RegisterSynTimestamp32S,
+        ///   ResponderStatusCode,
+        ///   ResponderEcdhePublicKey,
+        ///   ToResponderTxParametersEncrypted,
+        ///   ResponderPublicKey 
+        /// }
         /// </summary>
-        public RegistrationSignature NeighborSignature; 
+        public RegistrationSignature ResponderSignature; 
 
-        HMAC SenderHMAC; // is not sent from RP to A
-        public IPEndPoint RequesterEndpoint; // is sent only from RP to A, to provide public IP:port of A, for UDP hole punching  // not signed, not encrypted
-        public NextHopAckSequenceNumber16 NhaSeq16; // is not sent from RP to A // goes into NHA packet
+        HMAC SenderHMAC; // is not sent from EP to A
+        public IPEndPoint RequesterEndpoint; // is sent only from EP to A, to provide public IP:port of A, for UDP hole punching  // not signed, not encrypted
+        public NextHopAckSequenceNumber16 NhaSeq16; // is not sent from EP to A // goes into NHA packet
 
 
         /// <summary>
@@ -57,22 +65,22 @@ namespace Dcomms.DRP.Packets
             var reader = PacketProcedures.CreateBinaryReader(registerSynAckPacketData, 1);
             var registerSynAck = new RegisterSynAckPacket();
             registerSynAck.Flags = reader.ReadByte();
-            if ((registerSynAck.Flags & Flag_RPtoA) == 0) registerSynAck.SenderToken32 = P2pConnectionToken32.Decode(reader);           
+            if ((registerSynAck.Flags & Flag_EPtoA) == 0) registerSynAck.SenderToken32 = P2pConnectionToken32.Decode(reader);           
             if ((registerSynAck.Flags & Flag_ipv6) != 0) throw new InvalidOperationException();
             registerSynAck.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             registerSynAck.RegisterSynTimestamp32S = reader.ReadUInt32();
-            registerSynAck.NeighborStatusCode = (DrpResponderStatusCode)reader.ReadByte();
-            registerSynAck.NeighborEcdhePublicKey = EcdhPublicKey.Decode(reader);
-            registerSynAck.ToNeighborTxParametersEncrypted = reader.ReadBytes(16);
-            registerSynAck.NeighborPublicKey = RegistrationPublicKey.Decode(reader);
-            registerSynAck.NeighborSignature = RegistrationSignature.DecodeAndVerify(reader, connectionToNeighbor.Engine.CryptoLibrary, w => registerSynAck.GetCommonRequesterAndResponderFields(w, false, true), registerSynAck.NeighborPublicKey);
+            registerSynAck.ResponderStatusCode = (DrpResponderStatusCode)reader.ReadByte();
+            registerSynAck.ResponderEcdhePublicKey = EcdhPublicKey.Decode(reader);
+            registerSynAck.ToResponderTxParametersEncrypted = reader.ReadBytes(16);
+            registerSynAck.ResponderPublicKey = RegistrationPublicKey.Decode(reader);
+            registerSynAck.ResponderSignature = RegistrationSignature.DecodeAndVerify(reader, connectionToNeighbor.Engine.CryptoLibrary, w => registerSynAck.GetCommonRequesterProxierResponderFields(w, false, true), registerSynAck.ResponderPublicKey);
             registerSynAck.AssertMatchToRegisterSyn(localRegisterSyn);
 
             connectionToNeighbor.DecryptAtRegisterRequester(localRegisterSyn, registerSynAck);
-            if ((registerSynAck.Flags & Flag_RPtoA) != 0) registerSynAck.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
-            if ((registerSynAck.Flags & Flag_RPtoA) == 0) registerSynAck.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
+            if ((registerSynAck.Flags & Flag_EPtoA) != 0) registerSynAck.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+            if ((registerSynAck.Flags & Flag_EPtoA) == 0) registerSynAck.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
 
-            // if ((flags & Flag_RPtoA) == 0)
+            // if ((flags & Flag_EPtoA) == 0)
             //     SenderHMAC = HMAC.Decode(reader);
             return registerSynAck;
         }
@@ -86,17 +94,17 @@ namespace Dcomms.DRP.Packets
 
 
         /// <summary>
-        /// fields for neighbor's signature and for AEAD hash
+        /// fields for responder signature and for AEAD hash
         /// </summary>
-        public void GetCommonRequesterAndResponderFields(BinaryWriter writer, bool includeSignature, bool includeTxParameters)
+        public void GetCommonRequesterProxierResponderFields(BinaryWriter writer, bool includeSignature, bool includeTxParameters)
         {
             RequesterPublicKey_RequestID.Encode(writer);
             writer.Write(RegisterSynTimestamp32S);
-            writer.Write((byte)NeighborStatusCode);
-            NeighborEcdhePublicKey.Encode(writer);
-            if (includeTxParameters) writer.Write(ToNeighborTxParametersEncrypted);
-            NeighborPublicKey.Encode(writer);
-            if (includeSignature) NeighborSignature.Encode(writer);
+            writer.Write((byte)ResponderStatusCode);
+            ResponderEcdhePublicKey.Encode(writer);
+            if (includeTxParameters) writer.Write(ToResponderTxParametersEncrypted);
+            ResponderPublicKey.Encode(writer);
+            if (includeSignature) ResponderSignature.Encode(writer);
         }
 
         /// <param name="connectionToNeighbor">is not null for packets between registered peers</param>
@@ -106,12 +114,12 @@ namespace Dcomms.DRP.Packets
 
             writer.Write((byte)DrpPacketType.RegisterSynAckPacket);
             byte flags = 0;
-            if (connectionToNeighbor == null) flags |= Flag_RPtoA;
+            if (connectionToNeighbor == null) flags |= Flag_EPtoA;
             writer.Write(flags);
             if (connectionToNeighbor != null)
                 connectionToNeighbor.RemotePeerToken32.Encode(writer);
 
-            GetCommonRequesterAndResponderFields(writer, true, true);
+            GetCommonRequesterProxierResponderFields(writer, true, true);
 
             if (connectionToNeighbor != null)
             {

@@ -8,19 +8,19 @@ namespace Dcomms.DRP.Packets
 
 
     /// <summary>
-    /// is sent from next hop to previous hop, when the next hop receives some packet from neighbor, or from registering peer (RP->A).
+    /// is sent from next hop to previous hop, when the next hop receives some packet from neighbor, or from registering peer (EP->A).
     /// stops UDP retransmission of a request packet
     /// </summary>
     class NextHopAckPacket
     {
         public NextHopAckSequenceNumber16 NhaSeq16;
-        public const byte Flag_RPtoA = 0x01; // set if packet is transmitted from RP to A, is zero otherwise
+        public const byte Flag_EPtoA = 0x01; // set if packet is transmitted from EP to A, is zero otherwise
         byte Flags;
-        public P2pConnectionToken32 SenderToken32; // is not transmitted in RP->A packet
+        public P2pConnectionToken32 SenderToken32; // is not transmitted in EP->A packet
         public NextHopResponseCode StatusCode;
         /// <summary>
         /// signature of sender neighbor peer
-        /// is NULL for RP->A packet
+        /// is NULL for EP->A packet
         /// uses common secret of neighbors within P2P connection
         /// </summary>
         public HMAC SenderHMAC;
@@ -44,7 +44,7 @@ namespace Dcomms.DRP.Packets
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             EncodeHeader(writer, NhaSeq16);
             byte flags = 0;
-            if (rpToA) flags |= Flag_RPtoA;
+            if (rpToA) flags |= Flag_EPtoA;
             writer.Write(flags);
             if (rpToA == false) SenderToken32.Encode(writer);
             writer.Write((byte)StatusCode);
@@ -56,9 +56,9 @@ namespace Dcomms.DRP.Packets
             var reader = PacketProcedures.CreateBinaryReader(nextHopResponsePacketData, 1);
             NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
             var flags = reader.ReadByte();
-            if ((flags & Flag_RPtoA) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
+            if ((flags & Flag_EPtoA) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
             StatusCode = (NextHopResponseCode)reader.ReadByte();
-            if ((flags & Flag_RPtoA) == 0) SenderHMAC = HMAC.Decode(reader);
+            if ((flags & Flag_EPtoA) == 0) SenderHMAC = HMAC.Decode(reader);
         }
     }
     enum NextHopResponseCode
@@ -70,7 +70,7 @@ namespace Dcomms.DRP.Packets
 
 
 
-    class DrpTimeoutException : ApplicationException // next hop or RP, or whatever responder timed out
+    class DrpTimeoutException : ApplicationException // next hop or EP, or whatever responder timed out
     {
 
     }
@@ -85,7 +85,7 @@ namespace Dcomms.DRP.Packets
     class Pow1RejectedException : ApplicationException
     {
         public Pow1RejectedException(RegisterPow1ResponseStatusCode responseCode)
-            : base($"RP rejected PoW1 request with status = {responseCode}")
+            : base($"EP rejected PoW1 request with status = {responseCode}")
         {
 
         }

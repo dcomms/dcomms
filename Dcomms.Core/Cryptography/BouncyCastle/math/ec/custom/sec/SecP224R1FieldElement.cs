@@ -203,7 +203,7 @@ namespace Org.BouncyCastle.Math.EC.Custom.Sec
             SecP224R1Field.Multiply(f1, nc, f1);
         }
 
-        private static void RP(uint[] nc, uint[] d1, uint[] e1, uint[] f1, uint[] t)
+        private static void EP(uint[] nc, uint[] d1, uint[] e1, uint[] f1, uint[] t)
         {
             Nat224.Copy(nc, f1);
 
@@ -243,7 +243,7 @@ namespace Org.BouncyCastle.Math.EC.Custom.Sec
             uint[] e1 = Nat224.Create();
             e1[0] = 1;
             uint[] f1 = Nat224.Create();
-            RP(nc, d1, e1, f1, t);
+            EP(nc, d1, e1, f1, t);
 
             uint[] d0 = Nat224.Create();
             uint[] e0 = Nat224.Create();

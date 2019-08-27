@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace Dcomms.DRP
 {
     /// <summary>
-    /// registration, for requester peer (A): connect to the p2P network via rendezvous peer (RP)
+    /// registration, for requester peer (A): connect to the p2P network via entry peer (EP)
     /// </summary>
     partial class DrpPeerEngine
     {
@@ -39,7 +39,7 @@ namespace Dcomms.DRP
             WriteToLog_reg_requesterSide_detail($"@BeginRegister2() engine thread");
 
             var localDrpPeer = CreateLocalPeer(registrationConfiguration, user);
-            if (registrationConfiguration.RendezvousPeerEndpoints.Length != 0)
+            if (registrationConfiguration.EntryPeerEndpoints.Length != 0)
             {
                 if (Configuration.LocalForcedPublicIpForRegistration == null)
                 {
@@ -58,11 +58,11 @@ namespace Dcomms.DRP
                     localDrpPeer.LocalPublicIpAddressForRegistration = Configuration.LocalForcedPublicIpForRegistration;
 
 
-                foreach (var rpEndpoint in registrationConfiguration.RendezvousPeerEndpoints) // try to connect to rendezvous peers, one by one
+                foreach (var rpEndpoint in registrationConfiguration.EntryPeerEndpoints) // try to connect to entry peers, one by one
                 {
                    // if (MiscProcedures.EqualByteArrays(rpEndpoint.Address.GetAddressBytes(), localDrpPeer.LocalPublicIpAddressForRegistration.GetAddressBytes()) == true)
                   //  {
-                  //      WriteToLog_reg_requesterSide_detail($"not connecting to RP {rpEndpoint}: same IP address as local public IP");
+                  //      WriteToLog_reg_requesterSide_detail($"not connecting to EP {rpEndpoint}: same IP address as local public IP");
                   //  }
                    // else
                   //  {
@@ -71,7 +71,7 @@ namespace Dcomms.DRP
                             if (await RegisterAsync(localDrpPeer, rpEndpoint) == null)
                                 continue;
 
-                            //  on error or timeout try next rendezvous server
+                            //  on error or timeout try next entry server
                         }
                         catch (Exception exc)
                         {
@@ -92,7 +92,7 @@ namespace Dcomms.DRP
         /// <returns>null if registration failed with timeout or some error code</returns>
         public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint rpEndpoint) // engine thread
         {
-            WriteToLog_reg_requesterSide_detail($"connecting to RP {rpEndpoint}");
+            WriteToLog_reg_requesterSide_detail($"connecting to EP {rpEndpoint}");
 
             #region PoW1
             WriteToLog_reg_requesterSide_detail($"generating PoW1 request");
@@ -132,12 +132,12 @@ namespace Dcomms.DRP
                     NumberOfHopsRemaining = 10,
                     RequesterEcdhePublicKey = new EcdhPublicKey { ecdh25519PublicKey = connectionToNeighbor.LocalEcdhe25519PublicKey },
                     NhaSeq16 = GetNewNhaSeq16(),
-                    RpEndpoint = rpEndpoint
+                    EpEndpoint = rpEndpoint
                 };
                 WriteToLog_reg_requesterSide_detail($"calculating PoW2");
                 GenerateRegisterSynPow2(registerSynPacket, pow1ResponsePacket.ProofOfWork2Request);
                 registerSynPacket.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary,
-                    w => registerSynPacket.GetCommonRequesterAndResponderFields(w, false),
+                    w => registerSynPacket.GetCommonRequesterProxierResponderFields(w, false),
                     localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey
                     );
                 var synToSynAckStopwatch = Stopwatch.StartNew();
@@ -159,7 +159,7 @@ namespace Dcomms.DRP
                 #endregion
 
                 connectionToNeighbor.LocalEndpoint = registerSynAckPacket.RequesterEndpoint;
-                connectionToNeighbor.RemotePeerPublicKey = registerSynAckPacket.NeighborPublicKey;
+                connectionToNeighbor.RemotePeerPublicKey = registerSynAckPacket.ResponderPublicKey;
                 synToSynAckStopwatch.Stop();
                 var synToSynAckTimeMs = synToSynAckStopwatch.Elapsed.TotalMilliseconds;
 
@@ -172,7 +172,7 @@ namespace Dcomms.DRP
                 };            
                 registerAckPacket.ToRequesterTxParametersEncrypted = connectionToNeighbor.EncryptAtRegisterRequester(registerSynPacket, registerSynAckPacket, registerAckPacket);
                 connectionToNeighbor.InitializeNeighborTxRxStreams(registerSynPacket, registerSynAckPacket, registerAckPacket);
-                registerAckPacket.RequesterHMAC = connectionToNeighbor.GetSharedHmac(w => registerAckPacket.GetCommonRequesterAndResponderFields(w, false, true));
+                registerAckPacket.RequesterHMAC = connectionToNeighbor.GetSharedHmac(w => registerAckPacket.GetCommonRequesterProxierResponderFields(w, false, true));
                 var registerAckPacketData = registerAckPacket.Encode(null);
                 WriteToLog_reg_requesterSide_detail($"sending ack, waiting for NextHopAck");
                 await SendUdpRequestAsync_Retransmit_WaitForNextHopAck(registerAckPacket.Encode(null), rpEndpoint, registerAckPacket.NhaSeq16);
@@ -216,20 +216,21 @@ namespace Dcomms.DRP
             connectionToNeighbor.OnReceivedVerifiedPingResponse(pingResponsePacket, pendingPingRequest.ResponseReceivedAtUtc.Value,
                 pendingPingRequest.ResponseReceivedAtUtc.Value - pendingPingRequest.InitialTxTimeUTC.Value);
 
-            #region send registration confirmation packet to RP->X->N
+            #region send registration confirmation packet to EP->X->N
             try
             {
                 var registerConfirmationPacket = new RegisterConfirmationPacket
                 {
                     RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
-                    NeighborP2pConnectionSetupSignature = pingResponsePacket.P2pConnectionSetupSignature,
+                    ResponderRegistrationConfirmationSignature = pingResponsePacket.ResponderRegistrationConfirmationSignature,
                     NhaSeq16 = GetNewNhaSeq16()
                 };
-                registerConfirmationPacket.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary,
-                    w => registerConfirmationPacket.GetCommonFields(w, true),
+                registerConfirmationPacket.RequesterRegistrationConfirmationSignature = RegistrationSignature.Sign(_cryptoLibrary,
+                    w => connectionToNeighbor.GetRequesterRegistrationConfirmationSignatureFields(w, registerConfirmationPacket.ResponderRegistrationConfirmationSignature),
                     localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
+                WriteToLog_reg_requesterSide_detail($"sending CFM, waiting for NHA");
                 await SendUdpRequestAsync_Retransmit_WaitForNextHopAck(registerConfirmationPacket.Encode(null), rpEndpoint, registerConfirmationPacket.NhaSeq16);
-                WriteToLog_reg_requesterSide_detail($"sent regConfirmation");
+                WriteToLog_reg_requesterSide_detail($"received NHA to CFM");
             }
             catch (Exception exc)
             {  // we ingnore exceptions here, just wite warning to log.  the connection is alive already, as direct ping channel to neighbor is set up 

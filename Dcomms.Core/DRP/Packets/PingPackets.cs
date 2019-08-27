@@ -9,7 +9,7 @@ namespace Dcomms.DRP.Packets
     public class PingRequestPacket
     {
         public P2pConnectionToken32 SenderToken32;
-        public const byte Flags_P2pConnectionSetupSignatureRequested = 0x01;
+        public const byte Flags_RegistrationConfirmationSignatureRequested = 0x01;
         public byte Flags;
         public uint PingRequestId32; // is used to avoid mismatch between delyed responses and requests // is used as salt also
         public float? MaxRxInviteRateRps;   // zero means NULL // signal from sender "how much I can receive via this p2p connection"
@@ -80,18 +80,21 @@ namespace Dcomms.DRP.Packets
         public P2pConnectionToken32 SenderToken32;
         public uint PingRequestId32;  // must match to request
        // byte Flags;
-        const byte Flags_P2pConnectionSetupSignatureExists = 0x01;
+        const byte Flags_ResponderRegistrationConfirmationSignature = 0x01;
         /// <summary>
         /// comes from responder neighbor when connection is set up; in other cases it is NULL
         /// signs fields: 
         /// { 
-        ///    xxxxxxxxx
-        /// } by neighbor's reg. private key
-        /// is verified by RP, X to update rating of responder neighbor
+        ///    syn shared fields,
+        ///    synAck shared fields,
+        ///    ack shared fields,
+        ///    ResponderRegistrationConfirmationSignature_MagicNumber
+        /// } by responder's reg. private key
+        /// is verified by EP, X to update rating of responder neighbor
         /// </summary>
-        public RegistrationSignature P2pConnectionSetupSignature;
+        public RegistrationSignature ResponderRegistrationConfirmationSignature;
 
-        public HMAC SenderHMAC; // signs { SenderToken32,PingRequestId32,(optional)P2pConnectionSetupSignature }
+        public HMAC SenderHMAC; // signs { SenderToken32,PingRequestId32,(optional)ResponderRegistrationConfirmationSignature }
 
         /// <param name="reader">is positioned after first byte = packet type</param>
         public static PingResponsePacket DecodeAndVerify(ICryptoLibrary cryptoLibrary,
@@ -106,9 +109,9 @@ namespace Dcomms.DRP.Packets
             var flags = reader.ReadByte();            
  
             // verify signature of N
-            if ((flags & Flags_P2pConnectionSetupSignatureExists) != 0)
-                r.P2pConnectionSetupSignature = RegistrationSignature.DecodeAndVerify(reader, cryptoLibrary, 
-                    w=> GetSignedFieldsForP2pConnectionSetupSignature(w, r, connectedPeerWhoSentTheResponse), 
+            if ((flags & Flags_ResponderRegistrationConfirmationSignature) != 0)
+                r.ResponderRegistrationConfirmationSignature = RegistrationSignature.DecodeAndVerify(reader, cryptoLibrary, 
+                    w => connectedPeerWhoSentTheResponse.GetResponderRegistrationConfirmationSignatureFields(w), 
                     connectedPeerWhoSentTheResponse.RemotePeerPublicKey);
             else
             {
@@ -156,20 +159,16 @@ namespace Dcomms.DRP.Packets
         public void GetSignedFieldsForSenderHMAC(BinaryWriter writer)
         {
             GetHeaderFields(writer, SenderToken32, PingRequestId32);
-            if (P2pConnectionSetupSignature != null)
-                P2pConnectionSetupSignature.Encode(writer);
+            if (ResponderRegistrationConfirmationSignature != null)
+                ResponderRegistrationConfirmationSignature.Encode(writer);
         }
-        internal static void GetSignedFieldsForP2pConnectionSetupSignature(BinaryWriter writer, PingResponsePacket pingResponse, ConnectionToNeighbor connectionToNeighbor)
-        {
-            GetHeaderFields(writer, pingResponse.SenderToken32, pingResponse.PingRequestId32);
-            writer.Write(connectionToNeighbor.SharedAuthKeyForHMAC);
-        }               
+                   
         public byte[] Encode()
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             writer.Write((byte)DrpPacketType.PingResponsePacket);
             byte flags = 0;
-            if (P2pConnectionSetupSignature != null) flags |= Flags_P2pConnectionSetupSignatureExists;
+            if (ResponderRegistrationConfirmationSignature != null) flags |= Flags_ResponderRegistrationConfirmationSignature;
             writer.Write(flags);
             GetSignedFieldsForSenderHMAC(writer);
             SenderHMAC.Encode(writer);
