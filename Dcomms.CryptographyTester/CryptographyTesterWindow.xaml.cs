@@ -34,7 +34,7 @@ namespace Dcomms.CryptographyTester
                 {
                     Text = $"{TimeNowStr} [{Thread.CurrentThread.ManagedThreadId} {sourceId}] {objectName} {message}"
                 };
-                App.Current.Dispatcher.BeginInvoke(new Action(() =>
+                App.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                 {
                     LogMessages.Insert(0, msg);
                 }));

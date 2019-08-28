@@ -120,9 +120,12 @@ namespace Dcomms.DRP.Packets
 
             r.SenderHMAC = HMAC.Decode(reader);
 
-            // verify PingRequestId32
-            if (r.PingRequestId32 != optionalPingRequestPacketToCheckRequestId32.PingRequestId32)
-                throw new UnmatchedFieldsException();
+            if (optionalPingRequestPacketToCheckRequestId32 != null)
+            {
+                // verify PingRequestId32
+                if (r.PingRequestId32 != optionalPingRequestPacketToCheckRequestId32.PingRequestId32)
+                    throw new UnmatchedFieldsException();
+            }
 
             // verify SenderToken32
             if (!r.SenderToken32.Equals(connectedPeerWhoSentTheResponse.LocalRxToken32))

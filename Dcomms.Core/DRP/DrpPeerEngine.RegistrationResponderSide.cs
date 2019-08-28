@@ -71,14 +71,14 @@ namespace Dcomms.DRP
                         registerAckPacket = RegisterAckPacket.DecodeAndVerifyAtResponder(regAckUdpPayload, registerSynPacket, registerSynAckPacket, newConnectionToNeighbor); // verifies hmac, decrypts endpoint of A
                     }
                     else
-                    {// todo  retransmit until NHA; at same time (!!!)  wait for regACK
+                    {// todo  retransmit until NHACK; at same time (!!!)  wait for regACK
                         throw new NotImplementedException(); 
                     }
 
 
                     WriteToLog_reg_responderSide_detail($"verified ack");
                     acceptAt.ConnectedPeers.Add(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A                    
-                    SendNextHopAckResponseToAck(registerAckPacket, remoteEndpoint); // send NHA to ACK
+                    SendNextHopAckResponseToAck(registerAckPacket, remoteEndpoint); // send NHACK to ACK
 
                     _ = WaitForRegistrationConfirmationRequestAsync(remoteEndpoint, registerSynPacket, newConnectionToNeighbor);
 
@@ -96,12 +96,15 @@ namespace Dcomms.DRP
                     WriteToLog_reg_responderSide_detail($"sent pingRequest");
                     var pingResponsePacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pingResponse from A
                     if (pingResponsePacketData == null) throw new DrpTimeoutException();
-                    var pingResponsePacket = PingResponsePacket.DecodeAndVerify(_cryptoLibrary,
+                    var pingResponse = PingResponsePacket.DecodeAndVerify(_cryptoLibrary,
                         pingResponsePacketData, pingRequestPacket, newConnectionToNeighbor,
                         true);
                     WriteToLog_reg_responderSide_detail($"verified pingResponse");
-                    #endregion
 
+                    newConnectionToNeighbor.OnReceivedVerifiedPingResponse(pingResponse, pendingPingRequest.ResponseReceivedAtUtc.Value,
+                        pendingPingRequest.ResponseReceivedAtUtc.Value - pendingPingRequest.InitialTxTimeUTC.Value);
+
+                    #endregion
                 }
                 catch
                 {
@@ -122,12 +125,15 @@ namespace Dcomms.DRP
         {
             try
             {
-                var regCfmScanner = RegisterConfirmationPacket.GetScanner(null, syn.RequesterPublicKey_RequestID, syn.Timestamp32S);              
+                var regCfmScanner = RegisterConfirmationPacket.GetScanner(null, syn.RequesterPublicKey_RequestID, syn.Timestamp32S);
+                WriteToLog_reg_responderSide_detail($"waiting for CFM");
                 var regCfmUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, remoteEndpoint, regCfmScanner);
                 WriteToLog_reg_responderSide_detail($"received CFM");
                 var registerCfmPacket = RegisterConfirmationPacket.DecodeAndVerifyAtResponder(regCfmUdpPayload, syn, newConnectionToNeighbor);
+                WriteToLog_reg_responderSide_detail($"verified CFM");
 
                 SendNextHopAckResponseToCfm(registerCfmPacket, remoteEndpoint);
+                WriteToLog_reg_responderSide_detail($"sent NHACK to CFM");
             }
 			catch (Exception exc)
             {

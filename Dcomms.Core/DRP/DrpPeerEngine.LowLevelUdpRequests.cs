@@ -112,8 +112,8 @@ namespace Dcomms.DRP
             {
                 var request = item.Value;
 
-            //    WriteToLog_receiver_detail($"matching to pending request... remoteEndpoint={remoteEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)} " +
-            //        $"request.RemoteEndpoint={request.RemoteEndpoint} request.ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
+                WriteToLog_receiver_detail($"matching to pending request... remoteEndpoint={remoteEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)} " +
+                    $"request.RemoteEndpoint={request.RemoteEndpoint} request.ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
 
                 if (request.RemoteEndpoint.Equals(remoteEndpoint) && request.ResponseScanner.Scan(udpPayloadData))
                 {

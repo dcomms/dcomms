@@ -116,8 +116,8 @@ namespace Dcomms.DRP.Packets
             if ((cfm.Flags & Flag_AtoEP) == 0) cfm.SenderToken32 = P2pConnectionToken32.Decode(reader);
 
             cfm.RegisterSynTimestamp32S = reader.ReadUInt32();
-            cfm.AssertMatchToRegisterSyn(syn);
             cfm.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
+            cfm.AssertMatchToRegisterSyn(syn);
 
             cfm.ResponderRegistrationConfirmationSignature = RegistrationSignature.DecodeAndVerify(reader, newConnectionToNeighbor.Engine.CryptoLibrary, 
                 w => newConnectionToNeighbor.GetResponderRegistrationConfirmationSignatureFields(w),

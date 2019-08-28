@@ -53,7 +53,7 @@ namespace Dcomms.DRP.Packets
 
         HMAC SenderHMAC; // is not sent from EP to A
         public IPEndPoint RequesterEndpoint; // is sent only from EP to A, to provide public IP:port of A, for UDP hole punching  // not signed, not encrypted
-        public NextHopAckSequenceNumber16 NhaSeq16; // is not sent from EP to A // goes into NHA packet
+        public NextHopAckSequenceNumber16 NhaSeq16; // is not sent from EP to A // goes into NHACK packet
 
 
         /// <summary>

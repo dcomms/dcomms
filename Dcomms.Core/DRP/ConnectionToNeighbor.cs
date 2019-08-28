@@ -325,6 +325,7 @@ namespace Dcomms.DRP
                 // remove timed out connected peers (neighbors)
                 if (timeNowUTC > _lastTimeCreatedOrReceivedVerifiedResponsePacket + _engine.Configuration.ConnectedPeersRemovalTimeout)
                 {
+                    _engine.WriteToLog_ping_detail("disposing connection to neighbor: ping response timer has expired");
                     this.Dispose(); // remove dead connected peers (no reply to ping)
                     needToRestartLoop = true;
                     return;
@@ -333,15 +334,14 @@ namespace Dcomms.DRP
                 // send ping requests  when idle (no other "alive" signals from remote peer)
                 if (timeNowUTC > _lastTimeCreatedOrReceivedVerifiedResponsePacket + _engine.Configuration.PingRequestsInterval)
                 {
-                    if (_latestRequestResponseDelay != null)
+                    if (_latestRequestResponseDelay == null) throw new InvalidOperationException();
+                   
+                    if (_lastTimeSentPingRequest == null ||
+                        timeNowUTC > _lastTimeSentPingRequest.Value.AddSeconds(_latestRequestResponseDelay.Value.TotalSeconds * _engine.Configuration.PingRetransmissionInterval_RttRatio))
                     {
-                        if (_lastTimeSentPingRequest == null ||
-                            timeNowUTC > _lastTimeSentPingRequest.Value.AddSeconds(_latestRequestResponseDelay.Value.TotalSeconds * _engine.Configuration.PingRetransmissionInterval_RttRatio))
-                        {
-                           _lastTimeSentPingRequest = timeNowUTC;
-                           SendPingRequestOnTimer();
-                        }
-                    }
+                        _lastTimeSentPingRequest = timeNowUTC;
+                        SendPingRequestOnTimer();
+                    }                    
                 }
             }
             catch (Exception exc)
@@ -364,14 +364,15 @@ namespace Dcomms.DRP
         {
             _lastTimeCreatedOrReceivedVerifiedResponsePacket = responseReceivedAtUTC;
             _latestReceivedPingResponsePacket = pingResponsePacket;
-            // todo process requestResponseDelay to measure RTT and use it for rating
+            _engine.WriteToLog_ping_detail("verified ping response");
+          
             if (requestResponseDelay.HasValue)
                 OnMeasuredRequestResponseDelay(requestResponseDelay.Value);
         }
 
         void OnMeasuredRequestResponseDelay(TimeSpan requestResponseDelay)
         {
-            _engine.WriteToLog_ping_detail($"measured RTT: {requestResponseDelay}");
+            _engine.WriteToLog_ping_detail($"measured RTT: {(int)requestResponseDelay.TotalMilliseconds}ms");
             _latestRequestResponseDelay = requestResponseDelay;
         }
         internal void OnReceivedPingResponsePacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc) // engine thread
