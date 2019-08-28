@@ -110,10 +110,10 @@ namespace Dcomms.DRP
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide, AttentionLevel.detail, message);
 
         }
-        void HandleExceptionWhileConnectingToRP(IPEndPoint rpEndpoint, Exception exc)
+        void HandleExceptionWhileConnectingToRP(IPEndPoint epEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide, AttentionLevel.detail, $"exception while connecting to EP {rpEndpoint}: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide, AttentionLevel.detail, $"exception while connecting to EP {epEndpoint}: {exc}");
 
             // todo: analyse if it is malformed packet received from attacker's EP
         }
@@ -174,7 +174,7 @@ namespace Dcomms.DRP
         void ProcessReceivedUdpPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData) // receiver thread
         {
             var packetType = (DrpPacketType)udpPayloadData[0];
-            WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint}");
+            WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint} ({udpPayloadData.Length} bytes)");
             if (packetType == DrpPacketType.RegisterPow1RequestPacket)
             {
                 ProcessRegisterPow1RequestPacket(remoteEndpoint, udpPayloadData);

@@ -266,6 +266,7 @@ namespace Dcomms.DRP
         readonly DrpPeerEngine _engine;
         internal DrpPeerEngine Engine => _engine;
         readonly LocalDrpPeer _localDrpPeer;
+        internal LocalDrpPeer LocalDrpPeer => _localDrpPeer;
         readonly byte[] LocalEcdhe25519PrivateKey;
         public readonly byte[] LocalEcdhe25519PublicKey;
         bool _disposed;
@@ -417,7 +418,7 @@ namespace Dcomms.DRP
                     PingRequestId32 = pingRequestPacket.PingRequestId32,
                     SenderToken32 = RemotePeerToken32,
                 };
-                if ((pingRequestPacket.Flags & PingRequestPacket.Flags_P2pConnectionSetupSignatureRequested) != 0)
+                if ((pingRequestPacket.Flags & PingRequestPacket.Flags_RegistrationConfirmationSignatureRequested) != 0)
                 {
                     pingResponsePacket.ResponderRegistrationConfirmationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
                         GetResponderRegistrationConfirmationSignatureFields, _localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);                
@@ -466,6 +467,7 @@ namespace Dcomms.DRP
         {
             return ((P2pConnectionToken32)obj).Token32 == this.Token32;
         }
+        public override string ToString() => Token32.ToString();
     }
        
     class ConnectedDrpPeerRating

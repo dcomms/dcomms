@@ -18,7 +18,7 @@ namespace Dcomms.DRP
         /// </summary>
         LinkedList<PendingLowLevelUdpRequest> _pendingLowLevelUdpRequests = new LinkedList<PendingLowLevelUdpRequest>(); 
 
-        async Task<NextHopAckPacket> SendUdpRequestAsync_Retransmit_WaitForNextHopAck(byte[] requestPacketData, IPEndPoint remoteEndpoint, NextHopAckSequenceNumber16 nhaSeq16)
+        async Task<NextHopAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(byte[] requestPacketDataNullable, IPEndPoint remoteEndpoint, NextHopAckSequenceNumber16 nhaSeq16)
         {
             var nhaScanner = NextHopAckPacket.GetScanner(nhaSeq16);
             WriteToLog_reg_responderSide_detail($"waiting for nextHopAck, scanner: {MiscProcedures.ByteArrayToString(nhaScanner.ResponseFirstBytes)} nhaSeq={nhaSeq16}");
@@ -26,7 +26,7 @@ namespace Dcomms.DRP
                      new PendingLowLevelUdpRequest(remoteEndpoint,
                          nhaScanner, 
                          DateTimeNowUtc, Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
-                         requestPacketData,                      
+                         requestPacketDataNullable,                      
                          Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
                      ));
             if (nextHopResponsePacketData == null)
@@ -38,7 +38,7 @@ namespace Dcomms.DRP
             return nextHopResponsePacket;
         }
 
-        async Task<byte[]> SendUdpRequestAsync_Retransmit_WaitForResponse(byte[] requestPacketDataNullable, IPEndPoint remoteEndpoint, LowLevelUdpResponseScanner responseScanner)
+        async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(byte[] requestPacketDataNullable, IPEndPoint remoteEndpoint, LowLevelUdpResponseScanner responseScanner)
         {
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(remoteEndpoint,
@@ -60,12 +60,14 @@ namespace Dcomms.DRP
         async Task<byte[]> SendUdpRequestAsync_Retransmit(PendingLowLevelUdpRequest request)
         {
             request.InitialTxTimeUTC = DateTimeNowUtc;
-            SendPacket(request.RequestPacketDataNullable, request.RemoteEndpoint);          
+            if (request.RequestPacketDataNullable != null) SendPacket(request.RequestPacketDataNullable, request.RemoteEndpoint);          
             return await WaitForUdpResponseAsync(request);
         }
 		internal void SendPacket(byte[] udpPayload, IPEndPoint remoteEndpoint)
         {
             _socket.Send(udpPayload, udpPayload.Length, remoteEndpoint);
+
+            WriteToLog_receiver_detail($"sent packet {(DrpPacketType)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes)");
         }
         async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
         {
@@ -89,7 +91,7 @@ namespace Dcomms.DRP
                     item = nextItem;
                     continue;
                 }
-                else if (timeNowUTC > request.NextRetransmissionTimeUTC)
+                else if (request.RequestPacketDataNullable != null && timeNowUTC > request.NextRetransmissionTimeUTC)
                 {
                     request.OnRetransmitted();
                     SendPacket(request.RequestPacketDataNullable, request.RemoteEndpoint);

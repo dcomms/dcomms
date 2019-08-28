@@ -60,14 +60,21 @@ namespace Dcomms.DRP.Packets
         }
 
 
-        public static LowLevelUdpResponseScanner GetScanner(RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S)
+        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighbor, RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpPacketType.RegisterConfirmationPacket);
+            
+            w.Write((byte)0); // ignored flags
+
+            if (connectionToNeighbor != null)
+                connectionToNeighbor.LocalRxToken32.Encode(w);
+
             w.Write(registerSynTimestamp32S);        
             requesterPublicKey_RequestID.Encode(w);
             return new LowLevelUdpResponseScanner
             {
+                IgnoredByteAtOffset1 = 1,
                 ResponseFirstBytes = ms.ToArray(),
             };
         }
@@ -78,14 +85,14 @@ namespace Dcomms.DRP.Packets
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
             writer.Write((byte)DrpPacketType.RegisterConfirmationPacket);
-            writer.Write(RegisterSynTimestamp32S);
-            RequesterPublicKey_RequestID.Encode(writer);
-
             Flags = 0;
             if (connectionToNeighbor == null) Flags |= Flag_AtoEP;
             writer.Write(Flags);
             if (connectionToNeighbor != null)
                 connectionToNeighbor.RemotePeerToken32.Encode(writer);
+
+            writer.Write(RegisterSynTimestamp32S);
+            RequesterPublicKey_RequestID.Encode(writer);
 
             ResponderRegistrationConfirmationSignature.Encode(writer);
             RequesterRegistrationConfirmationSignature.Encode(writer);
@@ -98,13 +105,46 @@ namespace Dcomms.DRP.Packets
             return ms.ToArray();
         }
 
-        public static RegisterConfirmationPacket DecodeAndVerifyAtResponder(byte[] regCfmUdpPayload, ConnectionToNeighbor newConnectionToNeighbor)
+        public static RegisterConfirmationPacket DecodeAndVerifyAtResponder(byte[] regCfmUdpPayload, RegisterSynPacket syn, ConnectionToNeighbor newConnectionToNeighbor)
         {
-            xx
-                
-            //todo assert match to regSyn
+            var reader = PacketProcedures.CreateBinaryReader(regCfmUdpPayload, 1);
 
-            // verify A   and  N signatures
+            var cfm = new RegisterConfirmationPacket();
+            cfm.OriginalUdpPayloadData = regCfmUdpPayload;
+
+            cfm.Flags = reader.ReadByte();
+            if ((cfm.Flags & Flag_AtoEP) == 0) cfm.SenderToken32 = P2pConnectionToken32.Decode(reader);
+
+            cfm.RegisterSynTimestamp32S = reader.ReadUInt32();
+            cfm.AssertMatchToRegisterSyn(syn);
+            cfm.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
+
+            cfm.ResponderRegistrationConfirmationSignature = RegistrationSignature.DecodeAndVerify(reader, newConnectionToNeighbor.Engine.CryptoLibrary, 
+                w => newConnectionToNeighbor.GetResponderRegistrationConfirmationSignatureFields(w),
+                newConnectionToNeighbor.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey
+                );
+            cfm.RequesterRegistrationConfirmationSignature = RegistrationSignature.DecodeAndVerify(reader, newConnectionToNeighbor.Engine.CryptoLibrary,
+                w => newConnectionToNeighbor.GetRequesterRegistrationConfirmationSignatureFields(w, cfm.ResponderRegistrationConfirmationSignature),
+                newConnectionToNeighbor.RemotePeerPublicKey
+                );
+                                 
+            if ((cfm.Flags & Flag_AtoEP) == 0)
+            {
+                throw new NotImplementedException();
+                //SenderHMAC = HMAC.Decode(reader);
+            }
+
+            cfm.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
+
+            return cfm;
+
+        }
+        void AssertMatchToRegisterSyn(RegisterSynPacket localRegisterSyn)
+        {
+            if (localRegisterSyn.RequesterPublicKey_RequestID.Equals(this.RequesterPublicKey_RequestID) == false)
+                throw new UnmatchedFieldsException();
+            if (localRegisterSyn.Timestamp32S != this.RegisterSynTimestamp32S)
+                throw new UnmatchedFieldsException();
         }
     }
 

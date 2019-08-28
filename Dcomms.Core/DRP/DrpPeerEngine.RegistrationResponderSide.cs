@@ -11,7 +11,7 @@ namespace Dcomms.DRP
     {
         async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterSynPacket registerSynPacket, IPEndPoint remoteEndpoint) // engine thread
         {
-            WriteToLog_reg_responderSide_detail($"accepting registration: remoteEndpoint={remoteEndpoint}, NhaSeq16={registerSynPacket.NhaSeq16}, rpEndpoint={registerSynPacket.EpEndpoint}");
+            WriteToLog_reg_responderSide_detail($"accepting registration: remoteEndpoint={remoteEndpoint}, NhaSeq16={registerSynPacket.NhaSeq16}, epEndpoint={registerSynPacket.EpEndpoint}");
            
             _pendingRegisterRequests.Add(registerSynPacket.RequesterPublicKey_RequestID);
             try
@@ -65,7 +65,8 @@ namespace Dcomms.DRP
                     RegisterAckPacket registerAckPacket;
                     if (registerSynPacket.AtoEP)
                     { // wait for reg ACK, retransmitting SynAck
-                        var regAckUdpPayload = await SendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, remoteEndpoint, regAckScanner);
+                        WriteToLog_reg_responderSide_detail($"waiting for ack");
+                        var regAckUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, remoteEndpoint, regAckScanner);
                         WriteToLog_reg_responderSide_detail($"received ack");
                         registerAckPacket = RegisterAckPacket.DecodeAndVerifyAtResponder(regAckUdpPayload, registerSynPacket, registerSynAckPacket, newConnectionToNeighbor); // verifies hmac, decrypts endpoint of A
                     }
@@ -121,10 +122,10 @@ namespace Dcomms.DRP
         {
             try
             {
-                var regCfmScanner = RegisterConfirmationPacket.GetScanner(syn.RequesterPublicKey_RequestID, syn.Timestamp32S);              
-                var regCfmUdpPayload = await SendUdpRequestAsync_Retransmit_WaitForResponse(null, remoteEndpoint, regCfmScanner);
+                var regCfmScanner = RegisterConfirmationPacket.GetScanner(null, syn.RequesterPublicKey_RequestID, syn.Timestamp32S);              
+                var regCfmUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, remoteEndpoint, regCfmScanner);
                 WriteToLog_reg_responderSide_detail($"received CFM");
-                var registerCfmPacket = RegisterConfirmationPacket.DecodeAndVerifyAtResponder(regCfmUdpPayload, newConnectionToNeighbor);
+                var registerCfmPacket = RegisterConfirmationPacket.DecodeAndVerifyAtResponder(regCfmUdpPayload, syn, newConnectionToNeighbor);
 
                 SendNextHopAckResponseToCfm(registerCfmPacket, remoteEndpoint);
             }

@@ -166,11 +166,11 @@ namespace Dcomms.DRP.Packets
         public byte[] Encode()
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
-            writer.Write((byte)DrpPacketType.PingResponsePacket);
+            GetHeaderFields(writer, SenderToken32, PingRequestId32);           
             byte flags = 0;
             if (ResponderRegistrationConfirmationSignature != null) flags |= Flags_ResponderRegistrationConfirmationSignature;
             writer.Write(flags);
-            GetSignedFieldsForSenderHMAC(writer);
+            if (ResponderRegistrationConfirmationSignature != null) ResponderRegistrationConfirmationSignature.Encode(writer);
             SenderHMAC.Encode(writer);
             return ms.ToArray();
         }

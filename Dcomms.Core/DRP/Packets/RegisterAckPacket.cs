@@ -56,8 +56,8 @@ namespace Dcomms.DRP.Packets
             if (connectionToNeighbor != null)
                 connectionToNeighbor.LocalRxToken32.Encode(writer);
 
-            requesterPublicKey_RequestID.Encode(writer);
             writer.Write(registerSynTimestamp32S);
+            requesterPublicKey_RequestID.Encode(writer);
 
             return new LowLevelUdpResponseScanner
             {
@@ -120,8 +120,9 @@ namespace Dcomms.DRP.Packets
 
             registerAck.RegisterSynTimestamp32S = reader.ReadUInt32();
             registerAck.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
-            registerAck.ToRequesterTxParametersEncrypted = reader.ReadBytes(16);
             registerAck.AssertMatchToSyn(remoteRegisterSyn);
+
+            registerAck.ToRequesterTxParametersEncrypted = reader.ReadBytes(16);
             connectionFromResponderToRequester.DecryptAtRegisterResponder(remoteRegisterSyn, localRegisterSynAck, registerAck);
 
             registerAck.RequesterHMAC = HMAC.Decode(reader);
