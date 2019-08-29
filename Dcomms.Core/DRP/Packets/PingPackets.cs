@@ -85,9 +85,9 @@ namespace Dcomms.DRP.Packets
         /// comes from responder neighbor when connection is set up; in other cases it is NULL
         /// signs fields: 
         /// { 
-        ///    syn shared fields,
-        ///    synAck shared fields,
-        ///    ack shared fields,
+        ///    SYN shared fields,
+        ///    SYNACK shared fields,
+        ///    ACK shared fields,
         ///    ResponderRegistrationConfirmationSignature_MagicNumber
         /// } by responder's reg. private key
         /// is verified by EP, X to update rating of responder neighbor
@@ -135,7 +135,7 @@ namespace Dcomms.DRP.Packets
             var expectedHMAC = connectedPeerWhoSentTheResponse.GetSharedHmac(r.GetSignedFieldsForSenderHMAC);
             if (r.SenderHMAC.Equals(expectedHMAC) == false)
             {
-                connectedPeerWhoSentTheResponse.Engine.WriteToLog_ping_detail(connectedPeerWhoSentTheResponse, $"incorrect sender HMAC in ping response: {r.SenderHMAC}. expected: {expectedHMAC}");
+                connectedPeerWhoSentTheResponse.Engine.WriteToLog_p2p_detail(connectedPeerWhoSentTheResponse, $"incorrect sender HMAC in ping response: {r.SenderHMAC}. expected: {expectedHMAC}");
                 throw new BadSignatureException();
             }
           

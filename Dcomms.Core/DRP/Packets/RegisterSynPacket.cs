@@ -60,13 +60,13 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public byte NumberOfHopsRemaining;
 
+        public NextHopAckSequenceNumber16 NhaSeq16;
         /// <summary>
         /// signature of latest proxy sender: EP,M,X
         /// is NULL for A->EP packet
         /// uses common secret of neighbors within p2p connection
         /// </summary>
         public HMAC SenderHMAC;
-        public NextHopAckSequenceNumber16 NhaSeq16;
         public IPEndPoint EpEndpoint; // is transmitted only in A->EP request, unencrypted  // makes sense when EP is behind NAT (e.g amazon) and does not know its public IP
 
         public RegisterSynPacket()
@@ -82,7 +82,10 @@ namespace Dcomms.DRP.Packets
             if (connectionToNeighbor == null) flags |= Flag_AtoEP;
             writer.Write(flags);
             if (connectionToNeighbor != null)
-                connectionToNeighbor.RemotePeerToken32.Encode(writer);
+            {
+                SenderToken32 = connectionToNeighbor.RemotePeerToken32;
+                SenderToken32.Encode(writer);
+            }
 
             GetCommonRequesterProxierResponderFields(writer, true);
 
@@ -92,12 +95,12 @@ namespace Dcomms.DRP.Packets
                 writer.Write(ProofOfWork2);
             }
             writer.Write(NumberOfHopsRemaining);
+            NhaSeq16.Encode(writer);
             if (connectionToNeighbor != null)
             {
-                throw new NotImplementedException();
-                //   txParametersToPeerNeighbor.GetSharedHmac(cryptoLibrary, this.GetFieldsForSenderHmac).Encode(writer);
+                SenderHMAC = connectionToNeighbor.GetSharedHmac(this.GetFieldsForSenderHmac);
+                SenderHMAC.Encode(writer);
             }
-            NhaSeq16.Encode(writer);
             if (connectionToNeighbor == null)
                 PacketProcedures.EncodeIPEndPoint(writer, EpEndpoint);
 
@@ -114,27 +117,55 @@ namespace Dcomms.DRP.Packets
             writer.Write(MinimalDistanceToNeighbor);
             if (includeRequesterSignature) RequesterSignature.Encode(writer);
         }
-        public readonly byte[] OriginalUdpPayloadData;
-        public RegisterSynPacket(byte[] udpPayloadData)
+        void GetFieldsForSenderHmac(BinaryWriter writer)
         {
-            OriginalUdpPayloadData = udpPayloadData;
+            SenderToken32.Encode(writer);
+            GetCommonRequesterProxierResponderFields(writer, true);
+            writer.Write(NumberOfHopsRemaining);
+            NhaSeq16.Encode(writer);
+        }
+        public byte[] OriginalUdpPayloadData;
+
+        /// <param name="receivedFromNeighborNullable">is NULL when decoding SYN from A at EP</param>
+        public static RegisterSynPacket Decode_OptionallyVerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighborNullable)
+        {
+            var r = new RegisterSynPacket();
+            r.OriginalUdpPayloadData = udpPayloadData;
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
 
             var flags = reader.ReadByte();
-            if ((flags & Flag_AtoEP) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
+            if ((flags & Flag_AtoEP) == 0)
+            {
+                if (receivedFromNeighborNullable == null) throw new UnmatchedFieldsException();
+                r.SenderToken32 = P2pConnectionToken32.Decode(reader);                
+                if (receivedFromNeighborNullable.LocalRxToken32.Equals(r.SenderToken32) == false)
+                    throw new UnmatchedFieldsException();
+            }
+            else
+            {
+                if (receivedFromNeighborNullable != null) throw new UnmatchedFieldsException();
+            }
 
-            RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
-            RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
-            Timestamp32S = reader.ReadUInt32();
-            MinimalDistanceToNeighbor = reader.ReadUInt32();
-            RequesterSignature = RegistrationSignature.Decode(reader);
+            r.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
+            r.RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
+            r.Timestamp32S = reader.ReadUInt32();
+            r.MinimalDistanceToNeighbor = reader.ReadUInt32();
+            r.RequesterSignature = RegistrationSignature.Decode(reader);
             
-            if ((flags & Flag_AtoEP) != 0) ProofOfWork2 = reader.ReadBytes(64);
-            NumberOfHopsRemaining = reader.ReadByte();
-            if ((flags & Flag_AtoEP) == 0) SenderHMAC = HMAC.Decode(reader);
-            NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
-            if ((flags & Flag_AtoEP) != 0) EpEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+            if ((flags & Flag_AtoEP) != 0) r.ProofOfWork2 = reader.ReadBytes(64);
+            r.NumberOfHopsRemaining = reader.ReadByte();
+            r.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
+            if ((flags & Flag_AtoEP) == 0)
+            {
+                r.SenderHMAC = HMAC.Decode(reader);
+                if (r.SenderHMAC.Equals(receivedFromNeighborNullable.GetSharedHmac(r.GetFieldsForSenderHmac)) == false)
+                    throw new BadSignatureException();
+            }
+            if ((flags & Flag_AtoEP) != 0) r.EpEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+
+            return r;
         }
+      
         public static bool IsAtoRP(byte[] udpPayloadData)
         {
             var flags = udpPayloadData[1];

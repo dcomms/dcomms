@@ -17,11 +17,11 @@ namespace Dcomms.DRP
         const string VisionChannelModuleName_reg_proxySide = "reg.proxy";
         const string VisionChannelModuleName_engineThread = "engineThread";
         const string VisionChannelModuleName_receiverThread = "receiverThread";
-        const string VisionChannelModuleName_ping = "ping";
-        internal void WriteToLog_ping_detail(ConnectionToNeighbor connectionToNeighbor, string message)
+        const string VisionChannelModuleName_p2p = "p2p"; // ping, direct p2p communication
+        internal void WriteToLog_p2p_detail(ConnectionToNeighbor connectionToNeighbor, string message)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_ping) <= AttentionLevel.detail)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_ping, AttentionLevel.detail, $"[{connectionToNeighbor}] {message}");
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p, AttentionLevel.detail, $"[{connectionToNeighbor}] {message}");
         }
         internal void WriteToLog_reg_proxySide_detail(string message)
         {
@@ -80,17 +80,17 @@ namespace Dcomms.DRP
         void OnReceivedBadSignature(IPEndPoint remoteEndpoint)
         {
         }
-        void HandleExceptionInRegistrationResponder(IPEndPoint remoteEndpoint, Exception exc)
+        void HandleExceptionInRegistrationResponder(IPEndPoint requesterEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, $"exception while responding to registration from {remoteEndpoint}: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, $"exception while responding to registration from {requesterEndpoint}: {exc}");
         }
-        void HandleExceptionWhileProxying(IPEndPoint remoteEndpoint, Exception exc)
+        void HandleExceptionWhileProxying(IPEndPoint requesterEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, $"exception while proxying regitration from {remoteEndpoint}: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, $"exception while proxying registration from {requesterEndpoint}: {exc}");
         }
-        void WriteToLog_reg_responderSide_detail(string message)
+        internal void WriteToLog_reg_responderSide_detail(string message)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.detail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, message);

@@ -57,18 +57,18 @@ namespace Dcomms.DRP
         /// <summary>
         /// is executed by receiver thread
         /// </summary>
-        void ProcessRegisterPow1RequestPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData)
+        void ProcessRegisterPow1RequestPacket(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
         {
             var packet = new RegisterPow1RequestPacket(udpPayloadData);
-            if (!PassPow1filter(remoteEndpoint, packet))
+            if (!PassPow1filter(requesterEndpoint, packet))
             {
                 if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}");
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {requesterEndpoint}");
                 return;
             }
 
             // create Pow2 request state
-            var pow2RequestState = _pow2RequestsTable.GenerateOrGetExistingPow2(remoteEndpoint);
+            var pow2RequestState = _pow2RequestsTable.GenerateOrGetExistingPow2(requesterEndpoint);
 
             var response = new RegisterPow1ResponsePacket
             {  
@@ -76,20 +76,20 @@ namespace Dcomms.DRP
                 StatusCode = RegisterPow1ResponseStatusCode.succeeded_Pow2Challenge,
                 Pow1RequestId = packet.Pow1RequestId
             };
-            SendPacket(response.Encode(), remoteEndpoint);
+            SendPacket(response.Encode(), requesterEndpoint);
         }
 
         /// <summary>
         /// sends responses 
         /// executed by receiver thread
         /// </summary>
-        bool PassPow1filter(IPEndPoint remoteEndpoint, RegisterPow1RequestPacket packet)
+        bool PassPow1filter(IPEndPoint requesterEndpoint, RegisterPow1RequestPacket packet)
         {
             // verify size of Pow1 data
             if (packet.ProofOfWork1.Length != 64)
             {
                 if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: invalid pow1 length");
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {requesterEndpoint}: invalid pow1 length");
                 return false;
             }
 
@@ -98,19 +98,19 @@ namespace Dcomms.DRP
             if (timeDifferenceSec > Configuration.RegisterPow1_MaxTimeDifferenceS)
             {
                 if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: invalid timestamp");
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {requesterEndpoint}: invalid timestamp");
 
                 // respond with error "try again with valid clock" - legitimate user has to get valid clock from some time server and synchronize itself with the server
-                if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1withError(remoteEndpoint, RegisterPow1ResponseStatusCode.rejected_badtimestamp, packet.Pow1RequestId);
+                if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1withError(requesterEndpoint, RegisterPow1ResponseStatusCode.rejected_badtimestamp, packet.Pow1RequestId);
                 return false;
             }
 
-            if (!Pow1IsOK(packet, remoteEndpoint.Address.GetAddressBytes()))
+            if (!Pow1IsOK(packet, requesterEndpoint.Address.GetAddressBytes()))
             {
                 if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: invalid pow1");
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {requesterEndpoint}: invalid pow1");
 
-                OnReceivedBadRegisterSynPow1(remoteEndpoint);
+                OnReceivedBadRegisterSynPow1(requesterEndpoint);
                 // no response
                 return false;
             }
@@ -120,43 +120,43 @@ namespace Dcomms.DRP
             if (dataIsUnique)
             {
                 if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: pow1 data is not unique");
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {requesterEndpoint}: pow1 data is not unique");
                 return true;
             }
             else
             {
                 // respond with error "try again with unique PoW data"
-                if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1withError(remoteEndpoint, RegisterPow1ResponseStatusCode.rejected_tryagainRightNowWithThisServer, packet.Pow1RequestId);
+                if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1withError(requesterEndpoint, RegisterPow1ResponseStatusCode.rejected_tryagainRightNowWithThisServer, packet.Pow1RequestId);
                 return false;
             }             
         }
-        void RespondToRegisterPow1withError(IPEndPoint remoteEndpoint, RegisterPow1ResponseStatusCode statusCode, uint pow1RequestId)
+        void RespondToRegisterPow1withError(IPEndPoint requesterEndpoint, RegisterPow1ResponseStatusCode statusCode, uint pow1RequestId)
         {
             var response = new RegisterPow1ResponsePacket
             {
                 StatusCode = statusCode,
                 Pow1RequestId = pow1RequestId
             };
-            SendPacket(response.Encode(), remoteEndpoint);
+            SendPacket(response.Encode(), requesterEndpoint);
         }
         
         /// <summary>
         /// is executed by receiver thread
         /// </summary>
-        void ProcessRegisterSynAtoEpPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData)
+        void ProcessRegisterSynAtoEpPacket(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
         {  
-            var pow2RequestState = _pow2RequestsTable.TryGetPow2RequestState(remoteEndpoint);
+            var pow2RequestState = _pow2RequestsTable.TryGetPow2RequestState(requesterEndpoint);
             if (pow2RequestState == null)
             {
-                OnReceivedRegisterSynAtoEpPacketFromUnknownSource(remoteEndpoint);
+                OnReceivedRegisterSynAtoEpPacketFromUnknownSource(requesterEndpoint);
                 return;
             }
 
-            var registerSynPacket = new RegisterSynPacket(udpPayloadData);
+            var syn = RegisterSynPacket.Decode_OptionallyVerifySenderHMAC(udpPayloadData, null);
 
-            if (!Pow2IsOK(registerSynPacket, pow2RequestState.ProofOfWork2Request))
+            if (!Pow2IsOK(syn, pow2RequestState.ProofOfWork2Request))
             {
-                OnReceivedRegisterSynAtoEpPacketWithBadPow2(remoteEndpoint);
+                OnReceivedRegisterSynAtoEpPacketWithBadPow2(requesterEndpoint);
                 // intentionally we dont respond to requester, in case if it is attack
                 return;
             }
@@ -164,25 +164,25 @@ namespace Dcomms.DRP
           
             _engineThreadQueue.Enqueue(() =>
             {             
-                RouteRegistrationRequest(registerSynPacket, out var proxyTo, out var acceptAt); // routing
+                RouteRegistrationRequest(syn, out var proxyToDestinationPeer, out var acceptAt); // routing
 
                 if (acceptAt != null)
                 {   // accept the registration request here, at EP
-                    _ = AcceptRegisterRequestAsync(acceptAt, registerSynPacket, remoteEndpoint);
+                    _ = AcceptRegisterRequestAsync(acceptAt, syn, requesterEndpoint);
                 }
-                else if (proxyTo != null)
-                {  // proxy the registration request via the local EP to another peer "proxyTo"
-                    _ = ProxyRegisterRequestAtEntryPeerAsync(proxyTo, registerSynPacket, remoteEndpoint);
+                else if (proxyToDestinationPeer != null)
+                {  // proxy the registration request via the local EP to another peer
+                    _ = ProxyRegisterRequestAtEntryPeerAsync(proxyToDestinationPeer, syn, requesterEndpoint);
                 }
                 else throw new Exception();
             });
         }
         /// <summary>
-        /// main routing procedure for REGISTER requests
+        /// main routing procedure for register SYN requests
         /// </summary>
-        void RouteRegistrationRequest(RegisterSynPacket registerSynPacket, out ConnectionToNeighbor proxyTo, out LocalDrpPeer acceptAt)
+        void RouteRegistrationRequest(RegisterSynPacket registerSynPacket, out ConnectionToNeighbor proxyToDestinationPeer, out LocalDrpPeer acceptAt)
         {
-            proxyTo = null;
+            proxyToDestinationPeer = null;
             acceptAt = null;
             RegistrationPublicKeyDistance minDistance = null;
             foreach (var localPeer in LocalPeers.Values)
@@ -193,7 +193,7 @@ namespace Dcomms.DRP
                     if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
                     {
                         minDistance = distanceToConnectedPeer;
-                        proxyTo = connectedPeer;
+                        proxyToDestinationPeer = connectedPeer;
                         acceptAt = null;
                     }
                 }
@@ -201,7 +201,7 @@ namespace Dcomms.DRP
                 if (minDistance == null || minDistance.IsGreaterThan(distanceToLocalPeer))
                 {
                     minDistance = distanceToLocalPeer;
-                    proxyTo = null;
+                    proxyToDestinationPeer = null;
                     acceptAt = localPeer;
                 }
             }
@@ -237,7 +237,7 @@ namespace Dcomms.DRP
         /// generates new pow2request object
         /// resets state when necessary
         /// </summary>
-        public Pow2RequestState GenerateOrGetExistingPow2(IPEndPoint remoteEndpoint)
+        public Pow2RequestState GenerateOrGetExistingPow2(IPEndPoint requesterEndpoint)
         {
             var timeNowRel = TimeNowRel;
 
@@ -248,7 +248,7 @@ namespace Dcomms.DRP
                 _nextPeriodSwitchTimeRel = timeNowRel + _config.Pow2RequestStatesTablePeriod;
             }
 
-            var existingPow2RequestState = TryGetPow2RequestState(remoteEndpoint);
+            var existingPow2RequestState = TryGetPow2RequestState(requesterEndpoint);
             if (existingPow2RequestState != null) return existingPow2RequestState;
 
             var r = new Pow2RequestState
@@ -256,14 +256,14 @@ namespace Dcomms.DRP
                 ProofOfWork2Request = new byte[16]
             };
             _rnd.NextBytes(r.ProofOfWork2Request);
-            _currentPeriodStates.Add(remoteEndpoint, r);
+            _currentPeriodStates.Add(requesterEndpoint, r);
             return r;
         }
-        public Pow2RequestState TryGetPow2RequestState(IPEndPoint remoteEndpoint)
+        public Pow2RequestState TryGetPow2RequestState(IPEndPoint requesterEndpoint)
         {
-            if (_currentPeriodStates.TryGetValue(remoteEndpoint, out var r))
+            if (_currentPeriodStates.TryGetValue(requesterEndpoint, out var r))
                 return r;
-            if (_previousPeriodStates.TryGetValue(remoteEndpoint, out r))
+            if (_previousPeriodStates.TryGetValue(requesterEndpoint, out r))
                 return r;
             return null;
         }

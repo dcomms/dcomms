@@ -143,20 +143,20 @@ namespace Dcomms.DRP
                     );
                 var synToSynAckStopwatch = Stopwatch.StartNew();
 
-                WriteToLog_reg_requesterSide_detail($"sending syn, waiting for NextHopAck. NhaSeq16={syn.NhaSeq16}");
+                WriteToLog_reg_requesterSide_detail($"sending SYN, waiting for NHACK. NhaSeq16={syn.NhaSeq16}");
                 await OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(syn.Encode(null), epEndpoint, syn.NhaSeq16);
 
                 #endregion
 
                 #region wait for RegisterSynAckPacket
-                WriteToLog_reg_requesterSide_detail($"waiting for synAck");
+                WriteToLog_reg_requesterSide_detail($"waiting for SYNACK");
                 var registerSynAckPacketData = await WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(epEndpoint,
                                 RegisterSynAckPacket.GetScanner(syn.RequesterPublicKey_RequestID, syn.Timestamp32S),
                                 DateTimeNowUtc, Configuration.RegSynAckRequesterSideTimoutS                               
                             ));
                 if (registerSynAckPacketData == null) throw new DrpTimeoutException();
                 var synAck = RegisterSynAckPacket.DecodeAndVerifyAtRequester(registerSynAckPacketData, syn, connectionToNeighbor);
-                WriteToLog_reg_requesterSide_detail($"verified synAck");
+                WriteToLog_reg_requesterSide_detail($"verified SYNACK");
                 #endregion
 
                 connectionToNeighbor.LocalEndpoint = synAck.RequesterEndpoint;
@@ -172,10 +172,10 @@ namespace Dcomms.DRP
                     NhaSeq16 = GetNewNhaSeq16()
                 };            
                 ack.ToRequesterTxParametersEncrypted = connectionToNeighbor.EncryptAtRegisterRequester(syn, synAck, ack);
-                connectionToNeighbor.InitializeNeighborTxRxStreams(syn, synAck, ack);
+                connectionToNeighbor.InitializeP2pStream(syn, synAck, ack);
                 ack.RequesterHMAC = connectionToNeighbor.GetSharedHmac(w => ack.GetCommonRequesterProxierResponderFields(w, false, true));
 
-                WriteToLog_reg_requesterSide_detail($"sending ACK, waiting for NextHopAck");
+                WriteToLog_reg_requesterSide_detail($"sending ACK, waiting for NHACK");
                 RespondToRequestAndRetransmissions(registerSynAckPacketData, ack.Encode(null), epEndpoint);
                 await OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(null, epEndpoint, ack.NhaSeq16);
                 #endregion

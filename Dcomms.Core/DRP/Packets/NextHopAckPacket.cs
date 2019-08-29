@@ -63,9 +63,10 @@ namespace Dcomms.DRP.Packets
     }
     enum NextHopResponseCode
     {
-        accepted, // is sent to previous hop immediately when packet is proxied, to stop retransmission timer
-        rejected_overloaded,
-        rejected_rateExceeded, // anti-ddos
+        accepted = 0, // is sent to previous hop immediately when packet is proxied, to stop retransmission timer
+        rejected_overloaded = 1,
+        rejected_rateExceeded = 2, // anti-ddos
+        rejected_numberOfHopsRemainingReachedZero = 3
     }
 
 

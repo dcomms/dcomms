@@ -8,7 +8,7 @@ namespace Dcomms.DRP
 {
 	/// <summary>
     /// low-level requests, retransmissions  
-    /// used for registration requester-side and for synAck responder-side
+    /// used for registration requester-side and for SYNACK responder-side
     /// </summary>
     public partial class DrpPeerEngine
     {
@@ -18,12 +18,12 @@ namespace Dcomms.DRP
         /// </summary>
         LinkedList<PendingLowLevelUdpRequest> _pendingLowLevelUdpRequests = new LinkedList<PendingLowLevelUdpRequest>(); 
 
-        async Task<NextHopAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(byte[] requestPacketDataNullable, IPEndPoint remoteEndpoint, NextHopAckSequenceNumber16 nhaSeq16)
+        internal async Task<NextHopAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, NextHopAckSequenceNumber16 nhaSeq16)
         {
             var nhaScanner = NextHopAckPacket.GetScanner(nhaSeq16);
             WriteToLog_reg_responderSide_detail($"waiting for nextHopAck, scanner: {MiscProcedures.ByteArrayToString(nhaScanner.ResponseFirstBytes)} nhaSeq={nhaSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
-                     new PendingLowLevelUdpRequest(remoteEndpoint,
+                     new PendingLowLevelUdpRequest(responderEndpoint,
                          nhaScanner, 
                          DateTimeNowUtc, Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
                          requestPacketDataNullable,                      
@@ -38,10 +38,10 @@ namespace Dcomms.DRP
             return nextHopResponsePacket;
         }
 
-        async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(byte[] requestPacketDataNullable, IPEndPoint remoteEndpoint, LowLevelUdpResponseScanner responseScanner)
+        async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner)
         {
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
-                     new PendingLowLevelUdpRequest(remoteEndpoint,
+                     new PendingLowLevelUdpRequest(responderEndpoint,
                          responseScanner, DateTimeNowUtc, Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
                          requestPacketDataNullable,
                          Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
@@ -60,13 +60,12 @@ namespace Dcomms.DRP
         async Task<byte[]> SendUdpRequestAsync_Retransmit(PendingLowLevelUdpRequest request)
         {
             request.InitialTxTimeUTC = DateTimeNowUtc;
-            if (request.RequestPacketDataNullable != null) SendPacket(request.RequestPacketDataNullable, request.RemoteEndpoint);          
+            if (request.RequestPacketDataNullable != null) SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);          
             return await WaitForUdpResponseAsync(request);
         }
 		internal void SendPacket(byte[] udpPayload, IPEndPoint remoteEndpoint)
         {
             _socket.Send(udpPayload, udpPayload.Length, remoteEndpoint);
-
             WriteToLog_receiver_detail($"sent packet {(DrpPacketType)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes)");
         }
         async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
@@ -94,7 +93,7 @@ namespace Dcomms.DRP
                 else if (request.RequestPacketDataNullable != null && timeNowUTC > request.NextRetransmissionTimeUTC)
                 {
                     request.OnRetransmitted();
-                    SendPacket(request.RequestPacketDataNullable, request.RemoteEndpoint);
+                    SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);
                 }
                 item = item.Next;
             }
@@ -106,16 +105,16 @@ namespace Dcomms.DRP
         /// <returns>
         /// true if the response is linked to request, and the packet is processed
         /// </returns>
-        bool PendingUdpRequests_ProcessPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc)
+        bool PendingUdpRequests_ProcessPacket(IPEndPoint responderEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc)
         {
             for (var item = _pendingLowLevelUdpRequests.First; item != null; item = item.Next)
             {
                 var request = item.Value;
 
-                WriteToLog_receiver_detail($"matching to pending request... remoteEndpoint={remoteEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)} " +
-                    $"request.RemoteEndpoint={request.RemoteEndpoint} request.ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
+                WriteToLog_receiver_detail($"matching to pending request... responderEndpoint={responderEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)} " +
+                    $"request.ResponderEndpoint={request.ResponderEndpoint} request.ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
 
-                if (request.RemoteEndpoint.Equals(remoteEndpoint) && request.ResponseScanner.Scan(udpPayloadData))
+                if (request.ResponderEndpoint.Equals(responderEndpoint) && request.ResponseScanner.Scan(udpPayloadData))
                 {
                     _pendingLowLevelUdpRequests.Remove(item);
                     request.ResponseReceivedAtUtc = receivedAtUtc;
@@ -139,27 +138,27 @@ namespace Dcomms.DRP
         /// sends response to requests
         /// creates an object "ResponderToRetransmittedRequests" which handles further restransmitted requests (in case if the sent response gets lost)
         /// </summary>
-        void RespondToRequestAndRetransmissions(byte[] requestUdpPayloadData, byte[] responseUdpPayloadData, IPEndPoint remoteEndpoint)
+        void RespondToRequestAndRetransmissions(byte[] requestUdpPayloadData, byte[] responseUdpPayloadData, IPEndPoint requesterEndpoint)
         {
-            SendPacket(responseUdpPayloadData, remoteEndpoint);
+            SendPacket(responseUdpPayloadData, requesterEndpoint);
             _respondersToRetransmittedRequests.AddLast(new ResponderToRetransmittedRequests
             {
                 RequestUdpPayloadData = requestUdpPayloadData,
                 ResponseUdpPayloadData = responseUdpPayloadData,
-                RemoteEndpoint = remoteEndpoint,
+                RequesterEndpoint = requesterEndpoint,
                 ExpirationTimeUTC = DateTimeNowUtc + Configuration.ResponderToRetransmittedRequestsTimeout
             });
         }
 
 
-        bool RespondersToRetransmittedRequests_ProcessPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData)
+        bool RespondersToRetransmittedRequests_ProcessPacket(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
         {
             for (var item = _respondersToRetransmittedRequests.First; item != null; item = item.Next)
             {
                 var responder = item.Value;
-                if (responder.RemoteEndpoint.Equals(remoteEndpoint) && MiscProcedures.EqualByteArrays(responder.RequestUdpPayloadData, udpPayloadData))
+                if (responder.RequesterEndpoint.Equals(requesterEndpoint) && MiscProcedures.EqualByteArrays(responder.RequestUdpPayloadData, udpPayloadData))
                 {
-                    SendPacket(responder.ResponseUdpPayloadData, remoteEndpoint);
+                    SendPacket(responder.ResponseUdpPayloadData, requesterEndpoint);
                     return true;
                 }
             }
@@ -184,12 +183,12 @@ namespace Dcomms.DRP
     }
 
     /// <summary>
-    /// waits for expirationTimeoutS timeout, or for response packet from remoteEndpoint with first bytes = responseFirstBytes
+    /// waits for expirationTimeoutS timeout, or for response packet from responderEndpoint with first bytes = responseFirstBytes
     /// optionally retransmits the request
     /// </summary>
     class PendingLowLevelUdpRequest
     {
-        public IPEndPoint RemoteEndpoint;
+        public IPEndPoint ResponderEndpoint;
         public LowLevelUdpResponseScanner ResponseScanner;
         public byte[] RequestPacketDataNullable; // is null when no need to retransmit request packet during the waiting
         public DateTime ExpirationTimeUTC;
@@ -197,7 +196,7 @@ namespace Dcomms.DRP
         public TaskCompletionSource<byte[]> TaskCompletionSource = new TaskCompletionSource<byte[]>();
         public DateTime? ResponseReceivedAtUtc;
         double? _currentRetransmissionTimeoutS;
-        public PendingLowLevelUdpRequest(IPEndPoint remoteEndpoint, LowLevelUdpResponseScanner responseScanner, DateTime timeUtc, 
+        public PendingLowLevelUdpRequest(IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, DateTime timeUtc, 
             double expirationTimeoutS,
             byte[] requestPacketDataNullable = null, double? initialRetransmissionTimeoutS = null, double? retransmissionTimeoutIncrement = null)
         {
@@ -205,7 +204,7 @@ namespace Dcomms.DRP
             ExpirationTimeUTC = timeUtc.AddSeconds(expirationTimeoutS);
             _currentRetransmissionTimeoutS = initialRetransmissionTimeoutS;
             if (_currentRetransmissionTimeoutS.HasValue) NextRetransmissionTimeUTC = timeUtc.AddSeconds(_currentRetransmissionTimeoutS.Value);
-            RemoteEndpoint = remoteEndpoint;
+            ResponderEndpoint = responderEndpoint;
             ResponseScanner = responseScanner;
             RequestPacketDataNullable = requestPacketDataNullable;
         }
@@ -232,7 +231,7 @@ namespace Dcomms.DRP
     {
         public byte[] RequestUdpPayloadData;
         public byte[] ResponseUdpPayloadData;
-        public IPEndPoint RemoteEndpoint;
+        public IPEndPoint RequesterEndpoint;
         public DateTime ExpirationTimeUTC;
     }
 }

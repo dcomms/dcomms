@@ -41,7 +41,7 @@ namespace Dcomms.DRP
     //    internal ConnectedDrpPeer NewConnectionToRequester; // goes into "connected peers" only after registerACK // or gets disposed on timeout
 
     //    /// <summary>
-    //    /// is executed when synAck is transmitted by responder
+    //    /// is executed when SYNACK is transmitted by responder
     //    /// </summary>
     //    public PendingAcceptedRegisterRequest(DrpPeerEngine drpPeerEngine, RegisterSynPacket registerSynPacket, RegisterSynAckPacket registerSynAckPacket, 
     //        byte[] registerSynAckUdpPayload, byte[] localEcdhe25519PrivateKey, DateTime registerSynTimeUtc)
