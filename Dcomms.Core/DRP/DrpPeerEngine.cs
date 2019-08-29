@@ -101,17 +101,17 @@ namespace Dcomms.DRP
         {
             var packetType = (DrpPacketType)udpPayloadData[0];
             WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint} ({udpPayloadData.Length} bytes)");
-            if (packetType == DrpPacketType.RegisterPow1RequestPacket)
+            if (packetType == DrpPacketType.RegisterPow1Request)
             {
                 ProcessRegisterPow1RequestPacket(remoteEndpoint, udpPayloadData);
                 return;
             }
 
-            if (packetType == DrpPacketType.RegisterSynPacket)
+            if (packetType == DrpPacketType.RegisterSyn)
             {
                 if (RegisterSynPacket.IsAtoRP(udpPayloadData))
                 {
-                    ProcessRegisterSynAtoRpPacket(remoteEndpoint, udpPayloadData);
+                    ProcessRegisterSynAtoEpPacket(remoteEndpoint, udpPayloadData);
                     return;
                 }
             }
@@ -124,19 +124,19 @@ namespace Dcomms.DRP
 
                 switch (packetType)
                 {
-                    case DrpPacketType.PingRequestPacket:
+                    case DrpPacketType.Ping:
                         {
-                            var localRxToken16 = PingRequestPacket.DecodeToken16FromUdpPayloadData(udpPayloadData);
+                            var localRxToken16 = PingPacket.DecodeToken16FromUdpPayloadData(udpPayloadData);
                             var connectedPeer = ConnectedPeersByToken16[localRxToken16];
                             if (connectedPeer != null)
-                                connectedPeer.OnReceivedPingRequestPacket(remoteEndpoint, udpPayloadData);
+                                connectedPeer.OnReceivedPing(remoteEndpoint, udpPayloadData);
                         } break;
-                    case DrpPacketType.PingResponsePacket:
+                    case DrpPacketType.Pong:
                         {
-                            var localRxToken16 = PingResponsePacket.DecodeToken16FromUdpPayloadData(udpPayloadData);
+                            var localRxToken16 = PongPacket.DecodeToken16FromUdpPayloadData(udpPayloadData);
                             var connectedPeer = ConnectedPeersByToken16[localRxToken16];
                             if (connectedPeer != null)
-                                connectedPeer.OnReceivedPingResponsePacket(remoteEndpoint, udpPayloadData, receivedAtUtc);
+                                connectedPeer.OnReceivedPong(remoteEndpoint, udpPayloadData, receivedAtUtc);
                         } break;
                 }
 

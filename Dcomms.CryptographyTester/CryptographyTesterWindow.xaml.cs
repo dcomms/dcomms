@@ -28,11 +28,11 @@ namespace Dcomms.CryptographyTester
             readonly Stopwatch _sw = Stopwatch.StartNew();
             readonly DateTime _started = DateTime.Now;
             string TimeNowStr => (_started + _sw.Elapsed).ToString("HH:mm:ss.fff");
-            public override void Emit(string sourceId, string objectName, AttentionLevel level, string message)
+            public override void Emit(string sourceId, string moduleName, AttentionLevel level, string message)
             {
                 var msg = new LogMessage
                 {
-                    Text = $"{TimeNowStr} [{Thread.CurrentThread.ManagedThreadId} {sourceId}] {objectName} {message}"
+                    Text = $"{TimeNowStr} [{Thread.CurrentThread.ManagedThreadId} {sourceId}] {moduleName} {message}"
                 };
                 App.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                 {

@@ -119,7 +119,7 @@ namespace Dcomms.DRP
                        
             var connectionToNeighbor = new ConnectionToNeighbor(this, localDrpPeer, ConnectedDrpPeerInitiatedBy.localPeer);
             RegisterSynPacket syn;
-            PingResponsePacket pingResponse;
+            PongPacket pong;
             PendingLowLevelUdpRequest pendingPingRequest;
             try
             {
@@ -189,9 +189,9 @@ namespace Dcomms.DRP
                 localDrpPeer.ConnectedPeers.Add(connectionToNeighbor);
 
                 #region send ping request directly to neighbor N, retransmit               
-                var pingRequest = connectionToNeighbor.CreatePingRequestPacket(true);
+                var pingRequest = connectionToNeighbor.CreatePing(true);
                 pendingPingRequest = new PendingLowLevelUdpRequest(connectionToNeighbor.RemoteEndpoint,
-                                PingResponsePacket.GetScanner(connectionToNeighbor.LocalRxToken32, pingRequest.PingRequestId32),
+                                PongPacket.GetScanner(connectionToNeighbor.LocalRxToken32, pingRequest.PingRequestId32),
                                 DateTimeNowUtc,
                                 Configuration.InitialPingRequests_ExpirationTimeoutS,
                                 pingRequest.Encode(),
@@ -199,14 +199,14 @@ namespace Dcomms.DRP
                                 Configuration.InitialPingRequests_RetransmissionTimeoutIncrement
                             );
 
-                WriteToLog_reg_requesterSide_detail($"sending pingRequest, waiting for pingResponse");
-                var pingResponsePacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pingResponse from N
-                if (pingResponsePacketData == null) throw new DrpTimeoutException();
-                pingResponse = PingResponsePacket.DecodeAndVerify(_cryptoLibrary,
-                    pingResponsePacketData, pingRequest, connectionToNeighbor,
+                WriteToLog_reg_requesterSide_detail($"sending ping, waiting for pong");
+                var pongPacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest);
+                if (pongPacketData == null) throw new DrpTimeoutException();
+                pong = PongPacket.DecodeAndVerify(_cryptoLibrary,
+                    pongPacketData, pingRequest, connectionToNeighbor,
                     true);
-                WriteToLog_reg_requesterSide_detail($"verified pingResponse");
-                connectionToNeighbor.OnReceivedVerifiedPingResponse(pingResponse, pendingPingRequest.ResponseReceivedAtUtc.Value,
+                WriteToLog_reg_requesterSide_detail($"verified pong");
+                connectionToNeighbor.OnReceivedVerifiedPong(pong, pendingPingRequest.ResponseReceivedAtUtc.Value,
                     pendingPingRequest.ResponseReceivedAtUtc.Value - pendingPingRequest.InitialTxTimeUTC.Value);
                 #endregion
             }
@@ -225,7 +225,7 @@ namespace Dcomms.DRP
                 {
                     RegisterSynTimestamp32S = syn.Timestamp32S,
                     RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
-                    ResponderRegistrationConfirmationSignature = pingResponse.ResponderRegistrationConfirmationSignature,
+                    ResponderRegistrationConfirmationSignature = pong.ResponderRegistrationConfirmationSignature,
                     NhaSeq16 = GetNewNhaSeq16()
                 };
                 cfm.RequesterRegistrationConfirmationSignature = RegistrationSignature.Sign(_cryptoLibrary,

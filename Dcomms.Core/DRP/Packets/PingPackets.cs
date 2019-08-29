@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Dcomms.DRP.Packets
 {
-    public class PingRequestPacket
+    public class PingPacket
     {
         public P2pConnectionToken32 SenderToken32;
         public const byte Flags_RegistrationConfirmationSignatureRequested = 0x01;
@@ -26,7 +26,7 @@ namespace Dcomms.DRP.Packets
         }
         public void GetSignedFieldsForSenderHMAC(BinaryWriter writer)
         {
-            writer.Write((byte)DrpPacketType.PingRequestPacket);
+            writer.Write((byte)DrpPacketType.Ping);
             SenderToken32.Encode(writer);
             writer.Write(Flags);
             writer.Write(PingRequestId32);
@@ -46,11 +46,11 @@ namespace Dcomms.DRP.Packets
             return (ushort)(udpPayloadData[1] | (udpPayloadData[2] << 8));
         }
 
-        public static PingRequestPacket DecodeAndVerify(byte[] udpPayloadData, ConnectionToNeighbor connectedPeerWhoSentTheRequest)
+        public static PingPacket DecodeAndVerify(byte[] udpPayloadData, ConnectionToNeighbor connectedPeerWhoSentTheRequest)
         {
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
 
-            var r = new PingRequestPacket();
+            var r = new PingPacket();
             r.SenderToken32 = P2pConnectionToken32.Decode(reader);
             r.Flags = reader.ReadByte();              
             r.PingRequestId32 = reader.ReadUInt32();
@@ -72,7 +72,7 @@ namespace Dcomms.DRP.Packets
 
         }
     }
-    public class PingResponsePacket
+    public class PongPacket
     {
         /// <summary>
         /// authenticates sender peer at receiver side
@@ -80,7 +80,7 @@ namespace Dcomms.DRP.Packets
         public P2pConnectionToken32 SenderToken32;
         public uint PingRequestId32;  // must match to request
        // byte Flags;
-        const byte Flags_ResponderRegistrationConfirmationSignature = 0x01;
+        const byte Flags_ResponderRegistrationConfirmationSignatureExists = 0x01;
         /// <summary>
         /// comes from responder neighbor when connection is set up; in other cases it is NULL
         /// signs fields: 
@@ -97,19 +97,19 @@ namespace Dcomms.DRP.Packets
         public HMAC SenderHMAC; // signs { SenderToken32,PingRequestId32,(optional)ResponderRegistrationConfirmationSignature }
 
         /// <param name="reader">is positioned after first byte = packet type</param>
-        public static PingResponsePacket DecodeAndVerify(ICryptoLibrary cryptoLibrary,
-            byte[] udpPayloadData, PingRequestPacket optionalPingRequestPacketToCheckRequestId32, 
+        public static PongPacket DecodeAndVerify(ICryptoLibrary cryptoLibrary,
+            byte[] udpPayloadData, PingPacket optionalPingRequestPacketToCheckRequestId32, 
             ConnectionToNeighbor connectedPeerWhoSentTheResponse, bool requireSignature
             )
         {
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
-            var r = new PingResponsePacket();
+            var r = new PongPacket();
             r.SenderToken32 = P2pConnectionToken32.Decode(reader);
             r.PingRequestId32 = reader.ReadUInt32();
             var flags = reader.ReadByte();            
  
             // verify signature of N
-            if ((flags & Flags_ResponderRegistrationConfirmationSignature) != 0)
+            if ((flags & Flags_ResponderRegistrationConfirmationSignatureExists) != 0)
                 r.ResponderRegistrationConfirmationSignature = RegistrationSignature.DecodeAndVerify(reader, cryptoLibrary, 
                     w => connectedPeerWhoSentTheResponse.GetResponderRegistrationConfirmationSignatureFields(w), 
                     connectedPeerWhoSentTheResponse.RemotePeerPublicKey);
@@ -154,7 +154,7 @@ namespace Dcomms.DRP.Packets
         }
         static void GetHeaderFields(BinaryWriter writer, P2pConnectionToken32 senderToken32, uint pingRequestId32)
         {
-            writer.Write((byte)DrpPacketType.PingResponsePacket);
+            writer.Write((byte)DrpPacketType.Pong);
             senderToken32.Encode(writer);
             writer.Write(pingRequestId32);
         }
@@ -171,7 +171,7 @@ namespace Dcomms.DRP.Packets
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             GetHeaderFields(writer, SenderToken32, PingRequestId32);           
             byte flags = 0;
-            if (ResponderRegistrationConfirmationSignature != null) flags |= Flags_ResponderRegistrationConfirmationSignature;
+            if (ResponderRegistrationConfirmationSignature != null) flags |= Flags_ResponderRegistrationConfirmationSignatureExists;
             writer.Write(flags);
             if (ResponderRegistrationConfirmationSignature != null) ResponderRegistrationConfirmationSignature.Encode(writer);
             SenderHMAC.Encode(writer);

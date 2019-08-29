@@ -9,15 +9,15 @@ namespace Dcomms.DRP.Packets
 {
     enum DrpPacketType
     {
-        RegisterPow1RequestPacket = 1,
-        RegisterPow1ResponsePacket = 2,
-        RegisterSynPacket = 3,
-        NextHopAckPacket = 4,
-        RegisterSynAckPacket = 5,
-        RegisterAckPacket = 6,
-        PingRequestPacket = 7,
-        PingResponsePacket = 8,
-        RegisterConfirmationPacket = 9,
+        RegisterPow1Request = 1,
+        RegisterPow1Response = 2,
+        RegisterSyn = 3,
+        NextHopAck = 4,
+        RegisterSynAck = 5,
+        RegisterAck = 6,
+        Ping = 7,
+        Pong = 8,
+        RegisterConfirmation = 9,
     }
           
     public enum DrpResponderStatusCode

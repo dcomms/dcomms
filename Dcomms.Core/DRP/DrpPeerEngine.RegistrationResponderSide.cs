@@ -82,28 +82,26 @@ namespace Dcomms.DRP
 
                     _ = WaitForRegistrationConfirmationRequestAsync(remoteEndpoint, registerSynPacket, newConnectionToNeighbor);
 
-                    #region send pingRequest, verify pingResponse
-                    var pingRequestPacket = newConnectionToNeighbor.CreatePingRequestPacket(true);
+                    #region send ping, verify pong
+                    var ping = newConnectionToNeighbor.CreatePing(true);
                     
                     var pendingPingRequest = new PendingLowLevelUdpRequest(newConnectionToNeighbor.RemoteEndpoint,
-                                    PingResponsePacket.GetScanner(newConnectionToNeighbor.LocalRxToken32, pingRequestPacket.PingRequestId32), DateTimeNowUtc,
+                                    PongPacket.GetScanner(newConnectionToNeighbor.LocalRxToken32, ping.PingRequestId32), DateTimeNowUtc,
                                     Configuration.InitialPingRequests_ExpirationTimeoutS,
-                                    pingRequestPacket.Encode(),
+                                    ping.Encode(),
                                     Configuration.InitialPingRequests_InitialRetransmissionTimeoutS,
                                     Configuration.InitialPingRequests_RetransmissionTimeoutIncrement
                                 );
 
-                    WriteToLog_reg_responderSide_detail($"sent pingRequest");
-                    var pingResponsePacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pingResponse from A
-                    if (pingResponsePacketData == null) throw new DrpTimeoutException();
-                    var pingResponse = PingResponsePacket.DecodeAndVerify(_cryptoLibrary,
-                        pingResponsePacketData, pingRequestPacket, newConnectionToNeighbor,
+                    WriteToLog_reg_responderSide_detail($"sent ping");
+                    var pongPacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pong from A
+                    if (pongPacketData == null) throw new DrpTimeoutException();
+                    var pong = PongPacket.DecodeAndVerify(_cryptoLibrary,
+                        pongPacketData, ping, newConnectionToNeighbor,
                         true);
-                    WriteToLog_reg_responderSide_detail($"verified pingResponse");
-
-                    newConnectionToNeighbor.OnReceivedVerifiedPingResponse(pingResponse, pendingPingRequest.ResponseReceivedAtUtc.Value,
+                    WriteToLog_reg_responderSide_detail($"verified pong");
+                    newConnectionToNeighbor.OnReceivedVerifiedPong(pong, pendingPingRequest.ResponseReceivedAtUtc.Value,
                         pendingPingRequest.ResponseReceivedAtUtc.Value - pendingPingRequest.InitialTxTimeUTC.Value);
-
                     #endregion
                 }
                 catch
@@ -114,7 +112,7 @@ namespace Dcomms.DRP
             }
 			catch (Exception exc)
             {
-                HandleExceptionWhileConnectingToA(remoteEndpoint, exc);
+                HandleExceptionInRegistrationResponder(remoteEndpoint, exc);
             }
             finally
             {
@@ -138,7 +136,7 @@ namespace Dcomms.DRP
 			catch (Exception exc)
             {
                 newConnectionToNeighbor.Dispose();
-                HandleExceptionWhileConnectingToA(remoteEndpoint, exc);
+                HandleExceptionInRegistrationResponder(remoteEndpoint, exc);
             }
         }
 

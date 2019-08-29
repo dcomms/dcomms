@@ -143,12 +143,12 @@ namespace Dcomms.DRP
         /// <summary>
         /// is executed by receiver thread
         /// </summary>
-        void ProcessRegisterSynAtoRpPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData)
+        void ProcessRegisterSynAtoEpPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData)
         {  
             var pow2RequestState = _pow2RequestsTable.TryGetPow2RequestState(remoteEndpoint);
             if (pow2RequestState == null)
             {
-                OnReceivedRegisterSynAtoRpPacketFromUnknownSource(remoteEndpoint);
+                OnReceivedRegisterSynAtoEpPacketFromUnknownSource(remoteEndpoint);
                 return;
             }
 
@@ -156,7 +156,7 @@ namespace Dcomms.DRP
 
             if (!Pow2IsOK(registerSynPacket, pow2RequestState.ProofOfWork2Request))
             {
-                OnReceivedRegisterSynAtoRpPacketWithBadPow2(remoteEndpoint);
+                OnReceivedRegisterSynAtoEpPacketWithBadPow2(remoteEndpoint);
                 // intentionally we dont respond to requester, in case if it is attack
                 return;
             }

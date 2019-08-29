@@ -26,7 +26,7 @@ namespace Dcomms.DRP.Packets
         public RegistrationPublicKey RequesterPublicKey_RequestID;
         public uint RegisterSynTimestamp32S;
         /// <summary>
-        /// comes from pingResponse packet from responder 
+        /// comes from pong packet from responder 
         /// is verified by N, EP,M  before updating rating
         /// </summary>
         public RegistrationSignature ResponderRegistrationConfirmationSignature;
@@ -63,7 +63,7 @@ namespace Dcomms.DRP.Packets
         public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighbor, RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpPacketType.RegisterConfirmationPacket);
+            w.Write((byte)DrpPacketType.RegisterConfirmation);
             
             w.Write((byte)0); // ignored flags
 
@@ -84,7 +84,7 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
-            writer.Write((byte)DrpPacketType.RegisterConfirmationPacket);
+            writer.Write((byte)DrpPacketType.RegisterConfirmation);
             Flags = 0;
             if (connectionToNeighbor == null) Flags |= Flag_AtoEP;
             writer.Write(Flags);

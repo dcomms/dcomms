@@ -17,16 +17,14 @@ namespace Dcomms.DRP
         remotePeer // remote peer connected to local peer via REGISTER procedure
     }
     /// <summary>
-    /// connected or connecting peer, conenction to neighbor peer
+    /// connected or connecting peer, connection to neighbor peer
     /// 
-    /// 
+    /// contains:
     /// parameters to transmit DRP pings and proxied packets between registered neighbors:
     /// from local peer to remote peer (txParamaters)
     /// from remote peer to local peer (rxParamaters)
     /// is negotiated via REGISTER channel
     /// all fields are encrypted when transmitted over REGISTER channel, using single-block AES and shared ECDH key
-    /// 
-    /// 
     /// </summary>
     public class ConnectionToNeighbor: IDisposable
     {
@@ -261,12 +259,12 @@ namespace Dcomms.DRP
        // IirFilterCounter RxInviteRateRps;
         IirFilterCounter RxRegisterRateRps;
 
-        PingRequestPacket _latestPingRequestPacketSent;
-        PingRequestPacket _latestPingRequestPacketReceived;// float MaxTxInviteRateRps, MaxTxRegiserRateRps; // sent by remote peer via ping
-        DateTime? _latestPingRequestPacketSentTime;
+        PingPacket _latestPingSent;
+        DateTime? _latestPingSentTime;
+        PingPacket _latestPingReceived;// float MaxTxInviteRateRps, MaxTxRegiserRateRps; // sent by remote peer via ping
         
-        PingResponsePacket _latestReceivedPingResponsePacket;
-        TimeSpan? _latestRequestResponseDelay;
+        PongPacket _latestReceivedPong;
+        TimeSpan? _latestPingPongDelay;
 
      //   IirFilterCounter TxInviteRateRps, TxRegisterRateRps;
        // List<TxRegisterRequestState> PendingTxRegisterRequests;
@@ -311,10 +309,10 @@ namespace Dcomms.DRP
             _engine.ConnectedPeersByToken16[LocalRxToken32.Token16] = null;
         }
 
-        public PingRequestPacket CreatePingRequestPacket(bool requestRegistrationConfirmationSignature)
+        public PingPacket CreatePing(bool requestRegistrationConfirmationSignature)
         {
             if (_disposed) throw new ObjectDisposedException(_name);
-            var r = new PingRequestPacket
+            var r = new PingPacket
             {
                 SenderToken32 = RemotePeerToken32,
                 MaxRxInviteRateRps = 10, //todo get from some local capabilities   like number of neighbors
@@ -322,7 +320,7 @@ namespace Dcomms.DRP
                 PingRequestId32 = (uint)_rngForPingRequestId32.Next(),
             };
             if (requestRegistrationConfirmationSignature)
-                r.Flags |= PingRequestPacket.Flags_RegistrationConfirmationSignatureRequested;
+                r.Flags |= PingPacket.Flags_RegistrationConfirmationSignatureRequested;
             r.SenderHMAC = GetSharedHmac(r.GetSignedFieldsForSenderHMAC);
             return r;
         }
@@ -344,10 +342,10 @@ namespace Dcomms.DRP
                 // send ping requests  when idle (no other "alive" signals from remote peer)
                 if (timeNowUTC > _lastTimeCreatedOrReceivedVerifiedResponsePacket + _engine.Configuration.PingRequestsInterval)
                 {
-                    if (_latestRequestResponseDelay == null) throw new InvalidOperationException();
+                    if (_latestPingPongDelay == null) throw new InvalidOperationException();
                    
                     if (_lastTimeSentPingRequest == null ||
-                        timeNowUTC > _lastTimeSentPingRequest.Value.AddSeconds(_latestRequestResponseDelay.Value.TotalSeconds * _engine.Configuration.PingRetransmissionInterval_RttRatio))
+                        timeNowUTC > _lastTimeSentPingRequest.Value.AddSeconds(_latestPingPongDelay.Value.TotalSeconds * _engine.Configuration.PingRetransmissionInterval_RttRatio))
                     {
                         _lastTimeSentPingRequest = timeNowUTC;
                         SendPingRequestOnTimer();
@@ -361,20 +359,20 @@ namespace Dcomms.DRP
         }
         void SendPingRequestOnTimer()
         {
-            var pingRequestPacket = CreatePingRequestPacket(false);
+            var pingRequestPacket = CreatePing(false);
             _engine.SendPacket(pingRequestPacket.Encode(), RemoteEndpoint);
-            _latestPingRequestPacketSent = pingRequestPacket;
-            _latestPingRequestPacketSentTime = _engine.DateTimeNowUtc;
+            _latestPingSent = pingRequestPacket;
+            _latestPingSentTime = _engine.DateTimeNowUtc;
         }
         void SendPacket(byte[] udpPayload)
         {
             _engine.SendPacket(udpPayload, RemoteEndpoint);
         }
-        public void OnReceivedVerifiedPingResponse(PingResponsePacket pingResponsePacket, DateTime responseReceivedAtUTC, TimeSpan? requestResponseDelay)
+        public void OnReceivedVerifiedPong(PongPacket pong, DateTime responseReceivedAtUTC, TimeSpan? requestResponseDelay)
         {
             _lastTimeCreatedOrReceivedVerifiedResponsePacket = responseReceivedAtUTC;
-            _latestReceivedPingResponsePacket = pingResponsePacket;
-            _engine.WriteToLog_ping_detail(this, "verified ping response");
+            _latestReceivedPong = pong;
+            _engine.WriteToLog_ping_detail(this, "verified pong");
           
             if (requestResponseDelay.HasValue)
                 OnMeasuredRequestResponseDelay(requestResponseDelay.Value);
@@ -383,9 +381,9 @@ namespace Dcomms.DRP
         void OnMeasuredRequestResponseDelay(TimeSpan requestResponseDelay)
         {
             _engine.WriteToLog_ping_detail(this, $"measured RTT: {(int)requestResponseDelay.TotalMilliseconds}ms");
-            _latestRequestResponseDelay = requestResponseDelay;
+            _latestPingPongDelay = requestResponseDelay;
         }
-        internal void OnReceivedPingResponsePacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc) // engine thread
+        internal void OnReceivedPong(IPEndPoint remoteEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc) // engine thread
         {
             if (_disposed) return;
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -395,24 +393,24 @@ namespace Dcomms.DRP
             }
             try
             {
-                var pingResponsePacket = PingResponsePacket.DecodeAndVerify(_engine.CryptoLibrary, udpPayloadData, null, this, false);
-                OnReceivedVerifiedPingResponse(pingResponsePacket, receivedAtUtc, null);
+                var pong = PongPacket.DecodeAndVerify(_engine.CryptoLibrary, udpPayloadData, null, this, false);
+                OnReceivedVerifiedPong(pong, receivedAtUtc, null);
 
-                if (_latestPingRequestPacketSent?.PingRequestId32 == pingResponsePacket.PingRequestId32)
+                if (_latestPingSent?.PingRequestId32 == pong.PingRequestId32)
                 {
                     //  we have multiple previously sent ping requests; and 1 most recent one
-                    //  if pingResponse.PingRequestId32   matches to most recently sent ping request ->   update RTT stats
-                    OnMeasuredRequestResponseDelay(receivedAtUtc - _latestPingRequestPacketSentTime.Value);
+                    //  if pong.PingRequestId32   matches to most recently sent ping request ->   update RTT stats
+                    OnMeasuredRequestResponseDelay(receivedAtUtc - _latestPingSentTime.Value);
                 }
                 // else it is out-of-sequence ping response
             }
             catch (PossibleMitmException exc)
             {
-                _engine.HandleGeneralException($"breaking p2p connection on MITM exception: {exc}");
+                _engine.HandleGeneralException($"breaking P2P connection {this} on MITM exception: {exc}");
                 this.Dispose();
             }
         }
-        internal void OnReceivedPingRequestPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData) // engine thread
+        internal void OnReceivedPing(IPEndPoint remoteEndpoint, byte[] udpPayloadData) // engine thread
         {
             if (_disposed) return;
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -422,21 +420,21 @@ namespace Dcomms.DRP
             }
             try
             {
-                var pingRequestPacket = PingRequestPacket.DecodeAndVerify(udpPayloadData, this);
-                _latestPingRequestPacketReceived = pingRequestPacket;
-                var pingResponsePacket = new PingResponsePacket
+                var pingRequestPacket = PingPacket.DecodeAndVerify(udpPayloadData, this);
+                _latestPingReceived = pingRequestPacket;
+                var pong = new PongPacket
                 {
                     PingRequestId32 = pingRequestPacket.PingRequestId32,
                     SenderToken32 = RemotePeerToken32,
                 };
-                if ((pingRequestPacket.Flags & PingRequestPacket.Flags_RegistrationConfirmationSignatureRequested) != 0)
+                if ((pingRequestPacket.Flags & PingPacket.Flags_RegistrationConfirmationSignatureRequested) != 0)
                 {
-                    pingResponsePacket.ResponderRegistrationConfirmationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
+                    pong.ResponderRegistrationConfirmationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
                         GetResponderRegistrationConfirmationSignatureFields, _localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);                
                 }
-                pingResponsePacket.SenderHMAC = GetSharedHmac(pingResponsePacket.GetSignedFieldsForSenderHMAC);
-              //  _engine.WriteToLog_ping_detail($"sending ping response with senderHMAC={pingResponsePacket.SenderHMAC}");
-                _engine.SendPacket(pingResponsePacket.Encode(), RemoteEndpoint);
+                pong.SenderHMAC = GetSharedHmac(pong.GetSignedFieldsForSenderHMAC);
+              //  _engine.WriteToLog_ping_detail($"sending ping response with senderHMAC={pong.SenderHMAC}");
+                _engine.SendPacket(pong.Encode(), RemoteEndpoint);
             }
             catch (PossibleMitmException exc)
             {

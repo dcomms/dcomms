@@ -36,7 +36,7 @@ namespace Dcomms.DRP.Packets
         }
         static void EncodeHeader(BinaryWriter w, NextHopAckSequenceNumber16 nhaSeq16)
         {
-            w.Write((byte)DrpPacketType.NextHopAckPacket);
+            w.Write((byte)DrpPacketType.NextHopAck);
             nhaSeq16.Encode(w);
         }
         public byte[] Encode(bool rpToA)

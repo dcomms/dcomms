@@ -112,7 +112,7 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
-            writer.Write((byte)DrpPacketType.RegisterSynAckPacket);
+            writer.Write((byte)DrpPacketType.RegisterSynAck);
             byte flags = 0;
             if (connectionToNeighbor == null) flags |= Flag_EPtoA;
             writer.Write(flags);
@@ -140,7 +140,7 @@ namespace Dcomms.DRP.Packets
         public static LowLevelUdpResponseScanner GetScanner(RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpPacketType.RegisterSynAckPacket);
+            w.Write((byte)DrpPacketType.RegisterSynAck);
             w.Write((byte)0);
             requesterPublicKey_RequestID.Encode(w);
             w.Write(registerSynTimestamp32S);

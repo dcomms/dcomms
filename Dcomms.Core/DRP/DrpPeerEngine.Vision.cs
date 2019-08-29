@@ -73,17 +73,22 @@ namespace Dcomms.DRP
         internal void OnReceivedBadRegisterSynPow1(IPEndPoint remoteEndpoint)
         {
         }
-        internal void OnReceivedRegisterSynAtoRpPacketFromUnknownSource(IPEndPoint remoteEndpoint)
+        internal void OnReceivedRegisterSynAtoEpPacketFromUnknownSource(IPEndPoint remoteEndpoint)
         { }
-        internal void OnReceivedRegisterSynAtoRpPacketWithBadPow2(IPEndPoint remoteEndpoint)
+        internal void OnReceivedRegisterSynAtoEpPacketWithBadPow2(IPEndPoint remoteEndpoint)
         { }
         void OnReceivedBadSignature(IPEndPoint remoteEndpoint)
         {
         }
-        void HandleExceptionWhileConnectingToA(IPEndPoint remoteEndpoint, Exception exc)
+        void HandleExceptionInRegistrationResponder(IPEndPoint remoteEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, $"exception while connecting to A {remoteEndpoint}: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, $"exception while responding to registration from {remoteEndpoint}: {exc}");
+        }
+        void HandleExceptionWhileProxying(IPEndPoint remoteEndpoint, Exception exc)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, $"exception while proxying regitration from {remoteEndpoint}: {exc}");
         }
         void WriteToLog_reg_responderSide_detail(string message)
         {

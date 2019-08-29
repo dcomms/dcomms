@@ -38,7 +38,7 @@ namespace Dcomms.DRP.Packets
         }
         void Encode(BinaryWriter writer)
         {
-            writer.Write((byte)DrpPacketType.RegisterPow1RequestPacket);
+            writer.Write((byte)DrpPacketType.RegisterPow1Request);
             writer.Write(ReservedFlagsMustBeZero);
             writer.Write(Timestamp32S);
             if (ProofOfWork1.Length != 64) throw new ArgumentException();
