@@ -17,7 +17,9 @@ using System.Threading.Tasks;
 namespace Dcomms.DRP
 {
     /// <summary>
-    /// operates one UDP socket
+    /// an object to be created by user application (messenger, higher-level)
+    /// runs one UDP socket
+    /// hosts objects/resources/threads
     /// </summary>
     public partial class DrpPeerEngine : IDisposable
     {
@@ -35,11 +37,10 @@ namespace Dcomms.DRP
         ActionsQueue _engineThreadQueue;
         readonly Random _insecureRandom = new Random();
         internal Random InsecureRandom => _insecureRandom;
-        Dictionary<RegistrationPublicKey, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationPublicKey, LocalDrpPeer>(); // accessed only by manager thread
-       
+        Dictionary<RegistrationPublicKey, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationPublicKey, LocalDrpPeer>(); // accessed only by engine thread       
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
-        DrpPeerEngine _engine;
-        ushort _seq16Counter;
+      
+        ushort _seq16Counter; // accessed only by engine thread
         internal NextHopAckSequenceNumber16 GetNewNhaSeq16() => new NextHopAckSequenceNumber16 { Seq16 = _seq16Counter++ };
         public DrpPeerEngineConfiguration Configuration { get; private set; }
 
@@ -71,82 +72,7 @@ namespace Dcomms.DRP
             _socket.Dispose();
             _receiverThread.Join();
         }
-
-        #region error handlers / dev vision / anti-fraud
-        const string VisionChannelObjectName_reg_requesterSide = "reg.requester";
-        const string VisionChannelObjectName_reg_responderSide = "reg.responder";
-        const string VisionChannelObjectName_reg_rpSide = "reg.rp";
-        const string VisionChannelObjectName_engineThread = "engineThread";
-        const string VisionChannelObjectName_receiverThread = "receiverThread";
-        const string VisionChannelObjectName_ping = "ping";
-        internal void WriteToLog_ping_detail(string message)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_ping) <= AttentionLevel.detail)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_ping, AttentionLevel.detail, message);
-        }
-        void WriteToLog_receiver_detail(string message)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_receiverThread) <= AttentionLevel.detail)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_receiverThread, AttentionLevel.detail, message);
-        }
-        void HandleExceptionInReceiverThread(Exception exc)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_receiverThread) <= AttentionLevel.strongPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_receiverThread, AttentionLevel.strongPain, $"exception: {exc}");
-        }
-        void HandleExceptionInEngineThread(Exception exc)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_engineThread) <= AttentionLevel.strongPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_engineThread, AttentionLevel.strongPain, $"exception: {exc}");
-        }
-        internal void WriteToLog_reg_requesterSide_detail(string message)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide) <= AttentionLevel.detail)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide, AttentionLevel.detail, message);
-        }
-        void WriteToLog_reg_requesterSide_mediumPain(string message)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide, AttentionLevel.detail, message);
-
-        }
-        void HandleExceptionWhileConnectingToRP(IPEndPoint epEndpoint, Exception exc)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_requesterSide, AttentionLevel.detail, $"exception while connecting to EP {epEndpoint}: {exc}");
-
-            // todo: analyse if it is malformed packet received from attacker's EP
-        }
-        internal void HandleGeneralException(string message)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, null) <= AttentionLevel.strongPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, null, AttentionLevel.strongPain, $"general exception: {message}");
-        }
-        internal void OnReceivedUnauthorizedSourceIpPacket(IPEndPoint remoteEndpoint)
-        {
-        }
-        internal void OnReceivedBadRegisterSynPow1(IPEndPoint remoteEndpoint)
-        {
-        }
-        internal void OnReceivedRegisterSynAtoRpPacketFromUnknownSource(IPEndPoint remoteEndpoint)
-        { }
-        internal void OnReceivedRegisterSynAtoRpPacketWithBadPow2(IPEndPoint remoteEndpoint)
-        { }
-        void OnReceivedBadSignature(IPEndPoint remoteEndpoint)
-        {
-        }
-        void HandleExceptionWhileConnectingToA(IPEndPoint remoteEndpoint, Exception exc)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_responderSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_responderSide, AttentionLevel.detail, $"exception while connecting to A {remoteEndpoint}: {exc}");
-        }
-        void WriteToLog_reg_responderSide_detail(string message)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_responderSide) <= AttentionLevel.detail)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_responderSide, AttentionLevel.detail, message);
-        }
-        #endregion
-
+        
         #region receiver thread
         void ReceiverThreadEntry()
         {
@@ -250,7 +176,7 @@ namespace Dcomms.DRP
                     if (timeNowUTC > nextTimeToCallOnTimer100ms)
                     {
                         nextTimeToCallOnTimer100ms = nextTimeToCallOnTimer100ms.AddMilliseconds(100);
-                        OnTimer100ms(timeNowUTC);
+                        EngineThreadOnTimer100ms(timeNowUTC);
                     }
                 }
                 catch (Exception exc)
@@ -260,7 +186,7 @@ namespace Dcomms.DRP
                 Thread.Sleep(10);
             }
         }
-        void OnTimer100ms(DateTime timeNowUTC) // engine thread 
+        void EngineThreadOnTimer100ms(DateTime timeNowUTC) // engine thread 
         {
             // for every connected peer
             foreach (var localPeer in LocalPeers.Values)
@@ -298,64 +224,10 @@ namespace Dcomms.DRP
 
             // subroutine create requestViaConnectedPeer
         }
-
-        /// <summary>
-        /// creates an instance of TxRequestState, starts retransmission timer
-        /// </summary>
-        bool TrySendRequestViaConnectedPeer(ConnectionToNeighbor connectedPeer, RegistrationPublicKey remotePeerRegistrationPublicKey)
-        {
-            // assert tx rate is not exceeded  -- return false
-
-            // create an instance of TxRequestState, add it to list
-
-            // send packet to peer
-
-            throw new NotImplementedException();
-        }
-    }
-
-    public class DrpPeerEngineConfiguration
-    {
-        public ushort? LocalPort;
-        public IPAddress LocalForcedPublicIpForRegistration;
-        public TimeSpan PingRequestsInterval = TimeSpan.FromSeconds(2);
-        public double PingRetransmissionInterval_RttRatio = 2.0; // "how much time to wait until sending another ping request?" - coefficient, relative to previously measured RTT
-        public TimeSpan ConnectedPeersRemovalTimeout => PingRequestsInterval + TimeSpan.FromSeconds(2);
-        
-        public uint RegisterPow1_RecentUniqueDataResetPeriodS = 10 * 60;
-        public int RegisterPow1_MaxTimeDifferenceS = 20 * 60;
-        public bool RespondToRegisterPow1Errors = false;
-
-        public TimeSpan Pow2RequestStatesTablePeriod = TimeSpan.FromSeconds(5);
-        public int Pow2RequestStatesTableMaxSize = 100000;
-        public int Timestamp32S_MaxDifferenceToAccept = 20 * 60;
-
-        public TimeSpan PendingRegisterRequestsTimeout = TimeSpan.FromSeconds(20);
-
-        public double UdpLowLevelRequests_ExpirationTimeoutS = 2;
-        public double UdpLowLevelRequests_InitialRetransmissionTimeoutS = 0.2;
-        public double UdpLowLevelRequests_RetransmissionTimeoutIncrement = 1.5;
-        public double RegSynAckRequesterSideTimoutS = 10;
-
-        public double InitialPingRequests_ExpirationTimeoutS = 5;
-        public double InitialPingRequests_InitialRetransmissionTimeoutS = 0.1;
-        public double InitialPingRequests_RetransmissionTimeoutIncrement = 1.05;
-        public TimeSpan ResponderToRetransmittedRequestsTimeout = TimeSpan.FromSeconds(30);
-
-        public VisionChannel VisionChannel;
-        public string VisionChannelSourceId;
-    }
-    public class DrpPeerRegistrationConfiguration
-    {
-        public IPEndPoint[] EntryPeerEndpoints; // in case when local peer IP = entry peer IP, it is skipped
-        public RegistrationPublicKey LocalPeerRegistrationPublicKey;
-        public RegistrationPrivateKey LocalPeerRegistrationPrivateKey;
-        public int? NumberOfNeighborsToKeep;
     }
 
     public interface IDrpRegisteredPeerUser
     {
         void OnReceivedMessage(byte[] message);
     }
-
 }

@@ -47,24 +47,24 @@ namespace Dcomms.Vision
     /// </summary>
     public abstract class VisionChannel
     {
-        public virtual AttentionLevel GetAttentionTo(string visionChannelSourceId, string objectName) => AttentionLevel.deepDetail;
-        public abstract void Emit(string visionChannelSourceId, string objectName, AttentionLevel level, string message);
-        public virtual void Emit(string visionChannelSourceId, string objectName, double value, double? lightPainThresholdL, double? mediumPainThresholdL)
+        public virtual AttentionLevel GetAttentionTo(string visionChannelSourceId, string moduleName) => AttentionLevel.deepDetail;
+        public abstract void Emit(string visionChannelSourceId, string moduleName, AttentionLevel level, string message);
+        public virtual void Emit(string visionChannelSourceId, string moduleName, double value, double? lightPainThresholdL, double? mediumPainThresholdL)
         {
             if (value > mediumPainThresholdL)
             {
-                if (GetAttentionTo(visionChannelSourceId, objectName) <= AttentionLevel.mediumPain)
-                    Emit(visionChannelSourceId, objectName, AttentionLevel.mediumPain, $"value={value} is above threshold {mediumPainThresholdL}");
+                if (GetAttentionTo(visionChannelSourceId, moduleName) <= AttentionLevel.mediumPain)
+                    Emit(visionChannelSourceId, moduleName, AttentionLevel.mediumPain, $"value={value} is above threshold {mediumPainThresholdL}");
             }
             else if (value > mediumPainThresholdL)
             {
-                if (GetAttentionTo(visionChannelSourceId, objectName) <= AttentionLevel.lightPain)
-                    Emit(visionChannelSourceId, objectName, AttentionLevel.lightPain, $"value={value} is above threshold {lightPainThresholdL}");
+                if (GetAttentionTo(visionChannelSourceId, moduleName) <= AttentionLevel.lightPain)
+                    Emit(visionChannelSourceId, moduleName, AttentionLevel.lightPain, $"value={value} is above threshold {lightPainThresholdL}");
             }
             else
             {
-                if (GetAttentionTo(visionChannelSourceId, objectName) <= AttentionLevel.detail)
-                    Emit(visionChannelSourceId, objectName, AttentionLevel.detail, $"value={value}");
+                if (GetAttentionTo(visionChannelSourceId, moduleName) <= AttentionLevel.detail)
+                    Emit(visionChannelSourceId, moduleName, AttentionLevel.detail, $"value={value}");
             }
         }
     }
@@ -75,7 +75,7 @@ namespace Dcomms.Vision
         {
             _wtl = wtl;
         }
-        public override void Emit(string visionChannelSourceId, string objectName, AttentionLevel level, string message)
+        public override void Emit(string visionChannelSourceId, string moduleName, AttentionLevel level, string message)
         {
             _wtl($"[{visionChannelSourceId}] {message}");
         }

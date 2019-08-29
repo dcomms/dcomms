@@ -62,8 +62,8 @@ namespace Dcomms.DRP
             var packet = new RegisterPow1RequestPacket(udpPayloadData);
             if (!PassPow1filter(remoteEndpoint, packet))
             {
-                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_rpSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_rpSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}");
+                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}");
                 return;
             }
 
@@ -88,8 +88,8 @@ namespace Dcomms.DRP
             // verify size of Pow1 data
             if (packet.ProofOfWork1.Length != 64)
             {
-                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_rpSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_rpSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: invalid pow1 length");
+                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: invalid pow1 length");
                 return false;
             }
 
@@ -97,8 +97,8 @@ namespace Dcomms.DRP
             var timeDifferenceSec = Math.Abs((int)unchecked(localTimeSec32 - packet.Timestamp32S));
             if (timeDifferenceSec > Configuration.RegisterPow1_MaxTimeDifferenceS)
             {
-                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_rpSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_rpSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: invalid timestamp");
+                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: invalid timestamp");
 
                 // respond with error "try again with valid clock" - legitimate user has to get valid clock from some time server and synchronize itself with the server
                 if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1withError(remoteEndpoint, RegisterPow1ResponseStatusCode.rejected_badtimestamp, packet.Pow1RequestId);
@@ -107,8 +107,8 @@ namespace Dcomms.DRP
 
             if (!Pow1IsOK(packet, remoteEndpoint.Address.GetAddressBytes()))
             {
-                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_rpSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_rpSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: invalid pow1");
+                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: invalid pow1");
 
                 OnReceivedBadRegisterSynPow1(remoteEndpoint);
                 // no response
@@ -119,8 +119,8 @@ namespace Dcomms.DRP
             var dataIsUnique = _recentUniquePow1Data.TryInputData(packet.ProofOfWork1, localTimeSec32);
             if (dataIsUnique)
             {
-                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_rpSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelObjectName_reg_rpSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: pow1 data is not unique");
+                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {remoteEndpoint}: pow1 data is not unique");
                 return true;
             }
             else
@@ -157,13 +157,11 @@ namespace Dcomms.DRP
             if (!Pow2IsOK(registerSynPacket, pow2RequestState.ProofOfWork2Request))
             {
                 OnReceivedRegisterSynAtoRpPacketWithBadPow2(remoteEndpoint);
-                // no response
+                // intentionally we dont respond to requester, in case if it is attack
                 return;
             }
 
-            // questionable:    hello1IPlimit table:  limit number of requests  per 1 minute from every IPv4 block: max 100? requests per 1 minute from 1 block
-            //   ------------ possible attack on hello1IPlimit  table???
-
+          
             _engineThreadQueue.Enqueue(() =>
             {             
                 RouteRegistrationRequest(registerSynPacket, out var proxyTo, out var acceptAt); // routing
@@ -173,8 +171,8 @@ namespace Dcomms.DRP
                     _ = AcceptRegisterRequestAsync(acceptAt, registerSynPacket, remoteEndpoint);
                 }
                 else if (proxyTo != null)
-                {  // todo proxy
-                    throw new NotImplementedException();
+                {  // proxy the registration request via the local EP to another peer "proxyTo"
+                    _ = ProxyRegisterRequestAtEntryPeerAsync(proxyTo, registerSynPacket, remoteEndpoint);
                 }
                 else throw new Exception();
             });

@@ -34,6 +34,10 @@ namespace Dcomms.DRP
         {
             return MiscProcedures.GetArrayHashCode(ed25519publicKey) ^ ReservedFlagsMustBeZero;
         }
+        public override string ToString()
+        {
+            return MiscProcedures.ByteArrayToString(ed25519publicKey);
+        }
         public RegistrationPublicKeyDistance GetDistanceTo(RegistrationPublicKey another) => new RegistrationPublicKeyDistance(this, another);
        
     }

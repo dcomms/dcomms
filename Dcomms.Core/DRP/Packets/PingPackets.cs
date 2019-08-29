@@ -135,7 +135,7 @@ namespace Dcomms.DRP.Packets
             var expectedHMAC = connectedPeerWhoSentTheResponse.GetSharedHmac(r.GetSignedFieldsForSenderHMAC);
             if (r.SenderHMAC.Equals(expectedHMAC) == false)
             {
-                connectedPeerWhoSentTheResponse.Engine.WriteToLog_ping_detail($"incorrect sender HMAC in ping response: {r.SenderHMAC}. expected: {expectedHMAC}");
+                connectedPeerWhoSentTheResponse.Engine.WriteToLog_ping_detail(connectedPeerWhoSentTheResponse, $"incorrect sender HMAC in ping response: {r.SenderHMAC}. expected: {expectedHMAC}");
                 throw new BadSignatureException();
             }
           
