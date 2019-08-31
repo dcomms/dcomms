@@ -23,6 +23,9 @@ namespace Dcomms.DRP
                     throw new NotImplementedException();
                 }
 
+                if (!ValidateReceivedSynTimestamp32S(syn.Timestamp32S))
+                    throw new BadSignatureException();
+
                 syn.NumberOfHopsRemaining--;
                 if (syn.NumberOfHopsRemaining == 0)
                 {
@@ -36,7 +39,7 @@ namespace Dcomms.DRP
 
                 // send SYN to destinationPeer. wait for NHACK, retransmit SYN
                 syn.SenderToken32 = destinationPeer.RemotePeerToken32;
-                await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNHACK(syn.Encode(destinationPeer), syn.NhaSeq16);
+                await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNHACK(syn.Encode_OptionallySignSenderHMAC(destinationPeer), syn.NhaSeq16);
 
                 // wait for SYNACK from destinationPeer
                 // respond with NHACK

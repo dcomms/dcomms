@@ -33,7 +33,7 @@ namespace Dcomms.DRP
             };
             rpConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _rp.CryptoLibrary.GeneratePrivateKeyEd25519() };
             rpConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = _rp.CryptoLibrary.GetPublicKeyEd25519(rpConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
-            _rp.CreateLocalPeer(rpConfig, new User());
+            _rp.BeginCreateLocalPeer(rpConfig, new User());
 
 
             _x_list = new List<DrpPeerEngine>();

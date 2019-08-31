@@ -105,7 +105,7 @@ namespace Dcomms.DRP.Packets
                 throw new UnmatchedFieldsException();
         }
         /// <param name="connectionFromResponderToRequester">for direct p2p stream from N to A</param>
-        public static RegisterAckPacket DecodeAndVerifyAtResponder(byte[] registerAckPacketData,
+        public static RegisterAckPacket DecodeAndVerifyAtResponder_InitializeP2pStream(byte[] registerAckPacketData,
             RegisterSynPacket remoteRegisterSyn,
             RegisterSynAckPacket localRegisterSynAck,
             ConnectionToNeighbor connectionFromResponderToRequester
@@ -123,7 +123,7 @@ namespace Dcomms.DRP.Packets
             registerAck.AssertMatchToSyn(remoteRegisterSyn);
 
             registerAck.ToRequesterTxParametersEncrypted = reader.ReadBytes(16);
-            connectionFromResponderToRequester.DecryptAtRegisterResponder(remoteRegisterSyn, localRegisterSynAck, registerAck);
+            connectionFromResponderToRequester.DecryptAtRegisterResponder_InitializeP2pStream(remoteRegisterSyn, localRegisterSynAck, registerAck);
 
             registerAck.RequesterHMAC = HMAC.Decode(reader);
             if (registerAck.RequesterHMAC.Equals(connectionFromResponderToRequester.GetSharedHmac(w => registerAck.GetCommonRequesterProxierResponderFields(w, false, true))) == false)

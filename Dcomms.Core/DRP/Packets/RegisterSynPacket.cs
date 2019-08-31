@@ -35,9 +35,10 @@ namespace Dcomms.DRP.Packets
         public uint Timestamp32S;
 
         public uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood 
+        public IPEndPoint EpEndpoint; // unencrypted  // makes sense when EP is behind NAT (e.g amazon) and does not know its public IP
 
         /// <summary>
-        /// signs fields: {RequesterPublicKey_RequestID,RequesterEcdhePublicKey,Timestamp32S,MinimalDistanceToNeighbor}
+        /// signs fields: {RequesterPublicKey_RequestID,RequesterEcdhePublicKey,Timestamp32S,MinimalDistanceToNeighbor,EpEndpoint}
         /// the signature is needed: 
         /// 1 to authorize sender of the request when intermediate peers build RDRs and rating of sender
         /// 2 to authorize sender at neighbor, to reject blacklisted requesters and prioritize previously known good requester neighbors
@@ -67,42 +68,39 @@ namespace Dcomms.DRP.Packets
         /// uses common secret of neighbors within p2p connection
         /// </summary>
         public HMAC SenderHMAC;
-        public IPEndPoint EpEndpoint; // is transmitted only in A->EP request, unencrypted  // makes sense when EP is behind NAT (e.g amazon) and does not know its public IP
 
         public RegisterSynPacket()
         {
         }
-        /// <param name="connectionToNeighbor">is not null for packets between registered peers</param>
-        public byte[] Encode(ConnectionToNeighbor connectionToNeighbor)
+        /// <param name="connectionToNeighborNullable">is not null for packets between registered peers</param>
+        public byte[] Encode_OptionallySignSenderHMAC(ConnectionToNeighbor connectionToNeighborNullable)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
             writer.Write((byte)DrpPacketType.RegisterSyn);
             byte flags = 0;
-            if (connectionToNeighbor == null) flags |= Flag_AtoEP;
+            if (connectionToNeighborNullable == null) flags |= Flag_AtoEP;
             writer.Write(flags);
-            if (connectionToNeighbor != null)
+            if (connectionToNeighborNullable != null)
             {
-                SenderToken32 = connectionToNeighbor.RemotePeerToken32;
+                SenderToken32 = connectionToNeighborNullable.RemotePeerToken32;
                 SenderToken32.Encode(writer);
             }
 
             GetCommonRequesterProxierResponderFields(writer, true);
 
-            if (connectionToNeighbor == null)
+            if (connectionToNeighborNullable == null)
             {
                 if (ProofOfWork2.Length != 64) throw new ArgumentException();
                 writer.Write(ProofOfWork2);
             }
             writer.Write(NumberOfHopsRemaining);
             NhaSeq16.Encode(writer);
-            if (connectionToNeighbor != null)
+            if (connectionToNeighborNullable != null)
             {
-                SenderHMAC = connectionToNeighbor.GetSharedHmac(this.GetFieldsForSenderHmac);
+                SenderHMAC = connectionToNeighborNullable.GetSharedHmac(this.GetFieldsForSenderHmac);
                 SenderHMAC.Encode(writer);
             }
-            if (connectionToNeighbor == null)
-                PacketProcedures.EncodeIPEndPoint(writer, EpEndpoint);
 
             return ms.ToArray();
         }
@@ -115,6 +113,7 @@ namespace Dcomms.DRP.Packets
             RequesterEcdhePublicKey.Encode(writer);
             writer.Write(Timestamp32S);
             writer.Write(MinimalDistanceToNeighbor);
+            PacketProcedures.EncodeIPEndPoint(writer, EpEndpoint);
             if (includeRequesterSignature) RequesterSignature.Encode(writer);
         }
         void GetFieldsForSenderHmac(BinaryWriter writer)
@@ -150,6 +149,7 @@ namespace Dcomms.DRP.Packets
             r.RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
             r.Timestamp32S = reader.ReadUInt32();
             r.MinimalDistanceToNeighbor = reader.ReadUInt32();
+            r.EpEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
             r.RequesterSignature = RegistrationSignature.Decode(reader);
             
             if ((flags & Flag_AtoEP) != 0) r.ProofOfWork2 = reader.ReadBytes(64);
@@ -161,7 +161,6 @@ namespace Dcomms.DRP.Packets
                 if (r.SenderHMAC.Equals(receivedFromNeighborNullable.GetSharedHmac(r.GetFieldsForSenderHmac)) == false)
                     throw new BadSignatureException();
             }
-            if ((flags & Flag_AtoEP) != 0) r.EpEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
 
             return r;
         }

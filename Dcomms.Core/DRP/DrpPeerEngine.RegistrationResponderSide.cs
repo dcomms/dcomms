@@ -23,13 +23,17 @@ namespace Dcomms.DRP
                 }
 
                 // check signature of requester (A)
-                if (!ValidateReceivedTimestamp32S(syn.Timestamp32S) ||
+                if (!ValidateReceivedSynTimestamp32S(syn.Timestamp32S) ||
                         !syn.RequesterSignature.Verify(_cryptoLibrary,
                             w => syn.GetCommonRequesterProxierResponderFields(w, false),
                             syn.RequesterPublicKey_RequestID
                         )
                     )
                     throw new BadSignatureException();
+                if (syn.EpEndpoint.Address.Equals(acceptAt.PublicIpApiProviderResponse) == false)
+                {
+                    throw new PossibleMitmException();
+                }
 
                 SendNextHopAckResponseToSyn(syn, requesterEndpoint);
 
@@ -68,7 +72,8 @@ namespace Dcomms.DRP
                         WriteToLog_reg_responderSide_detail($"waiting for ACK");
                         var regAckUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, requesterEndpoint, regAckScanner);
                         WriteToLog_reg_responderSide_detail($"received ACK");
-                        registerAckPacket = RegisterAckPacket.DecodeAndVerifyAtResponder(regAckUdpPayload, syn, synAck, newConnectionToNeighbor); // verifies hmac, decrypts endpoint of A
+                        registerAckPacket = RegisterAckPacket.DecodeAndVerifyAtResponder_InitializeP2pStream(
+                            regAckUdpPayload, syn, synAck, newConnectionToNeighbor); // verifies hmac, decrypts endpoint of A
                     }
                     else
                     {// todo  retransmit until NHACK; at same time (!!!)  wait for regACK
@@ -159,7 +164,6 @@ namespace Dcomms.DRP
 
          //   WriteToLog_reg_responderSide_detail($"sent nextHopAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(nextHopAckPacketData)} nhaSeq={registerSynPacket.NhaSeq16}");
         }
-
         void SendNextHopAckResponseToAck(RegisterAckPacket registerAckPacket, IPEndPoint remoteEndpoint)
         {
             var nextHopAckPacket = new NextHopAckPacket
@@ -177,7 +181,6 @@ namespace Dcomms.DRP
 
             RespondToRequestAndRetransmissions(registerAckPacket.OriginalUdpPayloadData, nextHopAckPacketData, remoteEndpoint);
         }
-
         void SendNextHopAckResponseToCfm(RegisterConfirmationPacket registerCfmPacket, IPEndPoint remoteEndpoint)
         {
             var nextHopAckPacket = new NextHopAckPacket
@@ -195,10 +198,10 @@ namespace Dcomms.DRP
             RespondToRequestAndRetransmissions(registerCfmPacket.OriginalUdpPayloadData, nextHopAckPacketData, remoteEndpoint);
         }
 
-        bool ValidateReceivedTimestamp32S(uint receivedTimestamp32S)
+        bool ValidateReceivedSynTimestamp32S(uint receivedSynTimestamp32S)
         {
-            var differenceS = Math.Abs((int)receivedTimestamp32S - Timestamp32S);
-            return differenceS < Configuration.Timestamp32S_MaxDifferenceToAccept;
+            var differenceS = Math.Abs((int)receivedSynTimestamp32S - Timestamp32S);
+            return differenceS < Configuration.MaxSynTimestampDifference;
         }
         /// <summary>
         /// protects local per from processing same (retransmitted) SYN packet

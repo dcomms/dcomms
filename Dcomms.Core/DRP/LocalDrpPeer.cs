@@ -11,7 +11,13 @@ namespace Dcomms.DRP
     /// </summary>
     public class LocalDrpPeer: IDisposable
     {
-        public IPAddress LocalPublicIpAddressForRegistration;
+        /// <summary>
+        /// is used for:
+        /// - PoW1
+        /// - EpEndpoint vlidateion at responder
+        /// - RequesterEndpoint validation at requester
+        /// </summary>
+        public IPAddress PublicIpApiProviderResponse;
        // LocalDrpPeerState State;
         readonly DrpPeerRegistrationConfiguration _registrationConfiguration;
         public DrpPeerRegistrationConfiguration RegistrationConfiguration => _registrationConfiguration;

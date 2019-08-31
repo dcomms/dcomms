@@ -52,7 +52,13 @@ namespace Dcomms.DRP.Packets
         public RegistrationSignature ResponderSignature; 
 
         HMAC SenderHMAC; // is not sent from EP to A
-        public IPEndPoint RequesterEndpoint; // is sent only from EP to A, to provide public IP:port of A, for UDP hole punching  // not signed, not encrypted
+        
+        #region is sent only from EP to A
+        
+        public IPEndPoint RequesterEndpoint; // public IP:port of A, for UDP hole punching  // not encrypted.  IP address is validated at requester side
+       
+        #endregion
+
         public NextHopAckSequenceNumber16 NhaSeq16; // is not sent from EP to A // goes into NHACK packet
 
 

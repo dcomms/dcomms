@@ -28,9 +28,38 @@ namespace Dcomms.DRP
             });
             
         }
-        public LocalDrpPeer CreateLocalPeer(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
+
+        public void BeginCreateLocalPeer(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user, Action<LocalDrpPeer> cb = null)
+        {
+            _engineThreadQueue.Enqueue(async () =>
+            {
+                var r = await CreateLocalPeerAsync(registrationConfiguration, user);
+                if (cb != null) cb(r);
+            });
+
+        }
+
+        async Task<LocalDrpPeer> CreateLocalPeerAsync(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
         {
             var localDrpPeer = new LocalDrpPeer(this, registrationConfiguration, user);
+
+            if (Configuration.LocalForcedPublicIpForRegistration == null)
+            {
+                WriteToLog_reg_requesterSide_detail($"resolving local public IP...");
+                var localPublicIp = await SendPublicIpAddressApiRequestAsync("http://api.ipify.org/");
+                if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://ip.seeip.org/");
+                if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://bot.whatismyipaddress.com");
+                if (localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
+
+                localDrpPeer.PublicIpApiProviderResponse = new IPAddress(localPublicIp);
+                WriteToLog_reg_requesterSide_detail($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse}");
+                await _engineThreadQueue.EnqueueAsync();
+                WriteToLog_reg_requesterSide_detail($"@engine thread");
+            }
+            else
+                localDrpPeer.PublicIpApiProviderResponse = Configuration.LocalForcedPublicIpForRegistration;
+                       
+
             LocalPeers.Add(registrationConfiguration.LocalPeerRegistrationPublicKey, localDrpPeer);
             return localDrpPeer;
         }
@@ -38,26 +67,9 @@ namespace Dcomms.DRP
         {
             WriteToLog_reg_requesterSide_detail($"@BeginRegister2() engine thread");
 
-            var localDrpPeer = CreateLocalPeer(registrationConfiguration, user);
+            var localDrpPeer = await CreateLocalPeerAsync(registrationConfiguration, user);
             if (registrationConfiguration.EntryPeerEndpoints.Length != 0)
             {
-                if (Configuration.LocalForcedPublicIpForRegistration == null)
-                {
-                    WriteToLog_reg_requesterSide_detail($"resolving local public IP...");
-                    var localPublicIp = await SendPublicIpAddressApiRequestAsync("http://api.ipify.org/");
-                    if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://ip.seeip.org/");
-                    if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://bot.whatismyipaddress.com");
-                    if (localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
-
-                    localDrpPeer.LocalPublicIpAddressForRegistration = new IPAddress(localPublicIp);
-                    WriteToLog_reg_requesterSide_detail($"resolved local public IP = {localDrpPeer.LocalPublicIpAddressForRegistration}");
-                    WriteToLog_reg_requesterSide_detail($"@engine thread");
-                    await _engineThreadQueue.EnqueueAsync();
-                }
-                else
-                    localDrpPeer.LocalPublicIpAddressForRegistration = Configuration.LocalForcedPublicIpForRegistration;
-
-
                 foreach (var epEndpoint in registrationConfiguration.EntryPeerEndpoints) // try to connect to entry peers, one by one
                 {
                    // if (MiscProcedures.EqualByteArrays(epEndpoint.Address.GetAddressBytes(), localDrpPeer.LocalPublicIpAddressForRegistration.GetAddressBytes()) == true)
@@ -96,7 +108,7 @@ namespace Dcomms.DRP
 
             #region PoW1
             WriteToLog_reg_requesterSide_detail($"generating PoW1 request");
-            var registerPow1RequestPacket = GenerateRegisterPow1RequestPacket(localDrpPeer.LocalPublicIpAddressForRegistration.GetAddressBytes(), Timestamp32S);
+            var registerPow1RequestPacket = GenerateRegisterPow1RequestPacket(localDrpPeer.PublicIpApiProviderResponse.GetAddressBytes(), Timestamp32S);
 
             // send register pow1 request
             WriteToLog_reg_requesterSide_detail($"sending PoW1 request");
@@ -144,8 +156,7 @@ namespace Dcomms.DRP
                 var synToSynAckStopwatch = Stopwatch.StartNew();
 
                 WriteToLog_reg_requesterSide_detail($"sending SYN, waiting for NHACK. NhaSeq16={syn.NhaSeq16}");
-                await OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(syn.Encode(null), epEndpoint, syn.NhaSeq16);
-
+                await OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(syn.Encode_OptionallySignSenderHMAC(null), epEndpoint, syn.NhaSeq16);
                 #endregion
 
                 #region wait for RegisterSynAckPacket
@@ -158,6 +169,13 @@ namespace Dcomms.DRP
                 var synAck = RegisterSynAckPacket.DecodeAndVerifyAtRequester(registerSynAckPacketData, syn, connectionToNeighbor);
                 WriteToLog_reg_requesterSide_detail($"verified SYNACK");
                 #endregion
+
+                // check if it matches to previously known local public IP
+                if (synAck.RequesterEndpoint.Address.Equals(localDrpPeer.PublicIpApiProviderResponse) == false)
+                {
+                    // MITM attack / EP sent local (requester) endpoint IP some bad IP address
+                    throw new PossibleMitmException();
+                }
 
                 connectionToNeighbor.LocalEndpoint = synAck.RequesterEndpoint;
                 connectionToNeighbor.RemotePeerPublicKey = synAck.ResponderPublicKey;
@@ -212,6 +230,7 @@ namespace Dcomms.DRP
             }
             catch
             {
+                // todo update quality
                 connectionToNeighbor.Dispose(); // remove from token32 table
                 throw;
             }

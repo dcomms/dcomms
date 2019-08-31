@@ -114,7 +114,7 @@ namespace Dcomms.DRP
         }
                
         /// <summary>initializes parameters to transmit direct (p2p) packets form neighbor N to requester A</returns>
-        public void DecryptAtRegisterResponder(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
+        public void DecryptAtRegisterResponder_InitializeP2pStream(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
         {
             if ((ack.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
             
@@ -373,6 +373,7 @@ namespace Dcomms.DRP
         internal async Task SendUdpRequestAsync_Retransmit_WaitForNHACK(byte[] requestUdpData, NextHopAckSequenceNumber16 nhaSeq16)
         {
             await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(requestUdpData, RemoteEndpoint, nhaSeq16);
+            //                                               todo verify NHA senderhmac
         }
 
 
