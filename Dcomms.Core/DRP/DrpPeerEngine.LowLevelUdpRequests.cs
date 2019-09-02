@@ -1,6 +1,7 @@
 ﻿using Dcomms.DRP.Packets;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -18,9 +19,11 @@ namespace Dcomms.DRP
         /// </summary>
         LinkedList<PendingLowLevelUdpRequest> _pendingLowLevelUdpRequests = new LinkedList<PendingLowLevelUdpRequest>(); 
 
-        internal async Task<NextHopAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, NextHopAckSequenceNumber16 nhaSeq16)
+        /// <param name="waitNhaFromNeighborNullable">is used to verify NHACK.SenderHMAC</param>
+        internal async Task<NextHopAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, 
+            NextHopAckSequenceNumber16 nhaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
         {
-            var nhaScanner = NextHopAckPacket.GetScanner(nhaSeq16);
+            var nhaScanner = NextHopAckPacket.GetScanner(nhaSeq16, waitNhaFromNeighborNullable, nhaRequestPacketFieldsForHmacNullable);
             WriteToLog_reg_responderSide_detail($"waiting for nextHopAck, scanner: {MiscProcedures.ByteArrayToString(nhaScanner.ResponseFirstBytes)} nhaSeq={nhaSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(responderEndpoint,
@@ -107,6 +110,7 @@ namespace Dcomms.DRP
         /// </returns>
         bool PendingUdpRequests_ProcessPacket(IPEndPoint responderEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc)
         {
+            // todo optimize tis by storing pending requests indexed
             for (var item = _pendingLowLevelUdpRequests.First; item != null; item = item.Next)
             {
                 var request = item.Value;
@@ -114,12 +118,19 @@ namespace Dcomms.DRP
                 WriteToLog_receiver_detail($"matching to pending request... responderEndpoint={responderEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)} " +
                     $"request.ResponderEndpoint={request.ResponderEndpoint} request.ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
 
-                if (request.ResponderEndpoint.Equals(responderEndpoint) && request.ResponseScanner.Scan(udpPayloadData))
+                try
                 {
-                    _pendingLowLevelUdpRequests.Remove(item);
-                    request.ResponseReceivedAtUtc = receivedAtUtc;
-                    request.TaskCompletionSource.SetResult(udpPayloadData);
-                    return true;
+                    if (request.ResponderEndpoint.Equals(responderEndpoint) && request.ResponseScanner.Scan(udpPayloadData))
+                    {
+                        _pendingLowLevelUdpRequests.Remove(item);
+                        request.ResponseReceivedAtUtc = receivedAtUtc;
+                        request.TaskCompletionSource.SetResult(udpPayloadData);
+                        return true;
+                    }
+                }
+                catch (Exception exc)
+                {
+                    HandleExceptionInReceiverThread(exc);
                 }
             }
             return false;
@@ -221,9 +232,16 @@ namespace Dcomms.DRP
     {
         public byte[] ResponseFirstBytes;
         public int? IgnoredByteAtOffset1; // is set to position of 'flags' byte in the scanned response packet
-        public bool Scan(byte[] udpPayloadData)
+        public Func<byte[],bool> OptionalFilter; // verifies NHACK.SenderHMAC, ignores invalid HMACs // returns false to ignore the processed response packet
+
+        public bool Scan(byte[] udpPayloadData) // may throw parser exception
         {
-            return MiscProcedures.EqualByteArrayHeader(ResponseFirstBytes, udpPayloadData, IgnoredByteAtOffset1);
+            if (!MiscProcedures.EqualByteArrayHeader(ResponseFirstBytes, udpPayloadData, IgnoredByteAtOffset1)) return false;
+            if (OptionalFilter != null)
+            {
+                if (!OptionalFilter(udpPayloadData)) return false;               
+            }
+            return true;
         }
     }
 

@@ -36,3 +36,5 @@
 /TestECDH/TestECDH.Lib/obj/Debug/netstandard2.0
 /TestECDH/TestECDH.Lib/obj/Release/netstandard2.0
 /TestECDH/TestECDH.Lib/obj
+/Dcomms.NetCoreTester/bin/Debug/netcoreapp2.2
+/Dcomms.NetCoreTester/obj

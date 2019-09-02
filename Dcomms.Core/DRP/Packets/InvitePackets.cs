@@ -12,7 +12,7 @@ namespace Dcomms.DRP.Packets
     /// 
     /// requestID={RequesterPublicKey|DestinationResponderPublicKey}
     /// </summary>
-    class InviteRequestPacket
+    class InvitePacket
     {
         P2pConnectionToken32 SenderToken32;
         byte ReservedFlagsMustBeZero;
@@ -42,7 +42,7 @@ namespace Dcomms.DRP.Packets
     /// B1->X->N->A (rejected/confirmed)
     /// requestID={RequesterPublicKey|DestinationResponderPublicKey}
     /// </summary>
-    class InviteResponsePacket
+    class InviteAckPacket
     {
         P2pConnectionToken32 SenderToken32;
         byte ReservedFlagsMustBeZero;

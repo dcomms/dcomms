@@ -9,7 +9,10 @@ namespace Dcomms.DRP
     public class DrpPeerEngineConfiguration
     {
         public ushort? LocalPort;
-        public IPAddress LocalForcedPublicIpForRegistration;
+        /// <summary>
+        /// is used instead of public IP API provider response; in case of localhost-localhost tests 
+        /// </summary>
+        public IPAddress ForcedPublicIpApiProviderResponse;
         public TimeSpan PingRequestsInterval = TimeSpan.FromSeconds(2);
         public double PingRetransmissionInterval_RttRatio = 2.0; // "how much time to wait until sending another ping request?" - coefficient, relative to previously measured RTT
         public TimeSpan ConnectedPeersRemovalTimeout => PingRequestsInterval + TimeSpan.FromSeconds(2);

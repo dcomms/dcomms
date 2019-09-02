@@ -22,7 +22,12 @@ namespace Dcomms.DRP.Packets
         static byte Flag_AtoEP = 0x01;
 
         public bool AtoEP => SenderToken32 == null;
-        public P2pConnectionToken32 SenderToken32; // is not transmitted in A->EP request
+
+        /// <summary>
+        /// is not transmitted in A-EP packet
+        /// comes from ConnectionToNeighbor.RemotePeerToken32 in case when this packet goes over established P2P connection (flag A-EP is zero)
+        /// </summary>
+        public P2pConnectionToken32 SenderToken32;
 
         public RegistrationPublicKey RequesterPublicKey_RequestID; // used to verify signature // used also as request ID
         public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new P2P connection
@@ -46,8 +51,6 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public RegistrationSignature RequesterSignature;
      
-
-
         /// <summary>
         /// is transmitted only from A to EP
         /// sha512(RequesterPublicKey_RequestID|ProofOrWork2Request|ProofOfWork2) has byte[6]=7    
@@ -72,7 +75,7 @@ namespace Dcomms.DRP.Packets
         public RegisterSynPacket()
         {
         }
-        /// <param name="connectionToNeighborNullable">is not null for packets between registered peers</param>
+        /// <param name="connectionToNeighborNullable">is not null for packets between registered peers. if set, the procedure sets SenderToken32 and SenderHMAC</param>
         public byte[] Encode_OptionallySignSenderHMAC(ConnectionToNeighbor connectionToNeighborNullable)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
@@ -87,7 +90,7 @@ namespace Dcomms.DRP.Packets
                 SenderToken32.Encode(writer);
             }
 
-            GetCommonRequesterProxierResponderFields(writer, true);
+            GetCommonRequesterProxyResponderFields(writer, true);
 
             if (connectionToNeighborNullable == null)
             {
@@ -98,7 +101,7 @@ namespace Dcomms.DRP.Packets
             NhaSeq16.Encode(writer);
             if (connectionToNeighborNullable != null)
             {
-                SenderHMAC = connectionToNeighborNullable.GetSharedHmac(this.GetFieldsForSenderHmac);
+                SenderHMAC = connectionToNeighborNullable.GetSharedHMAC(this.GetSignedFieldsForSenderHMAC);
                 SenderHMAC.Encode(writer);
             }
 
@@ -107,7 +110,7 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// used for signature at requester; as source AEAD hash
         /// </summary>
-        public void GetCommonRequesterProxierResponderFields(BinaryWriter writer, bool includeRequesterSignature)
+        public void GetCommonRequesterProxyResponderFields(BinaryWriter writer, bool includeRequesterSignature)
         {
             RequesterPublicKey_RequestID.Encode(writer);
             RequesterEcdhePublicKey.Encode(writer);
@@ -116,10 +119,10 @@ namespace Dcomms.DRP.Packets
             PacketProcedures.EncodeIPEndPoint(writer, EpEndpoint);
             if (includeRequesterSignature) RequesterSignature.Encode(writer);
         }
-        void GetFieldsForSenderHmac(BinaryWriter writer)
+        internal void GetSignedFieldsForSenderHMAC(BinaryWriter writer)
         {
             SenderToken32.Encode(writer);
-            GetCommonRequesterProxierResponderFields(writer, true);
+            GetCommonRequesterProxyResponderFields(writer, true);
             writer.Write(NumberOfHopsRemaining);
             NhaSeq16.Encode(writer);
         }
@@ -158,7 +161,7 @@ namespace Dcomms.DRP.Packets
             if ((flags & Flag_AtoEP) == 0)
             {
                 r.SenderHMAC = HMAC.Decode(reader);
-                if (r.SenderHMAC.Equals(receivedFromNeighborNullable.GetSharedHmac(r.GetFieldsForSenderHmac)) == false)
+                if (r.SenderHMAC.Equals(receivedFromNeighborNullable.GetSharedHMAC(r.GetSignedFieldsForSenderHMAC)) == false)
                     throw new BadSignatureException();
             }
 

@@ -8,6 +8,9 @@ namespace Dcomms.DRP.Packets
 {
     public class PingPacket
     {
+        /// <summary>
+        /// comes from ConnectionToNeighbor.RemotePeerToken32
+        /// </summary>
         public P2pConnectionToken32 SenderToken32;
         public const byte Flags_RegistrationConfirmationSignatureRequested = 0x01;
         public byte Flags;
@@ -64,7 +67,7 @@ namespace Dcomms.DRP.Packets
 
             // verify SenderHMAC
             if (r.SenderHMAC.Equals(
-                connectedPeerWhoSentTheRequest.GetSharedHmac(r.GetSignedFieldsForSenderHMAC)
+                connectedPeerWhoSentTheRequest.GetSharedHMAC(r.GetSignedFieldsForSenderHMAC)
                 ) == false)
                 throw new BadSignatureException();
 
@@ -76,6 +79,8 @@ namespace Dcomms.DRP.Packets
     {
         /// <summary>
         /// authenticates sender peer at receiver side
+        /// comes from ConnectionToNeighbor.RemotePeerToken32
+        /// </summary>
         /// </summary>
         public P2pConnectionToken32 SenderToken32;
         public uint PingRequestId32;  // must match to request
@@ -132,7 +137,7 @@ namespace Dcomms.DRP.Packets
                 throw new UnmatchedFieldsException();
 
             // verify SenderHMAC
-            var expectedHMAC = connectedPeerWhoSentTheResponse.GetSharedHmac(r.GetSignedFieldsForSenderHMAC);
+            var expectedHMAC = connectedPeerWhoSentTheResponse.GetSharedHMAC(r.GetSignedFieldsForSenderHMAC);
             if (r.SenderHMAC.Equals(expectedHMAC) == false)
             {
                 connectedPeerWhoSentTheResponse.Engine.WriteToLog_p2p_detail(connectedPeerWhoSentTheResponse, $"incorrect sender HMAC in ping response: {r.SenderHMAC}. expected: {expectedHMAC}");

@@ -11,6 +11,7 @@ namespace Dcomms.DRP
     /// </summary>
     partial class DrpPeerEngine
     {
+        const string VisionChannelModuleName_drp_general = "drp.general";
         const string VisionChannelModuleName_reg_requesterSide = "reg.requester";
         const string VisionChannelModuleName_reg_responderSide = "reg.responder";
         const string VisionChannelModuleName_reg_epSide = "reg.ep";
@@ -48,6 +49,11 @@ namespace Dcomms.DRP
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.detail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.detail, message);
+        }
+        internal void WriteToLog_drpGeneral_detail(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general, AttentionLevel.detail, message);
         }
         void WriteToLog_reg_requesterSide_mediumPain(string message)
         {

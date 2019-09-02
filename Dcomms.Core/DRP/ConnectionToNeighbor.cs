@@ -51,7 +51,7 @@ namespace Dcomms.DRP
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                syn.GetCommonRequesterProxierResponderFields(writer, true);
+                syn.GetCommonRequesterProxyResponderFields(writer, true);
                 synAck.GetCommonRequesterProxierResponderFields(writer, false, false);
            
                 var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
@@ -89,7 +89,7 @@ namespace Dcomms.DRP
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                remoteRegisterSyn.GetCommonRequesterProxierResponderFields(writer, true);
+                remoteRegisterSyn.GetCommonRequesterProxyResponderFields(writer, true);
                 localRegisterSynAck.GetCommonRequesterProxierResponderFields(writer, false, false);
 
                 var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();;
@@ -121,9 +121,9 @@ namespace Dcomms.DRP
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                syn.GetCommonRequesterProxierResponderFields(writer, true);
+                syn.GetCommonRequesterProxyResponderFields(writer, true);
                 synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
-                ack.GetCommonRequesterProxierResponderFields(writer, false, false);
+                ack.GetCommonRequesterProxyResponderFields(writer, false, false);
             
                 var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
@@ -158,9 +158,9 @@ namespace Dcomms.DRP
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                localRegisterSyn.GetCommonRequesterProxierResponderFields(writer, true);
+                localRegisterSyn.GetCommonRequesterProxyResponderFields(writer, true);
                 remoteRegisterSynAck.GetCommonRequesterProxierResponderFields(writer, true, true);
-                localRegisterAckPacket.GetCommonRequesterProxierResponderFields(writer, false, false);
+                localRegisterAckPacket.GetCommonRequesterProxyResponderFields(writer, false, false);
            
                 var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
@@ -182,9 +182,7 @@ namespace Dcomms.DRP
             }
         }
         const ushort Magic16_ipv4_requesterToResponder = 0xBFA4; // is used to validate decrypted data
-
-
-
+               
         //   IAuthenticatedEncryptor Encryptor;
         //   IAuthenticatedDecryptor Decryptor;
 
@@ -202,9 +200,9 @@ namespace Dcomms.DRP
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                syn.GetCommonRequesterProxierResponderFields(writer, true);
+                syn.GetCommonRequesterProxyResponderFields(writer, true);
                 synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
-                ack.GetCommonRequesterProxierResponderFields(writer, false, true);           
+                ack.GetCommonRequesterProxyResponderFields(writer, false, true);           
                 //  var iv = cryptoLibrary.GetHashSHA256(ms.ToArray()); // todo use for p2p  encryption
 
                 ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
@@ -216,7 +214,7 @@ namespace Dcomms.DRP
                 //Decryptor = cryptoLibrary.CreateAesDecyptor(iv, aesKey);
             }
         }
-        public HMAC GetSharedHmac(byte[] data)
+        public HMAC GetSharedHMAC(byte[] data)
         {
             if (_disposed) throw new ObjectDisposedException(_name);
             if (SharedAuthKeyForHMAC == null) throw new InvalidOperationException();
@@ -228,11 +226,11 @@ namespace Dcomms.DRP
           //  Engine.WriteToLog_ping_detail($"<< GetSharedHmac(input={MiscProcedures.ByteArrayToString(data)}, sha256={MiscProcedures.ByteArrayToString(_engine.CryptoLibrary.GetHashSHA256(data))}) returns {r}. SharedAuthKeyForHMAC={MiscProcedures.ByteArrayToString(SharedAuthKeyForHMAC)}");
             return r;
         }
-        public HMAC GetSharedHmac(Action<BinaryWriter> data)
+        public HMAC GetSharedHMAC(Action<BinaryWriter> data)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             data(w);
-            return GetSharedHmac(ms.ToArray());
+            return GetSharedHMAC(ms.ToArray());
         }
         #endregion
                
@@ -255,10 +253,14 @@ namespace Dcomms.DRP
         /// </summary>
         public IPEndPoint LocalEndpoint;
         
-      //  ConnectedDrpPeerRating Rating;
-        readonly Random _rngForPingRequestId32 = new Random();
+        /// <summary>
+        /// used for PingRequestId32, for NhaSeq16_P2P
+        /// </summary>
+        readonly Random _insecureRandom = new Random();
+        ushort _seq16Counter_P2P; // accessed only by engine thread
+        internal NextHopAckSequenceNumber16 GetNewNhaSeq16_P2P() => new NextHopAckSequenceNumber16 { Seq16 = _seq16Counter_P2P++ };
 
-       // IirFilterCounter RxInviteRateRps;
+        // IirFilterCounter RxInviteRateRps;
         IirFilterCounter RxRegisterRateRps;
 
         PingPacket _latestPingSent;
@@ -283,6 +285,7 @@ namespace Dcomms.DRP
         bool _disposed;
         public ConnectionToNeighbor(DrpPeerEngine engine, LocalDrpPeer localDrpPeer, ConnectedDrpPeerInitiatedBy initiatedBy)
         {
+            _seq16Counter_P2P = (ushort)_insecureRandom.Next(ushort.MaxValue);
             _localDrpPeer = localDrpPeer;
             _engine = engine;
             _lastTimeCreatedOrReceivedVerifiedResponsePacket = _engine.DateTimeNowUtc;
@@ -319,11 +322,11 @@ namespace Dcomms.DRP
                 SenderToken32 = RemotePeerToken32,
                 MaxRxInviteRateRps = 10, //todo get from some local capabilities   like number of neighbors
                 MaxRxRegisterRateRps = 10, //todo get from some local capabilities   like number of neighbors
-                PingRequestId32 = (uint)_rngForPingRequestId32.Next(),
+                PingRequestId32 = (uint)_insecureRandom.Next(),
             };
             if (requestRegistrationConfirmationSignature)
                 r.Flags |= PingPacket.Flags_RegistrationConfirmationSignatureRequested;
-            r.SenderHMAC = GetSharedHmac(r.GetSignedFieldsForSenderHMAC);
+            r.SenderHMAC = GetSharedHMAC(r.GetSignedFieldsForSenderHMAC);
             return r;
         }
         public void OnTimer100ms(DateTime timeNowUTC, out bool needToRestartLoop) // engine thread
@@ -370,14 +373,12 @@ namespace Dcomms.DRP
         {
             _engine.SendPacket(udpPayload, RemoteEndpoint);
         }
-        internal async Task SendUdpRequestAsync_Retransmit_WaitForNHACK(byte[] requestUdpData, NextHopAckSequenceNumber16 nhaSeq16)
+        internal async Task SendUdpRequestAsync_Retransmit_WaitForNHACK(byte[] requestUdpData, NextHopAckSequenceNumber16 nhaSeq16, 
+            ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
         {
-            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(requestUdpData, RemoteEndpoint, nhaSeq16);
-            //                                               todo verify NHA senderhmac
+            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(requestUdpData, RemoteEndpoint, nhaSeq16, waitNhaFromNeighborNullable, nhaRequestPacketFieldsForHmacNullable);
         }
-
-
-
+               
         internal void OnReceivedVerifiedPong(PongPacket pong, DateTime responseReceivedAtUTC, TimeSpan? requestResponseDelay)
         {
             _lastTimeCreatedOrReceivedVerifiedResponsePacket = responseReceivedAtUTC;
@@ -442,7 +443,7 @@ namespace Dcomms.DRP
                     pong.ResponderRegistrationConfirmationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
                         GetResponderRegistrationConfirmationSignatureFields, _localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);                
                 }
-                pong.SenderHMAC = GetSharedHmac(pong.GetSignedFieldsForSenderHMAC);
+                pong.SenderHMAC = GetSharedHMAC(pong.GetSignedFieldsForSenderHMAC);
               //  _engine.WriteToLog_ping_detail($"sending ping response with senderHMAC={pong.SenderHMAC}");
                 SendPacket(pong.Encode());
             }

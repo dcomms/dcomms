@@ -40,15 +40,15 @@ namespace Dcomms.DRP
         Dictionary<RegistrationPublicKey, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationPublicKey, LocalDrpPeer>(); // accessed only by engine thread       
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
       
-        ushort _seq16Counter; // accessed only by engine thread
-        internal NextHopAckSequenceNumber16 GetNewNhaSeq16() => new NextHopAckSequenceNumber16 { Seq16 = _seq16Counter++ };
+        ushort _seq16Counter_AtoEP; // accessed only by engine thread
+        internal NextHopAckSequenceNumber16 GetNewNhaSeq16_AtoEP() => new NextHopAckSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
         public DrpPeerEngineConfiguration Configuration { get; private set; }
 
         public DrpPeerEngine(DrpPeerEngineConfiguration configuration)
         {
             Configuration = configuration;
             Initialize(configuration);
-            _seq16Counter = (ushort)_insecureRandom.Next(ushort.MaxValue);
+            _seq16Counter_AtoEP = (ushort)_insecureRandom.Next(ushort.MaxValue);
             _engineThreadQueue = new ActionsQueue(exc => HandleExceptionInEngineThread(exc));
 
             _socket = new UdpClient(configuration.LocalPort ?? 0);

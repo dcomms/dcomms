@@ -25,53 +25,54 @@ namespace Dcomms.DRP
             {
                 LocalPort = RpLocalPort,
                 VisionChannel = visionChannel,
-                VisionChannelSourceId = "EP"
+                VisionChannelSourceId = "EP",
+                ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
             });
-            var rpConfig = new DrpPeerRegistrationConfiguration
+            var rpRegConfig = new DrpPeerRegistrationConfiguration
             {
-                NumberOfNeighborsToKeep = 20
+                NumberOfNeighborsToKeep = 20,
             };
-            rpConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _rp.CryptoLibrary.GeneratePrivateKeyEd25519() };
-            rpConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = _rp.CryptoLibrary.GetPublicKeyEd25519(rpConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
-            _rp.BeginCreateLocalPeer(rpConfig, new User());
+            rpRegConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _rp.CryptoLibrary.GeneratePrivateKeyEd25519() };
+            rpRegConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = _rp.CryptoLibrary.GetPublicKeyEd25519(rpRegConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
+            _rp.BeginCreateLocalPeer(rpRegConfig, new User(), (rpLocalPeer) =>
+            {       
+                _x_list = new List<DrpPeerEngine>();
+                for (int i = 0; i < 0; i++)
+                {
+                    var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
+                    {
+                        VisionChannel = visionChannel,
+                        ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
+                        VisionChannelSourceId = $"X{i}"
+                    });
+                    var xConfig = new DrpPeerRegistrationConfiguration
+                    {
+                        EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, RpLocalPort) },
+                        NumberOfNeighborsToKeep = 10
+                    };
+                    xConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = x.CryptoLibrary.GeneratePrivateKeyEd25519() };
+                    xConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = x.CryptoLibrary.GetPublicKeyEd25519(xConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
 
+                    x.BeginRegister(xConfig, new User());
+                    _x_list.Add(x);
+                }
 
-            _x_list = new List<DrpPeerEngine>();
-            for (int i = 0; i < 1; i++)
-            {
-                var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
+                _a = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
                     VisionChannel = visionChannel,
-                    LocalForcedPublicIpForRegistration = IPAddress.Loopback,
-                    VisionChannelSourceId = $"X{i}"
+                    ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
+                    VisionChannelSourceId = "A"
                 });
-                var xConfig = new DrpPeerRegistrationConfiguration
+                var aConfig = new DrpPeerRegistrationConfiguration
                 {
                     EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, RpLocalPort) },
                     NumberOfNeighborsToKeep = 10
                 };
-                xConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = x.CryptoLibrary.GeneratePrivateKeyEd25519() };
-                xConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = x.CryptoLibrary.GetPublicKeyEd25519(xConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
+                aConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _a.CryptoLibrary.GeneratePrivateKeyEd25519() };
+                aConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = _a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
 
-                x.BeginRegister(xConfig, new User());
-                _x_list.Add(x);
-            }
-
-            _a = new DrpPeerEngine(new DrpPeerEngineConfiguration
-            {
-                VisionChannel = visionChannel,
-                LocalForcedPublicIpForRegistration = IPAddress.Loopback,
-                VisionChannelSourceId = "A"
-            });   
-            var aConfig = new DrpPeerRegistrationConfiguration
-            {
-                EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, RpLocalPort) },
-                NumberOfNeighborsToKeep = 10
-            };
-            aConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _a.CryptoLibrary.GeneratePrivateKeyEd25519() };
-            aConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = _a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
-
-            _a.BeginRegister(aConfig, new User());                       
+                _a.BeginRegister(aConfig, new User());
+            });                    
         }
         public void Dispose()
         {

@@ -59,37 +59,59 @@ namespace Dcomms.DRP.Packets
        
         #endregion
 
-        public NextHopAckSequenceNumber16 NhaSeq16; // is not sent from EP to A // goes into NHACK packet
-
+        public NextHopAckSequenceNumber16 NhaSeq16; // is not sent from EP to A (because response to the SYNACK is ACK, not NHACK) // goes into NHACK packet at peer that responds to this packet
+        public byte[] OriginalUdpPayloadData;
 
         /// <summary>
         /// decodes the packet, decrypts ToNeighborTxParametersEncrypted, verifies NeighborSignature, verifies match to register SYN
         /// </summary>
+        /// <param name="newConnectionToNeighborAtRequesterNullable">if not null (at requester) - this procedure verifies ResponderSignature</param>
         /// <param name="reader">is positioned after first byte = packet type</param>    
-        public static RegisterSynAckPacket DecodeAndVerifyAtRequester(byte[] registerSynAckPacketData, RegisterSynPacket localRegisterSyn, ConnectionToNeighbor connectionToNeighbor)
+        public static RegisterSynAckPacket DecodeAndOptionallyVerify(byte[] registerSynAckPacketData, RegisterSynPacket synNullable,
+            ConnectionToNeighbor newConnectionToNeighborAtRequesterNullable)
         {
             var reader = PacketProcedures.CreateBinaryReader(registerSynAckPacketData, 1);
-            var registerSynAck = new RegisterSynAckPacket();
-            registerSynAck.Flags = reader.ReadByte();
-            if ((registerSynAck.Flags & Flag_EPtoA) == 0) registerSynAck.SenderToken32 = P2pConnectionToken32.Decode(reader);           
-            if ((registerSynAck.Flags & Flag_ipv6) != 0) throw new InvalidOperationException();
-            registerSynAck.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
-            registerSynAck.RegisterSynTimestamp32S = reader.ReadUInt32();
-            registerSynAck.ResponderStatusCode = (DrpResponderStatusCode)reader.ReadByte();
-            registerSynAck.ResponderEcdhePublicKey = EcdhPublicKey.Decode(reader);
-            registerSynAck.ToResponderTxParametersEncrypted = reader.ReadBytes(16);
-            registerSynAck.ResponderPublicKey = RegistrationPublicKey.Decode(reader);
-            registerSynAck.ResponderSignature = RegistrationSignature.DecodeAndVerify(reader, connectionToNeighbor.Engine.CryptoLibrary, w => registerSynAck.GetCommonRequesterProxierResponderFields(w, false, true), registerSynAck.ResponderPublicKey);
-            registerSynAck.AssertMatchToRegisterSyn(localRegisterSyn);
+            var synAck = new RegisterSynAckPacket();
+            synAck.OriginalUdpPayloadData = registerSynAckPacketData;
+            synAck.Flags = reader.ReadByte();
+            if ((synAck.Flags & Flag_EPtoA) == 0) synAck.SenderToken32 = P2pConnectionToken32.Decode(reader);           
+            if ((synAck.Flags & Flag_ipv6) != 0) throw new InvalidOperationException();
+            synAck.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
+            synAck.RegisterSynTimestamp32S = reader.ReadUInt32();
+            synAck.ResponderStatusCode = (DrpResponderStatusCode)reader.ReadByte();
+            synAck.ResponderEcdhePublicKey = EcdhPublicKey.Decode(reader);
+            synAck.ToResponderTxParametersEncrypted = reader.ReadBytes(16);
+            synAck.ResponderPublicKey = RegistrationPublicKey.Decode(reader);
 
-            connectionToNeighbor.DecryptAtRegisterRequester(localRegisterSyn, registerSynAck);
-            if ((registerSynAck.Flags & Flag_EPtoA) != 0) registerSynAck.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
-            if ((registerSynAck.Flags & Flag_EPtoA) == 0) registerSynAck.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
+            if (newConnectionToNeighborAtRequesterNullable != null)
+            {
+                synAck.ResponderSignature = RegistrationSignature.DecodeAndVerify(
+                    reader, newConnectionToNeighborAtRequesterNullable.Engine.CryptoLibrary,
+                    w => synAck.GetCommonRequesterProxierResponderFields(w, false, true),
+                    synAck.ResponderPublicKey);
+            }
+            else
+            { // at proxy we don't verify responder's signature, to avoid high spending of resources
+                synAck.ResponderSignature = RegistrationSignature.Decode(reader);
+            }
 
-            // if ((flags & Flag_EPtoA) == 0)
-            //     SenderHMAC = HMAC.Decode(reader);
-            return registerSynAck;
+            if (synNullable != null)
+            {
+                synAck.AssertMatchToRegisterSyn(synNullable);
+                if (newConnectionToNeighborAtRequesterNullable != null)
+                {
+                    newConnectionToNeighborAtRequesterNullable.DecryptAtRegisterRequester(synNullable, synAck);
+                }
+            }
+            if ((synAck.Flags & Flag_EPtoA) != 0) synAck.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+            if ((synAck.Flags & Flag_EPtoA) == 0)
+            {
+                synAck.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
+                synAck.SenderHMAC = HMAC.Decode(reader);
+            }
+            return synAck;
         }
+
         void AssertMatchToRegisterSyn(RegisterSynPacket localRegisterSyn)
         {
             if (localRegisterSyn.RequesterPublicKey_RequestID.Equals(this.RequesterPublicKey_RequestID) == false)
@@ -123,15 +145,18 @@ namespace Dcomms.DRP.Packets
             if (connectionToNeighbor == null) flags |= Flag_EPtoA;
             writer.Write(flags);
             if (connectionToNeighbor != null)
-                connectionToNeighbor.RemotePeerToken32.Encode(writer);
+            {
+                SenderToken32 = connectionToNeighbor.RemotePeerToken32;
+                SenderToken32.Encode(writer);
+            }
 
             GetCommonRequesterProxierResponderFields(writer, true, true);
 
             if (connectionToNeighbor != null)
             {
-                throw new NotImplementedException();
-                //   txParametersToPeerNeighbor.GetSharedHmac(cryptoLibrary, this.GetFieldsForSenderHmac).Encode(writer);
                 NhaSeq16.Encode(writer);
+                this.SenderHMAC = connectionToNeighbor.GetSharedHMAC(this.GetSignedFieldsForSenderHMAC);
+                this.SenderHMAC.Encode(writer);
             }
             else
             {
@@ -141,21 +166,48 @@ namespace Dcomms.DRP.Packets
             return ms.ToArray();
 
         }
+        internal void GetSignedFieldsForSenderHMAC(BinaryWriter w)
+        {
+            SenderToken32.Encode(w);
+            GetCommonRequesterProxierResponderFields(w, true, true);
+            NhaSeq16.Encode(w);
+        }
 
-
-        public static LowLevelUdpResponseScanner GetScanner(RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S)
+        /// <summary>
+        /// creates a scanner that finds SYNACK that matches to SYN
+        /// </summary>
+        /// <param name="destinationPeer">
+        /// peer that responds to SYN with SYNACK
+        /// if not null - the scanner will verify SYNACK.SenderHMAC
+        /// </param>
+        public static LowLevelUdpResponseScanner GetScanner(RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S, ConnectionToNeighbor destinationPeer = null)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpPacketType.RegisterSynAck);
             w.Write((byte)0);
+            if (destinationPeer != null)
+            {
+                destinationPeer.RemotePeerToken32.Encode(w);
+            }
+
             requesterPublicKey_RequestID.Encode(w);
             w.Write(registerSynTimestamp32S);
             
-            return new LowLevelUdpResponseScanner
+            var r = new LowLevelUdpResponseScanner
             {
                 ResponseFirstBytes = ms.ToArray(),
                 IgnoredByteAtOffset1 = 1 // ignore flags
             };
+            if (destinationPeer != null)
+            {
+                r.OptionalFilter = (responseData) =>
+                {
+                    var synack = DecodeAndOptionallyVerify(responseData, null, null);
+                    if (synack.SenderHMAC.Equals(destinationPeer.GetSharedHMAC(synack.GetSignedFieldsForSenderHMAC)) == false) return false;
+                    return true;
+                };
+            }
+            return r;
         }
 
     }
