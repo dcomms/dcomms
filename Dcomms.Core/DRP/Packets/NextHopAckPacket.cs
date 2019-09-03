@@ -46,7 +46,7 @@ namespace Dcomms.DRP.Packets
                 {
                     var nhack = new NextHopAckPacket(responseData);
                     if (nhack.SenderHMAC == null) return false;
-                    if (!nhack.SenderHMAC.Equals(waitNhaFromNeighborNullable.GetSharedHMAC(w2 => nhack.GetFieldsForHMAC(w2, nhaRequestPacketFieldsForHmacNullable)))) return false;
+                    if (!nhack.SenderHMAC.Equals(waitNhaFromNeighborNullable.GetSenderHMAC(w2 => nhack.GetFieldsForHMAC(w2, nhaRequestPacketFieldsForHmacNullable)))) return false;
                     return true;
                 };
             }

@@ -191,7 +191,7 @@ namespace Dcomms.DRP
                 };            
                 ack.ToRequesterTxParametersEncrypted = connectionToNeighbor.EncryptAtRegisterRequester(syn, synAck, ack);
                 connectionToNeighbor.InitializeP2pStream(syn, synAck, ack);
-                ack.RequesterHMAC = connectionToNeighbor.GetSharedHMAC(w => ack.GetCommonRequesterProxyResponderFields(w, false, true));
+                ack.RequesterHMAC = connectionToNeighbor.GetSenderHMAC(w => ack.GetCommonRequesterProxyResponderFields(w, false, true));
 
                 WriteToLog_reg_requesterSide_detail($"sending ACK, waiting for NHACK");
                 RespondToRequestAndRetransmissions(registerSynAckPacketData, ack.Encode_OptionallySignSenderHMAC(null), epEndpoint);

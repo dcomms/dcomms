@@ -49,6 +49,10 @@ namespace Dcomms.DRP.Packets
         public RegisterAckPacket()
         {
         }
+        /// <param name="connectionToNeighborNullable">
+        /// peer that sends ACK
+        /// if not null - the scanner will verify ACK.SenderHMAC
+        /// </param>
         public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
@@ -65,11 +69,23 @@ namespace Dcomms.DRP.Packets
             writer.Write(registerSynTimestamp32S);
             requesterPublicKey_RequestID.Encode(writer);
 
-            return new LowLevelUdpResponseScanner
+            var r = new LowLevelUdpResponseScanner
             {
                 IgnoredByteAtOffset1 = 1,
                 ResponseFirstBytes = ms.ToArray()
             };
+            if (connectionToNeighborNullable != null)
+            {
+                r.OptionalFilter = (responseData) =>
+                {
+                    var ack = Decode_OptionallyVerify_InitializeP2pStreamAtResponder(responseData, null, null, null);
+                    if (ack.SenderHMAC.Equals(connectionToNeighborNullable.GetSenderHMAC(ack.GetSignedFieldsForSenderHMAC)) == false) return false;
+                    return true;
+                };
+            }
+
+
+            return r;
         }
 
         /// <param name="connectionToNeighbor">is null for A->EP mode</param>
@@ -93,7 +109,7 @@ namespace Dcomms.DRP.Packets
             NhaSeq16.Encode(writer);
 
             if (connectionToNeighborNullable != null)
-                connectionToNeighborNullable.GetSharedHMAC(this.GetSignedFieldsForSenderHMAC).Encode(writer);
+                connectionToNeighborNullable.GetSenderHMAC(this.GetSignedFieldsForSenderHMAC).Encode(writer);
             
             return ms.ToArray();
         }
@@ -122,8 +138,13 @@ namespace Dcomms.DRP.Packets
             if (this.RegisterSynTimestamp32S != remoteRegisterSyn.Timestamp32S)
                 throw new UnmatchedFieldsException();
         }
-        /// <param name="newConnectionAtResponderToRequesterNullable">for direct p2p stream from N to A</param>
-        public static RegisterAckPacket DecodeAndVerify_OptionallyInitializeP2pStreamAtResponder(byte[] registerAckPacketData,
+
+        /// <param name="newConnectionAtResponderToRequesterNullable">
+        /// direct P2P stream from N to A
+        /// if newConnectionAtResponderToRequesterNullable is specified, the procedure 
+        /// verifies RequesterHMAC, decrypts endpoint of A (ToRequesterTxParametersEncrypted), initializes P2P stream
+        /// </param>
+        public static RegisterAckPacket Decode_OptionallyVerify_InitializeP2pStreamAtResponder(byte[] registerAckPacketData,
             RegisterSynPacket synNullable,
             RegisterSynAckPacket synAckNullable,
             ConnectionToNeighbor newConnectionAtResponderToRequesterNullable
@@ -149,7 +170,7 @@ namespace Dcomms.DRP.Packets
             ack.RequesterHMAC = HMAC.Decode(reader);
             if (newConnectionAtResponderToRequesterNullable != null)
             {
-                if (ack.RequesterHMAC.Equals(newConnectionAtResponderToRequesterNullable.GetSharedHMAC(w => ack.GetCommonRequesterProxyResponderFields(w, false, true))) == false)
+                if (ack.RequesterHMAC.Equals(newConnectionAtResponderToRequesterNullable.GetSenderHMAC(w => ack.GetCommonRequesterProxyResponderFields(w, false, true))) == false)
                     throw new BadSignatureException();
             }
 

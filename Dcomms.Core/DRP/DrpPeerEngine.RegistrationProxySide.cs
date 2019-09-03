@@ -9,7 +9,14 @@ namespace Dcomms.DRP
 {
     partial class DrpPeerEngine
     {
-        async Task ProxyRegisterRequestAtEntryPeerAsync(ConnectionToNeighbor destinationPeer, RegisterSynPacket syn, IPEndPoint requesterEndpoint) // engine thread
+        /// <summary>
+        /// main register responder proc for both A-EP and P2P modes
+        /// in P2P mode SenderToken32 and SenderHMAC are verified at this time
+        /// </summary>
+        /// <param name="receivedFromInP2pMode">
+        /// is null in A-EP mode
+        /// </param>
+        internal async Task ProxyRegisterRequestAtEntryPeerAsync(ConnectionToNeighbor destinationPeer, RegisterSynPacket syn, IPEndPoint requesterEndpoint, ConnectionToNeighbor synReceivedFromInP2pMode) // engine thread
         {
             WriteToLog_reg_proxySide_detail($"proxying registration at EP: remoteEndpoint={requesterEndpoint}, NhaSeq16={syn.NhaSeq16}, destinationPeer={destinationPeer}");
             
@@ -28,13 +35,13 @@ namespace Dcomms.DRP
                 syn.NumberOfHopsRemaining--;
                 if (syn.NumberOfHopsRemaining == 0)
                 {
-                    SendNextHopAckResponseToSyn(syn, requesterEndpoint, NextHopResponseCode.rejected_numberOfHopsRemainingReachedZero);
+                    SendNextHopAckResponseToSyn(syn, requesterEndpoint, NextHopResponseCode.rejected_numberOfHopsRemainingReachedZero, synReceivedFromInP2pMode);
                     return;
                 }
 
                 // send NHACK to requester
                 WriteToLog_reg_proxySide_detail($"sending NHACK to SYN requester");
-                SendNextHopAckResponseToSyn(syn, requesterEndpoint);
+                SendNextHopAckResponseToSyn(syn, requesterEndpoint, NextHopResponseCode.accepted, synReceivedFromInP2pMode);
 
                 // send (proxy) SYN to destinationPeer. wait for NHACK, verify NHACK.senderHMAC, retransmit SYN   
                 syn.NhaSeq16 = destinationPeer.GetNewNhaSeq16_P2P();
@@ -50,6 +57,7 @@ namespace Dcomms.DRP
                                 ));
                 if (registerSynAckPacketData == null) throw new DrpTimeoutException();
                 var synAck = RegisterSynAckPacket.DecodeAndOptionallyVerify(registerSynAckPacketData, null, null);
+
                 WriteToLog_reg_proxySide_detail($"verified SYNACK from destinationPeer");
 
                 // respond with NHACK
@@ -63,11 +71,11 @@ namespace Dcomms.DRP
                     requesterEndpoint,
                     RegisterAckPacket.GetScanner(null, syn.RequesterPublicKey_RequestID, syn.Timestamp32S)
                     );
-                var ack = RegisterAckPacket.DecodeAndVerify_OptionallyInitializeP2pStreamAtResponder(ackUdpData, null, null, null);
+                var ack = RegisterAckPacket.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(ackUdpData, null, null, null);
 
                 // send NHACK to requester
                 WriteToLog_reg_proxySide_detail($"sending NHACK to ACK to requester");
-                SendNextHopAckResponseToAck(ack, requesterEndpoint);
+                SendNextHopAckResponseToAck(ack, requesterEndpoint, synReceivedFromInP2pMode);
                 
                 // send ACK to destinationPeer
                 // put ACK.NhaSeq16, sendertoken32, senderHMAC  
@@ -87,7 +95,7 @@ namespace Dcomms.DRP
                 // TODO verify signatures and update quality/rating
 
                 // send NHACK to requester
-                SendNextHopAckResponseToCfm(cfm, requesterEndpoint);
+                SendNextHopAckResponseToCfm(cfm, requesterEndpoint, synReceivedFromInP2pMode);
 
                 // send CFM to destinationPeer
                 // wait for NHACK from destinationPeer, retransmit

@@ -33,7 +33,7 @@ namespace Dcomms.DRP
                 NumberOfNeighborsToKeep = 20,
             };
             rpRegConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _rp.CryptoLibrary.GeneratePrivateKeyEd25519() };
-            rpRegConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = _rp.CryptoLibrary.GetPublicKeyEd25519(rpRegConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
+            rpRegConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey(_rp.CryptoLibrary.GetPublicKeyEd25519(rpRegConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
             _rp.BeginCreateLocalPeer(rpRegConfig, new User(), (rpLocalPeer) =>
             {       
                 _x_list = new List<DrpPeerEngine>();
@@ -51,7 +51,7 @@ namespace Dcomms.DRP
                         NumberOfNeighborsToKeep = 10
                     };
                     xConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = x.CryptoLibrary.GeneratePrivateKeyEd25519() };
-                    xConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = x.CryptoLibrary.GetPublicKeyEd25519(xConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
+                    xConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey(x.CryptoLibrary.GetPublicKeyEd25519(xConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
 
                     x.BeginRegister(xConfig, new User());
                     _x_list.Add(x);
@@ -69,7 +69,7 @@ namespace Dcomms.DRP
                     NumberOfNeighborsToKeep = 10
                 };
                 aConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _a.CryptoLibrary.GeneratePrivateKeyEd25519() };
-                aConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey { ed25519publicKey = _a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey) };
+                aConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey(_a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
 
                 _a.BeginRegister(aConfig, new User());
             });                    

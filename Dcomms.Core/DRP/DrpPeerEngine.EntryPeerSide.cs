@@ -32,10 +32,10 @@ namespace Dcomms.DRP
         }
         bool Pow2IsOK(RegisterSynPacket packet, byte[] proofOrWork2Request)
         {
-            var ms = new MemoryStream(packet.RequesterPublicKey_RequestID.ed25519publicKey.Length + proofOrWork2Request.Length + packet.ProofOfWork2.Length);
+            var ms = new MemoryStream(packet.RequesterPublicKey_RequestID.Ed25519publicKey.Length + proofOrWork2Request.Length + packet.ProofOfWork2.Length);
             using (var writer = new BinaryWriter(ms))
             {
-                writer.Write(packet.RequesterPublicKey_RequestID.ed25519publicKey);
+                writer.Write(packet.RequesterPublicKey_RequestID.Ed25519publicKey);
                 writer.Write(proofOrWork2Request);
                 writer.Write(packet.ProofOfWork2);
                 ms.Position = 0;
@@ -164,15 +164,15 @@ namespace Dcomms.DRP
           
             _engineThreadQueue.Enqueue(() =>
             {             
-                RouteRegistrationRequest(syn, out var proxyToDestinationPeer, out var acceptAt); // routing
+                RouteRegistrationRequest(null, syn, out var proxyToDestinationPeer, out var acceptAt); // routing
 
                 if (acceptAt != null)
                 {   // accept the registration request here, at EP
-                    _ = AcceptRegisterRequestAsync(acceptAt, syn, requesterEndpoint);
+                    _ = AcceptRegisterRequestAsync(acceptAt, syn, requesterEndpoint, null);
                 }
                 else if (proxyToDestinationPeer != null)
                 {  // proxy the registration request via the local EP to another peer
-                    _ = ProxyRegisterRequestAtEntryPeerAsync(proxyToDestinationPeer, syn, requesterEndpoint);
+                    _ = ProxyRegisterRequestAtEntryPeerAsync(proxyToDestinationPeer, syn, requesterEndpoint, null);
                 }
                 else throw new Exception();
             });
@@ -180,36 +180,49 @@ namespace Dcomms.DRP
         /// <summary>
         /// main routing procedure for register SYN requests
         /// </summary>
-        void RouteRegistrationRequest(RegisterSynPacket registerSynPacket, out ConnectionToNeighbor proxyToDestinationPeer, out LocalDrpPeer acceptAt)
+        /// <param name="receivedAtLocalDrpPeerNullable">
+        /// is set when routing SYN packets that are received via P2P connection from neighbor to the LocalDrpPeer
+        /// </param>
+        internal void RouteRegistrationRequest(LocalDrpPeer receivedAtLocalDrpPeerNullable, RegisterSynPacket syn, out ConnectionToNeighbor proxyToDestinationPeer, out LocalDrpPeer acceptAt)
         {
             proxyToDestinationPeer = null;
             acceptAt = null;
             RegistrationPublicKeyDistance minDistance = null;
-            foreach (var localPeer in LocalPeers.Values)
+            if (receivedAtLocalDrpPeerNullable != null)
             {
-                foreach (var connectedPeer in localPeer.ConnectedPeers)
-                {
-                    var distanceToConnectedPeer = registerSynPacket.RequesterPublicKey_RequestID.GetDistanceTo(connectedPeer.RemotePeerPublicKey);
-                    if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
-                    {
-                        minDistance = distanceToConnectedPeer;
-                        proxyToDestinationPeer = connectedPeer;
-                        acceptAt = null;
-                    }
-                }
-                var distanceToLocalPeer = registerSynPacket.RequesterPublicKey_RequestID.GetDistanceTo(localPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey);
-                if (minDistance == null || minDistance.IsGreaterThan(distanceToLocalPeer))
-                {
-                    minDistance = distanceToLocalPeer;
-                    proxyToDestinationPeer = null;
-                    acceptAt = localPeer;
-                }
+                RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, syn, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
             }
+            else
+            {
+                foreach (var localDrpPeer in LocalPeers.Values)
+                    RouteRegistrationRequest_LocalDrpPeerIteration(localDrpPeer, syn, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);              
+            }
+
             if (minDistance == null) throw new Exception();
         }
+        void RouteRegistrationRequest_LocalDrpPeerIteration(LocalDrpPeer localDrpPeer, RegisterSynPacket syn, 
+            ref RegistrationPublicKeyDistance minDistance, 
+            ref ConnectionToNeighbor proxyToDestinationPeer, ref LocalDrpPeer acceptAt)
+        {
+            foreach (var connectedPeer in localDrpPeer.ConnectedPeers)
+            {
+                var distanceToConnectedPeer = syn.RequesterPublicKey_RequestID.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
+                if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
+                {
+                    minDistance = distanceToConnectedPeer;
+                    proxyToDestinationPeer = connectedPeer;
+                    acceptAt = null;
+                }
+            }
+            var distanceToLocalPeer = syn.RequesterPublicKey_RequestID.GetDistanceTo(_cryptoLibrary, localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey);
+            if (minDistance == null || minDistance.IsGreaterThan(distanceToLocalPeer))
+            {
+                minDistance = distanceToLocalPeer;
+                proxyToDestinationPeer = null;
+                acceptAt = localDrpPeer;
+            }
+        }
     }
-
-
 
 
     /// <summary>

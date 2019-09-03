@@ -101,7 +101,7 @@ namespace Dcomms.DRP.Packets
             NhaSeq16.Encode(writer);
             if (connectionToNeighborNullable != null)
             {
-                SenderHMAC = connectionToNeighborNullable.GetSharedHMAC(this.GetSignedFieldsForSenderHMAC);
+                SenderHMAC = connectionToNeighborNullable.GetSenderHMAC(this.GetSignedFieldsForSenderHMAC);
                 SenderHMAC.Encode(writer);
             }
 
@@ -128,6 +128,9 @@ namespace Dcomms.DRP.Packets
         }
         public byte[] OriginalUdpPayloadData;
 
+        /// <summary>
+        /// when SYN is received from neighbor, verifies senderHMAC and SenderToken32
+        /// </summary>
         /// <param name="receivedFromNeighborNullable">is NULL when decoding SYN from A at EP</param>
         public static RegisterSynPacket Decode_OptionallyVerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighborNullable)
         {
@@ -161,17 +164,22 @@ namespace Dcomms.DRP.Packets
             if ((flags & Flag_AtoEP) == 0)
             {
                 r.SenderHMAC = HMAC.Decode(reader);
-                if (r.SenderHMAC.Equals(receivedFromNeighborNullable.GetSharedHMAC(r.GetSignedFieldsForSenderHMAC)) == false)
+                if (r.SenderHMAC.Equals(receivedFromNeighborNullable.GetSenderHMAC(r.GetSignedFieldsForSenderHMAC)) == false)
                     throw new BadSignatureException();
             }
 
             return r;
         }
       
-        public static bool IsAtoRP(byte[] udpPayloadData)
+        public static bool IsAtoEP(byte[] udpPayloadData)
         {
             var flags = udpPayloadData[1];
            return (flags & Flag_AtoEP) != 0;
+        }
+        
+        public static ushort DecodeToken16FromUdpPayloadData_P2Pmode(byte[] udpPayloadData)
+        { // first 2 bytes ares packet type and flags. then 4 bytes are P2pConnectionToken32
+            return (ushort)(udpPayloadData[2] | (udpPayloadData[3] << 8));
         }
     }
 }

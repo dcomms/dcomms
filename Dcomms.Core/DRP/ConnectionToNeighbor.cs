@@ -214,7 +214,7 @@ namespace Dcomms.DRP
                 //Decryptor = cryptoLibrary.CreateAesDecyptor(iv, aesKey);
             }
         }
-        public HMAC GetSharedHMAC(byte[] data)
+        public HMAC GetSenderHMAC(byte[] data)
         {
             if (_disposed) throw new ObjectDisposedException(_name);
             if (SharedAuthKeyForHMAC == null) throw new InvalidOperationException();
@@ -226,11 +226,11 @@ namespace Dcomms.DRP
           //  Engine.WriteToLog_ping_detail($"<< GetSharedHmac(input={MiscProcedures.ByteArrayToString(data)}, sha256={MiscProcedures.ByteArrayToString(_engine.CryptoLibrary.GetHashSHA256(data))}) returns {r}. SharedAuthKeyForHMAC={MiscProcedures.ByteArrayToString(SharedAuthKeyForHMAC)}");
             return r;
         }
-        public HMAC GetSharedHMAC(Action<BinaryWriter> data)
+        public HMAC GetSenderHMAC(Action<BinaryWriter> data)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             data(w);
-            return GetSharedHMAC(ms.ToArray());
+            return GetSenderHMAC(ms.ToArray());
         }
         #endregion
                
@@ -314,6 +314,7 @@ namespace Dcomms.DRP
             _engine.ConnectedPeersByToken16[LocalRxToken32.Token16] = null;
         }
 
+        #region ping pong
         public PingPacket CreatePing(bool requestRegistrationConfirmationSignature)
         {
             if (_disposed) throw new ObjectDisposedException(_name);
@@ -326,7 +327,7 @@ namespace Dcomms.DRP
             };
             if (requestRegistrationConfirmationSignature)
                 r.Flags |= PingPacket.Flags_RegistrationConfirmationSignatureRequested;
-            r.SenderHMAC = GetSharedHMAC(r.GetSignedFieldsForSenderHMAC);
+            r.SenderHMAC = GetSenderHMAC(r.GetSignedFieldsForSenderHMAC);
             return r;
         }
         public void OnTimer100ms(DateTime timeNowUTC, out bool needToRestartLoop) // engine thread
@@ -369,16 +370,6 @@ namespace Dcomms.DRP
             _latestPingSent = pingRequestPacket;
             _latestPingSentTime = _engine.DateTimeNowUtc;
         }
-        internal void SendPacket(byte[] udpPayload)
-        {
-            _engine.SendPacket(udpPayload, RemoteEndpoint);
-        }
-        internal async Task SendUdpRequestAsync_Retransmit_WaitForNHACK(byte[] requestUdpData, NextHopAckSequenceNumber16 nhaSeq16, 
-            ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
-        {
-            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(requestUdpData, RemoteEndpoint, nhaSeq16, waitNhaFromNeighborNullable, nhaRequestPacketFieldsForHmacNullable);
-        }
-               
         internal void OnReceivedVerifiedPong(PongPacket pong, DateTime responseReceivedAtUTC, TimeSpan? requestResponseDelay)
         {
             _lastTimeCreatedOrReceivedVerifiedResponsePacket = responseReceivedAtUTC;
@@ -388,7 +379,6 @@ namespace Dcomms.DRP
             if (requestResponseDelay.HasValue)
                 OnMeasuredRequestResponseDelay(requestResponseDelay.Value);
         }
-
         void OnMeasuredRequestResponseDelay(TimeSpan requestResponseDelay)
         {
             _engine.WriteToLog_p2p_detail(this, $"measured RTT: {(int)requestResponseDelay.TotalMilliseconds}ms");
@@ -415,10 +405,9 @@ namespace Dcomms.DRP
                 }
                 // else it is out-of-sequence ping response
             }
-            catch (PossibleMitmException exc)
+            catch (Exception exc)
             {
-                _engine.HandleGeneralException($"breaking P2P connection {this} on MITM exception: {exc}");
-                this.Dispose();
+                _engine.HandleGeneralException($"Exception while processing PONG in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
         internal void OnReceivedPing(IPEndPoint remoteEndpoint, byte[] udpPayloadData) // engine thread
@@ -443,16 +432,63 @@ namespace Dcomms.DRP
                     pong.ResponderRegistrationConfirmationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
                         GetResponderRegistrationConfirmationSignatureFields, _localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);                
                 }
-                pong.SenderHMAC = GetSharedHMAC(pong.GetSignedFieldsForSenderHMAC);
+                pong.SenderHMAC = GetSenderHMAC(pong.GetSignedFieldsForSenderHMAC);
               //  _engine.WriteToLog_ping_detail($"sending ping response with senderHMAC={pong.SenderHMAC}");
                 SendPacket(pong.Encode());
             }
-            catch (PossibleMitmException exc)
+            catch (Exception exc)
             {
-                _engine.HandleGeneralException($"breaking P2P connection on MITM exception: {exc}");
-                this.Dispose();
+                _engine.HandleGeneralException($"Exception while processing PING in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
+        #endregion
+
+        internal void OnReceivedSyn(IPEndPoint requesterEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc)
+        {
+            if (_disposed) return;
+            if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)
+            {
+                _engine.OnReceivedUnauthorizedSourceIpPacket(requesterEndpoint);
+                return;
+            }
+            try
+            {
+                // we got SYN from this instance neighbor
+                var syn = RegisterSynPacket.Decode_OptionallyVerifySenderHMAC(udpPayloadData, this);
+                // SenderToken32 and SenderHMAC are verified at this time
+
+                if (!_engine.ValidateReceivedSynTimestamp32S(syn.Timestamp32S))
+                    throw new BadSignatureException();
+                
+                              
+                _engine.RouteRegistrationRequest(this.LocalDrpPeer, syn, out var proxyToDestinationPeer, out var acceptAt); // routing
+
+                if (acceptAt != null)
+                {   // accept the registration request here at this.LocalDrpPeer                                       
+                    _ = _engine.AcceptRegisterRequestAsync(acceptAt, syn, requesterEndpoint, this);
+                }
+                else if (proxyToDestinationPeer != null)
+                {  // proxy the registration request to another peer
+                    _ = _engine.ProxyRegisterRequestAtEntryPeerAsync(proxyToDestinationPeer, syn, requesterEndpoint, this);
+                }
+                else throw new Exception();
+            }
+            catch (Exception exc)
+            {
+                _engine.HandleGeneralException($"Exception while processing SYN in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
+            }
+        }
+
+        internal void SendPacket(byte[] udpPayload)
+        {
+            _engine.SendPacket(udpPayload, RemoteEndpoint);
+        }
+        internal async Task SendUdpRequestAsync_Retransmit_WaitForNHACK(byte[] requestUdpData, NextHopAckSequenceNumber16 nhaSeq16, 
+            ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
+        {
+            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(requestUdpData, RemoteEndpoint, nhaSeq16, waitNhaFromNeighborNullable, nhaRequestPacketFieldsForHmacNullable);
+        }
+               
         internal void GetResponderRegistrationConfirmationSignatureFields(BinaryWriter w)
         {
             RegisterConfirmationPacket.GetResponderRegistrationConfirmationSignatureFields(w, _syn, _synAck, _ack);

@@ -109,7 +109,7 @@ namespace Dcomms.DRP
 
             if (packetType == DrpPacketType.RegisterSyn)
             {
-                if (RegisterSynPacket.IsAtoRP(udpPayloadData))
+                if (RegisterSynPacket.IsAtoEP(udpPayloadData))
                 {
                     ProcessRegisterSynAtoEpPacket(remoteEndpoint, udpPayloadData);
                     return;
@@ -137,27 +137,17 @@ namespace Dcomms.DRP
                             var connectedPeer = ConnectedPeersByToken16[localRxToken16];
                             if (connectedPeer != null)
                                 connectedPeer.OnReceivedPong(remoteEndpoint, udpPayloadData, receivedAtUtc);
-                        } break;
+                        }
+                        break;
+                    case DrpPacketType.RegisterSyn:
+                        {
+                            var localRxToken16 = RegisterSynPacket.DecodeToken16FromUdpPayloadData_P2Pmode(udpPayloadData);
+                            var connectedPeer = ConnectedPeersByToken16[localRxToken16];
+                            if (connectedPeer != null)
+                                connectedPeer.OnReceivedSyn(remoteEndpoint, udpPayloadData, receivedAtUtc);
+                        }
+                        break;
                 }
-
-
-                // if packet is from existing connected peer (ping, proxied invite/register)
-                //   see which peer sends this packet by streamID, authentcate by source IP:port and  HMAC
-                //   update and limit rx packet rate - blacklist regID
-                //   process register requests:
-                //     see if local peer is good neighbor, reply
-                //     decrement nhops, check if it is not 0, proxy to some neighbor:
-                //        subroutine create requestViaConnectedPeer
-                //   process invite:
-                //     see if local peer is destination, pass to user, reply; set up DirectChannel
-                //     decrement nhops, check if it is not 0, proxy to some neighbor:
-                //        subroutine create requestViaConnectedPeer
-
-                //   process invite/register reponses: pass to original requester, verify responder signature and update rating
-                //     when request is complete, clean state
-
-                //   process ping request/response: reply; measure RTT
-
             });
         }
         #endregion

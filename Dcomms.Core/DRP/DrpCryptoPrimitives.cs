@@ -9,51 +9,65 @@ namespace Dcomms.DRP
 {
     public class RegistrationPublicKey
     {
-        byte ReservedFlagsMustBeZero; // will include "type" = "ed25519 by default" // will include "type of distance metric"
-        public byte[] ed25519publicKey;
+      //  byte ReservedFlagsMustBeZero; // will include "type" = "ed25519 by default" // will include "type of distance metric"
+        public byte[] Ed25519publicKey;
+        public byte[] CachedEd25519publicKeySha256;
+       
+        public RegistrationPublicKey(byte[] ed25519publicKey)
+        {
+            Ed25519publicKey = ed25519publicKey;
+        }
 
         public void Encode(BinaryWriter writer)
         {
-            writer.Write(ReservedFlagsMustBeZero);
-            if (ed25519publicKey.Length != CryptoLibraries.Ed25519PublicKeySize) throw new ArgumentException();
-            writer.Write(ed25519publicKey);
+            byte flags = 0;
+            writer.Write(flags);
+            if (Ed25519publicKey.Length != CryptoLibraries.Ed25519PublicKeySize) throw new ArgumentException();
+            writer.Write(Ed25519publicKey);
         }
         public static RegistrationPublicKey Decode(BinaryReader reader)
         {
-            var r = new RegistrationPublicKey();
-            r.ReservedFlagsMustBeZero = reader.ReadByte();
-            r.ed25519publicKey = reader.ReadBytes(CryptoLibraries.Ed25519PublicKeySize);
+            var flags = reader.ReadByte();
+            var r = new RegistrationPublicKey(reader.ReadBytes(CryptoLibraries.Ed25519PublicKeySize));        
             return r;
         }
         public override bool Equals(object obj)
         {
             var obj2 = (RegistrationPublicKey)obj;
-            return obj2.ReservedFlagsMustBeZero == this.ReservedFlagsMustBeZero && MiscProcedures.EqualByteArrays(obj2.ed25519publicKey, this.ed25519publicKey);
+            return MiscProcedures.EqualByteArrays(obj2.Ed25519publicKey, this.Ed25519publicKey);
         }
         public override int GetHashCode()
         {
-            return MiscProcedures.GetArrayHashCode(ed25519publicKey) ^ ReservedFlagsMustBeZero;
+            return MiscProcedures.GetArrayHashCode(Ed25519publicKey);
         }
         public override string ToString()
         {
-            return MiscProcedures.ByteArrayToString(ed25519publicKey);
+            return MiscProcedures.ByteArrayToString(Ed25519publicKey);
         }
-        public RegistrationPublicKeyDistance GetDistanceTo(RegistrationPublicKey another) => new RegistrationPublicKeyDistance(this, another);
+        public RegistrationPublicKeyDistance GetDistanceTo(ICryptoLibrary cryptoLibrary, RegistrationPublicKey another) => new RegistrationPublicKeyDistance(cryptoLibrary, this, another);
        
     }
     public class RegistrationPublicKeyDistance
     {
-        int _distance; // 32 bytes of reg. public key: split into 16 dimensions of 2 bytes //   manhattan distance: https://en.wikipedia.org/wiki/Taxicab_geometry
-        public unsafe RegistrationPublicKeyDistance(RegistrationPublicKey rpk1, RegistrationPublicKey rpk2)
+        Int64 _distance; // 32 bytes of reg. public key: split into 16 dimensions of 2 bytes //   euclidean distance
+        public unsafe RegistrationPublicKeyDistance(ICryptoLibrary cryptoLibrary, RegistrationPublicKey rpk1, RegistrationPublicKey rpk2)
         {
-            if (rpk1.ed25519publicKey.Length != rpk2.ed25519publicKey.Length) throw new ArgumentException();
+            if (rpk1.CachedEd25519publicKeySha256 == null) rpk1.CachedEd25519publicKeySha256 = cryptoLibrary.GetHashSHA256(rpk1.Ed25519publicKey);
+            var rpk1_ed25519publicKey_sha256 = rpk1.CachedEd25519publicKeySha256;
+            if (rpk2.CachedEd25519publicKeySha256 == null) rpk2.CachedEd25519publicKeySha256 = cryptoLibrary.GetHashSHA256(rpk2.Ed25519publicKey);
+            var rpk2_ed25519publicKey_sha256 = rpk2.CachedEd25519publicKeySha256;            
+
+            if (rpk1_ed25519publicKey_sha256.Length != rpk2_ed25519publicKey_sha256.Length) throw new ArgumentException();
             _distance = 0;
-            fixed (byte* rpk1a = rpk1.ed25519publicKey, rpk2a = rpk2.ed25519publicKey)                
+            fixed (byte* rpk1a = rpk1_ed25519publicKey_sha256, rpk2a = rpk2_ed25519publicKey_sha256)                
             {
                 short* rpk1aPtr = (short*)rpk1a, rpk2aPtr = (short*)rpk2a;
-                int l = rpk1.ed25519publicKey.Length;
+                int l = rpk1_ed25519publicKey_sha256.Length;
                 for (int i = 0; i < l; i++, rpk1aPtr++, rpk2aPtr++)
-                    _distance += Math.Abs(unchecked(*rpk1aPtr - *rpk2aPtr));
+                {
+                    int x = Math.Abs(unchecked(*rpk1aPtr - *rpk2aPtr));
+                    _distance += (x * x);
+                }
             }           
         }
         public bool IsGreaterThan(RegistrationPublicKeyDistance another)
@@ -107,7 +121,7 @@ namespace Dcomms.DRP
             var signedData = new MemoryStream();
             using (var writer = new BinaryWriter(signedData))
                 writeSignedFields(writer);
-            if (cryptoLibrary.VerifyEd25519(signedData.ToArray(), ed25519signature, publicKey.ed25519publicKey) == false)
+            if (cryptoLibrary.VerifyEd25519(signedData.ToArray(), ed25519signature, publicKey.Ed25519publicKey) == false)
                 return false;
             return true;
         }

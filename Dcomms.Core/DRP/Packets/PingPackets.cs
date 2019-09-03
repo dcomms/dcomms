@@ -67,7 +67,7 @@ namespace Dcomms.DRP.Packets
 
             // verify SenderHMAC
             if (r.SenderHMAC.Equals(
-                connectedPeerWhoSentTheRequest.GetSharedHMAC(r.GetSignedFieldsForSenderHMAC)
+                connectedPeerWhoSentTheRequest.GetSenderHMAC(r.GetSignedFieldsForSenderHMAC)
                 ) == false)
                 throw new BadSignatureException();
 
@@ -137,7 +137,7 @@ namespace Dcomms.DRP.Packets
                 throw new UnmatchedFieldsException();
 
             // verify SenderHMAC
-            var expectedHMAC = connectedPeerWhoSentTheResponse.GetSharedHMAC(r.GetSignedFieldsForSenderHMAC);
+            var expectedHMAC = connectedPeerWhoSentTheResponse.GetSenderHMAC(r.GetSignedFieldsForSenderHMAC);
             if (r.SenderHMAC.Equals(expectedHMAC) == false)
             {
                 connectedPeerWhoSentTheResponse.Engine.WriteToLog_p2p_detail(connectedPeerWhoSentTheResponse, $"incorrect sender HMAC in ping response: {r.SenderHMAC}. expected: {expectedHMAC}");

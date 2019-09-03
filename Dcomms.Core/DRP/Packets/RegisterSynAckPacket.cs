@@ -135,27 +135,27 @@ namespace Dcomms.DRP.Packets
             if (includeSignature) ResponderSignature.Encode(writer);
         }
 
-        /// <param name="connectionToNeighbor">is not null for packets between registered peers</param>
-        public byte[] EncodeAtResponder(ConnectionToNeighbor connectionToNeighbor)
+        /// <param name="synReceivedFromInP2pMode">is not null for packets between registered peers</param>
+        public byte[] EncodeAtResponder(ConnectionToNeighbor synReceivedFromInP2pMode)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
             writer.Write((byte)DrpPacketType.RegisterSynAck);
             byte flags = 0;
-            if (connectionToNeighbor == null) flags |= Flag_EPtoA;
+            if (synReceivedFromInP2pMode == null) flags |= Flag_EPtoA;
             writer.Write(flags);
-            if (connectionToNeighbor != null)
+            if (synReceivedFromInP2pMode != null)
             {
-                SenderToken32 = connectionToNeighbor.RemotePeerToken32;
+                SenderToken32 = synReceivedFromInP2pMode.RemotePeerToken32;
                 SenderToken32.Encode(writer);
             }
 
             GetCommonRequesterProxierResponderFields(writer, true, true);
 
-            if (connectionToNeighbor != null)
+            if (synReceivedFromInP2pMode != null)
             {
                 NhaSeq16.Encode(writer);
-                this.SenderHMAC = connectionToNeighbor.GetSharedHMAC(this.GetSignedFieldsForSenderHMAC);
+                this.SenderHMAC = synReceivedFromInP2pMode.GetSenderHMAC(this.GetSignedFieldsForSenderHMAC);
                 this.SenderHMAC.Encode(writer);
             }
             else
@@ -176,18 +176,18 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// creates a scanner that finds SYNACK that matches to SYN
         /// </summary>
-        /// <param name="destinationPeer">
+        /// <param name="connectionToNeighborNullable">
         /// peer that responds to SYN with SYNACK
         /// if not null - the scanner will verify SYNACK.SenderHMAC
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S, ConnectionToNeighbor destinationPeer = null)
+        public static LowLevelUdpResponseScanner GetScanner(RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S, ConnectionToNeighbor connectionToNeighborNullable = null)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpPacketType.RegisterSynAck);
             w.Write((byte)0);
-            if (destinationPeer != null)
+            if (connectionToNeighborNullable != null)
             {
-                destinationPeer.RemotePeerToken32.Encode(w);
+                connectionToNeighborNullable.RemotePeerToken32.Encode(w);
             }
 
             requesterPublicKey_RequestID.Encode(w);
@@ -198,12 +198,12 @@ namespace Dcomms.DRP.Packets
                 ResponseFirstBytes = ms.ToArray(),
                 IgnoredByteAtOffset1 = 1 // ignore flags
             };
-            if (destinationPeer != null)
+            if (connectionToNeighborNullable != null)
             {
                 r.OptionalFilter = (responseData) =>
                 {
                     var synack = DecodeAndOptionallyVerify(responseData, null, null);
-                    if (synack.SenderHMAC.Equals(destinationPeer.GetSharedHMAC(synack.GetSignedFieldsForSenderHMAC)) == false) return false;
+                    if (synack.SenderHMAC.Equals(connectionToNeighborNullable.GetSenderHMAC(synack.GetSignedFieldsForSenderHMAC)) == false) return false;
                     return true;
                 };
             }

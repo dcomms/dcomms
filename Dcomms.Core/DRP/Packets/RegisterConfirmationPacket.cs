@@ -63,24 +63,41 @@ namespace Dcomms.DRP.Packets
             ack.GetCommonRequesterProxyResponderFields(writer, true, true);
             writer.Write(ResponderRegistrationConfirmationSignature_MagicNumber);
         }
-        
-        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighbor, RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S)
+
+        /// <param name="connectionToNeighborNullable">
+        /// peer that sends CFM
+        /// if not null - the scanner will verify CFM.SenderHMAC
+        /// </param>
+        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegistrationPublicKey requesterPublicKey_RequestID, uint registerSynTimestamp32S)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpPacketType.RegisterConfirmation);
             
             w.Write((byte)0); // ignored flags
 
-            if (connectionToNeighbor != null)
-                connectionToNeighbor.LocalRxToken32.Encode(w);
+            if (connectionToNeighborNullable != null)
+                connectionToNeighborNullable.LocalRxToken32.Encode(w);
 
             w.Write(registerSynTimestamp32S);        
             requesterPublicKey_RequestID.Encode(w);
-            return new LowLevelUdpResponseScanner
+            var r = new LowLevelUdpResponseScanner
             {
                 IgnoredByteAtOffset1 = 1,
                 ResponseFirstBytes = ms.ToArray(),
             };
+
+            if (connectionToNeighborNullable != null)
+            {
+                r.OptionalFilter = (responseData) =>
+                {
+                    var cfm = DecodeAndOptionallyVerify(responseData, null, null);
+                    if (cfm.SenderHMAC.Equals(connectionToNeighborNullable.GetSenderHMAC(cfm.GetSignedFieldsForSenderHMAC)) == false) return false;
+                    return true;
+                };
+            }
+
+
+            return r;
         }
 
         /// <param name="connectionToNeighbor">is not null for packets between registered peers</param>
@@ -107,7 +124,7 @@ namespace Dcomms.DRP.Packets
             NhaSeq16.Encode(writer);
             if (connectionToNeighbor != null)
             {
-                this.SenderHMAC = connectionToNeighbor.GetSharedHMAC(this.GetSignedFieldsForSenderHMAC);
+                this.SenderHMAC = connectionToNeighbor.GetSenderHMAC(this.GetSignedFieldsForSenderHMAC);
                 this.SenderHMAC.Encode(writer);
             }
 
