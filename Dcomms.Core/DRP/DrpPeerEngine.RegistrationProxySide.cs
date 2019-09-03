@@ -19,16 +19,14 @@ namespace Dcomms.DRP
         internal async Task ProxyRegisterRequestAtEntryPeerAsync(ConnectionToNeighbor destinationPeer, RegisterSynPacket syn, IPEndPoint requesterEndpoint, ConnectionToNeighbor synReceivedFromInP2pMode) // engine thread
         {
             WriteToLog_reg_proxySide_detail($"proxying registration at EP: remoteEndpoint={requesterEndpoint}, NhaSeq16={syn.NhaSeq16}, destinationPeer={destinationPeer}");
-            
+
+
+            if (syn.AtoEP ^ (synReceivedFromInP2pMode == null))
+                throw new InvalidOperationException();
+
             _pendingRegisterRequests.Add(syn.RequesterPublicKey_RequestID);
             try
             {
-                if (syn.AtoEP == false)
-                {
-                    //todo check hmac of proxy sender
-                    throw new NotImplementedException();
-                }
-
                 if (!ValidateReceivedSynTimestamp32S(syn.Timestamp32S))
                     throw new BadSignatureException();
 
@@ -65,14 +63,42 @@ namespace Dcomms.DRP
 
                 // send SYNACK to requester 
                 // wait for ACK / NHACK 
-                // TODO in case when requester is P2P connected neighbor:   //synAck.NhaSeq16 = xx // put SYNACK.NhaSeq16, sendertoken32, senderHMAC  
-                synAck.RequesterEndpoint = requesterEndpoint;
-                var ackUdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(synAck.EncodeAtResponder(null), 
-                    requesterEndpoint,
-                    RegisterAckPacket.GetScanner(null, syn.RequesterPublicKey_RequestID, syn.Timestamp32S)
-                    );
-                var ack = RegisterAckPacket.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(ackUdpData, null, null, null);
+                if (synReceivedFromInP2pMode != null)
+                {   // P2P mode
+                    synAck.NhaSeq16 = synReceivedFromInP2pMode.GetNewNhaSeq16_P2P();
+                }
+                else
+                {   // A-EP mode
+                    synAck.RequesterEndpoint = requesterEndpoint;
+                }
+                var synAckUdpData = synAck.EncodeAtResponder(synReceivedFromInP2pMode);
 
+
+
+
+
+
+
+                var ackScanner = RegisterAckPacket.GetScanner(synReceivedFromInP2pMode, syn.RequesterPublicKey_RequestID, syn.Timestamp32S);
+                byte[] ackUdpData;
+                if (syn.AtoEP)
+                {   // wait for ACK, retransmitting SYNACK
+                    WriteToLog_reg_responderSide_detail($"sending SYNACK, waiting for ACK");
+                    ackUdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(synAckUdpData, requesterEndpoint, ackScanner);
+                }
+                else
+                {   // retransmit SYNACK until NHACK (via P2P); at same time wait for ACK
+                    WriteToLog_reg_responderSide_detail($"sending SYNACK, awaiting for NHACK");
+                    _ = OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(synAckUdpData, requesterEndpoint,
+                        synAck.NhaSeq16, synReceivedFromInP2pMode, synAck.GetSignedFieldsForSenderHMAC);
+                    // not waiting for NHACK, wait for ACK
+                    WriteToLog_reg_responderSide_detail($"waiting for ACK");
+                    ackUdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requesterEndpoint, ackScanner);
+                }
+
+                WriteToLog_reg_responderSide_detail($"received ACK");
+                var ack = RegisterAckPacket.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(ackUdpData, null, null, null);
+                
                 // send NHACK to requester
                 WriteToLog_reg_proxySide_detail($"sending NHACK to ACK to requester");
                 SendNextHopAckResponseToAck(ack, requesterEndpoint, synReceivedFromInP2pMode);
@@ -88,7 +114,7 @@ namespace Dcomms.DRP
                 // wait for CFM from requester
                 var cfmUdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null,
                     requesterEndpoint,
-                    RegisterConfirmationPacket.GetScanner(null, syn.RequesterPublicKey_RequestID, syn.Timestamp32S)
+                    RegisterConfirmationPacket.GetScanner(synReceivedFromInP2pMode, syn.RequesterPublicKey_RequestID, syn.Timestamp32S)
                     );
                 var cfm = RegisterConfirmationPacket.DecodeAndOptionallyVerify(cfmUdpData, null, null);
 

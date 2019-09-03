@@ -68,12 +68,12 @@ namespace Dcomms.DRP
                     if (syn.AtoEP) synAck.RequesterEndpoint = requesterEndpoint;                    
                     registerSynAckUdpPayload = synAck.EncodeAtResponder(synReceivedFromInP2pMode);
                     
-                    var regAckScanner = RegisterAckPacket.GetScanner(synReceivedFromInP2pMode, syn.RequesterPublicKey_RequestID, syn.Timestamp32S);
-                    byte[] regAckUdpPayload;
+                    var ackScanner = RegisterAckPacket.GetScanner(synReceivedFromInP2pMode, syn.RequesterPublicKey_RequestID, syn.Timestamp32S);
+                    byte[] ackUdpData;
                     if (syn.AtoEP)
                     {   // wait for ACK, retransmitting SYNACK
                         WriteToLog_reg_responderSide_detail($"sending SYNACK, waiting for ACK");
-                        regAckUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, requesterEndpoint, regAckScanner);
+                        ackUdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, requesterEndpoint, ackScanner);
                     }
                     else
                     {   // retransmit SYNACK until NHACK (via P2P); at same time wait for ACK
@@ -82,12 +82,12 @@ namespace Dcomms.DRP
                             synAck.NhaSeq16, synReceivedFromInP2pMode, synAck.GetSignedFieldsForSenderHMAC);
                         // not waiting for NHACK, wait for ACK
                         WriteToLog_reg_responderSide_detail($"waiting for ACK");                        
-                        regAckUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, requesterEndpoint, regAckScanner);                
+                        ackUdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requesterEndpoint, ackScanner);                
                     }
 
                     WriteToLog_reg_responderSide_detail($"received ACK");
                     var ack = RegisterAckPacket.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(
-                        regAckUdpPayload, syn, synAck, newConnectionToNeighbor);
+                        ackUdpData, syn, synAck, newConnectionToNeighbor);
 
                     WriteToLog_reg_responderSide_detail($"verified ACK");
                     acceptAt.ConnectedPeers.Add(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A                    
