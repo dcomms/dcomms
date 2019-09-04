@@ -102,9 +102,7 @@ namespace Dcomms.Cryptography
             hmac.Init(new KeyParameter(key));
             var result = new byte[hmac.GetMacSize()];
 
-            var sha256Hash = GetHashSHA256(data);
-            hmac.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-           // hmac.BlockUpdate(data, 0, data.Length);
+            hmac.BlockUpdate(data, 0, data.Length);
 
             hmac.DoFinal(result, 0);
             return result;

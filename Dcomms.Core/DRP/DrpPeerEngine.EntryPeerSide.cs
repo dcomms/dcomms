@@ -62,8 +62,8 @@ namespace Dcomms.DRP
             var packet = new RegisterPow1RequestPacket(udpPayloadData);
             if (!PassPow1filter(requesterEndpoint, packet))
             {
-                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {requesterEndpoint}");
+                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.needsAttention)
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.needsAttention, $"pow1 filter rejected request from {requesterEndpoint}");
                 return;
             }
 
@@ -88,8 +88,8 @@ namespace Dcomms.DRP
             // verify size of Pow1 data
             if (packet.ProofOfWork1.Length != 64)
             {
-                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {requesterEndpoint}: invalid pow1 length");
+                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.needsAttention)
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.needsAttention, $"pow1 filter rejected request from {requesterEndpoint}: invalid pow1 length");
                 return false;
             }
 
@@ -97,8 +97,8 @@ namespace Dcomms.DRP
             var timeDifferenceSec = Math.Abs((int)unchecked(localTimeSec32 - packet.Timestamp32S));
             if (timeDifferenceSec > Configuration.RegisterPow1_MaxTimeDifferenceS)
             {
-                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {requesterEndpoint}: invalid timestamp");
+                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.needsAttention)
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.needsAttention, $"pow1 filter rejected request from {requesterEndpoint}: invalid timestamp");
 
                 // respond with error "try again with valid clock" - legitimate user has to get valid clock from some time server and synchronize itself with the server
                 if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1withError(requesterEndpoint, RegisterPow1ResponseStatusCode.rejected_badtimestamp, packet.Pow1RequestId);
@@ -107,8 +107,8 @@ namespace Dcomms.DRP
 
             if (!Pow1IsOK(packet, requesterEndpoint.Address.GetAddressBytes()))
             {
-                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {requesterEndpoint}: invalid pow1");
+                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.needsAttention)
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.needsAttention, $"pow1 filter rejected request from {requesterEndpoint}: invalid pow1");
 
                 OnReceivedBadRegisterSynPow1(requesterEndpoint);
                 // no response
@@ -119,12 +119,13 @@ namespace Dcomms.DRP
             var dataIsUnique = _recentUniquePow1Data.TryInputData(packet.ProofOfWork1, localTimeSec32);
             if (dataIsUnique)
             {
-                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.deepDetail)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.deepDetail, $"pow1 filter rejected request from {requesterEndpoint}: pow1 data is not unique");
                 return true;
             }
             else
             {
+                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.needsAttention)
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.needsAttention, $"pow1 filter rejected request from {requesterEndpoint}: pow1 data is not unique");
+                
                 // respond with error "try again with unique PoW data"
                 if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1withError(requesterEndpoint, RegisterPow1ResponseStatusCode.rejected_tryagainRightNowWithThisServer, packet.Pow1RequestId);
                 return false;

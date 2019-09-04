@@ -20,6 +20,10 @@ namespace Dcomms.Vision
         /// </summary>
         guiActivity,
         /// <summary>
+        /// DoS countermeasures, light warnings
+        /// </summary>
+        needsAttention,
+        /// <summary>
         /// (possible) problem expressed by user: closed app with no clicks, sent a bad feedback "app is not clear" "app does not work"
         /// </summary>
         guiPain,

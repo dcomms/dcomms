@@ -35,7 +35,7 @@ namespace Dcomms.DRP
         Thread _receiverThread;
         UdpClient _socket;
         ActionsQueue _engineThreadQueue;
-        readonly Random _insecureRandom = new Random();
+        readonly Random _insecureRandom;
         internal Random InsecureRandom => _insecureRandom;
         Dictionary<RegistrationPublicKey, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationPublicKey, LocalDrpPeer>(); // accessed only by engine thread       
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
@@ -46,6 +46,7 @@ namespace Dcomms.DRP
 
         public DrpPeerEngine(DrpPeerEngineConfiguration configuration)
         {
+            _insecureRandom = configuration.InsecureRandomSeed.HasValue ? new Random(configuration.InsecureRandomSeed.Value) : new Random();
             Configuration = configuration;
             Initialize(configuration);
             _seq16Counter_AtoEP = (ushort)_insecureRandom.Next(ushort.MaxValue);
@@ -72,7 +73,8 @@ namespace Dcomms.DRP
             _socket.Dispose();
             _receiverThread.Join();
         }
-        
+        public override string ToString() => Configuration.VisionChannelSourceId;
+
         #region receiver thread
         void ReceiverThreadEntry()
         {

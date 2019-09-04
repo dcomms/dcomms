@@ -22,27 +22,9 @@ namespace Dcomms.CryptographyTester
 {
     public partial class CryptographyTesterMainWindow : Window
     {
-        public class CryptographyTesterMainWindowVisionChannel: VisionChannel
-        {
-            public ObservableCollection<LogMessage> LogMessages { get; private set; } = new ObservableCollection<LogMessage>();
-            readonly Stopwatch _sw = Stopwatch.StartNew();
-            readonly DateTime _started = DateTime.Now;
-            string TimeNowStr => (_started + _sw.Elapsed).ToString("HH:mm:ss.fff");
-            public override void Emit(string sourceId, string moduleName, AttentionLevel level, string message)
-            {
-                var msg = new LogMessage
-                {
-                    Text = $"{TimeNowStr} [{Thread.CurrentThread.ManagedThreadId} {sourceId}] {moduleName} {message}"
-                };
-                App.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                {
-                    LogMessages.Insert(0, msg);
-                }));
-            }
-        }
-        CryptographyTesterMainWindowVisionChannel VisionChannel { get; set; } = new CryptographyTesterMainWindowVisionChannel();
+        VisionChannel1 VisionChannel { get; set; } = new VisionChannel1();
 
-        readonly Dcomms.CryptographyTester1 _tester;
+        readonly Dcomms.CryptographyTester1 _tester; 
         public CryptographyTesterMainWindow()
         {
             _tester = new CryptographyTester1(VisionChannel);
@@ -52,9 +34,5 @@ namespace Dcomms.CryptographyTester
 
         }
 
-        public class LogMessage
-        {
-            public string Text { get; set; }
-        }
     }
 }

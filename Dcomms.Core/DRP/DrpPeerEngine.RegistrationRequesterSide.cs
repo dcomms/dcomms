@@ -289,7 +289,7 @@ namespace Dcomms.DRP
             packet.Timestamp32S = timeSec32UTC;
             packet.ProofOfWork1 = new byte[64];
 
-            var rnd = new Random();
+            var rnd = new Random(_insecureRandom.Next());
             for (; ; )
             {
                 rnd.NextBytes(packet.ProofOfWork1);

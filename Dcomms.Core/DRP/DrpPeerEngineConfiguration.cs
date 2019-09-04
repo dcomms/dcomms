@@ -8,6 +8,7 @@ namespace Dcomms.DRP
 {
     public class DrpPeerEngineConfiguration
     {
+        public int? InsecureRandomSeed;
         public ushort? LocalPort;
         /// <summary>
         /// is used instead of public IP API provider response; in case of localhost-localhost tests 
