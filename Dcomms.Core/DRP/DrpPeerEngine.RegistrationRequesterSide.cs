@@ -167,7 +167,7 @@ namespace Dcomms.DRP
                             ));
                 if (registerSynAckPacketData == null) throw new DrpTimeoutException();
                 var synAck = RegisterSynAckPacket.DecodeAndOptionallyVerify(registerSynAckPacketData, syn, connectionToNeighbor);
-                WriteToLog_reg_requesterSide_detail($"verified SYNACK");
+                WriteToLog_reg_requesterSide_detail($"verified SYNACK. RequesterEndpoint={synAck.RequesterEndpoint}");
                 #endregion
 
                 // check if it matches to previously known local public IP
@@ -189,7 +189,7 @@ namespace Dcomms.DRP
                     RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
                     NhaSeq16 = GetNewNhaSeq16_AtoEP()
                 };            
-                ack.ToRequesterTxParametersEncrypted = connectionToNeighbor.EncryptAtRegisterRequester(syn, synAck, ack);
+                ack.ToRequesterTxParametersEncrypted = connectionToNeighbor.Encrypt_ack_ToRequesterTxParametersEncrypted_AtRequester(syn, synAck, ack);
                 connectionToNeighbor.InitializeP2pStream(syn, synAck, ack);
                 ack.RequesterHMAC = connectionToNeighbor.GetSenderHMAC(w => ack.GetCommonRequesterProxyResponderFields(w, false, true));
 

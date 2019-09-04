@@ -99,6 +99,11 @@ namespace Dcomms.DRP.Packets
 
     class DrpTimeoutException : ApplicationException // next hop or EP, or whatever responder timed out
     {
+        public DrpTimeoutException(string message = "Timeout while waiting for response")
+            : base(message)
+        {
+
+        }
 
     }
     class NextHopRejectedException : ApplicationException

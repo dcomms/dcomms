@@ -62,7 +62,7 @@ namespace Dcomms.DRP
             fixed (byte* rpk1a = rpk1_ed25519publicKey_sha256, rpk2a = rpk2_ed25519publicKey_sha256)                
             {
                 short* rpk1aPtr = (short*)rpk1a, rpk2aPtr = (short*)rpk2a;
-                int l = rpk1_ed25519publicKey_sha256.Length;
+                int l = rpk1_ed25519publicKey_sha256.Length / 2;
                 for (int i = 0; i < l; i++, rpk1aPtr++, rpk2aPtr++)
                 {
                     int x = Math.Abs(unchecked(*rpk1aPtr - *rpk2aPtr));
@@ -74,6 +74,7 @@ namespace Dcomms.DRP
         {
             return this._distance > another._distance;
         }
+        public override string ToString() => ((float)_distance).ToString("E02");
     }
 
 

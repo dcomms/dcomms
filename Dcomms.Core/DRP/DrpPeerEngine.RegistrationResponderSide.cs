@@ -42,6 +42,8 @@ namespace Dcomms.DRP
                     }
                 }
 
+                WriteToLog_reg_responderSide_detail($"sending NHACK to SYN to {requesterEndpoint}");
+
                 SendNextHopAckResponseToSyn(syn, requesterEndpoint, NextHopResponseCode.accepted, synReceivedFromInP2pMode);
 
                 var newConnectionToNeighbor = new ConnectionToNeighbor(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer)
@@ -61,7 +63,7 @@ namespace Dcomms.DRP
                         ResponderStatusCode = DrpResponderStatusCode.confirmed,
                         NhaSeq16 = GetNewNhaSeq16_AtoEP(),
                     };
-                    synAck.ToResponderTxParametersEncrypted = newConnectionToNeighbor.EncryptAtRegisterResponder(syn, synAck);
+                    synAck.ToResponderTxParametersEncrypted = newConnectionToNeighbor.Encrypt_synack_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(syn, synAck, synReceivedFromInP2pMode);
                     synAck.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         w2 => synAck.GetCommonRequesterProxierResponderFields(w2, false, true),
                         acceptAt.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
@@ -117,10 +119,10 @@ namespace Dcomms.DRP
                         pendingPingRequest.ResponseReceivedAtUtc.Value - pendingPingRequest.InitialTxTimeUTC.Value);
                     #endregion
                 }
-                catch
+                catch (Exception exc)
                 {
                     newConnectionToNeighbor.Dispose();
-                    throw;
+                    throw exc;
                 }
             }
 			catch (Exception exc)

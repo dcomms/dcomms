@@ -100,7 +100,7 @@ namespace Dcomms.DRP.Packets
                 synAck.AssertMatchToRegisterSyn(synNullable);
                 if (newConnectionToNeighborAtRequesterNullable != null)
                 {
-                    newConnectionToNeighborAtRequesterNullable.DecryptAtRegisterRequester(synNullable, synAck);
+                    newConnectionToNeighborAtRequesterNullable.Decrypt_synack_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(synNullable, synAck);
                 }
             }
             if ((synAck.Flags & Flag_EPtoA) != 0) synAck.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
@@ -187,7 +187,7 @@ namespace Dcomms.DRP.Packets
             w.Write((byte)0);
             if (connectionToNeighborNullable != null)
             {
-                connectionToNeighborNullable.RemotePeerToken32.Encode(w);
+                connectionToNeighborNullable.LocalRxToken32.Encode(w);
             }
 
             requesterPublicKey_RequestID.Encode(w);

@@ -19,7 +19,7 @@ namespace Dcomms.DRP
         const int EpLocalPort = 6789;
         readonly Random _insecureRandom = new Random();
         DrpPeerEngine _ep, _a;
-        List<DrpPeerEngine> _x_list;
+        DrpPeerEngine _x;
         public DrpTester1(VisionChannel visionChannel)
         {
             _ep = new DrpPeerEngine(new DrpPeerEngineConfiguration
@@ -53,40 +53,41 @@ namespace Dcomms.DRP
                 aConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _a.CryptoLibrary.GeneratePrivateKeyEd25519() };
                 aConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey(_a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
     
-                _x_list = new List<DrpPeerEngine>();
-                for (int i = 0; i < 1; i++)
+                
+                _x = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
-                    var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
-                    {
-                        InsecureRandomSeed = _insecureRandom.Next(),
-                        VisionChannel = visionChannel,
-                        ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
-                        VisionChannelSourceId = $"X{i}"
-                    });
-                    var xConfig = new DrpPeerRegistrationConfiguration
-                    {
-                        EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) },
-                        NumberOfNeighborsToKeep = 10
-                    };
+                    InsecureRandomSeed = _insecureRandom.Next(),
+                    VisionChannel = visionChannel,
+                    ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
+                    VisionChannelSourceId = $"X"
+                });
+                var xConfig = new DrpPeerRegistrationConfiguration
+                {
+                    EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) },
+                    NumberOfNeighborsToKeep = 10
+                };
 
-              _retry:
-                    xConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = x.CryptoLibrary.GeneratePrivateKeyEd25519() };
-                    xConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey(x.CryptoLibrary.GetPublicKeyEd25519(xConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
+            _retry:
+                xConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _x.CryptoLibrary.GeneratePrivateKeyEd25519() };
+                xConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey(_x.CryptoLibrary.GetPublicKeyEd25519(xConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
 
-                    var distance_eptoa = epConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(x.CryptoLibrary, aConfig.LocalPeerRegistrationPublicKey);
-                    var distance_xtoa = xConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(x.CryptoLibrary, aConfig.LocalPeerRegistrationPublicKey);
-                    if (distance_xtoa.IsGreaterThan(distance_eptoa)) goto _retry;
+                var distance_eptoa = epConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(_x.CryptoLibrary, aConfig.LocalPeerRegistrationPublicKey);
+                var distance_xtoa = xConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(_x.CryptoLibrary, aConfig.LocalPeerRegistrationPublicKey);
+                if (distance_xtoa.IsGreaterThan(distance_eptoa)) goto _retry;
 
-                    x.BeginRegister(xConfig, new User());
-                    _x_list.Add(x);
-                }
+                _x.BeginRegister(xConfig, new User(), (xLocalPeer) =>
+                {
+                    _a.BeginRegister(aConfig, new User());
+                });               
+                
 
-                _a.BeginRegister(aConfig, new User());
             });                    
         }
         public void Dispose()
         {
             _ep.Dispose();
+            _a.Dispose();
+            _x.Dispose();
         }
     }
 }

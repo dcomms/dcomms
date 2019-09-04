@@ -42,7 +42,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// initializes parameters to transmit direct (p2p) packets form requester A to neighbor N
         /// </summary>
-        public void DecryptAtRegisterRequester(RegisterSynPacket syn, RegisterSynAckPacket synAck)
+        public void Decrypt_synack_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(RegisterSynPacket syn, RegisterSynAckPacket synAck)
         {
             if ((synAck.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
             
@@ -79,18 +79,27 @@ namespace Dcomms.DRP
         /// <summary>
         /// when sending SYN-ACK
         /// </summary>
-        public byte[] EncryptAtRegisterResponder(RegisterSynPacket remoteRegisterSyn, RegisterSynAckPacket localRegisterSynAck)
+        public byte[] Encrypt_synack_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(RegisterSynPacket syn, RegisterSynAckPacket synAck, ConnectionToNeighbor synReceivedFromInP2pMode)
         {
-            if (remoteRegisterSyn.AtoEP == false) throw new NotImplementedException();
-            if (remoteRegisterSyn.EpEndpoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new NotImplementedException();
+            IPEndPoint responderEndpoint;
+            if (synReceivedFromInP2pMode != null)
+            {
+                responderEndpoint = synReceivedFromInP2pMode.LocalEndpoint;
+            }
+            else
+            {
+                responderEndpoint = syn.EpEndpoint;
+            }
 
-            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, remoteRegisterSyn.RequesterEcdhePublicKey.ecdh25519PublicKey);
+            if (responderEndpoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new NotImplementedException();
+
+            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, syn.RequesterEcdhePublicKey.ecdh25519PublicKey);
 
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                remoteRegisterSyn.GetCommonRequesterProxyResponderFields(writer, true);
-                localRegisterSynAck.GetCommonRequesterProxierResponderFields(writer, false, false);
+                syn.GetCommonRequesterProxyResponderFields(writer, true);
+                synAck.GetCommonRequesterProxierResponderFields(writer, false, false);
 
                 var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();;
                 ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
@@ -99,7 +108,7 @@ namespace Dcomms.DRP
                            
                 // encode localRxParameters
                 PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
-                PacketProcedures.EncodeIPEndPointIpv4(wRxParameters, remoteRegisterSyn.EpEndpoint); // 6
+                PacketProcedures.EncodeIPEndPointIpv4(wRxParameters, responderEndpoint); // 6
                 LocalRxToken32.Encode(wRxParameters); // 4
                 wRxParameters.Write(Magic16_ipv4_responderToRequester);    // 2
                 wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(4));      // 4
@@ -114,7 +123,7 @@ namespace Dcomms.DRP
         }
                
         /// <summary>initializes parameters to transmit direct (p2p) packets form neighbor N to requester A</returns>
-        public void DecryptAtRegisterResponder_InitializeP2pStream(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
+        public void Decrypt_ack_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
         {
             if ((ack.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
             
@@ -151,16 +160,16 @@ namespace Dcomms.DRP
         /// <summary>
         /// when sending ACK
         /// </summary>
-        public byte[] EncryptAtRegisterRequester(RegisterSynPacket localRegisterSyn, RegisterSynAckPacket remoteRegisterSynAck, RegisterAckPacket localRegisterAckPacket)
+        public byte[] Encrypt_ack_ToRequesterTxParametersEncrypted_AtRequester(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
         {
-            if ((remoteRegisterSynAck.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
+            if ((synAck.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
 
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                localRegisterSyn.GetCommonRequesterProxyResponderFields(writer, true);
-                remoteRegisterSynAck.GetCommonRequesterProxierResponderFields(writer, true, true);
-                localRegisterAckPacket.GetCommonRequesterProxyResponderFields(writer, false, false);
+                syn.GetCommonRequesterProxyResponderFields(writer, true);
+                synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
+                ack.GetCommonRequesterProxyResponderFields(writer, false, false);
            
                 var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
@@ -348,7 +357,7 @@ namespace Dcomms.DRP
                 // send ping requests  when idle (no other "alive" signals from remote peer)
                 if (timeNowUTC > _lastTimeCreatedOrReceivedVerifiedResponsePacket + _engine.Configuration.PingRequestsInterval)
                 {
-                    if (_latestPingPongDelay == null) throw new InvalidOperationException();
+                    if (_latestPingPongDelay == null) throw new InvalidOperationException("_latestPingPongDelay = null");
                    
                     if (_lastTimeSentPingRequest == null ||
                         timeNowUTC > _lastTimeSentPingRequest.Value.AddSeconds(_latestPingPongDelay.Value.TotalSeconds * _engine.Configuration.PingRetransmissionInterval_RttRatio))
@@ -360,7 +369,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                _engine.HandleGeneralException($"error in ConnectedDrpPeer timer procedure: {exc}");
+                _engine.HandleGeneralException($"error in ConnectedDrpPeer {this} timer procedure: {exc}");
             }
         }
         void SendPingRequestOnTimer()
@@ -469,7 +478,7 @@ namespace Dcomms.DRP
                 }
                 else if (proxyToDestinationPeer != null)
                 {  // proxy the registration request to another peer
-                    _ = _engine.ProxyRegisterRequestAtEntryPeerAsync(proxyToDestinationPeer, syn, requesterEndpoint, this);
+                    _ = _engine.ProxyRegisterRequestAsync(proxyToDestinationPeer, syn, requesterEndpoint, this);
                 }
                 else throw new Exception();
             }

@@ -24,7 +24,7 @@ namespace Dcomms.DRP
             NextHopAckSequenceNumber16 nhaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
         {
             var nhaScanner = NextHopAckPacket.GetScanner(nhaSeq16, waitNhaFromNeighborNullable, nhaRequestPacketFieldsForHmacNullable);
-            WriteToLog_reg_responderSide_detail($"waiting for nextHopAck, scanner: {MiscProcedures.ByteArrayToString(nhaScanner.ResponseFirstBytes)} nhaSeq={nhaSeq16}");
+            WriteToLog_udp_detail($"waiting for nextHopAck, scanner: {MiscProcedures.ByteArrayToString(nhaScanner.ResponseFirstBytes)} nhaSeq={nhaSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(responderEndpoint,
                          nhaScanner, 
@@ -33,7 +33,12 @@ namespace Dcomms.DRP
                          Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
                      ));
             if (nextHopResponsePacketData == null)
-                throw new DrpTimeoutException();
+            {
+                string msg = $"Did not get NHACK response to DRP request ";
+                if (requestPacketDataNullable != null) msg += (DrpPacketType)requestPacketDataNullable[0];
+                msg += " - timeout expired";
+                throw new DrpTimeoutException(msg);
+            }
 
             var nextHopResponsePacket = new NextHopAckPacket(nextHopResponsePacketData);
             if (nextHopResponsePacket.StatusCode != NextHopResponseCode.accepted)
@@ -69,7 +74,7 @@ namespace Dcomms.DRP
 		internal void SendPacket(byte[] udpPayload, IPEndPoint remoteEndpoint)
         {
             _socket.Send(udpPayload, udpPayload.Length, remoteEndpoint);
-            WriteToLog_receiver_detail($"sent packet {(DrpPacketType)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes)");
+            WriteToLog_udp_detail($"sent packet {(DrpPacketType)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes)");
         }
         async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
         {
@@ -89,6 +94,9 @@ namespace Dcomms.DRP
                 {
                     var nextItem = item.Next;
                     _pendingLowLevelUdpRequests.Remove(item);
+                    WriteToLog_udp_detail($"removed pending request, timer expired. responderEndpoint={item.Value.ResponderEndpoint}, " +                      
+                            $"ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");                   
+
                     request.TaskCompletionSource.SetResult(null);
                     item = nextItem;
                     continue;
@@ -115,7 +123,7 @@ namespace Dcomms.DRP
             {
                 var request = item.Value;
 
-                WriteToLog_receiver_detail($"matching to pending request... responderEndpoint={responderEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)} " +
+                WriteToLog_udp_detail($"matching to pending request... responderEndpoint={responderEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)} " +
                     $"request.ResponderEndpoint={request.ResponderEndpoint} request.ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
 
                 try

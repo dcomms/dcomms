@@ -164,7 +164,7 @@ namespace Dcomms.DRP.Packets
             ack.ToRequesterTxParametersEncrypted = reader.ReadBytes(16);
             if (newConnectionAtResponderToRequesterNullable != null)
             {
-                newConnectionAtResponderToRequesterNullable.DecryptAtRegisterResponder_InitializeP2pStream(synNullable, synAckNullable, ack);
+                newConnectionAtResponderToRequesterNullable.Decrypt_ack_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(synNullable, synAckNullable, ack);
             }
 
             ack.RequesterHMAC = HMAC.Decode(reader);

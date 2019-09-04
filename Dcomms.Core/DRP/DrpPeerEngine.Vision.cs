@@ -19,10 +19,22 @@ namespace Dcomms.DRP
         const string VisionChannelModuleName_engineThread = "engineThread";
         const string VisionChannelModuleName_receiverThread = "receiverThread";
         const string VisionChannelModuleName_p2p = "p2p"; // ping, direct p2p communication
+        const string VisionChannelModuleName_routing = "routing";
+        const string VisionChannelModuleName_udp = "udp";
         internal void WriteToLog_p2p_detail(ConnectionToNeighbor connectionToNeighbor, string message)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p) <= AttentionLevel.detail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p, AttentionLevel.detail, $"[{connectionToNeighbor}] {message}");
+        }
+        internal void WriteToLog_routing_detail(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_routing) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_routing, AttentionLevel.detail, message);
+        }
+        internal void WriteToLog_udp_detail(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_udp) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_udp, AttentionLevel.detail, message);
         }
         internal void WriteToLog_reg_proxySide_detail(string message)
         {
@@ -34,6 +46,11 @@ namespace Dcomms.DRP
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_receiverThread) <= AttentionLevel.detail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_receiverThread, AttentionLevel.detail, message);
+        }
+        void WriteToLog_receiver_lightPain(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_receiverThread) <= AttentionLevel.lightPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_receiverThread, AttentionLevel.lightPain, message);
         }
         void HandleExceptionInReceiverThread(Exception exc)
         {
@@ -89,12 +106,12 @@ namespace Dcomms.DRP
         void HandleExceptionInRegistrationResponder(IPEndPoint requesterEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, $"exception while responding to registration from {requesterEndpoint}: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.mediumPain, $"exception while responding to registration from {requesterEndpoint}: {exc}");
         }
         void HandleExceptionWhileProxying(IPEndPoint requesterEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, $"exception while proxying registration from {requesterEndpoint}: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.mediumPain, $"exception while proxying registration from {requesterEndpoint}: {exc}");
         }
         internal void WriteToLog_reg_responderSide_detail(string message)
         {

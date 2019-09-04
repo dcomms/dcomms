@@ -47,6 +47,7 @@ namespace Dcomms.DRP
         {
 
         }
+        public override string ToString() => _registrationConfiguration.LocalPeerRegistrationPublicKey.ToString();
     }
     //enum LocalDrpPeerState
     //{
