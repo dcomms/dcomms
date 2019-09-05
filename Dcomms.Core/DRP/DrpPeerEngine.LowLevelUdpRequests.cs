@@ -94,7 +94,8 @@ namespace Dcomms.DRP
                 {
                     var nextItem = item.Next;
                     _pendingLowLevelUdpRequests.Remove(item);
-                    WriteToLog_udp_detail($"removed pending request, timer expired. responderEndpoint={item.Value.ResponderEndpoint}, " +                      
+                    
+                    WriteToLog_udp_lightPain($"removed pending request, timer expired. responderEndpoint={item.Value.ResponderEndpoint}, " +                      
                             $"ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");                   
 
                     request.TaskCompletionSource.SetResult(null);
@@ -104,7 +105,8 @@ namespace Dcomms.DRP
                 else if (request.RequestPacketDataNullable != null && timeNowUTC > request.NextRetransmissionTimeUTC)
                 {
                     request.OnRetransmitted();
-                    SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);
+                    SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);                   
+                    WriteToLog_udp_lightPain($"retransmitted request {(DrpPacketType)request.RequestPacketDataNullable[0]} to {request.ResponderEndpoint}. scanner firstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
                 }
                 item = item.Next;
             }
@@ -141,6 +143,9 @@ namespace Dcomms.DRP
                     HandleExceptionInReceiverThread(exc);
                 }
             }
+
+            WriteToLog_udp_detail($"match to pending request was not found for packet from {responderEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)}");
+
             return false;
         }
 

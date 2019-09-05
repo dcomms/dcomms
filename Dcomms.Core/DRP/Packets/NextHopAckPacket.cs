@@ -57,16 +57,16 @@ namespace Dcomms.DRP.Packets
             w.Write((byte)DrpPacketType.NextHopAck);
             nhaSeq16.Encode(w);
         }
-        public byte[] Encode(bool rpToA)
+        public byte[] Encode(bool epToA)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             EncodeHeader(writer, NhaSeq16);
             byte flags = 0;
-            if (rpToA) flags |= Flag_EPtoA;
+            if (epToA) flags |= Flag_EPtoA;
             writer.Write(flags);
-            if (rpToA == false)SenderToken32.Encode(writer);
+            if (epToA == false)SenderToken32.Encode(writer);
             writer.Write((byte)StatusCode);
-            if (rpToA == false)SenderHMAC.Encode(writer);
+            if (epToA == false)SenderHMAC.Encode(writer);
             return ms.ToArray();
         }
         public NextHopAckPacket(byte[] nextHopResponsePacketData)

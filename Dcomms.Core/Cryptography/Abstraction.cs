@@ -6,6 +6,9 @@ using System.Text;
 
 namespace Dcomms.Cryptography
 {
+    /// <summary>
+    /// wrapper interface to crypto library
+    /// </summary>
     public interface ICryptoLibrary
     {
         byte[] GetRandomBytes(int count);

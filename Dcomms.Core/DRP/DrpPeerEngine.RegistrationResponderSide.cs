@@ -18,7 +18,7 @@ namespace Dcomms.DRP
         /// </param>
         internal async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterSynPacket syn, IPEndPoint requesterEndpoint, ConnectionToNeighbor synReceivedFromInP2pMode) // engine thread
         {
-            WriteToLog_reg_responderSide_detail($"accepting registration from {requesterEndpoint}: NhaSeq16={syn.NhaSeq16}, epEndpoint={syn.EpEndpoint}, synReceivedFromInP2pMode={synReceivedFromInP2pMode}");
+            WriteToLog_reg_responderSide_detail($"accepting registration from {requesterEndpoint}: NhaSeq16={syn.NhaSeq16}, NumberOfHopsRemaining={syn.NumberOfHopsRemaining}, epEndpoint={syn.EpEndpoint}, synReceivedFromInP2pMode={synReceivedFromInP2pMode}");
 
             if (syn.AtoEP ^ (synReceivedFromInP2pMode == null))
                 throw new InvalidOperationException();
@@ -67,12 +67,12 @@ namespace Dcomms.DRP
                     synAck.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         w2 => synAck.GetCommonRequesterProxierResponderFields(w2, false, true),
                         acceptAt.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
-                    if (syn.AtoEP) synAck.RequesterEndpoint = requesterEndpoint;                    
+                    if (synReceivedFromInP2pMode == null) synAck.RequesterEndpoint = requesterEndpoint;                    
                     registerSynAckUdpPayload = synAck.EncodeAtResponder(synReceivedFromInP2pMode);
                     
                     var ackScanner = RegisterAckPacket.GetScanner(synReceivedFromInP2pMode, syn.RequesterPublicKey_RequestID, syn.Timestamp32S);
                     byte[] ackUdpData;
-                    if (syn.AtoEP)
+                    if (synReceivedFromInP2pMode == null)
                     {   // wait for ACK, retransmitting SYNACK
                         WriteToLog_reg_responderSide_detail($"sending SYNACK, waiting for ACK");
                         ackUdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, requesterEndpoint, ackScanner);
@@ -162,12 +162,12 @@ namespace Dcomms.DRP
                 NhaSeq16 = syn.NhaSeq16,
                 StatusCode = statusCode
             };
-            if (syn.AtoEP == false)
+            if (synReceivedFromInP2pMode != null)
             {
                 nextHopAck.SenderToken32 = synReceivedFromInP2pMode.RemotePeerToken32;
                 nextHopAck.SenderHMAC = synReceivedFromInP2pMode.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, syn.GetSignedFieldsForSenderHMAC));
             }
-            var nextHopAckPacketData = nextHopAck.Encode(syn.AtoEP);
+            var nextHopAckPacketData = nextHopAck.Encode(synReceivedFromInP2pMode == null);
             
             RespondToRequestAndRetransmissions(syn.OriginalUdpPayloadData, nextHopAckPacketData, requesterEndpoint);
 

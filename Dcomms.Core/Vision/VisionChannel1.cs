@@ -11,13 +11,22 @@ namespace Dcomms.Vision
 {
     public class VisionChannel1 : VisionChannel, INotifyPropertyChanged
     {
+
+        public string DisplayFilterSourceId { get; set; }
+        public string DisplayFilterMessageContainsString { get; set; }
+
         public IEnumerable<LogMessage> DisplayedLogMessages
         {
             get
             {
                 lock (_logMessages)
                 {
-                    return _logMessages.ToList();
+                    IEnumerable<LogMessage> r = _logMessages;
+                    if (!String.IsNullOrEmpty(DisplayFilterSourceId))
+                        r = r.Where(x => x.SourceId == DisplayFilterSourceId);
+                    if (!String.IsNullOrEmpty(DisplayFilterMessageContainsString))
+                        r = r.Where(x => x.Message.Contains(DisplayFilterMessageContainsString));
+                    return r.ToList();
                 }
             }
         }

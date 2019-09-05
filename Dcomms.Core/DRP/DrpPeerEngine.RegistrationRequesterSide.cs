@@ -181,6 +181,7 @@ namespace Dcomms.DRP
                 connectionToNeighbor.RemotePeerPublicKey = synAck.ResponderPublicKey;
                 synToSynAckStopwatch.Stop();
                 var synToSynAckTimeMs = synToSynAckStopwatch.Elapsed.TotalMilliseconds;
+                WriteToLog_reg_requesterSide_detail($"measured SYN-SYNACK RTT = {(int)synToSynAckTimeMs}ms");
 
                 #region send ACK, encode local IP
                 var ack = new RegisterAckPacket

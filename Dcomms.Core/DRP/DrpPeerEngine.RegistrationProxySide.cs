@@ -31,8 +31,7 @@ namespace Dcomms.DRP
                 if (!ValidateReceivedSynTimestamp32S(syn.Timestamp32S))
                     throw new BadSignatureException();
 
-                syn.NumberOfHopsRemaining--;
-                if (syn.NumberOfHopsRemaining == 0)
+                if (syn.NumberOfHopsRemaining <= 1)
                 {
                     SendNextHopAckResponseToSyn(syn, requesterEndpoint, NextHopResponseCode.rejected_numberOfHopsRemainingReachedZero, synReceivedFromInP2pMode);
                     return;
@@ -41,6 +40,8 @@ namespace Dcomms.DRP
                 // send NHACK to requester
                 WriteToLog_reg_proxySide_detail($"sending NHACK to SYN requester");
                 SendNextHopAckResponseToSyn(syn, requesterEndpoint, NextHopResponseCode.accepted, synReceivedFromInP2pMode);
+
+                syn.NumberOfHopsRemaining--;
 
                 // send (proxy) SYN to destinationPeer. wait for NHACK, verify NHACK.senderHMAC, retransmit SYN   
                 syn.NhaSeq16 = destinationPeer.GetNewNhaSeq16_P2P();
