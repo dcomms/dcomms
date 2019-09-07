@@ -224,7 +224,7 @@ namespace Dcomms.P2PTP.LocalLogic
 
         bool RemoteVersionIsAcceptableForNewConnection(PeerHelloPacket remoteHello)
         {
-            return MiscProcedures.Uint32ToDateTime(remoteHello.LibraryVersion) > MiscProcedures.MinPeerCompilationDateTimeUtc;
+            return MiscProcedures.Uint32secondsToDateTime(remoteHello.LibraryVersion) > MiscProcedures.MinPeerCompilationDateTimeUtc;
         }
 
         /// <summary>
@@ -435,7 +435,7 @@ namespace Dcomms.P2PTP.LocalLogic
             stream.LocalPeerPublicIp = helloResponsePacket.RequestedFromIp;
             stream.LastTimeReceivedAccepted = _localPeer.DateTimeNowUtc; 
             connectedPeer.ProtocolVersion = helloResponsePacket.ProtocolVersion;
-            connectedPeer.LibraryVersion = MiscProcedures.Uint32ToDateTime(helloResponsePacket.LibraryVersion);
+            connectedPeer.LibraryVersion = MiscProcedures.Uint32secondsToDateTime(helloResponsePacket.LibraryVersion);
             connectedPeer.TotalHelloAcceptedPacketsReceived++;
             stream.TotalHelloAcceptedPacketsReceived++;
             stream.RemotePeerRoleIsUser = helloResponsePacket.RoleFlagIsUser;

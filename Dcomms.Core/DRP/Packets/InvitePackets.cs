@@ -12,31 +12,29 @@ namespace Dcomms.DRP.Packets
     /// 
     /// requestID={RequesterPublicKey|DestinationResponderPublicKey}
     /// </summary>
-    class InvitePacket
+    class InviteSynPacket
     {
-        P2pConnectionToken32 SenderToken32;
-        byte ReservedFlagsMustBeZero;
-
-
-        uint Timestamp32S;
-        byte[] DirectChannelEndointA_encryptedByResponderPublicKey; // with salt // can be decrypted only by B
-        /// <summary>
-        /// todo: look at noise protocol
-        /// todo: look at ECIES
-        /// </summary>
-        byte[] DirectChannelSecretBA_encryptedByResponderPublicKey;
-
-        RegistrationPublicKey RequesterPublicKey; // A public key 
-        RegistrationPublicKey DestinationResponderPublicKey; // B public key
-        byte[] RequesterSignature;
-
-        byte NumberOfHopsRemaining; // max 10 // is decremented by peers
-
         /// <summary>
         /// authorizes peer that sends the packet
         /// </summary>
-        HMAC SenderHMAC;
-        NextHopAckSequenceNumber16 NhaSeq16;
+        public P2pConnectionToken32 SenderToken32;
+        byte Flags;
+
+        public uint Timestamp32S;
+        public RegistrationPublicKey RequesterPublicKey; // A public key 
+        public RegistrationPublicKey ResponderPublicKey; // B public key
+        public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new DirectChannel connection
+
+        public RegistrationSignature RequesterSignature;
+
+        public byte NumberOfHopsRemaining; // max 10 // is decremented by peers
+
+        public NextHopAckSequenceNumber16 NhaSeq16;
+        
+        /// <summary>
+        /// authorizes peer that sends the packet
+        /// </summary>
+        public HMAC SenderHMAC;
     }
     /// <summary>
     /// B1->X->N->A (rejected/confirmed)

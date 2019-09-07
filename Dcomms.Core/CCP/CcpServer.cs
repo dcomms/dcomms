@@ -15,7 +15,7 @@ namespace Dcomms.CCP
         readonly DateTime _startTimeUtc = DateTime.UtcNow;
         readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         public DateTime DateTimeNowUtc { get { return _startTimeUtc + _stopwatch.Elapsed; } }
-        uint TimeSec32UTC => MiscProcedures.DateTimeToUint32(DateTimeNowUtc);
+        uint TimeSec32UTC => MiscProcedures.DateTimeToUint32seconds(DateTimeNowUtc);
         readonly ICryptoLibrary _cryptoLibrary = CryptoLibraries.Library;
         readonly CcpServerConfiguration _config;
         ICcpTransport _ccpTransport;

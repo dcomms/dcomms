@@ -40,6 +40,11 @@
 
                 <StackPanel Orientation="Horizontal">
                     <Button Content="refresh" Command="{Binding RefreshGui}" />
+                    <TextBlock Text="Filter:" />
+                    <TextBlock Text="Source:" />
+                    <TextBox Text="{Binding DisplayFilterSourceId, Mode=TwoWay}" Width="100"/>
+                    <TextBlock Text="Message contains:" />
+                    <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="100" />
                 </StackPanel>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedLogMessages}" AutoGenerateColumns="False" >
                     <DataGrid.Columns>

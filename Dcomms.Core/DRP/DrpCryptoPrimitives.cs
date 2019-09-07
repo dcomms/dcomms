@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 
@@ -174,5 +175,9 @@ namespace Dcomms.DRP
         }
         public override string ToString() => MiscProcedures.ByteArrayToString(hmacSha256);
     }
+
+
+
+     
 
 }

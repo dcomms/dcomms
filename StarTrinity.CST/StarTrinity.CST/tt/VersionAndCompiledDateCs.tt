@@ -19,7 +19,7 @@ namespace StarTrinity.CST
 			{
 				get
 				{
-					return Dcomms.MiscProcedures.Uint32ToDateTime(CompilationDateTimeUtc_uint32);
+					return Dcomms.MiscProcedures.Uint32secondsToDateTime(CompilationDateTimeUtc_uint32);
 				}
 			}
 			public static string CompilationDateTimeUtcStr

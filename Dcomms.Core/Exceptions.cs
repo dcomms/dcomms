@@ -24,4 +24,13 @@ namespace Dcomms
     {
 
     }
+    class BadUserCertificateException : BadSignatureException
+    {
+
+    }
+    class CertificateOutOfDateException : BadUserCertificateException
+    {
+
+    }
+
 }

@@ -20,7 +20,7 @@ namespace Dcomms.CCP
         readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         TimeSpan TimeSWE => _stopwatch.Elapsed; // stopwatch elapsed
         public DateTime DateTimeNowUtc { get { return _startTimeUtc + TimeSWE; } }
-        uint TimeSec32UTC => MiscProcedures.DateTimeToUint32(DateTimeNowUtc);
+        uint TimeSec32UTC => MiscProcedures.DateTimeToUint32seconds(DateTimeNowUtc);
         byte[] _localPublicIp;
         readonly CcpClientConfiguration _config;
         ICcpTransport _ccpTransport;

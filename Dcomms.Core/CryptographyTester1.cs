@@ -69,7 +69,7 @@ namespace Dcomms
                 var rnd = new Random();
                 rnd.NextBytes(cnonce0);
                 var addressBytes = new byte[4]; rnd.NextBytes(addressBytes);
-                CcpClient.GenerateNewClientHelloPacket0(addressBytes, MiscProcedures.DateTimeToUint32(DateTime.UtcNow), cnonce0);
+                CcpClient.GenerateNewClientHelloPacket0(addressBytes, MiscProcedures.DateTimeToUint32seconds(DateTime.UtcNow), cnonce0);
                 sw.Stop();
 
                 sb.AppendFormat("{0:0} ", sw.Elapsed.TotalMilliseconds);
