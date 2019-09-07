@@ -17,8 +17,9 @@ namespace Dcomms.Cryptography
 {
     class CryptoLibrary1 : ICryptoLibrary
     {
-        SecureRandom _secureRandom2 = new SecureRandom();
         SecureRandom _secureRandom = new SecureRandom();
+        SecureRandom _secureRandom2 = new SecureRandom();
+        SecureRandom _secureRandom3 = new SecureRandom();
 
         byte[] ICryptoLibrary.GetRandomBytes(int count)
         {
@@ -74,7 +75,7 @@ namespace Dcomms.Cryptography
         }
         void ICryptoLibrary.GenerateEcdh25519Keypair(out byte[] localEcdhPrivateKey, out byte[] localEcdhPublicKey)
         {
-            X25519PrivateKeyParameters privateKey = new X25519PrivateKeyParameters(_secureRandom2);
+            X25519PrivateKeyParameters privateKey = new X25519PrivateKeyParameters(_secureRandom3);
             localEcdhPrivateKey = privateKey.GetEncoded();
             localEcdhPublicKey = privateKey.GeneratePublicKey().GetEncoded();
         }

@@ -16,6 +16,7 @@ namespace Dcomms.DRP.Packets
         public NextHopAckSequenceNumber16 NhaSeq16;
         public const byte Flag_EPtoA = 0x01; // set if packet is transmitted from EP to A, is zero otherwise
         byte Flags;
+        const byte FlagsMask_MustBeZero = 0b11110000;
 
         /// <summary>
         /// is not transmitted in A-EP packet
@@ -74,6 +75,7 @@ namespace Dcomms.DRP.Packets
             var reader = PacketProcedures.CreateBinaryReader(nextHopResponsePacketData, 1);
             NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
             var flags = reader.ReadByte();
+            if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             if ((flags & Flag_EPtoA) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
             StatusCode = (NextHopResponseCode)reader.ReadByte();
             if ((flags & Flag_EPtoA) == 0) SenderHMAC = HMAC.Decode(reader);

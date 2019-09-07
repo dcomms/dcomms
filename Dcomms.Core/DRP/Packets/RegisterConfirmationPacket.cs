@@ -19,6 +19,7 @@ namespace Dcomms.DRP.Packets
 
         const byte Flag_AtoEP = 0x01;
         byte Flags;
+        const byte FlagsMask_MustBeZero = 0b11110000;
         public bool AtoEP => (Flags & Flag_AtoEP) != 0;
 
 
@@ -140,6 +141,7 @@ namespace Dcomms.DRP.Packets
             cfm.OriginalUdpPayloadData = regCfmUdpPayload;
 
             cfm.Flags = reader.ReadByte();
+            if ((cfm.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             if ((cfm.Flags & Flag_AtoEP) == 0) cfm.SenderToken32 = P2pConnectionToken32.Decode(reader);
 
             cfm.RegisterSynTimestamp32S = reader.ReadUInt32();

@@ -13,7 +13,8 @@ namespace Dcomms.DRP.Packets
     /// </summary>
     class RegisterPow1RequestPacket
     {
-        public byte ReservedFlagsMustBeZero; // will include PoW type
+        public byte Flags; // will include PoW type
+        const byte FlagsMask_MustBeZero = 0b11110000;
         public uint Timestamp32S; // seconds since 2019-01-01 UTC, 32 bits are enough for 136 years
 
         /// <summary>
@@ -39,7 +40,7 @@ namespace Dcomms.DRP.Packets
         void Encode(BinaryWriter writer)
         {
             writer.Write((byte)DrpPacketType.RegisterPow1Request);
-            writer.Write(ReservedFlagsMustBeZero);
+            writer.Write(Flags);
             writer.Write(Timestamp32S);
             if (ProofOfWork1.Length != 64) throw new ArgumentException();
             writer.Write(ProofOfWork1);
@@ -50,7 +51,8 @@ namespace Dcomms.DRP.Packets
         public RegisterPow1RequestPacket(byte[] originalPacketUdpPayload)
         {
             var reader = PacketProcedures.CreateBinaryReader(originalPacketUdpPayload, 1);
-            ReservedFlagsMustBeZero = reader.ReadByte();
+            Flags = reader.ReadByte();
+            if ((Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             Timestamp32S = reader.ReadUInt32();
             ProofOfWork1 = reader.ReadBytes(64);
             Pow1RequestId = reader.ReadUInt32();

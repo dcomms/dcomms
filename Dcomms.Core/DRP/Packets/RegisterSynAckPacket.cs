@@ -18,6 +18,7 @@ namespace Dcomms.DRP.Packets
         public static byte Flag_EPtoA = 0x01; // set if packet is transmitted from EP to registering A, otherwise it is zero
         public static byte Flag_ipv6 = 0x02;  // set if responder is accessible via ipv6 address. default (0) means ipv4
         public byte Flags;
+        const byte FlagsMask_MustBeZero = 0b11110000;
 
         P2pConnectionToken32 SenderToken32; // is not sent from EP to A
         public RegistrationPublicKey RequesterPublicKey_RequestID; // public key of requester (A)
@@ -76,6 +77,7 @@ namespace Dcomms.DRP.Packets
             synAck.Flags = reader.ReadByte();
             if ((synAck.Flags & Flag_EPtoA) == 0) synAck.SenderToken32 = P2pConnectionToken32.Decode(reader);           
             if ((synAck.Flags & Flag_ipv6) != 0) throw new InvalidOperationException();
+            if ((synAck.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             synAck.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             synAck.RegisterSynTimestamp32S = reader.ReadUInt32();
             synAck.ResponderStatusCode = (DrpResponderStatusCode)reader.ReadByte();

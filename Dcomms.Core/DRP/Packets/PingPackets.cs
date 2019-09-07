@@ -14,6 +14,7 @@ namespace Dcomms.DRP.Packets
         public P2pConnectionToken32 SenderToken32;
         public const byte Flags_RegistrationConfirmationSignatureRequested = 0x01;
         public byte Flags;
+        const byte FlagsMask_MustBeZero = 0b11110000;
         public uint PingRequestId32; // is used to avoid mismatch between delyed responses and requests // is used as salt also
         public float? MaxRxInviteRateRps;   // zero means NULL // signal from sender "how much I can receive via this p2p connection"
         public float? MaxRxRegisterRateRps; // zero means NULL // signal from sender "how much I can receive via this p2p connection"
@@ -55,7 +56,8 @@ namespace Dcomms.DRP.Packets
 
             var r = new PingPacket();
             r.SenderToken32 = P2pConnectionToken32.Decode(reader);
-            r.Flags = reader.ReadByte();              
+            r.Flags = reader.ReadByte();
+            if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             r.PingRequestId32 = reader.ReadUInt32();
             r.MaxRxInviteRateRps = RpsFromUint16(reader.ReadUInt16());
             r.MaxRxRegisterRateRps = RpsFromUint16(reader.ReadUInt16());
@@ -72,7 +74,6 @@ namespace Dcomms.DRP.Packets
                 throw new BadSignatureException();
 
             return r;
-
         }
     }
     public class PongPacket
@@ -86,6 +87,7 @@ namespace Dcomms.DRP.Packets
         public uint PingRequestId32;  // must match to request
        // byte Flags;
         const byte Flags_ResponderRegistrationConfirmationSignatureExists = 0x01;
+        const byte FlagsMask_MustBeZero = 0b11110000;
         /// <summary>
         /// comes from responder neighbor when connection is set up; in other cases it is NULL
         /// signs fields: 
@@ -111,7 +113,8 @@ namespace Dcomms.DRP.Packets
             var r = new PongPacket();
             r.SenderToken32 = P2pConnectionToken32.Decode(reader);
             r.PingRequestId32 = reader.ReadUInt32();
-            var flags = reader.ReadByte();            
+            var flags = reader.ReadByte();
+            if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
  
             // verify signature of N
             if ((flags & Flags_ResponderRegistrationConfirmationSignatureExists) != 0)

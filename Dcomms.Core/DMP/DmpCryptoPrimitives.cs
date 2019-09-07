@@ -11,12 +11,7 @@ namespace Dcomms.DMP
     {
         //  byte ReservedFlagsMustBeZero; // will include "type" = "ed25519 by default"
         public List<byte[]> Ed25519UserRootPublicKeys;
-
-        public UserID_PublicKeys(List<byte[]> ed25519UserRootPublicKeys)
-        {
-            Ed25519UserRootPublicKeys = ed25519UserRootPublicKeys;
-        }
-
+        
         public override bool Equals(object obj)
         {
             var obj2 = (UserID_PublicKeys)obj;
@@ -51,6 +46,24 @@ namespace Dcomms.DMP
         /// the private keys will be separated later, to be stored on separate independent devices
         /// </summary>
         public List<byte[]> ed25519privateKeys;
+
+
+        public static void CreateUserKeyPairs(int numberOfKeyPairs, ICryptoLibrary cryptoLibrary, out UserRootPrivateKeys privateKeys, out UserID_PublicKeys publicKeys)
+        {
+            if (numberOfKeyPairs <= 0 || numberOfKeyPairs > 3) throw new ArgumentException(); // the UDP packets can go over 1000 bytes to transfer a big UsersCertificate
+            privateKeys = new UserRootPrivateKeys();
+            privateKeys.ed25519privateKeys = new List<byte[]>();
+            publicKeys = new UserID_PublicKeys();
+            publicKeys.Ed25519UserRootPublicKeys = new List<byte[]>();
+
+            for (int i = 0; i < numberOfKeyPairs; i++)
+            {
+                var privateKey = cryptoLibrary.GeneratePrivateKeyEd25519();
+                var publicKey = cryptoLibrary.GetPublicKeyEd25519(privateKey);
+                privateKeys.ed25519privateKeys.Add(privateKey);
+                publicKeys.Ed25519UserRootPublicKeys.Add(publicKey);
+            }
+        }
     }
 
     /// <summary>
@@ -62,6 +75,8 @@ namespace Dcomms.DMP
     /// </summary>
     public class UserCertificate
     {
+        byte ReservedFlagsMustBeZero; 
+
         uint _validFromUtc32minutes;
         public DateTime ValidFromUtc => MiscProcedures.Uint32minutesToDateTime(_validFromUtc32minutes);
         uint _validToUtc32minutes;
@@ -86,7 +101,7 @@ namespace Dcomms.DMP
         /// <summary>
         /// throws exception if the certificate is invalid for the specified userId   (the caller knows that certificate came from the userId)
         /// </summary>
-        public void AssertIsValidNow(ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, DateTime localTimeNowUtc)
+        void AssertIsValidNow(ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, DateTime localTimeNowUtc)
         {
             if (userId.Ed25519UserRootPublicKeys.Count != this.Ed25519UserRootSignatures.Count)
                 throw new BadUserCertificateException();
@@ -137,13 +152,49 @@ namespace Dcomms.DMP
             return r;
         }
 
-        public void Encode()
+        public void Encode(BinaryWriter writer)
         {
-            throw new NotImplementedException();
+            writer.Write(ReservedFlagsMustBeZero);
+            writer.Write(_validFromUtc32minutes);
+            writer.Write(_validToUtc32minutes);
+            if (CertificateEd25519publicKey.Length != CryptoLibraries.Ed25519PublicKeySize) throw new ArgumentException();
+            writer.Write(CertificateEd25519publicKey);
+
+            if (UserRootSignaturesSalts.Count == 0 || UserRootSignaturesSalts.Count > 255) throw new ArgumentException();
+            if (UserRootSignaturesSalts.Count != Ed25519UserRootSignatures.Count) throw new ArgumentException();
+
+            writer.Write((byte)UserRootSignaturesSalts.Count);
+            for (int i = 0; i < UserRootSignaturesSalts.Count; i++)
+            {
+                var salt = UserRootSignaturesSalts[i];
+                if (salt.Length != UserRootSignaturesSaltSize) throw new ArgumentException();
+                writer.Write(salt);
+                var signature = Ed25519UserRootSignatures[i];
+                if (signature.Length != CryptoLibraries.Ed25519SignatureSize) throw new ArgumentException();
+                writer.Write(signature);
+            }
         }
-        public static UserCertificate Decode()
+        /// <summary>
+        /// throws exception if the certificate is invalid for the specified userId   (the caller knows that certificate came from the userId)
+        /// </summary>
+        public static UserCertificate Decode_AssertIsValidNow(BinaryReader reader, ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, DateTime localTimeNowUtc)
         {
-            throw new NotImplementedException();
+            var r = new UserCertificate();
+            r.ReservedFlagsMustBeZero = reader.ReadByte();
+            r._validFromUtc32minutes = reader.ReadUInt32();
+            r._validToUtc32minutes = reader.ReadUInt32();
+            r.CertificateEd25519publicKey = reader.ReadBytes(CryptoLibraries.Ed25519PublicKeySize);
+            var userRootSignaturesSaltsCount = reader.ReadByte();
+            r.UserRootSignaturesSalts = new List<byte[]>();
+            r.Ed25519UserRootSignatures = new List<byte[]>();
+            for (int i = 0; i < userRootSignaturesSaltsCount; i++)
+            {
+               r.UserRootSignaturesSalts.Add(reader.ReadBytes(UserRootSignaturesSaltSize));
+               r.Ed25519UserRootSignatures.Add(reader.ReadBytes(CryptoLibraries.Ed25519SignatureSize));
+            }
+
+            r.AssertIsValidNow(cryptoLibrary, userId, localTimeNowUtc);
+            return r;
         }
     }
     public class UserCertificateSignature

@@ -27,6 +27,7 @@ namespace Dcomms.DRP.Packets
         public static byte Flag_ipv6 = 0x02;  // set if requester is accessible via ipv6 address. default (0) means ipv4
         public byte Flags;
         public bool AtoEP => (Flags & Flag_AtoEP) != 0;
+        const byte FlagsMask_MustBeZero = 0b11110000;
         public uint RegisterSynTimestamp32S;
         public RegistrationPublicKey RequesterPublicKey_RequestID;
         /// <summary>
@@ -155,6 +156,7 @@ namespace Dcomms.DRP.Packets
             var ack = new RegisterAckPacket();
             ack.OriginalUdpPayloadData = registerAckPacketData;
             ack.Flags = reader.ReadByte();
+            if ((ack.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             if ((ack.Flags & Flag_AtoEP) == 0) ack.SenderToken32 = P2pConnectionToken32.Decode(reader);
 
             ack.RegisterSynTimestamp32S = reader.ReadUInt32();

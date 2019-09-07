@@ -12,7 +12,8 @@ namespace Dcomms.DRP.Packets
     class RegisterPow1ResponsePacket
     {
         public uint Pow1RequestId;
-        public byte ReservedFlagsMustBeZero;
+        public byte Flags;
+        const byte FlagsMask_MustBeZero = 0b11110000;
         public RegisterPow1ResponseStatusCode StatusCode;
         public byte[] ProofOfWork2Request; // 16 bytes
 
@@ -31,7 +32,7 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             GetHeaderBytes(writer, Pow1RequestId);
-            writer.Write(ReservedFlagsMustBeZero);
+            writer.Write(Flags);
             writer.Write((byte)StatusCode);
             if (StatusCode == RegisterPow1ResponseStatusCode.succeeded_Pow2Challenge)
                 writer.Write(ProofOfWork2Request);
@@ -45,7 +46,8 @@ namespace Dcomms.DRP.Packets
         {
             var reader = PacketProcedures.CreateBinaryReader(rpPow1ResponsePacketData, 1);
             Pow1RequestId = reader.ReadUInt32();
-            ReservedFlagsMustBeZero = reader.ReadByte();
+            Flags = reader.ReadByte();
+            if ((Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             StatusCode = (RegisterPow1ResponseStatusCode)reader.ReadByte();
             if (StatusCode == RegisterPow1ResponseStatusCode.succeeded_Pow2Challenge)
             {

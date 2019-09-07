@@ -20,6 +20,7 @@ namespace Dcomms.DRP.Packets
         /// 0: if packet is transmitted between neighbor peers (from sender to receiver). SenderHMAC is sent 
         /// </summary>
         static byte Flag_AtoEP = 0x01;
+        const byte FlagsMask_MustBeZero = 0b11110000;
 
         public bool AtoEP => SenderToken32 == null;
 
@@ -139,6 +140,8 @@ namespace Dcomms.DRP.Packets
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
 
             var flags = reader.ReadByte();
+            if ((flags & FlagsMask_MustBeZero) != 0)
+                throw new NotImplementedException();
             if ((flags & Flag_AtoEP) == 0)
             {
                 if (receivedFromNeighborNullable == null) throw new UnmatchedFieldsException();
