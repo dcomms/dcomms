@@ -56,7 +56,7 @@ namespace Dcomms.DRP.Packets
             NhaSeq16.Encode(w);
         }
 
-        public static InviteAckPacket Decode_VerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)
+        public static InviteConfirmationPacket Decode_VerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)
         {
             var r = new InviteConfirmationPacket();
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);

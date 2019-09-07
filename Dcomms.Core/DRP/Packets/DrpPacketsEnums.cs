@@ -20,7 +20,8 @@ namespace Dcomms.DRP.Packets
         RegisterConfirmation = 9,
         InviteSyn = 10,
         InviteSynAck = 11,
-        InviteAck = 12
+        InviteAck = 12,
+        InviteConfirmation = 13
     }
           
     public enum DrpResponderStatusCode

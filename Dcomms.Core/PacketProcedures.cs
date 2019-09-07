@@ -56,8 +56,20 @@ namespace Dcomms
                 return;
             }
             if (value.Length == 0) throw new ArgumentNullException();
-            if (value.Length > 255) throw new ArgumentException(nameof(value));          
+            if (value.Length > 255) throw new ArgumentException(nameof(value));
             writer.Write((byte)value.Length);
+            writer.Write(value);
+        }
+        public static void EncodeByteArray65536(BinaryWriter writer, byte[] value)
+        {
+            if (value == null)
+            {
+                writer.Write((ushort)0);
+                return;
+            }
+            if (value.Length == 0) throw new ArgumentNullException();
+            if (value.Length > 65535) throw new ArgumentException(nameof(value));
+            writer.Write((ushort)value.Length);
             writer.Write(value);
         }
 
@@ -157,6 +169,12 @@ namespace Dcomms
         public static byte[] DecodeByteArray256(BinaryReader reader)
         {
             var length = reader.ReadByte();
+            if (length == 0) return null;
+            return reader.ReadBytes(length);
+        }
+        public static byte[] DecodeByteArray65536(BinaryReader reader)
+        {
+            var length = reader.ReadUInt16();
             if (length == 0) return null;
             return reader.ReadBytes(length);
         }
