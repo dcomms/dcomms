@@ -27,7 +27,7 @@ namespace Dcomms.DRP.Packets
         public static byte Flag_ipv6 = 0x02;  // set if requester is accessible via ipv6 address. default (0) means ipv4
         public byte Flags;
         public bool AtoEP => (Flags & Flag_AtoEP) != 0;
-        const byte FlagsMask_MustBeZero = 0b11110000;
+        const byte FlagsMask_MustBeZero = 0b11000000;
         public uint RegisterSynTimestamp32S;
         public RegistrationPublicKey RequesterPublicKey_RequestID;
         /// <summary>

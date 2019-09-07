@@ -16,7 +16,7 @@ namespace Dcomms.DRP.Packets
         public NextHopAckSequenceNumber16 NhaSeq16;
         public const byte Flag_EPtoA = 0x01; // set if packet is transmitted from EP to A, is zero otherwise
         byte Flags;
-        const byte FlagsMask_MustBeZero = 0b11110000;
+        const byte FlagsMask_MustBeZero = 0b11000000;
 
         /// <summary>
         /// is not transmitted in A-EP packet

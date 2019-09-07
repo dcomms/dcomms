@@ -14,7 +14,7 @@ namespace Dcomms.DRP.Packets
     class RegisterPow1RequestPacket
     {
         public byte Flags; // will include PoW type
-        const byte FlagsMask_MustBeZero = 0b11110000;
+        const byte FlagsMask_MustBeZero = 0b11000000;
         public uint Timestamp32S; // seconds since 2019-01-01 UTC, 32 bits are enough for 136 years
 
         /// <summary>

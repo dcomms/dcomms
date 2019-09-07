@@ -20,7 +20,7 @@ namespace Dcomms.DRP.Packets
         /// 0: if packet is transmitted between neighbor peers (from sender to receiver). SenderHMAC is sent 
         /// </summary>
         static byte Flag_AtoEP = 0x01;
-        const byte FlagsMask_MustBeZero = 0b11110000;
+        const byte FlagsMask_MustBeZero = 0b11000000;
 
         public bool AtoEP => SenderToken32 == null;
 

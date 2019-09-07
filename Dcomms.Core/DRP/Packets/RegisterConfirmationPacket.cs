@@ -19,7 +19,7 @@ namespace Dcomms.DRP.Packets
 
         const byte Flag_AtoEP = 0x01;
         byte Flags;
-        const byte FlagsMask_MustBeZero = 0b11110000;
+        const byte FlagsMask_MustBeZero = 0b11000000;
         public bool AtoEP => (Flags & Flag_AtoEP) != 0;
 
 

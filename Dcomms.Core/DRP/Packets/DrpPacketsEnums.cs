@@ -18,6 +18,9 @@ namespace Dcomms.DRP.Packets
         Ping = 7,
         Pong = 8,
         RegisterConfirmation = 9,
+        InviteSyn = 10,
+        InviteSynAck = 11,
+        InviteAck = 12
     }
           
     public enum DrpResponderStatusCode
