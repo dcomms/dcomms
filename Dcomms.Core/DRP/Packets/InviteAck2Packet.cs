@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 
 namespace Dcomms.DRP.Packets
 {
-
-    class InviteAckPacket
+    class InviteAck2Packet
     {
         /// <summary>
         /// authorizes peer that sends the packet
@@ -19,9 +17,8 @@ namespace Dcomms.DRP.Packets
         public RegistrationPublicKey RequesterPublicKey; // A public key 
         public RegistrationPublicKey ResponderPublicKey; // B public key
 
-        public byte[] ToRequesterSessionDescriptionEncrypted;
-        public RegistrationSignature RequesterSignature;
-        
+        public RegistrationSignature ResponderSignature;
+
         public NextHopAckSequenceNumber16 NhaSeq16;
 
         /// <summary>
@@ -51,14 +48,13 @@ namespace Dcomms.DRP.Packets
             w.Write(Timestamp32S);
             RequesterPublicKey.Encode(w);
             ResponderPublicKey.Encode(w);
-            PacketProcedures.EncodeByteArray65536(w, ToRequesterSessionDescriptionEncrypted);           
-            RequesterSignature.Encode(w);
+            ResponderSignature.Encode(w);
             NhaSeq16.Encode(w);
         }
 
-        public static InviteAckPacket Decode_VerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)
+        public static InviteAck2Packet Decode_VerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)
         {
-            var r = new InviteAckPacket();
+            var r = new InviteAck2Packet();
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
 
             r.SenderToken32 = P2pConnectionToken32.Decode(reader);
@@ -71,8 +67,7 @@ namespace Dcomms.DRP.Packets
             r.Timestamp32S = reader.ReadUInt32();
             r.RequesterPublicKey = RegistrationPublicKey.Decode(reader);
             r.ResponderPublicKey = RegistrationPublicKey.Decode(reader);
-            r.ToRequesterSessionDescriptionEncrypted = PacketProcedures.DecodeByteArray65536(reader);
-            r.RequesterSignature = RegistrationSignature.Decode(reader);          
+            r.ResponderSignature = RegistrationSignature.Decode(reader);
             r.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
 
             r.SenderHMAC = HMAC.Decode(reader);

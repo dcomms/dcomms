@@ -182,7 +182,7 @@ namespace Dcomms.DRP
                 var bytesRemaining = RegisterAckPacket.ToRequesterTxParametersEncryptedLength - (int)msRxParameters.Length;
                 wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));      
 
-                var localRxParametersDecrypted = msRxParameters.ToArray(); // total 16 bytes
+                var localRxParametersDecrypted = msRxParameters.ToArray();
                 var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
                 _engine.CryptoLibrary.ProcessSingleAesBlock(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
 
@@ -442,7 +442,7 @@ namespace Dcomms.DRP
                         GetResponderRegistrationConfirmationSignatureFields, _localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);                
                 }
                 pong.SenderHMAC = GetSenderHMAC(pong.GetSignedFieldsForSenderHMAC);
-              //  _engine.WriteToLog_ping_detail($"sending ping response with senderHMAC={pong.SenderHMAC}");
+              //  _engine.WriteToLog_ping_detail($" sending ping response with senderHMAC={pong.SenderHMAC}");
                 SendPacket(pong.Encode());
             }
             catch (Exception exc)
