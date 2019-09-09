@@ -179,20 +179,20 @@ namespace Dcomms
             return reader.ReadBytes(length);
         }
 
-        public static void EncodeIPEndPointIpv4(BinaryWriter writer, IPEndPoint endpoint)
-        {
-            if (endpoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new ArgumentException();
-            writer.Write(endpoint.Address.GetAddressBytes());
-            writer.Write((UInt16)endpoint.Port);
-        }
-        public static IPEndPoint DecodeIPEndPointIpv4(BinaryReader reader)
-        {
-            return new IPEndPoint(new IPAddress(reader.ReadBytes(4)), reader.ReadUInt16());
-        }
+        //public static void EncodeIPEndPointIpv4(BinaryWriter writer, IPEndPoint endpoint)
+        //{
+        //    if (endpoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new ArgumentException();
+        //    writer.Write(endpoint.Address.GetAddressBytes());
+        //    writer.Write((UInt16)endpoint.Port);
+        //}
+        //public static IPEndPoint DecodeIPEndPointIpv4(BinaryReader reader)
+        //{
+        //    return new IPEndPoint(new IPAddress(reader.ReadBytes(4)), reader.ReadUInt16());
+        //}
 
-        public static void EncodeIPEndPoint(BinaryWriter writer, IPEndPoint endpoint)
+        public static void EncodeIPEndPoint(BinaryWriter writer, IPEndPoint endpoint) // max 19 bytes
         {
-            EncodeByteArray256(writer, endpoint.Address.GetAddressBytes());
+            EncodeByteArray256(writer, endpoint.Address.GetAddressBytes()); // max 17 bytes
             writer.Write((UInt16)endpoint.Port);
         }
         public static IPEndPoint DecodeIPEndPoint(BinaryReader reader)

@@ -31,13 +31,11 @@ namespace Dcomms.DRP.Packets
         public uint RegisterSynTimestamp32S;
         public RegistrationPublicKey RequesterPublicKey_RequestID;
         /// <summary>
-        /// IP address of A + UDP port + salt 
-        /// initial IP address of A comes from EP 
-        /// possible attacks by EP???
-        /// 16 bytes
+        /// IP address of A + UDP port + salt     
         /// goes into N->A p2pStreamParameters
         /// </summary>
         public byte[] ToRequesterTxParametersEncrypted;
+        public const int ToRequesterTxParametersEncryptedLength = 32;
         /// <summary>
         /// signs fields: {RequesterPublicKey_RequestID,RegisterSynTimestamp32S,ToRequesterTxParametersEncrypted }
         /// is verified by N (responder)
@@ -163,7 +161,7 @@ namespace Dcomms.DRP.Packets
             ack.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             if (synNullable != null) ack.AssertMatchToSyn(synNullable);
 
-            ack.ToRequesterTxParametersEncrypted = reader.ReadBytes(16);
+            ack.ToRequesterTxParametersEncrypted = reader.ReadBytes(ToRequesterTxParametersEncryptedLength);
             if (newConnectionAtResponderToRequesterNullable != null)
             {
                 newConnectionAtResponderToRequesterNullable.Decrypt_ack_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(synNullable, synAckNullable, ack);

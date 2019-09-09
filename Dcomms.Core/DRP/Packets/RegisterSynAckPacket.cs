@@ -16,7 +16,6 @@ namespace Dcomms.DRP.Packets
     public class RegisterSynAckPacket
     {
         public static byte Flag_EPtoA = 0x01; // set if packet is transmitted from EP to registering A, otherwise it is zero
-        public static byte Flag_ipv6 = 0x02;  // set if responder is accessible via ipv6 address. default (0) means ipv4
         public byte Flags;
         const byte FlagsMask_MustBeZero = 0b11000000;
 
@@ -33,9 +32,9 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// not null only for (status=connected) (N->X-M-EP-A)
         /// IP address of N with salt, encrypted for A
-        /// 16 bytes for ipv4 address of neighbor, 32 bytes for ipv6
         /// </summary>
         public byte[] ToResponderTxParametersEncrypted;
+        public const int ToResponderTxParametersEncryptedLength = 32;
 
 
         public RegistrationPublicKey ResponderPublicKey; // public key of responder (neighbor, N)
@@ -76,13 +75,12 @@ namespace Dcomms.DRP.Packets
             synAck.OriginalUdpPayloadData = registerSynAckPacketData;
             synAck.Flags = reader.ReadByte();
             if ((synAck.Flags & Flag_EPtoA) == 0) synAck.SenderToken32 = P2pConnectionToken32.Decode(reader);           
-            if ((synAck.Flags & Flag_ipv6) != 0) throw new InvalidOperationException();
             if ((synAck.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             synAck.RequesterPublicKey_RequestID = RegistrationPublicKey.Decode(reader);
             synAck.RegisterSynTimestamp32S = reader.ReadUInt32();
             synAck.ResponderStatusCode = (DrpResponderStatusCode)reader.ReadByte();
             synAck.ResponderEcdhePublicKey = EcdhPublicKey.Decode(reader);
-            synAck.ToResponderTxParametersEncrypted = reader.ReadBytes(16);
+            synAck.ToResponderTxParametersEncrypted = reader.ReadBytes(ToResponderTxParametersEncryptedLength);
             synAck.ResponderPublicKey = RegistrationPublicKey.Decode(reader);
 
             if (newConnectionToNeighborAtRequesterNullable != null)
@@ -132,7 +130,11 @@ namespace Dcomms.DRP.Packets
             writer.Write(RegisterSynTimestamp32S);
             writer.Write((byte)ResponderStatusCode);
             ResponderEcdhePublicKey.Encode(writer);
-            if (includeTxParameters) writer.Write(ToResponderTxParametersEncrypted);
+            if (includeTxParameters)
+            {
+                if (ToResponderTxParametersEncrypted.Length != ToResponderTxParametersEncryptedLength) throw new ArgumentException();
+                writer.Write(ToResponderTxParametersEncrypted);
+            }
             ResponderPublicKey.Encode(writer);
             if (includeSignature) ResponderSignature.Encode(writer);
         }

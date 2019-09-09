@@ -43,9 +43,7 @@ namespace Dcomms.DRP
         /// initializes parameters to transmit direct (p2p) packets form requester A to neighbor N
         /// </summary>
         public void Decrypt_synack_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(RegisterSynPacket syn, RegisterSynAckPacket synAck)
-        {
-            if ((synAck.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
-            
+        {            
             SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, synAck.ResponderEcdhePublicKey.ecdh25519PublicKey);
 
             var ms = new MemoryStream();
@@ -65,16 +63,16 @@ namespace Dcomms.DRP
                 // parse toNeighborTxParametersDecrypted
                 using (var reader = new BinaryReader(new MemoryStream(toNeighborTxParametersDecrypted)))
                 {
-                    RemoteEndpoint = PacketProcedures.DecodeIPEndPointIpv4(reader);
+                    RemoteEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
                     RemotePeerToken32 = P2pConnectionToken32.Decode(reader);
                     var magic16 = reader.ReadUInt16();
-                    if (magic16 != Magic16_ipv4_responderToRequester) throw new BrokenCipherException();
+                    if (magic16 != Magic16_responderToRequester) throw new BrokenCipherException();
                 }
             
                 _engine.WriteToLog_reg_requesterSide_detail($"decrypted remote endpoint={RemoteEndpoint}, remotePeerToken={RemotePeerToken32}");
             }
         }
-        const ushort Magic16_ipv4_responderToRequester = 0x60C1; // is used to validate decrypted data
+        const ushort Magic16_responderToRequester = 0x60C1; // is used to validate decrypted data
         
         /// <summary>
         /// when sending SYN-ACK
@@ -108,15 +106,19 @@ namespace Dcomms.DRP
                            
                 // encode localRxParameters
                 PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
-                PacketProcedures.EncodeIPEndPointIpv4(wRxParameters, responderEndpoint); // 6
-                LocalRxToken32.Encode(wRxParameters); // 4
-                wRxParameters.Write(Magic16_ipv4_responderToRequester);    // 2
-                wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(4));      // 4
+                PacketProcedures.EncodeIPEndPoint(wRxParameters, responderEndpoint); // max 19
+                LocalRxToken32.Encode(wRxParameters); // +4   max 23
+                wRxParameters.Write(Magic16_responderToRequester);    // +2 max 25
+                var bytesRemaining = RegisterSynAckPacket.ToResponderTxParametersEncryptedLength - (int)msRxParameters.Length;
+
+                wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));   
 
                 var localRxParametersDecrypted = msRxParameters.ToArray(); // total 16 bytes
                 var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
                 _engine.CryptoLibrary.ProcessSingleAesBlock(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
 
+                if (localRxParametersEncrypted.Length != RegisterSynAckPacket.ToResponderTxParametersEncryptedLength)
+                    throw new Exception();
                 return localRxParametersEncrypted;
             }
 
@@ -124,9 +126,7 @@ namespace Dcomms.DRP
                
         /// <summary>initializes parameters to transmit direct (p2p) packets form neighbor N to requester A</returns>
         public void Decrypt_ack_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
-        {
-            if ((ack.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
-            
+        {            
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
@@ -145,7 +145,7 @@ namespace Dcomms.DRP
                 // parse toRequesterTxParametersDecrypted
                 using (var reader = new BinaryReader(new MemoryStream(toRequesterTxParametersDecrypted)))
                 {
-                    RemoteEndpoint = PacketProcedures.DecodeIPEndPointIpv4(reader);
+                    RemoteEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
                     RemotePeerToken32 = P2pConnectionToken32.Decode(reader);
                     var magic16 = reader.ReadUInt16();
                     if (magic16 != Magic16_ipv4_requesterToResponder) throw new BrokenCipherException();
@@ -162,8 +162,6 @@ namespace Dcomms.DRP
         /// </summary>
         public byte[] Encrypt_ack_ToRequesterTxParametersEncrypted_AtRequester(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
         {
-            if ((synAck.Flags & RegisterSynAckPacket.Flag_ipv6) != 0) throw new NotImplementedException();
-
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
@@ -178,15 +176,17 @@ namespace Dcomms.DRP
 
                 // encode localRxParameters
                 PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
-                PacketProcedures.EncodeIPEndPointIpv4(wRxParameters, LocalEndpoint); // 6
-                LocalRxToken32.Encode(wRxParameters); // 4
-                wRxParameters.Write(Magic16_ipv4_requesterToResponder);    // 2
-                wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(4));      // 4
+                PacketProcedures.EncodeIPEndPoint(wRxParameters, LocalEndpoint); // max 19
+                LocalRxToken32.Encode(wRxParameters); // +4 max 23
+                wRxParameters.Write(Magic16_ipv4_requesterToResponder); // +2 max 25
+                var bytesRemaining = RegisterAckPacket.ToRequesterTxParametersEncryptedLength - (int)msRxParameters.Length;
+                wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));      
 
                 var localRxParametersDecrypted = msRxParameters.ToArray(); // total 16 bytes
                 var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
                 _engine.CryptoLibrary.ProcessSingleAesBlock(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
 
+                if (localRxParametersEncrypted.Length != RegisterAckPacket.ToRequesterTxParametersEncryptedLength) throw new Exception();
                 return localRxParametersEncrypted;
             }
         }
