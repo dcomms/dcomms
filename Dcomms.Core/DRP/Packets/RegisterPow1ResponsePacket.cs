@@ -13,7 +13,7 @@ namespace Dcomms.DRP.Packets
     {
         public uint Pow1RequestId;
         public byte Flags;
-        const byte FlagsMask_MustBeZero = 0b11000000;
+        const byte FlagsMask_MustBeZero = 0b11110000;
         public RegisterPow1ResponseStatusCode StatusCode;
         public byte[] ProofOfWork2Request; // 16 bytes
 

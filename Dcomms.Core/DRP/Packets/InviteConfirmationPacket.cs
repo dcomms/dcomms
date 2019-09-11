@@ -12,7 +12,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public P2pConnectionToken32 SenderToken32;
         // byte Flags;
-        const byte FlagsMask_MustBeZero = 0b11000000;
+        const byte FlagsMask_MustBeZero = 0b11110000;
 
         public uint Timestamp32S;
         public RegistrationPublicKey RequesterPublicKey; // A public key 

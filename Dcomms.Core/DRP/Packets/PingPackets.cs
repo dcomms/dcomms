@@ -14,7 +14,7 @@ namespace Dcomms.DRP.Packets
         public P2pConnectionToken32 SenderToken32;
         public const byte Flags_RegistrationConfirmationSignatureRequested = 0x01;
         public byte Flags;
-        const byte FlagsMask_MustBeZero = 0b11000000;
+        const byte FlagsMask_MustBeZero = 0b11110000;
         public uint PingRequestId32; // is used to avoid mismatch between delyed responses and requests // is used as salt also
         public float? MaxRxInviteRateRps;   // zero means NULL // signal from sender "how much I can receive via this p2p connection"
         public float? MaxRxRegisterRateRps; // zero means NULL // signal from sender "how much I can receive via this p2p connection"
@@ -87,7 +87,7 @@ namespace Dcomms.DRP.Packets
         public uint PingRequestId32;  // must match to request
        // byte Flags;
         const byte Flags_ResponderRegistrationConfirmationSignatureExists = 0x01;
-        const byte FlagsMask_MustBeZero = 0b11000000;
+        const byte FlagsMask_MustBeZero = 0b11110000;
         /// <summary>
         /// comes from responder neighbor when connection is set up; in other cases it is NULL
         /// signs fields: 

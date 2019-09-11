@@ -10,7 +10,7 @@ namespace Dcomms.DRP
     class SessionDescription
     {
         byte Flags;
-        const byte FlagsMask_MustBeZero = 0b11000000;
+        const byte FlagsMask_MustBeZero = 0b11110000;
 
         public uint SignedTimestamp32S { get; set; }
 
@@ -22,7 +22,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// at user who declared this SessionDescription: AES key to decrypt DMP data that is received from remote side via direct channel
         /// at user who received this SessionDescription (via INVITE): AES key to encrypt DMP data and send via direct channel
-        /// </summary>
+        /// </summary> 
         public byte[] DirectChannelAesKeyStage1 { get; set; }
         public byte[] DirectChannelAesKeyStage2 { get; set; } // gets derived from aesKeyStage1 when INVITE syn,synack,ack packets handshaking is completed; with inviteSession.SharedEcdhKey
 

@@ -32,5 +32,13 @@ namespace Dcomms
     {
 
     }
+    class NoNeighborsForRoutingException: ApplicationException
+    {
+
+    }
+    class ExpiredUserKeysException: BadSignatureException
+    {
+
+    }
 
 }

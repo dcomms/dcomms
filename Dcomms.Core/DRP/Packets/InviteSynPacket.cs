@@ -12,14 +12,14 @@ namespace Dcomms.DRP.Packets
     /// 
     /// 
     /// </summary>
-    class InviteSynPacket
+    public class InviteSynPacket
     {
         /// <summary>
         /// authorizes peer that sends the packet
         /// </summary>
         public P2pConnectionToken32 SenderToken32;
         // byte Flags;
-        const byte FlagsMask_MustBeZero = 0b11000000;
+        const byte FlagsMask_MustBeZero = 0b11110000;
 
         public uint Timestamp32S;
         public RegistrationPublicKey RequesterPublicKey; // A public key 
@@ -36,11 +36,12 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public HMAC SenderHMAC;
 
-        public byte[] Encode(ConnectionToNeighbor transmitToNeighbor)
+        public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpPacketType.InviteSyn);
 
+            NhaSeq16 = transmitToNeighbor.GetNewNhaSeq16_P2P();
             SenderToken32 = transmitToNeighbor.RemotePeerToken32;
             SenderToken32.Encode(w);
 

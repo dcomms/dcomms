@@ -6,11 +6,19 @@ namespace Dcomms.DRP
 {
     class Session
     {
-        public SessionDescription LocalSessionDescription { get; set; }
+        public readonly SessionDescription LocalSessionDescription;
         public SessionDescription RemoteSessionDescription { get; set; }
 
-        byte[] LocalEcdhePrivateKey;
-        byte[] LocalEcdhePublicKey;
+        readonly byte[] LocalEcdhePrivateKey;
+        readonly public byte[] LocalEcdhePublicKey;
         byte[] SharedEcdhSecret;
+
+        readonly LocalDrpPeer _localDrpPeer;
+        public Session(LocalDrpPeer localDrpPeer, SessionDescription localSessionDescription)
+        {
+            LocalSessionDescription = localSessionDescription;
+            _localDrpPeer = localDrpPeer;
+            _localDrpPeer.CryptoLibrary.GenerateEcdh25519Keypair(out LocalEcdhePrivateKey, out LocalEcdhePublicKey);
+        }
     }
 }

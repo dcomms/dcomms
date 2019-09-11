@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Dcomms.Cryptography;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
@@ -23,6 +24,7 @@ namespace Dcomms.DRP
         public DrpPeerRegistrationConfiguration RegistrationConfiguration => _registrationConfiguration;
         readonly IDrpRegisteredPeerUser _user;
         readonly DrpPeerEngine _engine;
+        internal ICryptoLibrary CryptoLibrary => _engine.CryptoLibrary;
         public LocalDrpPeer(DrpPeerEngine engine, DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
         {
             _engine = engine;
@@ -30,19 +32,7 @@ namespace Dcomms.DRP
             _user = user;
         }
         public List<ConnectionToNeighbor> ConnectedPeers = new List<ConnectionToNeighbor>(); // neighbors
-        /// <summary>
-        /// main routing procedure
-        /// selects next peer (hop) to proxy packet
-        /// returns null in case of flood
-        /// </summary>
-        ConnectionToNeighbor TryRouteRequest(RegistrationPublicKey targetRegistrationPublicKey)
-        {
-            // enumerate conn. peers
-            //   skip flooded tx connections (where tx rate is exceeded)
-            //   get distance = xor;   combined with ping RTT and rating    (based on RDR)
-            //   
-            throw new NotImplementedException();
-        }
+       
         public void Dispose() // unregisters
         {
 

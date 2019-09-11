@@ -60,5 +60,23 @@ namespace Dcomms.DRP
                 acceptAt = localDrpPeer;
             }
         }
+
+        public ConnectionToNeighbor RouteSynInviteAtRequester(LocalDrpPeer localDrpPeer, InviteSynPacket syn)
+        {
+            ConnectionToNeighbor r = null;
+            RegistrationPublicKeyDistance minDistance = null;
+            foreach (var connectedPeer in localDrpPeer.ConnectedPeers)
+            {
+                var distanceToConnectedPeer = syn.ResponderPublicKey.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
+                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from SYN {syn.ResponderPublicKey} to {connectedPeer.RemotePeerPublicKey}");
+                if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
+                {
+                    minDistance = distanceToConnectedPeer;
+                    r = connectedPeer;
+                }
+            }
+            if (r == null) throw new NoNeighborsForRoutingException();
+            return r;
+        }
     }
 }

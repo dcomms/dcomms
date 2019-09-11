@@ -493,9 +493,9 @@ namespace Dcomms.DRP
             _engine.SendPacket(udpPayload, RemoteEndpoint);
         }
         internal async Task SendUdpRequestAsync_Retransmit_WaitForNHACK(byte[] requestUdpData, NextHopAckSequenceNumber16 nhaSeq16, 
-            ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
+            Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
         {
-            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(requestUdpData, RemoteEndpoint, nhaSeq16, waitNhaFromNeighborNullable, nhaRequestPacketFieldsForHmacNullable);
+            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(requestUdpData, RemoteEndpoint, nhaSeq16, this, nhaRequestPacketFieldsForHmacNullable);
         }
                
         internal void GetResponderRegistrationConfirmationSignatureFields(BinaryWriter w)

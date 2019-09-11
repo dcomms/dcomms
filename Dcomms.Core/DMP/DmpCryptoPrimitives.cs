@@ -9,8 +9,22 @@ namespace Dcomms.DMP
 {
     public class UserID_PublicKeys
     {
-        //  byte ReservedFlagsMustBeZero; // will include "type" = "ed25519 by default"
-        public List<byte[]> Ed25519UserRootPublicKeys;
+        /// <summary>
+        /// includes "root keys digital signature algorithm type": "ed25519", "rsa2048"
+        /// </summary>
+        byte Flags;
+        const byte FlagsMask_MustBeZero = 0b11110000;
+        public TimeSpan MaxCertificateDuration; // zero if no intermediate certificates are allowed: only live certificate generation with direct access to root key
+        public DateTime UserIdMaintenanceReplacementMaxTimeUTC; // similar to credit card "expiration date"
+        public DateTime UserIdMaintenanceReplacementMinTimeUTC;
+        public List<byte[]> RootPublicKeys;
+        public int GetSignatureSize(int keyIndex)
+        {
+            if (keyIndex < 0 || keyIndex >= RootPublicKeys.Count)
+                throw new ArgumentException();
+            return CryptoLibraries.Ed25519SignatureSize;
+        }
+        public byte MinimalRequiredRootSignaturesCountInCertificate;
         
         public override bool Equals(object obj)
         {
@@ -33,8 +47,31 @@ namespace Dcomms.DMP
         }
         public override string ToString()
         {
-            return String.Join(";", Ed25519UserRootPublicKeys.Select(x => MiscProcedures.ByteArrayToString(x)));
+            return String.Join(";", RootPublicKeys.Select(x => MiscProcedures.ByteArrayToString(x)));
         }
+               
+        public void Encode(BinaryWriter writer)
+        {
+            writer.Write(Flags);
+            // if (CertificateEd25519Signature.Length != CryptoLibraries.Ed25519SignatureSize) throw new ArgumentException();
+            //  writer.Write(CertificateEd25519Signature);
+            throw new NotImplementedException();
+
+        }
+        static UserID_PublicKeys Decode(BinaryReader reader)
+        {
+            var r = new UserID_PublicKeys();
+            r.Flags = reader.ReadByte();
+            if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
+            // r.CertificateEd25519Signature = reader.ReadBytes(CryptoLibraries.Ed25519SignatureSize);
+            throw new NotImplementedException();
+            return r;
+        }
+        public void AssertIsValidNow(DateTime localTimeNowUtc)
+        {
+            if (localTimeNowUtc > UserIdMaintenanceReplacementMinTimeUTC) throw new ExpiredUserKeysException();
+        }
+
     }
 
     public class UserRootPrivateKeys
@@ -45,8 +82,7 @@ namespace Dcomms.DMP
         /// 
         /// the private keys will be separated later, to be stored on separate independent devices
         /// </summary>
-        public List<byte[]> ed25519privateKeys;
-
+        public List<byte[]> ed25519privateKeys; 
 
         public static void CreateUserKeyPairs(int numberOfKeyPairs, ICryptoLibrary cryptoLibrary, out UserRootPrivateKeys privateKeys, out UserID_PublicKeys publicKeys)
         {
@@ -54,17 +90,42 @@ namespace Dcomms.DMP
             privateKeys = new UserRootPrivateKeys();
             privateKeys.ed25519privateKeys = new List<byte[]>();
             publicKeys = new UserID_PublicKeys();
-            publicKeys.Ed25519UserRootPublicKeys = new List<byte[]>();
+            publicKeys.MinimalRequiredRootSignaturesCountInCertificate = x;
+            publicKeys.MaxCertificateDuration = x;
+            publicKeys.UserIdMaintenanceRefreshMinTimeUTC = x;
+            publicKeys.RootPublicKeys = new List<byte[]>();
 
             for (int i = 0; i < numberOfKeyPairs; i++)
             {
                 var privateKey = cryptoLibrary.GeneratePrivateKeyEd25519();
                 var publicKey = cryptoLibrary.GetPublicKeyEd25519(privateKey);
                 privateKeys.ed25519privateKeys.Add(privateKey);
-                publicKeys.Ed25519UserRootPublicKeys.Add(publicKey);
+                publicKeys.RootPublicKeys.Add(publicKey);
             }
         }
     }
+    
+    public class UserRootSignature
+    {
+        public byte RootKeyIndex;
+
+        public byte[] SignatureSalt;
+        public const int SignatureSaltSize = 4;
+
+        /// <summary>
+        /// signatures by UserRootPrivateKeys[RootKeyIndex].   size of signature is defined by type of root key
+        /// 
+        /// sign {
+        ///   UserCertificate._validFromUtc32minutes,
+        ///   UserCertificate._validToUtc32minutes,
+        ///   UserCertificate.CertificateEd25519publicKey
+        ///   this.SignatureSalt
+        /// }
+        /// </summary>
+        public byte[] Signature;
+
+    }
+
 
     /// <summary>
     /// intermediate certificate, signed by root user's keys
@@ -75,34 +136,43 @@ namespace Dcomms.DMP
     /// </summary>
     public class UserCertificate
     {
-        byte ReservedFlagsMustBeZero; 
+        byte Flags; // will include CertificatePublicKey algorithm type = "ed25519" by default
+        const byte FlagsMask_MustBeZero = 0b11110000;
 
         uint _validFromUtc32minutes;
         public DateTime ValidFromUtc => MiscProcedures.Uint32minutesToDateTime(_validFromUtc32minutes);
         uint _validToUtc32minutes;
         public DateTime ValidToUtc => MiscProcedures.Uint32minutesToDateTime(_validToUtc32minutes);
-        public byte[] CertificateEd25519publicKey;
-        public byte[] LocalCertificateEd25519PrivateKey; // is null for certificates received from remote side
-        public List<byte[]> UserRootSignaturesSalts;
-        const int UserRootSignaturesSaltSize = 4;
-
         /// <summary>
-        /// multiple (each one is required) signatures by UserRootPrivateKeys
-        /// 
-        /// sign {
-        ///   _validFromUtc32minutes,
-        ///   _validToUtc32minutes,
-        ///   CertificateEd25519publicKey
-        ///   Ed25519UserRootSignaturesSalts[i]
-        /// }
+        /// can be equal to UserID_PublicKeys.Ed25519UserRootPublicKeys[x], in case of HSM module, that is available in live mode to authenticate user's messages
+        /// in this case UserRootSignatures can be empty, or contain less items
         /// </summary>
-        public List<byte[]> Ed25519UserRootSignatures;
+        public byte[] CertificatePublicKey;
+        /// <summary>
+        /// is null for certificates received from remote side
+        /// </summary>
+        public byte[] LocalCertificatePrivateKey; 
+
+        public List<UserRootSignature> UserRootSignatures;
 
         /// <summary>
+        /// the procedure verifies certificate that is received from remote party to local party 
         /// throws exception if the certificate is invalid for the specified userId   (the caller knows that certificate came from the userId)
+        /// also checks userId - expired or not
         /// </summary>
         void AssertIsValidNow(ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, DateTime localTimeNowUtc)
         {
+            userId.AssertIsValidNow(localTimeNowUtc);
+
+            if (MiscProcedures.EqualByteArrays(this.CertificatePublicKey, userId.RootPublicKeys[i]))
+            {
+                // mode without intermediate certificate private key
+                
+                // todo  userId.MinimalRequiredRootSignaturesCountInCertificate
+
+            }
+
+
             if (userId.Ed25519UserRootPublicKeys.Count != this.Ed25519UserRootSignatures.Count)
                 throw new BadUserCertificateException();
             if (userId.Ed25519UserRootPublicKeys.Count != this.UserRootSignaturesSalts.Count)
@@ -110,6 +180,13 @@ namespace Dcomms.DMP
 
             if (localTimeNowUtc > ValidToUtc) throw new CertificateOutOfDateException();
             if (localTimeNowUtc < ValidFromUtc) throw new CertificateOutOfDateException();
+
+
+            if (ValidToUtc -ValidFromUtc > userId.MaxCertificateDuration)
+                throw new BadUserCertificateException();
+
+           // todo  userId.MinimalRequiredRootSignaturesCountInCertificate
+
 
             for (int i = 0; i < userId.Ed25519UserRootPublicKeys.Count; i++)
             {
@@ -180,17 +257,20 @@ namespace Dcomms.DMP
         public static UserCertificate Decode_AssertIsValidNow(BinaryReader reader, ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, DateTime localTimeNowUtc)
         {
             var r = new UserCertificate();
-            r.ReservedFlagsMustBeZero = reader.ReadByte();
+            r.Flags = reader.ReadByte();
+            if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             r._validFromUtc32minutes = reader.ReadUInt32();
             r._validToUtc32minutes = reader.ReadUInt32();
-            r.CertificateEd25519publicKey = reader.ReadBytes(CryptoLibraries.Ed25519PublicKeySize);
-            var userRootSignaturesSaltsCount = reader.ReadByte();
-            r.UserRootSignaturesSalts = new List<byte[]>();
-            r.Ed25519UserRootSignatures = new List<byte[]>();
-            for (int i = 0; i < userRootSignaturesSaltsCount; i++)
+            r.CertificatePublicKey = reader.ReadBytes(CryptoLibraries.Ed25519PublicKeySize);
+            var userRootSignaturesCount = reader.ReadByte();
+            r.UserRootSignatures = new List<UserRootSignature>(userRootSignaturesCount);
+            for (int i = 0; i < userRootSignaturesCount; i++)
             {
-               r.UserRootSignaturesSalts.Add(reader.ReadBytes(UserRootSignaturesSaltSize));
-               r.Ed25519UserRootSignatures.Add(reader.ReadBytes(CryptoLibraries.Ed25519SignatureSize));
+                var userRootSignature = new UserRootSignature();
+                userRootSignature.RootKeyIndex = reader.ReadByte();
+                userRootSignature.SignatureSalt = reader.ReadBytes(UserRootSignature.SignatureSaltSize);
+                userRootSignature.Signature = reader.ReadBytes(userId.GetSignatureSize(userRootSignature.RootKeyIndex));
+                r.UserRootSignatures.Add(userRootSignature);
             }
 
             r.AssertIsValidNow(cryptoLibrary, userId, localTimeNowUtc);
@@ -199,14 +279,15 @@ namespace Dcomms.DMP
     }
     public class UserCertificateSignature
     {
-        byte ReservedFlagsMustBeZero; // will include "type" = "ed25519 by default"
+        byte Flags; 
+        const byte FlagsMask_MustBeZero = 0b11110000;
 
-        public byte[] CertificateEd25519Signature;
+        public byte[] CertificateSignature;
         public static UserCertificateSignature Sign(ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, UserCertificate userCertificateWithPrivateKey)
         {
             var r = new UserCertificateSignature();
             var ms = new MemoryStream(); using (var writer = new BinaryWriter(ms)) writeSignedFields(writer);
-            r.CertificateEd25519Signature = cryptoLibrary.SignEd25519(
+            r.CertificateSignature = cryptoLibrary.SignEd25519(
                     ms.ToArray(),
                     userCertificateWithPrivateKey.LocalCertificateEd25519PrivateKey);
             return r;
@@ -223,23 +304,24 @@ namespace Dcomms.DMP
             var signedData = new MemoryStream();
             using (var writer = new BinaryWriter(signedData))
                 writeSignedFields(writer);
-            if (cryptoLibrary.VerifyEd25519(signedData.ToArray(), CertificateEd25519Signature, userCertificateWithPublicKey.CertificateEd25519publicKey) == false)
+            if (cryptoLibrary.VerifyEd25519(signedData.ToArray(), CertificateSignature, userCertificateWithPublicKey.CertificatePublicKey) == false)
                 return false;
             return true;
         }
 
         public void Encode(BinaryWriter writer)
         {
-            writer.Write(ReservedFlagsMustBeZero);
-            if (CertificateEd25519Signature.Length != CryptoLibraries.Ed25519SignatureSize) throw new ArgumentException();
-            writer.Write(CertificateEd25519Signature);
+            writer.Write(Flags);
+            if (CertificateSignature.Length != CryptoLibraries.Ed25519SignatureSize) throw new ArgumentException();
+            writer.Write(CertificateSignature);
 
         }
         static UserCertificateSignature Decode(BinaryReader reader)
         {
             var r = new UserCertificateSignature();
-            r.ReservedFlagsMustBeZero = reader.ReadByte();
-            r.CertificateEd25519Signature = reader.ReadBytes(CryptoLibraries.Ed25519SignatureSize);
+            r.Flags = reader.ReadByte();
+            if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
+            r.CertificateSignature = reader.ReadBytes(CryptoLibraries.Ed25519SignatureSize);
             return r;
         }
     }

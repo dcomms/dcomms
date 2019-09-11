@@ -17,7 +17,7 @@ namespace Dcomms.DRP.Packets
     {
         public static byte Flag_EPtoA = 0x01; // set if packet is transmitted from EP to registering A, otherwise it is zero
         public byte Flags;
-        const byte FlagsMask_MustBeZero = 0b11000000;
+        const byte FlagsMask_MustBeZero = 0b11110000;
 
         P2pConnectionToken32 SenderToken32; // is not sent from EP to A
         public RegistrationPublicKey RequesterPublicKey_RequestID; // public key of requester (A)

@@ -46,7 +46,7 @@ namespace Dcomms.DRP
                 // send (proxy) SYN to destinationPeer. wait for NHACK, verify NHACK.senderHMAC, retransmit SYN   
                 syn.NhaSeq16 = destinationPeer.GetNewNhaSeq16_P2P();
                 await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNHACK(syn.Encode_OptionallySignSenderHMAC(destinationPeer),
-                    syn.NhaSeq16, destinationPeer, syn.GetSignedFieldsForSenderHMAC);
+                    syn.NhaSeq16, syn.GetSignedFieldsForSenderHMAC);
 
                 // wait for SYNACK from destinationPeer
                 // verify SenderHMAC
@@ -105,7 +105,7 @@ namespace Dcomms.DRP
                 // wait for NHACK
                 ack.NhaSeq16 = destinationPeer.GetNewNhaSeq16_P2P();
                 await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNHACK(ack.Encode_OptionallySignSenderHMAC(destinationPeer),
-                    ack.NhaSeq16, destinationPeer, ack.GetSignedFieldsForSenderHMAC);
+                    ack.NhaSeq16, ack.GetSignedFieldsForSenderHMAC);
 
 
                 // wait for CFM from requester
@@ -124,7 +124,7 @@ namespace Dcomms.DRP
                 // wait for NHACK from destinationPeer, retransmit
                 cfm.NhaSeq16 = destinationPeer.GetNewNhaSeq16_P2P();
                 await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNHACK(cfm.Encode_OptionallySignSenderHMAC(destinationPeer),
-                    cfm.NhaSeq16, destinationPeer, cfm.GetSignedFieldsForSenderHMAC);
+                    cfm.NhaSeq16, cfm.GetSignedFieldsForSenderHMAC);
             }
             catch (Exception exc)
             {

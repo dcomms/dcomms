@@ -29,7 +29,7 @@ namespace Dcomms.DRP
         readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         TimeSpan TimeSWE => _stopwatch.Elapsed; // stopwatch elapsed
         public DateTime DateTimeNowUtc { get { return _startTimeUtc + TimeSWE; } }
-        uint Timestamp32S => MiscProcedures.DateTimeToUint32seconds(DateTimeNowUtc);
+        public uint Timestamp32S => MiscProcedures.DateTimeToUint32seconds(DateTimeNowUtc);
         bool _disposing;
         Thread _engineThread;
         Thread _receiverThread;
