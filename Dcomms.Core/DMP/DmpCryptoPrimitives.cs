@@ -27,28 +27,19 @@ namespace Dcomms.DMP
 
         /// <summary>
         /// similar to credit card "expiration date"
+        /// is set by user when he wants to force UserID replacement by himself within a certain period
         /// </summary>
-        public DateTime UserIdMaintenanceReplacementMaxTimeUTC
+        public DateTime ExpirationTimeUTC
         {
-            get => MiscProcedures.Uint16daysToDateTime(_userIdMaintenanceReplacementMaxTimeUTC_Days16);
+            get => MiscProcedures.Uint16daysToDateTime(_expirationTimeUTC_Days16);
             set
             {
-                _userIdMaintenanceReplacementMaxTimeUTC_Days16 = MiscProcedures.DateTimeToUint16days(value);
+                _expirationTimeUTC_Days16 = MiscProcedures.DateTimeToUint16days(value);
             }
         }
-        ushort _userIdMaintenanceReplacementMaxTimeUTC_Days16;
-        /// <summary>
-        /// avoids (suspicious) replacements too often (before this datetime)
-        /// </summary>
-        public DateTime UserIdMaintenanceReplacementMinTimeUTC
-        {
-            get => MiscProcedures.Uint16daysToDateTime(_userIdMaintenanceReplacementMinTimeUTC_Days16);
-            set
-            {
-                _userIdMaintenanceReplacementMinTimeUTC_Days16 = MiscProcedures.DateTimeToUint16days(value);
-            }
-        }
-        ushort _userIdMaintenanceReplacementMinTimeUTC_Days16;
+        ushort _expirationTimeUTC_Days16;       
+
+
         public byte MinimalRequiredRootSignaturesCountInCertificate;
 
         public List<byte[]> RootPublicKeys; // DSA type and public key size of all the items depends on the Flags. default is Ed25519
@@ -94,8 +85,7 @@ namespace Dcomms.DMP
         {
             writer.Write(Flags);
             writer.Write(_maxCertificateDurationHours);
-            writer.Write(_userIdMaintenanceReplacementMaxTimeUTC_Days16);
-            writer.Write(_userIdMaintenanceReplacementMinTimeUTC_Days16);
+            writer.Write(_expirationTimeUTC_Days16);
             writer.Write(MinimalRequiredRootSignaturesCountInCertificate);
             writer.Write((byte)RootPublicKeys.Count);
             foreach (var rootPublicKey in RootPublicKeys)
@@ -108,8 +98,7 @@ namespace Dcomms.DMP
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
 
             r._maxCertificateDurationHours = reader.ReadUInt16();
-            r._userIdMaintenanceReplacementMaxTimeUTC_Days16 = reader.ReadUInt16();
-            r._userIdMaintenanceReplacementMinTimeUTC_Days16 = reader.ReadUInt16();
+            r._expirationTimeUTC_Days16 = reader.ReadUInt16();
             r.MinimalRequiredRootSignaturesCountInCertificate = reader.ReadByte();
             var rootPublicKeysCount = reader.ReadByte();
             r.RootPublicKeys = new List<byte[]>();
@@ -120,7 +109,7 @@ namespace Dcomms.DMP
         }
         public void AssertIsValidNow(DateTime localTimeNowUtc)
         {
-            if (localTimeNowUtc > UserIdMaintenanceReplacementMinTimeUTC) throw new ExpiredUserKeysException();
+            if (localTimeNowUtc > ExpirationTimeUTC) throw new ExpiredUserKeysException();
         }
 
     }
@@ -270,27 +259,28 @@ namespace Dcomms.DMP
             writer.Write(CertificatePublicKey);
             writer.Write(userRootSignature.SignatureSalt);
         }
-        public static UserCertificate GenerateKeyPairsAndSignAtSingleDevice(ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, UserRootPrivateKeys userRootPrivatekeys, DateTime fromUtc, DateTime toUtc)
+        public static UserCertificate GenerateKeyPairsAndSignAtSingleDevice(ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, 
+            UserRootPrivateKeys userRootPrivatekeys, DateTime fromUtc, DateTime toUtc)
         {
-            if (userRootPrivatekeys.ed25519privateKeys.Count != userId.Ed25519UserRootPublicKeys.Count)
-                throw new ArgumentException();
-            var r = new UserCertificate();
-
-            // todo case without intermediate key
-
+            if (userId.RootPublicKeys.Count > 255) throw new ArgumentException();
+            if (userRootPrivatekeys.ed25519privateKeys.Count != userId.RootPublicKeys.Count) throw new ArgumentException();
+            var r = new UserCertificate();         
 
             r._validFromUtc32minutes = MiscProcedures.DateTimeToUint32minutes(fromUtc);
             r._validToUtc32minutes = MiscProcedures.DateTimeToUint32minutes(toUtc);            
-            r.LocalCertificateEd25519PrivateKey = cryptoLibrary.GeneratePrivateKeyEd25519();
-            r.CertificateEd25519publicKey = cryptoLibrary.GetPublicKeyEd25519(r.LocalCertificateEd25519PrivateKey);
-            r.UserRootSignaturesSalts = new List<byte[]>();
-            r.Ed25519UserRootSignatures = new List<byte[]>();
-            for (int i = 0; i < userId.Ed25519UserRootPublicKeys.Count; i++)
+            r.LocalCertificatePrivateKey = cryptoLibrary.GeneratePrivateKeyEd25519();
+            r.CertificatePublicKey = cryptoLibrary.GetPublicKeyEd25519(r.LocalCertificatePrivateKey);
+            r.UserRootSignatures = new List<UserRootSignature>();
+            for (byte i = 0; i < userId.RootPublicKeys.Count; i++)
             {
-                var salt = cryptoLibrary.GetRandomBytes(UserRootSignaturesSaltSize);
-                r.UserRootSignaturesSalts.Add(salt);                
-                var ms = new MemoryStream(); using (var writer = new BinaryWriter(ms)) r.WriteSignedFields(writer, i);
-                r.Ed25519UserRootSignatures.Add(cryptoLibrary.SignEd25519(ms.ToArray(), userRootPrivatekeys.ed25519privateKeys[i]));
+                var userRootSignature = new UserRootSignature
+                {
+                    SignatureSalt = cryptoLibrary.GetRandomBytes(UserRootSignature.SignatureSaltSize),
+                    RootKeyIndex = i
+                };
+                var ms = new MemoryStream(); using (var writer = new BinaryWriter(ms)) r.WriteSignedFields(writer, userRootSignature);
+                userRootSignature.Signature = cryptoLibrary.SignEd25519(ms.ToArray(), userRootPrivatekeys.ed25519privateKeys[i]);
+                r.UserRootSignatures.Add(userRootSignature);  
             }
             return r;
         }

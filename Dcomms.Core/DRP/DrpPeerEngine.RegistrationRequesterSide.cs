@@ -143,7 +143,7 @@ namespace Dcomms.DRP
                     Timestamp32S = Timestamp32S,
                     MinimalDistanceToNeighbor = 0,
                     NumberOfHopsRemaining = 10,
-                    RequesterEcdhePublicKey = new EcdhPublicKey { ecdh25519PublicKey = connectionToNeighbor.LocalEcdhe25519PublicKey },
+                    RequesterEcdhePublicKey = new EcdhPublicKey(connectionToNeighbor.LocalEcdhe25519PublicKey),
                     NhaSeq16 = GetNewNhaSeq16_AtoEP(),
                     EpEndpoint = epEndpoint
                 };

@@ -44,7 +44,7 @@ namespace Dcomms.DRP
         /// </summary>
         public void Decrypt_synack_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(RegisterSynPacket syn, RegisterSynAckPacket synAck)
         {            
-            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, synAck.ResponderEcdhePublicKey.ecdh25519PublicKey);
+            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
@@ -91,7 +91,7 @@ namespace Dcomms.DRP
 
             if (responderEndpoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new NotImplementedException();
 
-            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, syn.RequesterEcdhePublicKey.ecdh25519PublicKey);
+            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, syn.RequesterEcdhePublicKey.Ecdh25519PublicKey);
 
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))

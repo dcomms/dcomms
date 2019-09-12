@@ -58,7 +58,7 @@ namespace Dcomms.DRP
                     {                        
                         RequesterPublicKey_RequestID = syn.RequesterPublicKey_RequestID,
                         RegisterSynTimestamp32S = syn.Timestamp32S,
-                        ResponderEcdhePublicKey = new EcdhPublicKey { ecdh25519PublicKey = newConnectionToNeighbor.LocalEcdhe25519PublicKey },
+                        ResponderEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                         ResponderPublicKey = acceptAt.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
                         ResponderStatusCode = DrpResponderStatusCode.confirmed,
                         NhaSeq16 = GetNewNhaSeq16_AtoEP(),

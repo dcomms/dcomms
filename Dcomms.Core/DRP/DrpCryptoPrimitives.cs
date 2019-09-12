@@ -137,20 +137,26 @@ namespace Dcomms.DRP
         byte Flags; // will include "type" = "ec25519 ecdh" by default
         const byte FlagsMask_MustBeZero = 0b11110000;
        
-        public byte[] ecdh25519PublicKey; 
-
+        public byte[] Ecdh25519PublicKey;
+        public EcdhPublicKey()
+        {
+        }
+        public EcdhPublicKey(byte[] ecdh25519PublicKey)
+        {
+            Ecdh25519PublicKey = ecdh25519PublicKey;
+        }
         public void Encode(BinaryWriter writer)
         {
             writer.Write(Flags);
-            if (ecdh25519PublicKey.Length != CryptoLibraries.Ecdh25519PublicKeySize) throw new ArgumentException();
-            writer.Write(ecdh25519PublicKey);
+            if (Ecdh25519PublicKey.Length != CryptoLibraries.Ecdh25519PublicKeySize) throw new ArgumentException();
+            writer.Write(Ecdh25519PublicKey);
         }
         public static EcdhPublicKey Decode(BinaryReader reader)
         {
             var r = new EcdhPublicKey();
             r.Flags = reader.ReadByte();
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
-            r.ecdh25519PublicKey = reader.ReadBytes(CryptoLibraries.Ecdh25519PublicKeySize);
+            r.Ecdh25519PublicKey = reader.ReadBytes(CryptoLibraries.Ecdh25519PublicKeySize);
             // todo: check if it is valid point on curve  - do we really need to check it?
             return r;
         }
