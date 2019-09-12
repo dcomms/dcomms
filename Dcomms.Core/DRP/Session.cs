@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Dcomms.DRP
 {
-    class Session
+    public class Session
     {
         public readonly SessionDescription LocalSessionDescription;
         public SessionDescription RemoteSessionDescription { get; set; }

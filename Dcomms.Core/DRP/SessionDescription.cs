@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Dcomms.DRP
 {
-    class SessionDescription
+    public class SessionDescription
     {
         byte Flags;
         const byte FlagsMask_MustBeZero = 0b11110000;

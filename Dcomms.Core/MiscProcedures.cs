@@ -36,6 +36,7 @@ namespace Dcomms
         {
             return (uint)(dt - _baseDateTime).TotalSeconds;
         }
+
         public static uint CompilationDateTimeUtc_uint32Seconds => DateTimeToUint32seconds(CompilationDateTimeUtc);
 
 
@@ -46,6 +47,16 @@ namespace Dcomms
         public static uint DateTimeToUint32minutes(DateTime dt) //enough for 8171 years
         {
             return (uint)(dt - _baseDateTime).TotalMinutes;
+        }
+
+
+        public static DateTime Uint16daysToDateTime(ushort days) //enough for 179 years
+        {
+            return _baseDateTime.AddDays(days);
+        }
+        public static ushort DateTimeToUint16days(DateTime dt) //enough for 179 years
+        {
+            return (ushort)(dt - _baseDateTime).TotalDays;
         }
 
         public static string BandwidthToString(this float bandwidth, float? targetBandwidth = null) => BandwidthToString((float?)bandwidth, targetBandwidth);

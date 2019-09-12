@@ -10,7 +10,7 @@ namespace Dcomms.DRP
     /// "contact point" of local user in the regID space
     /// can be "registered" or "registering"
     /// </summary>
-    public class LocalDrpPeer: IDisposable
+    public partial class LocalDrpPeer: IDisposable
     {
         /// <summary>
         /// is used for:

@@ -14,35 +14,75 @@ namespace Dcomms.DMP
         /// </summary>
         byte Flags;
         const byte FlagsMask_MustBeZero = 0b11110000;
-        public TimeSpan MaxCertificateDuration; // zero if no intermediate certificates are allowed: only live certificate generation with direct access to root key
-        public DateTime UserIdMaintenanceReplacementMaxTimeUTC; // similar to credit card "expiration date"
-        public DateTime UserIdMaintenanceReplacementMinTimeUTC;
-        public List<byte[]> RootPublicKeys;
+
+        /// <summary>
+        /// zero if no intermediate certificates are allowed: only live certificate generation with direct access to root key
+        /// </summary>
+        public TimeSpan MaxCertificateDuration
+        {
+            get => TimeSpan.FromHours(_maxCertificateDurationHours);
+            set { _maxCertificateDurationHours = (ushort)value.TotalHours; }
+        }
+        ushort _maxCertificateDurationHours; // max 7.5 years
+
+        /// <summary>
+        /// similar to credit card "expiration date"
+        /// </summary>
+        public DateTime UserIdMaintenanceReplacementMaxTimeUTC
+        {
+            get => MiscProcedures.Uint16daysToDateTime(_userIdMaintenanceReplacementMaxTimeUTC_Days16);
+            set
+            {
+                _userIdMaintenanceReplacementMaxTimeUTC_Days16 = MiscProcedures.DateTimeToUint16days(value);
+            }
+        }
+        ushort _userIdMaintenanceReplacementMaxTimeUTC_Days16;
+        /// <summary>
+        /// avoids (suspicious) replacements too often (before this datetime)
+        /// </summary>
+        public DateTime UserIdMaintenanceReplacementMinTimeUTC
+        {
+            get => MiscProcedures.Uint16daysToDateTime(_userIdMaintenanceReplacementMinTimeUTC_Days16);
+            set
+            {
+                _userIdMaintenanceReplacementMinTimeUTC_Days16 = MiscProcedures.DateTimeToUint16days(value);
+            }
+        }
+        ushort _userIdMaintenanceReplacementMinTimeUTC_Days16;
+        public byte MinimalRequiredRootSignaturesCountInCertificate;
+
+        public List<byte[]> RootPublicKeys; // DSA type and public key size of all the items depends on the Flags. default is Ed25519
         public int GetSignatureSize(int keyIndex)
         {
             if (keyIndex < 0 || keyIndex >= RootPublicKeys.Count)
                 throw new ArgumentException();
             return CryptoLibraries.Ed25519SignatureSize;
         }
-        public byte MinimalRequiredRootSignaturesCountInCertificate;
         
         public override bool Equals(object obj)
         {
             var obj2 = (UserID_PublicKeys)obj;
-            if (obj2.Ed25519UserRootPublicKeys.Count != this.Ed25519UserRootPublicKeys.Count)
+            if (obj2.RootPublicKeys.Count != this.RootPublicKeys.Count)
                 return false;
 
-            for (int i = 0; i < this.Ed25519UserRootPublicKeys.Count; i++)
-                if (!MiscProcedures.EqualByteArrays(obj2.Ed25519UserRootPublicKeys[i], this.Ed25519UserRootPublicKeys[i]))
+            for (int i = 0; i < this.RootPublicKeys.Count; i++)
+                if (!MiscProcedures.EqualByteArrays(obj2.RootPublicKeys[i], this.RootPublicKeys[i]))
                     return false;
+
+            if (obj2._maxCertificateDurationHours != this._maxCertificateDurationHours) return false;
+            if (obj2._userIdMaintenanceReplacementMaxTimeUTC_Days16 != this._userIdMaintenanceReplacementMaxTimeUTC_Days16) return false;
+            if (obj2._userIdMaintenanceReplacementMinTimeUTC_Days16 != this._userIdMaintenanceReplacementMinTimeUTC_Days16) return false;
 
             return true;
         }
         public override int GetHashCode()
         {
             int r = 0;
-            foreach (var a in Ed25519UserRootPublicKeys)
+            foreach (var a in RootPublicKeys)
                 r ^= MiscProcedures.GetArrayHashCode(a);
+            r ^= _maxCertificateDurationHours.GetHashCode();
+            r ^= UserIdMaintenanceReplacementMaxTimeUTC.GetHashCode();
+            r ^= UserIdMaintenanceReplacementMinTimeUTC.GetHashCode();
             return r;
         }
         public override string ToString()
@@ -53,18 +93,29 @@ namespace Dcomms.DMP
         public void Encode(BinaryWriter writer)
         {
             writer.Write(Flags);
-            // if (CertificateEd25519Signature.Length != CryptoLibraries.Ed25519SignatureSize) throw new ArgumentException();
-            //  writer.Write(CertificateEd25519Signature);
-            throw new NotImplementedException();
-
+            writer.Write(_maxCertificateDurationHours);
+            writer.Write(_userIdMaintenanceReplacementMaxTimeUTC_Days16);
+            writer.Write(_userIdMaintenanceReplacementMinTimeUTC_Days16);
+            writer.Write(MinimalRequiredRootSignaturesCountInCertificate);
+            writer.Write((byte)RootPublicKeys.Count);
+            foreach (var rootPublicKey in RootPublicKeys)
+                writer.Write(rootPublicKey);
         }
         static UserID_PublicKeys Decode(BinaryReader reader)
         {
             var r = new UserID_PublicKeys();
             r.Flags = reader.ReadByte();
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
-            // r.CertificateEd25519Signature = reader.ReadBytes(CryptoLibraries.Ed25519SignatureSize);
-            throw new NotImplementedException();
+
+            r._maxCertificateDurationHours = reader.ReadUInt16();
+            r._userIdMaintenanceReplacementMaxTimeUTC_Days16 = reader.ReadUInt16();
+            r._userIdMaintenanceReplacementMinTimeUTC_Days16 = reader.ReadUInt16();
+            r.MinimalRequiredRootSignaturesCountInCertificate = reader.ReadByte();
+            var rootPublicKeysCount = reader.ReadByte();
+            r.RootPublicKeys = new List<byte[]>();
+            for (int i = 0; i < rootPublicKeysCount; i++)
+                r.RootPublicKeys.Add(reader.ReadBytes(CryptoLibraries.Ed25519PublicKeySize));
+
             return r;
         }
         public void AssertIsValidNow(DateTime localTimeNowUtc)
@@ -84,15 +135,17 @@ namespace Dcomms.DMP
         /// </summary>
         public List<byte[]> ed25519privateKeys; 
 
-        public static void CreateUserKeyPairs(int numberOfKeyPairs, ICryptoLibrary cryptoLibrary, out UserRootPrivateKeys privateKeys, out UserID_PublicKeys publicKeys)
+        public static void CreateUserId(int numberOfKeyPairs, byte requiredSignaturesCount, ICryptoLibrary cryptoLibrary, 
+            out UserRootPrivateKeys privateKeys, out UserID_PublicKeys publicKeys)
         {
             if (numberOfKeyPairs <= 0 || numberOfKeyPairs > 3) throw new ArgumentException(); // the UDP packets can go over 1000 bytes to transfer a big UsersCertificate
             privateKeys = new UserRootPrivateKeys();
             privateKeys.ed25519privateKeys = new List<byte[]>();
             publicKeys = new UserID_PublicKeys();
-            publicKeys.MinimalRequiredRootSignaturesCountInCertificate = x;
-            publicKeys.MaxCertificateDuration = x;
-            publicKeys.UserIdMaintenanceRefreshMinTimeUTC = x;
+            publicKeys.MinimalRequiredRootSignaturesCountInCertificate = requiredSignaturesCount;
+            publicKeys.MaxCertificateDuration = TimeSpan.FromDays(30);
+            publicKeys.UserIdMaintenanceReplacementMinTimeUTC = new DateTime(2029, 01, 01);
+            publicKeys.UserIdMaintenanceReplacementMaxTimeUTC = new DateTime(2030, 01, 01);
             publicKeys.RootPublicKeys = new List<byte[]>();
 
             for (int i = 0; i < numberOfKeyPairs; i++)
@@ -104,7 +157,10 @@ namespace Dcomms.DMP
             }
         }
     }
-    
+
+    /// <summary>
+    /// a part of UserCertificate
+    /// </summary>
     public class UserRootSignature
     {
         public byte RootKeyIndex;
@@ -115,10 +171,10 @@ namespace Dcomms.DMP
         /// <summary>
         /// signatures by UserRootPrivateKeys[RootKeyIndex].   size of signature is defined by type of root key
         /// 
-        /// sign {
+        /// signs {
         ///   UserCertificate._validFromUtc32minutes,
         ///   UserCertificate._validToUtc32minutes,
-        ///   UserCertificate.CertificateEd25519publicKey
+        ///   UserCertificate.CertificateEd25519publicKey 
         ///   this.SignatureSalt
         /// }
         /// </summary>
@@ -151,8 +207,14 @@ namespace Dcomms.DMP
         /// <summary>
         /// is null for certificates received from remote side
         /// </summary>
-        public byte[] LocalCertificatePrivateKey; 
+        public byte[] LocalCertificatePrivateKey;
 
+        /// <summary>
+        /// is not encoded
+        /// result of assertion procedure
+        /// is used for further operations
+        /// </summary>
+        public int? ModeWithoutIntermediateCertificateKeypair_RootKeyIndex;
         public List<UserRootSignature> UserRootSignatures;
 
         /// <summary>
@@ -164,55 +226,59 @@ namespace Dcomms.DMP
         {
             userId.AssertIsValidNow(localTimeNowUtc);
 
-            if (MiscProcedures.EqualByteArrays(this.CertificatePublicKey, userId.RootPublicKeys[i]))
-            {
-                // mode without intermediate certificate private key
-                
-                // todo  userId.MinimalRequiredRootSignaturesCountInCertificate
+            var validRootSignatureIndexes = new HashSet<int>();
 
+            for (int i = 0; i < userId.RootPublicKeys.Count; i++)
+            {
+                if (MiscProcedures.EqualByteArrays(this.CertificatePublicKey, userId.RootPublicKeys[i]))
+                {
+                    // mode without intermediate certificate private key
+                    validRootSignatureIndexes.Add(i);
+                    ModeWithoutIntermediateCertificateKeypair_RootKeyIndex = i;
+                    break;
+                }
             }
-
-
-            if (userId.Ed25519UserRootPublicKeys.Count != this.Ed25519UserRootSignatures.Count)
-                throw new BadUserCertificateException();
-            if (userId.Ed25519UserRootPublicKeys.Count != this.UserRootSignaturesSalts.Count)
-                throw new BadUserCertificateException();
-
+            
             if (localTimeNowUtc > ValidToUtc) throw new CertificateOutOfDateException();
-            if (localTimeNowUtc < ValidFromUtc) throw new CertificateOutOfDateException();
-
-
-            if (ValidToUtc -ValidFromUtc > userId.MaxCertificateDuration)
+            if (localTimeNowUtc < ValidFromUtc) throw new CertificateOutOfDateException();            
+            if (ValidToUtc - ValidFromUtc > userId.MaxCertificateDuration)
                 throw new BadUserCertificateException();
+            
 
-           // todo  userId.MinimalRequiredRootSignaturesCountInCertificate
-
-
-            for (int i = 0; i < userId.Ed25519UserRootPublicKeys.Count; i++)
+            foreach (var userRootSignature in this.UserRootSignatures)
             {
-                var ed25519UserRootPublicKey = userId.Ed25519UserRootPublicKeys[i];
-                var ed25519UserRootSignature = this.Ed25519UserRootSignatures[i];
+                var ed25519UserRootPublicKey = userId.RootPublicKeys[userRootSignature.RootKeyIndex];
+                var ed25519UserRootSignature = userRootSignature.Signature;
 
                 var signedData = new MemoryStream();
                 using (var writer = new BinaryWriter(signedData))
-                    WriteSignedFields(writer, i);
+                    WriteSignedFields(writer, userRootSignature);
 
                 if (cryptoLibrary.VerifyEd25519(signedData.ToArray(), ed25519UserRootSignature, ed25519UserRootPublicKey) == false)
                     throw new BadUserCertificateException();
+
+                validRootSignatureIndexes.Add(userRootSignature.RootKeyIndex);
             }
+
+            if (validRootSignatureIndexes.Count < userId.MinimalRequiredRootSignaturesCountInCertificate)
+                throw new BadUserCertificateException();
         }
-        void WriteSignedFields(BinaryWriter writer, int index)
+        void WriteSignedFields(BinaryWriter writer, UserRootSignature userRootSignature)
         {
             writer.Write(_validFromUtc32minutes);
             writer.Write(_validToUtc32minutes);
-            writer.Write(CertificateEd25519publicKey);
-            writer.Write(UserRootSignaturesSalts[index]);
+            writer.Write(CertificatePublicKey);
+            writer.Write(userRootSignature.SignatureSalt);
         }
         public static UserCertificate GenerateKeyPairsAndSignAtSingleDevice(ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, UserRootPrivateKeys userRootPrivatekeys, DateTime fromUtc, DateTime toUtc)
         {
             if (userRootPrivatekeys.ed25519privateKeys.Count != userId.Ed25519UserRootPublicKeys.Count)
                 throw new ArgumentException();
             var r = new UserCertificate();
+
+            // todo case without intermediate key
+
+
             r._validFromUtc32minutes = MiscProcedures.DateTimeToUint32minutes(fromUtc);
             r._validToUtc32minutes = MiscProcedures.DateTimeToUint32minutes(toUtc);            
             r.LocalCertificateEd25519PrivateKey = cryptoLibrary.GeneratePrivateKeyEd25519();
@@ -231,24 +297,22 @@ namespace Dcomms.DMP
 
         public void Encode(BinaryWriter writer)
         {
-            writer.Write(ReservedFlagsMustBeZero);
+            writer.Write(Flags);
             writer.Write(_validFromUtc32minutes);
             writer.Write(_validToUtc32minutes);
-            if (CertificateEd25519publicKey.Length != CryptoLibraries.Ed25519PublicKeySize) throw new ArgumentException();
-            writer.Write(CertificateEd25519publicKey);
+            if (CertificatePublicKey.Length != CryptoLibraries.Ed25519PublicKeySize) throw new ArgumentException();
+            writer.Write(CertificatePublicKey);
 
-            if (UserRootSignaturesSalts.Count == 0 || UserRootSignaturesSalts.Count > 255) throw new ArgumentException();
-            if (UserRootSignaturesSalts.Count != Ed25519UserRootSignatures.Count) throw new ArgumentException();
+            if (UserRootSignatures.Count > 255) throw new ArgumentException();
 
-            writer.Write((byte)UserRootSignaturesSalts.Count);
-            for (int i = 0; i < UserRootSignaturesSalts.Count; i++)
+            writer.Write((byte)UserRootSignatures.Count);
+            foreach (var userRootSignature in UserRootSignatures)
             {
-                var salt = UserRootSignaturesSalts[i];
-                if (salt.Length != UserRootSignaturesSaltSize) throw new ArgumentException();
-                writer.Write(salt);
-                var signature = Ed25519UserRootSignatures[i];
-                if (signature.Length != CryptoLibraries.Ed25519SignatureSize) throw new ArgumentException();
-                writer.Write(signature);
+                writer.Write(userRootSignature.RootKeyIndex);
+                if (userRootSignature.SignatureSalt.Length != UserRootSignature.SignatureSaltSize) throw new ArgumentException();
+                writer.Write(userRootSignature.SignatureSalt);
+                if (userRootSignature.Signature.Length != CryptoLibraries.Ed25519SignatureSize) throw new ArgumentException();
+                writer.Write(userRootSignature.Signature);
             }
         }
         /// <summary>
@@ -289,7 +353,7 @@ namespace Dcomms.DMP
             var ms = new MemoryStream(); using (var writer = new BinaryWriter(ms)) writeSignedFields(writer);
             r.CertificateSignature = cryptoLibrary.SignEd25519(
                     ms.ToArray(),
-                    userCertificateWithPrivateKey.LocalCertificateEd25519PrivateKey);
+                    userCertificateWithPrivateKey.LocalCertificatePrivateKey);
             return r;
         }
        
