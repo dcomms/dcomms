@@ -65,7 +65,11 @@ namespace Dcomms.DRP
                     };
                     synAck.ToResponderTxParametersEncrypted = newConnectionToNeighbor.Encrypt_synack_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(syn, synAck, synReceivedFromInP2pMode);
                     synAck.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
-                        w2 => synAck.GetCommonRequesterProxierResponderFields(w2, false, true),
+                        (w2) =>
+                        {
+                            syn.GetCommonRequesterProxyResponderFields(w2, true);
+                            synAck.GetCommonRequesterProxierResponderFields(w2, false, true);
+                        },
                         acceptAt.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
                     if (synReceivedFromInP2pMode == null) synAck.RequesterEndpoint = requesterEndpoint;                    
                     registerSynAckUdpPayload = synAck.EncodeAtResponder(synReceivedFromInP2pMode);

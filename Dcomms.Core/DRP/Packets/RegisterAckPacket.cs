@@ -37,10 +37,13 @@ namespace Dcomms.DRP.Packets
         public byte[] ToRequesterTxParametersEncrypted;
         public const int ToRequesterTxParametersEncryptedLength = 32;
         /// <summary>
-        /// signs fields: {RequesterPublicKey_RequestID,RegisterSynTimestamp32S,ToRequesterTxParametersEncrypted }
+        /// signs fields: {
+        ///  shared SYN, SYNACK fields
+        ///  RequesterPublicKey_RequestID,RegisterSynTimestamp32S,ToRequesterTxParametersEncrypted 
+        /// }
         /// is verified by N (responder)
         /// </summary>
-        public HMAC RequesterHMAC;
+        public RegistrationSignature RequesterSignature;
 
         public HMAC SenderHMAC; // is NULL for A->EP
         public NextHopAckSequenceNumber16 NhaSeq16;
@@ -115,12 +118,12 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// used for signature at requester; as source for p2p stream AEAD hash
         /// </summary>
-        public void GetCommonRequesterProxyResponderFields(BinaryWriter writer, bool includeRequesterHMAC, bool includeTxParameters)
+        public void GetCommonRequesterProxyResponderFields(BinaryWriter writer, bool includeRequesterSignature, bool includeTxParameters)
         {
             writer.Write(RegisterSynTimestamp32S);
             RequesterPublicKey_RequestID.Encode(writer);
             if (includeTxParameters) writer.Write(ToRequesterTxParametersEncrypted);
-            if (includeRequesterHMAC) RequesterHMAC.Encode(writer);
+            if (includeRequesterSignature) RequesterSignature.Encode(writer);
         }
         
         internal void GetSignedFieldsForSenderHMAC(BinaryWriter writer)
@@ -167,10 +170,19 @@ namespace Dcomms.DRP.Packets
                 newConnectionAtResponderToRequesterNullable.Decrypt_ack_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(synNullable, synAckNullable, ack);
             }
 
-            ack.RequesterHMAC = HMAC.Decode(reader);
+            ack.RequesterSignature = RegistrationSignature.Decode(reader);
             if (newConnectionAtResponderToRequesterNullable != null)
             {
-                if (ack.RequesterHMAC.Equals(newConnectionAtResponderToRequesterNullable.GetSenderHMAC(w => ack.GetCommonRequesterProxyResponderFields(w, false, true))) == false)
+                if (synNullable == null) throw new ArgumentException();
+                if (synAckNullable == null) throw new ArgumentException();
+                if (!ack.RequesterSignature.Verify(newConnectionAtResponderToRequesterNullable.Engine.CryptoLibrary,
+                    w =>
+                    {
+                        synNullable.GetCommonRequesterProxyResponderFields(w, true);
+                        synAckNullable.GetCommonRequesterProxierResponderFields(w, true, true);
+                        ack.GetCommonRequesterProxyResponderFields(w, false, true);
+                    },
+                    synNullable.RequesterPublicKey_RequestID))
                     throw new BadSignatureException();
             }
 

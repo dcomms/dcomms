@@ -192,7 +192,14 @@ namespace Dcomms.DRP
                 };            
                 ack.ToRequesterTxParametersEncrypted = connectionToNeighbor.Encrypt_ack_ToRequesterTxParametersEncrypted_AtRequester(syn, synAck, ack);
                 connectionToNeighbor.InitializeP2pStream(syn, synAck, ack);
-                ack.RequesterHMAC = connectionToNeighbor.GetSenderHMAC(w => ack.GetCommonRequesterProxyResponderFields(w, false, true));
+                ack.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary, w =>
+                    {
+                        syn.GetCommonRequesterProxyResponderFields(w, true);
+                        synAck.GetCommonRequesterProxierResponderFields(w, true, true);
+                        ack.GetCommonRequesterProxyResponderFields(w, false, true);
+                    },
+                    localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey
+                 );
 
                 WriteToLog_reg_requesterSide_detail($"sending ACK, waiting for NHACK");
                 RespondToRequestAndRetransmissions(registerSynAckPacketData, ack.Encode_OptionallySignSenderHMAC(null), epEndpoint);
@@ -235,9 +242,7 @@ namespace Dcomms.DRP
                 connectionToNeighbor.Dispose(); // remove from token32 table
                 throw;
             }
-
-
-
+                       
             #region send registration confirmation packet to EP->X->N
             try
             {

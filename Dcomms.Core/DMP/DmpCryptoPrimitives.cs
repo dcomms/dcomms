@@ -16,6 +16,8 @@ namespace Dcomms.DMP
         const byte FlagsMask_MustBeZero = 0b11110000;
 
         /// <summary>
+        /// specifies max duration of intermediate certificate, which is used for messaging while root private key is stored offline
+        /// constrains creating of "too long" = insecure intermediate certificates
         /// zero if no intermediate certificates are allowed: only live certificate generation with direct access to root key
         /// </summary>
         public TimeSpan MaxCertificateDuration
@@ -23,21 +25,7 @@ namespace Dcomms.DMP
             get => TimeSpan.FromHours(_maxCertificateDurationHours);
             set { _maxCertificateDurationHours = (ushort)value.TotalHours; }
         }
-        ushort _maxCertificateDurationHours; // max 7.5 years
-
-        /// <summary>
-        /// similar to credit card "expiration date"
-        /// is set by user when he wants to force UserID replacement by himself within a certain period
-        /// </summary>
-        public DateTime ExpirationTimeUTC
-        {
-            get => MiscProcedures.Uint16daysToDateTime(_expirationTimeUTC_Days16);
-            set
-            {
-                _expirationTimeUTC_Days16 = MiscProcedures.DateTimeToUint16days(value);
-            }
-        }
-        ushort _expirationTimeUTC_Days16;       
+        ushort _maxCertificateDurationHours; 
 
 
         public byte MinimalRequiredRootSignaturesCountInCertificate;
@@ -61,9 +49,6 @@ namespace Dcomms.DMP
                     return false;
 
             if (obj2._maxCertificateDurationHours != this._maxCertificateDurationHours) return false;
-            if (obj2._userIdMaintenanceReplacementMaxTimeUTC_Days16 != this._userIdMaintenanceReplacementMaxTimeUTC_Days16) return false;
-            if (obj2._userIdMaintenanceReplacementMinTimeUTC_Days16 != this._userIdMaintenanceReplacementMinTimeUTC_Days16) return false;
-
             return true;
         }
         public override int GetHashCode()
@@ -72,8 +57,6 @@ namespace Dcomms.DMP
             foreach (var a in RootPublicKeys)
                 r ^= MiscProcedures.GetArrayHashCode(a);
             r ^= _maxCertificateDurationHours.GetHashCode();
-            r ^= UserIdMaintenanceReplacementMaxTimeUTC.GetHashCode();
-            r ^= UserIdMaintenanceReplacementMinTimeUTC.GetHashCode();
             return r;
         }
         public override string ToString()
@@ -85,7 +68,6 @@ namespace Dcomms.DMP
         {
             writer.Write(Flags);
             writer.Write(_maxCertificateDurationHours);
-            writer.Write(_expirationTimeUTC_Days16);
             writer.Write(MinimalRequiredRootSignaturesCountInCertificate);
             writer.Write((byte)RootPublicKeys.Count);
             foreach (var rootPublicKey in RootPublicKeys)
@@ -98,7 +80,6 @@ namespace Dcomms.DMP
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
 
             r._maxCertificateDurationHours = reader.ReadUInt16();
-            r._expirationTimeUTC_Days16 = reader.ReadUInt16();
             r.MinimalRequiredRootSignaturesCountInCertificate = reader.ReadByte();
             var rootPublicKeysCount = reader.ReadByte();
             r.RootPublicKeys = new List<byte[]>();
@@ -107,11 +88,6 @@ namespace Dcomms.DMP
 
             return r;
         }
-        public void AssertIsValidNow(DateTime localTimeNowUtc)
-        {
-            if (localTimeNowUtc > ExpirationTimeUTC) throw new ExpiredUserKeysException();
-        }
-
     }
 
     public class UserRootPrivateKeys
@@ -133,8 +109,6 @@ namespace Dcomms.DMP
             publicKeys = new UserID_PublicKeys();
             publicKeys.MinimalRequiredRootSignaturesCountInCertificate = requiredSignaturesCount;
             publicKeys.MaxCertificateDuration = TimeSpan.FromDays(30);
-            publicKeys.UserIdMaintenanceReplacementMinTimeUTC = new DateTime(2029, 01, 01);
-            publicKeys.UserIdMaintenanceReplacementMaxTimeUTC = new DateTime(2030, 01, 01);
             publicKeys.RootPublicKeys = new List<byte[]>();
 
             for (int i = 0; i < numberOfKeyPairs; i++)
@@ -213,8 +187,6 @@ namespace Dcomms.DMP
         /// </summary>
         void AssertIsValidNow(ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, DateTime localTimeNowUtc)
         {
-            userId.AssertIsValidNow(localTimeNowUtc);
-
             var validRootSignatureIndexes = new HashSet<int>();
 
             for (int i = 0; i < userId.RootPublicKeys.Count; i++)

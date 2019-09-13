@@ -41,6 +41,7 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// signs fields:
         /// {
+        ///   (virtual) SYN shared fields
         ///   RequesterPublicKey_RequestID,
         ///   RegisterSynTimestamp32S,
         ///   ResponderStatusCode,
@@ -85,9 +86,14 @@ namespace Dcomms.DRP.Packets
 
             if (newConnectionToNeighborAtRequesterNullable != null)
             {
+                if (synNullable == null) throw new ArgumentException();
                 synAck.ResponderSignature = RegistrationSignature.DecodeAndVerify(
                     reader, newConnectionToNeighborAtRequesterNullable.Engine.CryptoLibrary,
-                    w => synAck.GetCommonRequesterProxierResponderFields(w, false, true),
+                    w =>
+                    {
+                        synNullable.GetCommonRequesterProxyResponderFields(w, true);
+                        synAck.GetCommonRequesterProxierResponderFields(w, false, true);
+                    },
                     synAck.ResponderPublicKey);
             }
             else
