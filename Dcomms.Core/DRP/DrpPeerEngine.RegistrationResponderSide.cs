@@ -236,5 +236,6 @@ namespace Dcomms.DRP
         /// </summary>
         HashSet<RegistrationPublicKey> _pendingRegisterRequests = new HashSet<RegistrationPublicKey>();
 
+   //     UniqueDataFilter16MbRAM _recentUniqueReceivedPackets = new UniqueDataFilter16MbRAM()
     }
 }

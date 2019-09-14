@@ -22,7 +22,7 @@ namespace Dcomms
     /// client can send unique PoW every 200ms (average)
     /// keep previous valid requests (hashes) for periodK
     /// </summary>
-    public class UniqueDataTracker
+    public class UniqueDataFilter16MbRAM
     {
         /// <summary>
         /// consider loop for every group of 4 bytes in input data: bytes A,B,C,D  (quadruple, double word, DWORD)
@@ -45,7 +45,7 @@ namespace Dcomms
 
         uint _latestResetTimeSec32UTC;
         readonly uint _recentUniqueDataResetPeriodS;
-        public UniqueDataTracker(uint timeSec32UTC, uint recentUniqueDataResetPeriodS)
+        public UniqueDataFilter16MbRAM(uint timeSec32UTC, uint recentUniqueDataResetPeriodS)
         {
             _recentUniqueDataResetPeriodS = recentUniqueDataResetPeriodS;
             _uniqueValuesOverflowCount = (uint)((double)_dwordFlagBits.Length * 256 * 0.3);

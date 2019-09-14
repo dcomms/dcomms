@@ -30,13 +30,13 @@ namespace Dcomms.CCP
         readonly Queue<ReceivedPacket> _packetsToProcess = new Queue<ReceivedPacket>(); // locked
         #endregion
         #region state
-        readonly UniqueDataTracker _recentUniquePowData; // accessed by processor thread only
+        readonly UniqueDataFilter16MbRAM _recentUniquePowData; // accessed by processor thread only
         readonly Snonce0Table _snonce0Table; // accessed by processor thread only
         #endregion
         public CcpServer(CcpServerConfiguration config)
         {
             _config = config;
-            _recentUniquePowData = new UniqueDataTracker(TimeSec32UTC, _config.StatelessPoW_RecentUniqueDataResetPeriodS);
+            _recentUniquePowData = new UniqueDataFilter16MbRAM(TimeSec32UTC, _config.StatelessPoW_RecentUniqueDataResetPeriodS);
             _snonce0Table = new Snonce0Table(TimeSec32UTC, _config);
             _ccpTransport = new CcpUdpTransport(this, _config.CcpUdpLocalServerPort);
             _packetProcessorThread = new Thread(PacketProcessorThreadEntry);

@@ -46,11 +46,11 @@ namespace Dcomms.DRP
             }
         }
 
-        UniqueDataTracker _recentUniquePow1Data;
+        UniqueDataFilter16MbRAM _recentUniquePow1Data;
         Pow2RequestsTable _pow2RequestsTable;
         partial void Initialize(DrpPeerEngineConfiguration config)
         {
-             _recentUniquePow1Data = new UniqueDataTracker(Timestamp32S, config.RegisterPow1_RecentUniqueDataResetPeriodS);
+             _recentUniquePow1Data = new UniqueDataFilter16MbRAM(Timestamp32S, config.RegisterPow1_RecentUniqueDataResetPeriodS);
              _pow2RequestsTable = new Pow2RequestsTable(config);
         }
        
