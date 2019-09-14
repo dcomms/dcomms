@@ -24,6 +24,7 @@ namespace Dcomms.DRP
             
             if (syn.AtoEP ^ (synReceivedFromInP2pMode == null))
                 throw new InvalidOperationException();
+            _recentUniqueRegistrationRequests.AssertIsUnique(syn.GetUniqueRequestIdFields);
 
             _pendingRegisterRequests.Add(syn.RequesterPublicKey_RequestID);
             try

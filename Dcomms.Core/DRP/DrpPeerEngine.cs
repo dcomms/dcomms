@@ -44,6 +44,15 @@ namespace Dcomms.DRP
         internal NextHopAckSequenceNumber16 GetNewNhaSeq16_AtoEP() => new NextHopAckSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
         public DrpPeerEngineConfiguration Configuration { get; private set; }
 
+        #region unique data filters
+        /// <summary>
+        /// is used to make sure that processed ECDH keys are unique
+        /// </summary>
+        UniqueDataFilter _recentUniquePublicEcdhKeys = new UniqueDataFilter(10000);
+        UniqueDataFilter _recentUniqueRegistrationRequests = new UniqueDataFilter(10000);
+        UniqueDataFilter _recentUniqueInviteRequests = new UniqueDataFilter(10000);
+        #endregion
+
         public DrpPeerEngine(DrpPeerEngineConfiguration configuration)
         {
             _insecureRandom = configuration.InsecureRandomSeed.HasValue ? new Random(configuration.InsecureRandomSeed.Value) : new Random();

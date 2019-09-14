@@ -184,5 +184,11 @@ namespace Dcomms.DRP.Packets
         { // first 2 bytes ares packet type and flags. then 4 bytes are P2pConnectionToken32
             return (ushort)(udpPayloadData[2] | (udpPayloadData[3] << 8));
         }
+
+        public void GetUniqueRequestIdFields(BinaryWriter writer)
+        {
+            RequesterPublicKey_RequestID.Encode(writer);
+            writer.Write(Timestamp32S);
+        }
     }
 }

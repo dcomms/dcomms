@@ -147,6 +147,7 @@ namespace Dcomms.DRP
                     NhaSeq16 = GetNewNhaSeq16_AtoEP(),
                     EpEndpoint = epEndpoint
                 };
+                _recentUniquePublicEcdhKeys.AssertIsUnique(syn.RequesterEcdhePublicKey.Ecdh25519PublicKey);
                 WriteToLog_reg_requesterSide_detail($"calculating PoW2");
                 GenerateRegisterSynPow2(syn, pow1ResponsePacket.ProofOfWork2Request);
                 syn.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary,
@@ -176,6 +177,7 @@ namespace Dcomms.DRP
                     // MITM attack / EP sent local (requester) endpoint IP some bad IP address
                     throw new PossibleMitmException();
                 }
+                _recentUniquePublicEcdhKeys.AssertIsUnique(synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
                 connectionToNeighbor.LocalEndpoint = synAck.RequesterEndpoint;
                 connectionToNeighbor.RemotePeerPublicKey = synAck.ResponderPublicKey;

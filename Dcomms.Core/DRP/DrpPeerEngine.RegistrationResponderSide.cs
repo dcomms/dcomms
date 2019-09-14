@@ -22,25 +22,29 @@ namespace Dcomms.DRP
 
             if (syn.AtoEP ^ (synReceivedFromInP2pMode == null))
                 throw new InvalidOperationException();
-           
+
+            if (synReceivedFromInP2pMode == null)
+            {
+                // check Timestamp32S and signature of requester (A)
+                if (!ValidateReceivedSynTimestamp32S(syn.Timestamp32S) ||
+                        !syn.RequesterSignature.Verify(_cryptoLibrary,
+                            w => syn.GetCommonRequesterProxyResponderFields(w, false),
+                            syn.RequesterPublicKey_RequestID
+                        )
+                    )
+                    throw new BadSignatureException();
+                if (syn.EpEndpoint.Address.Equals(acceptAt.PublicIpApiProviderResponse) == false)
+                {
+                    throw new PossibleMitmException();
+                }
+            }
+
+            _recentUniquePublicEcdhKeys.AssertIsUnique(syn.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+            _recentUniqueRegistrationRequests.AssertIsUnique(syn.GetUniqueRequestIdFields);
+
             _pendingRegisterRequests.Add(syn.RequesterPublicKey_RequestID);
             try
             {
-                if (synReceivedFromInP2pMode == null)
-                {
-                    // check Timestamp32S and signature of requester (A)
-                    if (!ValidateReceivedSynTimestamp32S(syn.Timestamp32S) ||
-                            !syn.RequesterSignature.Verify(_cryptoLibrary,
-                                w => syn.GetCommonRequesterProxyResponderFields(w, false),
-                                syn.RequesterPublicKey_RequestID
-                            )
-                        )
-                        throw new BadSignatureException();
-                    if (syn.EpEndpoint.Address.Equals(acceptAt.PublicIpApiProviderResponse) == false)
-                    {
-                        throw new PossibleMitmException();
-                    }
-                }
 
                 WriteToLog_reg_responderSide_detail($"sending NHACK to SYN to {requesterEndpoint}");
 
@@ -63,6 +67,7 @@ namespace Dcomms.DRP
                         ResponderStatusCode = DrpResponderStatusCode.confirmed,
                         NhaSeq16 = GetNewNhaSeq16_AtoEP(),
                     };
+                    _recentUniquePublicEcdhKeys.AssertIsUnique(synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
                     synAck.ToResponderTxParametersEncrypted = newConnectionToNeighbor.Encrypt_synack_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(syn, synAck, synReceivedFromInP2pMode);
                     synAck.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         (w2) =>
@@ -236,6 +241,5 @@ namespace Dcomms.DRP
         /// </summary>
         HashSet<RegistrationPublicKey> _pendingRegisterRequests = new HashSet<RegistrationPublicKey>();
 
-   //     UniqueDataFilter16MbRAM _recentUniqueReceivedPackets = new UniqueDataFilter16MbRAM()
     }
 }

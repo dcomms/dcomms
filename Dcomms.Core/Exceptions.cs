@@ -16,11 +16,11 @@ namespace Dcomms
     {
 
     }
-    class UnmatchedFieldsException : PossibleMitmException // todo handle attacks that raise such exceptions   - it is MITM
+    class UnmatchedFieldsException : PossibleMitmException 
     {
 
     }
-    class BadSignatureException : PossibleMitmException // todo handle attacks that raise such exceptions   - it is MITM
+    class BadSignatureException : PossibleMitmException 
     {
 
     }
@@ -37,6 +37,10 @@ namespace Dcomms
 
     }
     class ExpiredUserKeysException: BadSignatureException
+    {
+
+    }
+    class NonUniqueNonceException : PossibleMitmException
     {
 
     }
