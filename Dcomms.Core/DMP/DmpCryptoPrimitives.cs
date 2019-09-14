@@ -172,12 +172,6 @@ namespace Dcomms.DMP
         /// </summary>
         public byte[] LocalCertificatePrivateKey;
 
-        /// <summary>
-        /// is not encoded
-        /// result of assertion procedure
-        /// is used for further operations
-        /// </summary>
-        public int? ModeWithoutIntermediateCertificateKeypair_RootKeyIndex;
         public List<UserRootSignature> UserRootSignatures;
 
         /// <summary>
@@ -186,26 +180,14 @@ namespace Dcomms.DMP
         /// also checks userId - expired or not
         /// </summary>
         void AssertIsValidNow(ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, DateTime localTimeNowUtc)
-        {
-            var validRootSignatureIndexes = new HashSet<int>();
-
-            for (int i = 0; i < userId.RootPublicKeys.Count; i++)
-            {
-                if (MiscProcedures.EqualByteArrays(this.CertificatePublicKey, userId.RootPublicKeys[i]))
-                {
-                    // mode without intermediate certificate private key
-                    validRootSignatureIndexes.Add(i);
-                    ModeWithoutIntermediateCertificateKeypair_RootKeyIndex = i;
-                    break;
-                }
-            }
-            
+        {                      
             if (localTimeNowUtc > ValidToUtc) throw new CertificateOutOfDateException();
             if (localTimeNowUtc < ValidFromUtc) throw new CertificateOutOfDateException();            
             if (ValidToUtc - ValidFromUtc > userId.MaxCertificateDuration)
                 throw new BadUserCertificateException();
             
 
+            var validRootSignatureIndexes = new HashSet<int>();
             foreach (var userRootSignature in this.UserRootSignatures)
             {
                 var ed25519UserRootPublicKey = userId.RootPublicKeys[userRootSignature.RootKeyIndex];

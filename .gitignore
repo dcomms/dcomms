@@ -39,3 +39,5 @@
 /Dcomms.NetCoreTester/bin/Debug/netcoreapp2.2
 /Dcomms.NetCoreTester/obj
 /Dcomms.NetCoreTester/bin/Release/netcoreapp2.2
+/Dcomms.Core.Tests/bin
+/Dcomms.Core.Tests/obj

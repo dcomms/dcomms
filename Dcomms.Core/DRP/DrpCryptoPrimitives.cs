@@ -52,7 +52,7 @@ namespace Dcomms.DRP
     }
     public class RegistrationPublicKeyDistance
     {
-        Int64 _distance; // 32 bytes of reg. public key: split into 16 dimensions of 2 bytes //   euclidean distance
+        Int64 _distance_sumSqr; // 32 bytes of reg. public key: split into 16 dimensions of 2 bytes //   euclidean distance
         public unsafe RegistrationPublicKeyDistance(ICryptoLibrary cryptoLibrary, RegistrationPublicKey rpk1, RegistrationPublicKey rpk2)
         {
             if (rpk1.CachedEd25519publicKeySha256 == null) rpk1.CachedEd25519publicKeySha256 = cryptoLibrary.GetHashSHA256(rpk1.Ed25519publicKey);
@@ -61,23 +61,44 @@ namespace Dcomms.DRP
             var rpk2_ed25519publicKey_sha256 = rpk2.CachedEd25519publicKeySha256;            
 
             if (rpk1_ed25519publicKey_sha256.Length != rpk2_ed25519publicKey_sha256.Length) throw new ArgumentException();
-            _distance = 0;
+            _distance_sumSqr = 0;
             fixed (byte* rpk1a = rpk1_ed25519publicKey_sha256, rpk2a = rpk2_ed25519publicKey_sha256)                
             {
-                short* rpk1aPtr = (short*)rpk1a, rpk2aPtr = (short*)rpk2a;
+                ushort* rpk1aPtr = (ushort*)rpk1a, rpk2aPtr = (ushort*)rpk2a;
                 int l = rpk1_ed25519publicKey_sha256.Length / 2;
                 for (int i = 0; i < l; i++, rpk1aPtr++, rpk2aPtr++)
                 {
-                    int x = Math.Abs(unchecked(*rpk1aPtr - *rpk2aPtr));
-                    _distance += (x * x);
+                    var d_i = VectorComponentRoutine(*rpk1aPtr, *rpk2aPtr);
+                    _distance_sumSqr += d_i * d_i;
+                    
                 }
             }           
         }
+        public static int VectorComponentRoutine(ushort vector1_i, ushort vector2_i)
+        {
+            int r;
+            if (vector2_i > vector1_i) r = vector2_i - vector1_i;
+            else r = vector1_i - vector2_i;
+            if (r > 32768) r = 65536 - r;
+            return r;
+
+            /*
+                   r1_i    r2_i   distance_i
+                  32000   32001     1
+                 -32000  -32001     1
+                 -32767   32768     1
+                  32767  -32767     2
+             */           
+
+           // int distance_i = Math.Abs(unchecked(*vector1_i - *vector2_i));
+
+           // return distance_i;
+        }
         public bool IsGreaterThan(RegistrationPublicKeyDistance another)
         {
-            return this._distance > another._distance;
+            return this._distance_sumSqr > another._distance_sumSqr;
         }
-        public override string ToString() => ((float)_distance).ToString("E02");
+        public override string ToString() => ((float)_distance_sumSqr).ToString("E02");
     }
 
 
