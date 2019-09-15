@@ -78,7 +78,7 @@ namespace Dcomms.DRP
             _socket.Send(udpPayload, udpPayload.Length, remoteEndpoint);
             WriteToLog_udp_detail($"sent packet {(DrpPacketType)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes)");
         }
-        async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
+        internal async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
         {
             _pendingLowLevelUdpRequests.AddLast(request);
             return await request.TaskCompletionSource.Task;

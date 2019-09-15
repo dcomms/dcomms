@@ -28,11 +28,12 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public HMAC SenderHMAC;
 
-        public byte[] Encode(ConnectionToNeighbor transmitToNeighbor)
+        public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpPacketType.InviteAck);
 
+            NhaSeq16 = transmitToNeighbor.GetNewNhaSeq16_P2P();
             SenderToken32 = transmitToNeighbor.RemotePeerToken32;
             SenderToken32.Encode(w);
 
@@ -45,14 +46,23 @@ namespace Dcomms.DRP.Packets
 
             return ms.ToArray();
         }
-        void GetSignedFieldsForSenderHMAC(System.IO.BinaryWriter w)
+
+
+
+
+
+        void GetSignedFieldsForSenderHMAC(BinaryWriter w)
+        {
+            GetSharedSignedFields(w);
+            RequesterSignature.Encode(w);
+            NhaSeq16.Encode(w);
+        }
+        internal void GetSharedSignedFields(BinaryWriter w)
         {
             w.Write(Timestamp32S);
             RequesterPublicKey.Encode(w);
             ResponderPublicKey.Encode(w);
-            PacketProcedures.EncodeByteArray65536(w, ToRequesterSessionDescriptionEncrypted);           
-            RequesterSignature.Encode(w);
-            NhaSeq16.Encode(w);
+            PacketProcedures.EncodeByteArray65536(w, ToRequesterSessionDescriptionEncrypted);
         }
 
         public static InviteAck1Packet Decode_VerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)

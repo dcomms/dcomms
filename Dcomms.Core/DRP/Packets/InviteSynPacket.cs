@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace Dcomms.DRP.Packets
@@ -54,15 +55,19 @@ namespace Dcomms.DRP.Packets
 
             return ms.ToArray();
         }
-        void GetSignedFieldsForSenderHMAC(System.IO.BinaryWriter w)
+        void GetSignedFieldsForSenderHMAC(BinaryWriter w)
+        {
+            GetSharedSignedFields(w);
+            RequesterSignature.Encode(w);
+            w.Write(NumberOfHopsRemaining);
+            NhaSeq16.Encode(w);
+        }
+        internal void GetSharedSignedFields(BinaryWriter w)
         {
             w.Write(Timestamp32S);
             RequesterPublicKey.Encode(w);
             ResponderPublicKey.Encode(w);
             RequesterEcdhePublicKey.Encode(w);
-            RequesterSignature.Encode(w);
-            w.Write(NumberOfHopsRemaining);
-            NhaSeq16.Encode(w);
         }
 
         public static InviteSynPacket Decode_VerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)
@@ -91,7 +96,11 @@ namespace Dcomms.DRP.Packets
 
             return r;
         }
-
-
+        public void GetUniqueRequestIdFields(BinaryWriter writer)
+        {
+            RequesterPublicKey.Encode(writer);
+            ResponderPublicKey.Encode(writer);
+            writer.Write(Timestamp32S);
+        }
     }
 }

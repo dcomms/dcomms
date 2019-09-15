@@ -5,7 +5,6 @@ using System.Text;
 
 namespace Dcomms.DRP.Packets
 {
-
     /// <summary>
     /// is sent by A when it receives signed ping response from N
     /// A->EP->M

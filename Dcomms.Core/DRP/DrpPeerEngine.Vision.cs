@@ -16,6 +16,7 @@ namespace Dcomms.DRP
         const string VisionChannelModuleName_reg_responderSide = "reg.responder";
         const string VisionChannelModuleName_reg_epSide = "reg.ep";
         const string VisionChannelModuleName_reg_proxySide = "reg.proxy";
+        const string VisionChannelModuleName_inv_requesterSide = "inv.requester";
         const string VisionChannelModuleName_engineThread = "engineThread";
         const string VisionChannelModuleName_receiverThread = "receiverThread";
         const string VisionChannelModuleName_p2p = "p2p"; // ping, direct p2p communication
@@ -88,6 +89,12 @@ namespace Dcomms.DRP
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.detail, message);
 
         }
+        internal void WriteToLog_inv_requesterSide_detail(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_requesterSide) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_requesterSide, AttentionLevel.detail, message);
+
+        }
         void HandleExceptionWhileConnectingToRP(IPEndPoint epEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.mediumPain)
@@ -100,6 +107,7 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, null) <= AttentionLevel.strongPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, null, AttentionLevel.strongPain, $"general exception: {message}");
         }
+
         internal void OnReceivedUnauthorizedSourceIpPacket(IPEndPoint remoteEndpoint)
         {
         }

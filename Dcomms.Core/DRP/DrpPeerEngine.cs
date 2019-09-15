@@ -48,9 +48,9 @@ namespace Dcomms.DRP
         /// <summary>
         /// is used to make sure that processed ECDH keys are unique
         /// </summary>
-        UniqueDataFilter _recentUniquePublicEcdhKeys = new UniqueDataFilter(10000);
-        UniqueDataFilter _recentUniqueRegistrationRequests = new UniqueDataFilter(10000);
-        UniqueDataFilter _recentUniqueInviteRequests = new UniqueDataFilter(10000);
+        internal readonly UniqueDataFilter RecentUniquePublicEcdhKeys = new UniqueDataFilter(10000);
+        readonly UniqueDataFilter _recentUniqueRegistrationRequests = new UniqueDataFilter(1000);
+        internal readonly UniqueDataFilter RecentUniqueInviteRequests = new UniqueDataFilter(1000);
         #endregion
 
         public DrpPeerEngine(DrpPeerEngineConfiguration configuration)

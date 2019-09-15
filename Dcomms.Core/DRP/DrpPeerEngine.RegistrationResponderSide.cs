@@ -39,7 +39,7 @@ namespace Dcomms.DRP
                 }
             }
 
-            _recentUniquePublicEcdhKeys.AssertIsUnique(syn.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+            RecentUniquePublicEcdhKeys.AssertIsUnique(syn.RequesterEcdhePublicKey.Ecdh25519PublicKey);
             _recentUniqueRegistrationRequests.AssertIsUnique(syn.GetUniqueRequestIdFields);
 
             _pendingRegisterRequests.Add(syn.RequesterPublicKey_RequestID);
@@ -67,7 +67,7 @@ namespace Dcomms.DRP
                         ResponderStatusCode = DrpResponderStatusCode.confirmed,
                         NhaSeq16 = GetNewNhaSeq16_AtoEP(),
                     };
-                    _recentUniquePublicEcdhKeys.AssertIsUnique(synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
+                    RecentUniquePublicEcdhKeys.AssertIsUnique(synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
                     synAck.ToResponderTxParametersEncrypted = newConnectionToNeighbor.Encrypt_synack_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(syn, synAck, synReceivedFromInP2pMode);
                     synAck.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         (w2) =>
