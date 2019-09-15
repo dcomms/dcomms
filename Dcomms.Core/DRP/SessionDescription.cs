@@ -1,8 +1,10 @@
 ﻿using Dcomms.Cryptography;
 using Dcomms.DMP;
+using Dcomms.DRP.Packets;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 
@@ -41,25 +43,82 @@ namespace Dcomms.DRP
             PacketProcedures.EncodeIPEndPoint(w, DirectChannelEndPoint);
         }
 
-        internal byte[] Encrypt(ICryptoLibrary cryptoLibrary)
+  
+        /// <param name="synAckSdIsReady">
+        /// =true for SD in ACK1
+        /// =false for SD in SYNACK (since the SessionDescription is not initialized yet)
+        /// </param>
+        internal byte[] Encrypt(ICryptoLibrary cryptoLibrary, InviteSynPacket syn, InviteSynAckPacket synAck, Session session,
+            bool synAckSdIsReady
+            )
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write(Flags);
             UserCertificate.Encode(w);
             PacketProcedures.EncodeIPEndPoint(w, DirectChannelEndPoint);
             UserCertificateSignature.Encode(w);
+            var bytesInLastBlock = (int)ms.Position % CryptoLibraries.AesBlockSize;
+            if (bytesInLastBlock != 0)
+            {
+                var bytesRemainingTillFullAesBlock = CryptoLibraries.AesBlockSize - bytesInLastBlock;
+                w.Write(cryptoLibrary.GetRandomBytes(bytesRemainingTillFullAesBlock));
+            }
             var plainTextSdData = ms.ToArray();
             var encryptedSdData = new byte[plainTextSdData.Length];
 
-            cryptoLibrary.ProcessSingleAesBlock(true, x, x, plainTextSdData, encryptedSdData);
-            // many blocks?????
+            #region key, iv
+            PacketProcedures.CreateBinaryWriter(out var ms2, out var w2);
+            syn.GetSharedSignedFields(w2);
+            synAck.GetSharedSignedFields(w2, synAckSdIsReady);            
+            var iv = cryptoLibrary.GetHashSHA256(ms2.ToArray()).Take(16).ToArray();
+            ms2.Write(session.SharedDhSecret, 0, session.SharedDhSecret.Length);
+            var aesKey = cryptoLibrary.GetHashSHA256(ms2.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+            #endregion
 
+            cryptoLibrary.ProcessAesCbcBlocks(true, aesKey, iv, plainTextSdData, encryptedSdData);
+          
             return encryptedSdData;
         }
-        internal static SessionDescription Decrypt_Verify(ICryptoLibrary cryptoLibrary, byte[] data, UserID_PublicKeys receivedfromUser)
+       
+        /// <param name="receivedFromUser">comes from local contact book</param>
+        internal static SessionDescription Decrypt_Verify(ICryptoLibrary cryptoLibrary, byte[] encryptedSdData, 
+            InviteSynPacket syn,
+            InviteSynAckPacket synAck,
+            bool synAckSdIsReady,
+            Session session,
+            UserID_PublicKeys receivedFromUser,
+            DateTime localTimeNowUtc
+            )
         {
-            throw new NotImplementedException();
+            #region key, iv
+            PacketProcedures.CreateBinaryWriter(out var ms2, out var w2);
+            syn.GetSharedSignedFields(w2);
+            synAck.GetSharedSignedFields(w2, synAckSdIsReady);
+            var iv = cryptoLibrary.GetHashSHA256(ms2.ToArray()).Take(16).ToArray();
+            ms2.Write(session.SharedDhSecret, 0, session.SharedDhSecret.Length);
+            var aesKey = cryptoLibrary.GetHashSHA256(ms2.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+            #endregion
 
+            // decrypt
+            var plainTextSdData = new byte[encryptedSdData.Length];
+            cryptoLibrary.ProcessAesCbcBlocks(false, aesKey, iv, encryptedSdData, plainTextSdData);
+
+            var r = new SessionDescription();
+            var reader = PacketProcedures.CreateBinaryReader(plainTextSdData, 0);
+            r.Flags = reader.ReadByte();
+            if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
+            r.UserCertificate = UserCertificate.Decode_AssertIsValidNow(reader, cryptoLibrary, receivedFromUser, localTimeNowUtc);
+            r.DirectChannelEndPoint = PacketProcedures.DecodeIPEndPoint(reader);
+            r.UserCertificateSignature = UserCertificateSignature.DecodeAndVerify(reader, cryptoLibrary, 
+                w =>
+                {
+                    syn.GetSharedSignedFields(w);
+                    synAck.GetSharedSignedFields(w, true);
+                    r.WriteSignedFields(w);
+                },
+                r.UserCertificate);
+                       
+            return r;
         }
     }
 }

@@ -26,7 +26,7 @@ namespace Dcomms.Cryptography
         void GenerateEcdh25519Keypair(out byte[] localEcdhPrivateKey, out byte[] localEcdhPublicKey);
         byte[] DeriveEcdh25519SharedSecret(byte[] localPrivateKey, byte[] remotePublicKey);
 
-        void ProcessSingleAesBlock(bool encryptOrDecrypt, byte[] key, byte[] iv, byte[] input, byte[] output);
+        void ProcessAesCbcBlocks(bool encryptOrDecrypt, byte[] key, byte[] iv, byte[] input, byte[] output);
         byte[] GetSha256HMAC(byte[] key, byte[] data);
     }
 

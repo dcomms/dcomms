@@ -12,6 +12,12 @@ namespace Dcomms.DRP
         /// <summary>
         /// sends INVITE, autenticates users, returns Session to be used to create direct cannel
         /// </summary>
+        /// <param name="responderUserId">
+        /// comes from local contact book
+        /// </param>
+        /// <param name="responderPublicKey">
+        /// comes from local contact book
+        /// </param>
         public async Task<Session> SendInviteAsync(UserCertificate requesterUserCertificate, RegistrationPublicKey responderPublicKey,
             UserID_PublicKeys responderUserId)
         {
@@ -42,7 +48,7 @@ namespace Dcomms.DRP
             WriteToLog_inv_requesterSide_detail($"waiting for SYNACK");
             var inviteSynAckPacketData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(connectionToNeighbor.RemoteEndpoint,
                             InviteSynAckPacket.GetScanner(syn, connectionToNeighbor),
-                                _engine.DateTimeNowUtc, _engine.Configuration.InvSynAckRequesterSideTimoutS
+                                _engine.DateTimeNowUtc, _engine.Configuration.InviteRequestsTimoutS
                             ));
             if (inviteSynAckPacketData == null) throw new DrpTimeoutException();
 
@@ -52,18 +58,21 @@ namespace Dcomms.DRP
             if (!synAck.ResponderSignature.Verify(_engine.CryptoLibrary, w =>
                 {
                     syn.GetSharedSignedFields(w);
-                    synAck.GetSharedSignedFields(w);
+                    synAck.GetSharedSignedFields(w, true);
                 },
                 responderPublicKey))
                 throw new BadSignatureException();
             WriteToLog_inv_requesterSide_detail($"verified SYNACK");
+            session.DeriveSharedDhSecret(_engine.CryptoLibrary, synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
             #endregion
 
 
 
             // decode and verify SD
             session.RemoteSessionDescription = SessionDescription.Decrypt_Verify(_engine.CryptoLibrary, 
-                synAck.ToResponderSessionDescriptionEncrypted, responderUserId);
+                synAck.ToResponderSessionDescriptionEncrypted, 
+                syn, synAck, false, session,                
+                responderUserId, _engine.DateTimeNowUtc);
 
             // sign and encode local SD
             session.LocalSessionDescription = new SessionDescription
@@ -75,7 +84,7 @@ namespace Dcomms.DRP
                 w =>
                 {
                     syn.GetSharedSignedFields(w);
-                    synAck.GetSharedSignedFields(w);
+                    synAck.GetSharedSignedFields(w, true);
                     session.LocalSessionDescription.WriteSignedFields(w);
                 },
                 requesterUserCertificate
@@ -87,12 +96,12 @@ namespace Dcomms.DRP
                 RequesterPublicKey = syn.RequesterPublicKey,
                 ResponderPublicKey = syn.ResponderPublicKey,
                 Timestamp32S = syn.Timestamp32S,
-                ToRequesterSessionDescriptionEncrypted = session.LocalSessionDescription.Encrypt()
+                ToRequesterSessionDescriptionEncrypted = session.LocalSessionDescription.Encrypt(_engine.CryptoLibrary, syn, synAck, session, true)
             };
             ack1.RequesterSignature = RegistrationSignature.Sign(_engine.CryptoLibrary, w =>
                 {
                     syn.GetSharedSignedFields(w);
-                    synAck.GetSharedSignedFields(w);
+                    synAck.GetSharedSignedFields(w, true);
                     ack1.GetSharedSignedFields(w);
                 }, this.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
             var ack1UdpData = ack1.Encode_SetP2pFields(connectionToNeighbor);
@@ -101,8 +110,30 @@ namespace Dcomms.DRP
             await connectionToNeighbor.SendUdpRequestAsync_Retransmit_WaitForNHACK(ack1UdpData, ack1.NhaSeq16);
             WriteToLog_inv_requesterSide_detail($"received NHACK");
             #endregion
+            
 
-            // wait for ack2
+            #region wait for ACK2
+            WriteToLog_inv_requesterSide_detail($"waiting for ACK2");
+            var ack2PacketData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(connectionToNeighbor.RemoteEndpoint,
+                            InviteAck2Packet.GetScanner(syn, connectionToNeighbor),
+                            _engine.DateTimeNowUtc, _engine.Configuration.InviteRequestsTimoutS
+                            ));
+            if (ack2PacketData == null) throw new DrpTimeoutException();
+
+            // SenderHMAC and SenderToken32 are already verified by scanner
+            var ack2 = InviteAck2Packet.Decode(ack2PacketData);
+         
+            if (!ack2.ResponderSignature.Verify(_engine.CryptoLibrary, w =>
+            {
+                syn.GetSharedSignedFields(w);
+                synAck.GetSharedSignedFields(w, true);
+                ack2.GetSharedSignedFields(w);
+            },
+                responderPublicKey))
+                throw new BadSignatureException();
+
+            WriteToLog_inv_requesterSide_detail($"verified ACK2");
+            #endregion
 
             return session;
         }

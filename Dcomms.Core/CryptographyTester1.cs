@@ -154,8 +154,8 @@ namespace Dcomms
             int n = 300000;
             for (int i = 0; i < n; i++)
             {
-                _cryptoLibrary.ProcessSingleAesBlock(true, sharedKeyAB, iv, input, output);
-                _cryptoLibrary.ProcessSingleAesBlock(false, sharedKeyAB, iv, output, decrypted);
+                _cryptoLibrary.ProcessAesCbcBlocks(true, sharedKeyAB, iv, input, output);
+                _cryptoLibrary.ProcessAesCbcBlocks(false, sharedKeyAB, iv, output, decrypted);
             }
             sw.Stop();
 

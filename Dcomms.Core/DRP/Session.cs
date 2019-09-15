@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Dcomms.Cryptography;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -11,7 +12,11 @@ namespace Dcomms.DRP
 
         readonly byte[] LocalEcdhePrivateKey;
         readonly public byte[] LocalEcdhePublicKey;
-        internal byte[] SharedEcdhSecret;
+        internal byte[] SharedDhSecret;
+        internal void DeriveSharedDhSecret(ICryptoLibrary cryptoLibrary, byte[] remotePublicEcdheKey)
+        {
+            SharedDhSecret = cryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhePrivateKey, remotePublicEcdheKey);
+        }
 
         readonly LocalDrpPeer _localDrpPeer;
         public Session(LocalDrpPeer localDrpPeer)

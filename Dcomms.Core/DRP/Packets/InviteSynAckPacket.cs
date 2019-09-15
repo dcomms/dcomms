@@ -47,17 +47,18 @@ namespace Dcomms.DRP.Packets
 
             return ms.ToArray();
         }
-        internal void GetSharedSignedFields(BinaryWriter w)
+        internal void GetSharedSignedFields(BinaryWriter w, bool includeToResponderSessionDescriptionEncrypted)
         {
             w.Write(Timestamp32S);
             RequesterPublicKey.Encode(w);
             ResponderPublicKey.Encode(w);
             ResponderEcdhePublicKey.Encode(w);
-            PacketProcedures.EncodeByteArray65536(w, ToResponderSessionDescriptionEncrypted);
+            if (includeToResponderSessionDescriptionEncrypted)
+                PacketProcedures.EncodeByteArray65536(w, ToResponderSessionDescriptionEncrypted);
         }
         void GetSignedFieldsForSenderHMAC(BinaryWriter w)
         {
-            GetSharedSignedFields(w);
+            GetSharedSignedFields(w, true);
             ResponderSignature.Encode(w);
             NhaSeq16.Encode(w);
         }

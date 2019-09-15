@@ -389,8 +389,8 @@ namespace Dcomms.CCP
     class CcpServerSideSession
     {
         uint LatestActivityTime32S { get; set; } // to remove it on timeout
-        byte[] ServerSessionToken;
-        byte[] ClientHelloToken;
+      //  byte[] ServerSessionToken;
+     //   byte[] ClientHelloToken;
 
         IPEndPoint ClientEndpoint { get; set; }
         

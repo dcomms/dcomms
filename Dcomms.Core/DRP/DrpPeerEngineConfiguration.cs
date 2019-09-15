@@ -41,7 +41,7 @@ namespace Dcomms.DRP
         public double InitialPingRequests_RetransmissionTimeoutIncrement = 1.05;
         public TimeSpan ResponderToRetransmittedRequestsTimeout = TimeSpan.FromSeconds(30);
 
-        public double InvSynAckRequesterSideTimoutS = 10;
+        public double InviteRequestsTimoutS = 10;
 
         public VisionChannel VisionChannel;
         public string VisionChannelSourceId;

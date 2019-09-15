@@ -90,11 +90,21 @@ namespace Dcomms.Cryptography
                 );
             return sharedSecret;
         }
-        void ICryptoLibrary.ProcessSingleAesBlock(bool encryptOrDecrypt, byte[] key, byte[] iv, byte[] input, byte[] output)
+        void ICryptoLibrary.ProcessAesCbcBlocks(bool encryptOrDecrypt, byte[] key, byte[] iv, byte[] input, byte[] output)
         {
+            if (input.Length != output.Length) throw new ArgumentException();
+
             var cbcBlockCipher = new CbcBlockCipher(new AesEngine());
+            var blockSize = CryptoLibraries.AesBlockSize;
+            if (input.Length % blockSize != 0) throw new ArgumentException();
             cbcBlockCipher.Init(encryptOrDecrypt, new ParametersWithIV(new KeyParameter(key), iv));
-            cbcBlockCipher.ProcessBlock(input, 0, output, 0);
+            var numberOfBlocks = input.Length / blockSize;
+            int offset = 0;
+            for (int i = 0; i < numberOfBlocks; i++)
+            {
+                cbcBlockCipher.ProcessBlock(input, offset, output, offset);
+                offset += blockSize;
+            }
         }
 
         byte[] ICryptoLibrary.GetSha256HMAC(byte[] key, byte[] data)

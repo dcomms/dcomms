@@ -27,9 +27,9 @@ namespace Dcomms.CCP
         public const int Cnonce0SupportedSize = 8; // only 1 size now - 201906
         public StatelessProofOfWorkType StatelessProofOfWorkType;
         public byte[] StatelessProofOfWorkData;
-        byte[] ClientSessionPublicKey;
-        byte[] ClientCertificate; 
-        byte[] ClientSignature; // set if client is registered
+    //    byte[] ClientSessionPublicKey;
+    //    byte[] ClientCertificate; 
+    //    byte[] ClientSignature; // set if client is registered
        
         public ClientHelloPacket0()
         {
@@ -85,11 +85,11 @@ namespace Dcomms.CCP
 
         public const int Snonce0SupportedSize = 32;
 
-        byte[] ServerHelloToken; // acts as snonce and Diffie-Hellman exchange data
-        byte[] ServerCertificate; // optional intermediate certificate
-        string UnencryptedFallbackServers; // to be used in case of errors while crypto channel is unavailable
-        byte[] ServerSessionPublicKey; // is set only if server is sure that it is not DoS
-        byte[] ServerSignature; // is set only if server is sure that it is not DoS
+       // byte[] ServerHelloToken; // acts as snonce and Diffie-Hellman exchange data
+       // byte[] ServerCertificate; // optional intermediate certificate
+       // string UnencryptedFallbackServers; // to be used in case of errors while crypto channel is unavailable
+       // byte[] ServerSessionPublicKey; // is set only if server is sure that it is not DoS
+       // byte[] ServerSignature; // is set only if server is sure that it is not DoS
         
         public ServerHelloPacket0()
         {
@@ -154,7 +154,7 @@ namespace Dcomms.CCP
         public byte[] StatefulProofOfWorkResponseData; // =cnonce1, must be reflected by server
         public const int StatefulProofOfWorkResponseDataSupportedSize = 32; // only 1 size now - 201906
         
-        byte[] ClientSignature; // set if client is registered
+     //   byte[] ClientSignature; // set if client is registered
         
         public byte[] Encode()
         {
@@ -189,8 +189,8 @@ namespace Dcomms.CCP
         byte Flags;
         public ServerHello1Status Status;
         public byte[] Cnonce1; // set if status = OKready
-        string[] Servers;
-        byte[] ServerSignature;
+     //   string[] Servers;
+     //   byte[] ServerSignature;
 
         public StatefulProofOfWorkType StatefulProofOfWorkType { get; set; } // set if status=okready // pow for next ping request, against stateful DoS attacks
         public byte[] Snonce1 { get; set; } // = pow request data // set if status=okready
@@ -240,7 +240,7 @@ namespace Dcomms.CCP
     /// </summary>
     class ClientPingRequestPacket
     {
-        byte Flags; //reserved
+   //     byte Flags; //reserved
         byte[] ServerSessionToken { get; set; }
         byte[] EncryptedPayload { get; set; }
         byte[] PoWresponseData { get; set; }
@@ -248,8 +248,8 @@ namespace Dcomms.CCP
     }
     class ServerPingResponsePacket
     {
-        byte Flags; //reserved
-        ServerPingResponseStatus Status;
+    //    byte Flags; //reserved
+    //    ServerPingResponseStatus Status;
         byte[] Payload { get; set; }
         StatefulProofOfWorkType PowType { get; set; }
         byte[] PoWrequestData { get; set; } // pow for next ping request, against stateful DoS attacks

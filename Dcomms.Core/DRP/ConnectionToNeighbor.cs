@@ -46,31 +46,32 @@ namespace Dcomms.DRP
         {            
             SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
-            var ms = new MemoryStream();
-            using (var writer = new BinaryWriter(ms))
-            {
-                syn.GetCommonRequesterProxyResponderFields(writer, true);
-                synAck.GetCommonRequesterProxierResponderFields(writer, false, false);
+            #region iv, key
+            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            syn.GetCommonRequesterProxyResponderFields(writer, true);
+            synAck.GetCommonRequesterProxierResponderFields(writer, false, false);
            
-                var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
+            var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
-                ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
-                var aesKey = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+            ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
+            var aesKey = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+            #endregion
 
-                var toNeighborTxParametersDecrypted = new byte[synAck.ToResponderTxParametersEncrypted.Length];
-                _engine.CryptoLibrary.ProcessSingleAesBlock(false, aesKey, iv, synAck.ToResponderTxParametersEncrypted, toNeighborTxParametersDecrypted);
 
-                // parse toNeighborTxParametersDecrypted
-                using (var reader = new BinaryReader(new MemoryStream(toNeighborTxParametersDecrypted)))
-                {
-                    RemoteEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
-                    RemotePeerToken32 = P2pConnectionToken32.Decode(reader);
-                    var magic16 = reader.ReadUInt16();
-                    if (magic16 != Magic16_responderToRequester) throw new BrokenCipherException();
-                }
-            
-                _engine.WriteToLog_reg_requesterSide_detail($"decrypted remote endpoint={RemoteEndpoint}, remotePeerToken={RemotePeerToken32}");
+            var toNeighborTxParametersDecrypted = new byte[synAck.ToResponderTxParametersEncrypted.Length];
+            _engine.CryptoLibrary.ProcessAesCbcBlocks(false, aesKey, iv, synAck.ToResponderTxParametersEncrypted, toNeighborTxParametersDecrypted);
+
+            // parse toNeighborTxParametersDecrypted
+            using (var reader = new BinaryReader(new MemoryStream(toNeighborTxParametersDecrypted)))
+            {
+                RemoteEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+                RemotePeerToken32 = P2pConnectionToken32.Decode(reader);
+                var magic16 = reader.ReadUInt16();
+                if (magic16 != Magic16_responderToRequester) throw new BrokenCipherException();
             }
+            
+            _engine.WriteToLog_reg_requesterSide_detail($"decrypted remote endpoint={RemoteEndpoint}, remotePeerToken={RemotePeerToken32}");
+            
         }
         const ushort Magic16_responderToRequester = 0x60C1; // is used to validate decrypted data
         
@@ -93,68 +94,69 @@ namespace Dcomms.DRP
 
             SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, syn.RequesterEcdhePublicKey.Ecdh25519PublicKey);
 
-            var ms = new MemoryStream();
-            using (var writer = new BinaryWriter(ms))
-            {
-                syn.GetCommonRequesterProxyResponderFields(writer, true);
-                synAck.GetCommonRequesterProxierResponderFields(writer, false, false);
+            #region key, iv
+            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            
+            syn.GetCommonRequesterProxyResponderFields(writer, true);
+            synAck.GetCommonRequesterProxierResponderFields(writer, false, false);
 
-                var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();;
-                ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
+            var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();;
+            ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
 
-                var aesKey = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
-                           
-                // encode localRxParameters
-                PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
-                PacketProcedures.EncodeIPEndPoint(wRxParameters, responderEndpoint); // max 19
-                LocalRxToken32.Encode(wRxParameters); // +4   max 23
-                wRxParameters.Write(Magic16_responderToRequester);    // +2 max 25
-                var bytesRemaining = RegisterSynAckPacket.ToResponderTxParametersEncryptedLength - (int)msRxParameters.Length;
+            var aesKey = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+            #endregion
 
-                wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));   
+            // encode localRxParameters
+            PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
+            PacketProcedures.EncodeIPEndPoint(wRxParameters, responderEndpoint); // max 19
+            LocalRxToken32.Encode(wRxParameters); // +4   max 23
+            wRxParameters.Write(Magic16_responderToRequester);    // +2 max 25
+            var bytesRemaining = RegisterSynAckPacket.ToResponderTxParametersEncryptedLength - (int)msRxParameters.Length;
 
-                var localRxParametersDecrypted = msRxParameters.ToArray(); // total 16 bytes
-                var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
-                _engine.CryptoLibrary.ProcessSingleAesBlock(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
+            wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));   
 
-                if (localRxParametersEncrypted.Length != RegisterSynAckPacket.ToResponderTxParametersEncryptedLength)
-                    throw new Exception();
-                return localRxParametersEncrypted;
-            }
+            var localRxParametersDecrypted = msRxParameters.ToArray(); // total 16 bytes
+            var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
+            _engine.CryptoLibrary.ProcessAesCbcBlocks(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
+
+            if (localRxParametersEncrypted.Length != RegisterSynAckPacket.ToResponderTxParametersEncryptedLength)
+                throw new Exception();
+            return localRxParametersEncrypted;           
 
         }
                
         /// <summary>initializes parameters to transmit direct (p2p) packets form neighbor N to requester A</returns>
         public void Decrypt_ack_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
-        {            
-            var ms = new MemoryStream();
-            using (var writer = new BinaryWriter(ms))
-            {
-                syn.GetCommonRequesterProxyResponderFields(writer, true);
-                synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
-                ack.GetCommonRequesterProxyResponderFields(writer, false, false);
+        {
+            #region key, iv
+            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+           
+            syn.GetCommonRequesterProxyResponderFields(writer, true);
+            synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
+            ack.GetCommonRequesterProxyResponderFields(writer, false, false);
             
-                var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
+            var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
-                ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
-                var aesKey = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
-                
-                var toRequesterTxParametersDecrypted = new byte[ack.ToRequesterTxParametersEncrypted.Length];
-                _engine.CryptoLibrary.ProcessSingleAesBlock(false, aesKey, iv, ack.ToRequesterTxParametersEncrypted, toRequesterTxParametersDecrypted);
+            ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
+            var aesKey = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+            #endregion 
 
-                // parse toRequesterTxParametersDecrypted
-                using (var reader = new BinaryReader(new MemoryStream(toRequesterTxParametersDecrypted)))
-                {
-                    RemoteEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
-                    RemotePeerToken32 = P2pConnectionToken32.Decode(reader);
-                    var magic16 = reader.ReadUInt16();
-                    if (magic16 != Magic16_ipv4_requesterToResponder) throw new BrokenCipherException();
-                }
+            var toRequesterTxParametersDecrypted = new byte[ack.ToRequesterTxParametersEncrypted.Length];
+            _engine.CryptoLibrary.ProcessAesCbcBlocks(false, aesKey, iv, ack.ToRequesterTxParametersEncrypted, toRequesterTxParametersDecrypted);
 
-                _engine.WriteToLog_reg_responderSide_detail($"decrypted remote endpoint={RemoteEndpoint}, remotePeerToken={RemotePeerToken32}");
-
-                InitializeP2pStream(syn, synAck, ack);
+            // parse toRequesterTxParametersDecrypted
+            using (var reader = new BinaryReader(new MemoryStream(toRequesterTxParametersDecrypted)))
+            {
+                RemoteEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+                RemotePeerToken32 = P2pConnectionToken32.Decode(reader);
+                var magic16 = reader.ReadUInt16();
+                if (magic16 != Magic16_ipv4_requesterToResponder) throw new BrokenCipherException();
             }
+
+            _engine.WriteToLog_reg_responderSide_detail($"decrypted remote endpoint={RemoteEndpoint}, remotePeerToken={RemotePeerToken32}");
+
+            InitializeP2pStream(syn, synAck, ack);
+            
         }
 
         /// <summary>
@@ -162,33 +164,32 @@ namespace Dcomms.DRP
         /// </summary>
         public byte[] Encrypt_ack_ToRequesterTxParametersEncrypted_AtRequester(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
         {
-            var ms = new MemoryStream();
-            using (var writer = new BinaryWriter(ms))
-            {
-                syn.GetCommonRequesterProxyResponderFields(writer, true);
-                synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
-                ack.GetCommonRequesterProxyResponderFields(writer, false, false);
+            #region
+            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);         
+            syn.GetCommonRequesterProxyResponderFields(writer, true);
+            synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
+            ack.GetCommonRequesterProxyResponderFields(writer, false, false);
            
-                var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
+            var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
-                ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
-                var aesKey = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+            ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
+            var aesKey = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+            #endregion
 
-                // encode localRxParameters
-                PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
-                PacketProcedures.EncodeIPEndPoint(wRxParameters, LocalEndpoint); // max 19
-                LocalRxToken32.Encode(wRxParameters); // +4 max 23
-                wRxParameters.Write(Magic16_ipv4_requesterToResponder); // +2 max 25
-                var bytesRemaining = RegisterAckPacket.ToRequesterTxParametersEncryptedLength - (int)msRxParameters.Length;
-                wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));      
+            // encode localRxParameters
+            PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
+            PacketProcedures.EncodeIPEndPoint(wRxParameters, LocalEndpoint); // max 19
+            LocalRxToken32.Encode(wRxParameters); // +4 max 23
+            wRxParameters.Write(Magic16_ipv4_requesterToResponder); // +2 max 25
+            var bytesRemaining = RegisterAckPacket.ToRequesterTxParametersEncryptedLength - (int)msRxParameters.Length;
+            wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));      
 
-                var localRxParametersDecrypted = msRxParameters.ToArray();
-                var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
-                _engine.CryptoLibrary.ProcessSingleAesBlock(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
+            var localRxParametersDecrypted = msRxParameters.ToArray();
+            var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
+            _engine.CryptoLibrary.ProcessAesCbcBlocks(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
 
-                if (localRxParametersEncrypted.Length != RegisterAckPacket.ToRequesterTxParametersEncryptedLength) throw new Exception();
-                return localRxParametersEncrypted;
-            }
+            if (localRxParametersEncrypted.Length != RegisterAckPacket.ToRequesterTxParametersEncryptedLength) throw new Exception();
+            return localRxParametersEncrypted;            
         }
         const ushort Magic16_ipv4_requesterToResponder = 0xBFA4; // is used to validate decrypted data
                
