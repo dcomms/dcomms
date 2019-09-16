@@ -508,7 +508,7 @@ namespace Dcomms.DRP
 
                 if (syn.ResponderPublicKey.Equals(this.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey))
                 {
-                    _ = this.LocalDrpPeer.AcceptInviteRequestAsync(syn);
+                    _ = this.LocalDrpPeer.AcceptInviteRequestAsync(syn, this);
                 }
                 else
                 {

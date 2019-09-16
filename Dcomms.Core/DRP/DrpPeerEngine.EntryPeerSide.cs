@@ -163,7 +163,7 @@ namespace Dcomms.DRP
             }
 
           
-            _engineThreadQueue.Enqueue(() =>
+            EngineThreadQueue.Enqueue(() =>
             {             
                 RouteRegistrationRequest(null, syn, out var proxyToDestinationPeer, out var acceptAt); // routing
 

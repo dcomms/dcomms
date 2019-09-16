@@ -28,6 +28,8 @@
                 <Button Command="{Binding TestEcdh25519}" Content="TestEcdh25519" />
                 <Button Command="{Binding TestAes}" Content="TestAes" />
                 <Button Command="{Binding CreateDrpTester1}" Content="CreateDrpTester1" />
+                <Button Command="{Binding CreateDrpTester1_SendInvite}" Content="CreateDrpTester1+send Invite" />
+                
             </StackPanel>
         </StackPanel>
 

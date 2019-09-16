@@ -9,6 +9,20 @@ namespace Dcomms.DRP
 {
     partial class LocalDrpPeer
     {
+        public void BeginSendInvite(UserCertificate requesterUserCertificate, RegistrationPublicKey responderPublicKey,
+            UserID_PublicKeys responderUserId, Action<Session> cb)
+        {
+            WriteToLog_inv_requesterSide_detail($">> BeginSendInvite()");
+
+            _engine.EngineThreadQueue.Enqueue(async () =>
+            {
+                var r = await SendInviteAsync(requesterUserCertificate, responderPublicKey, responderUserId);
+                if (cb != null) cb(r);
+            });
+
+        }
+
+
         /// <summary>
         /// sends INVITE, autenticates users, returns Session to be used to create direct cannel
         /// </summary>

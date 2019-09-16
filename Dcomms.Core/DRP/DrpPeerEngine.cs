@@ -34,7 +34,7 @@ namespace Dcomms.DRP
         Thread _engineThread;
         Thread _receiverThread;
         UdpClient _socket;
-        ActionsQueue _engineThreadQueue;
+        internal ActionsQueue EngineThreadQueue;
         readonly Random _insecureRandom;
         internal Random InsecureRandom => _insecureRandom;
         Dictionary<RegistrationPublicKey, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationPublicKey, LocalDrpPeer>(); // accessed only by engine thread       
@@ -59,7 +59,7 @@ namespace Dcomms.DRP
             Configuration = configuration;
             Initialize(configuration);
             _seq16Counter_AtoEP = (ushort)_insecureRandom.Next(ushort.MaxValue);
-            _engineThreadQueue = new ActionsQueue(exc => HandleExceptionInEngineThread(exc));
+            EngineThreadQueue = new ActionsQueue(exc => HandleExceptionInEngineThread(exc));
 
             _socket = new UdpClient(configuration.LocalPort ?? 0);
             _receiverThread = new Thread(ReceiverThreadEntry);
@@ -76,7 +76,7 @@ namespace Dcomms.DRP
         {
             if (_disposing) throw new InvalidOperationException();
             _disposing = true;
-            _engineThreadQueue.Dispose();
+            EngineThreadQueue.Dispose();
             _engineThread.Join();
             _socket.Close();
             _socket.Dispose();
@@ -128,7 +128,7 @@ namespace Dcomms.DRP
             }
 
             var receivedAtUtc = DateTimeNowUtc;
-            _engineThreadQueue.Enqueue(() =>
+            EngineThreadQueue.Enqueue(() =>
             {
                 if (RespondersToRetransmittedRequests_ProcessPacket(remoteEndpoint, udpPayloadData)) return;
                 if (PendingUdpRequests_ProcessPacket(remoteEndpoint, udpPayloadData, receivedAtUtc)) return;
@@ -179,7 +179,7 @@ namespace Dcomms.DRP
             {
                 try
                 {                
-                    _engineThreadQueue.ExecuteQueued();
+                    EngineThreadQueue.ExecuteQueued();
 
                     var timeNowUTC = DateTimeNowUtc;
                     if (timeNowUTC > nextTimeToCallOnTimer100ms)
@@ -223,20 +223,17 @@ namespace Dcomms.DRP
         }
         #endregion
 
-        public void BeginSendInvite(RegistrationPublicKey localPeerRegistrationPublicKey, RegistrationPublicKey remotePeerRegistrationPublicKey, byte[] message, Action<DrpResponderStatusCode> callback)
-        {
-            // find RegisteredLocalDrpPeer
-
-            // find closest neighbor to destination
-
-            // send invite
-
-            // subroutine create requestViaConnectedPeer
-        }
     }
 
     public interface IDrpRegisteredPeerUser
     {
         void OnReceivedMessage(byte[] message);
+        /// <summary>
+        /// searches for a known user in local contact book
+        /// </summary>
+        DMP.UserID_PublicKeys OnReceivedInvite_LookupUser(RegistrationPublicKey remoteRegID);
+
+        SessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserID_PublicKeys requesterUserId);
+        void OnAcceptedIncomingInvite(Session session);
     }
 }

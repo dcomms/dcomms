@@ -169,7 +169,14 @@ namespace Dcomms
             if (_drpTester1 != null) throw new InvalidOperationException();
             _drpTester1 = new DrpTester1(_visionChannel);
         });
-
+        public DelegateCommand CreateDrpTester1_SendInvite => new DelegateCommand(() =>
+        {
+            if (_drpTester1 != null) throw new InvalidOperationException();
+            _drpTester1 = new DrpTester1(_visionChannel, ()=>
+            {
+                _ = _drpTester1.SendInvite_AtoX_Async();
+            });
+        });
 
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
         {

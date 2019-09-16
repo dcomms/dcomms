@@ -155,5 +155,11 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide) <= AttentionLevel.mediumPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide, AttentionLevel.mediumPain, $"exception while proxying invite: {exc}");
         }
+        
+        internal void HandleExceptionWhileAcceptingInvite(Exception exc)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide, AttentionLevel.mediumPain, $"exception while accepting invite: {exc}");
+        }
     }
 }

@@ -15,16 +15,16 @@ namespace Dcomms.DRP
         /// </summary>
         HashSet<RegistrationPublicKey> _pendingInviteRequests = new HashSet<RegistrationPublicKey>();
 
+        /// <summary>
+        /// Timestamp32S, SenderToken32 and SenderHMAC are verified at this time
+        /// </summary>
         internal async Task ProxyInviteRequestAsync(InviteSynPacket syn, ConnectionToNeighbor requester, ConnectionToNeighbor responder)
         {
             _engine.WriteToLog_inv_proxySide_detail($"proxying invite");
 
             _engine.RecentUniqueInviteRequests.AssertIsUnique(syn.GetUniqueRequestIdFields);
             _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(syn.RequesterEcdhePublicKey.Ecdh25519PublicKey);
-
-            if (!_engine.ValidateReceivedSynTimestamp32S(syn.Timestamp32S))
-                throw new BadSignatureException();
-
+            
             if (syn.NumberOfHopsRemaining <= 1)
             {
                 SendNextHopAckResponseToSyn(syn, requester, NextHopResponseCode.rejected_numberOfHopsRemainingReachedZero);

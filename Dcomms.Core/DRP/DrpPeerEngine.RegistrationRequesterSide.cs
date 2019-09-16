@@ -21,7 +21,7 @@ namespace Dcomms.DRP
         {
             WriteToLog_reg_requesterSide_detail($">> BeginRegister()");
                        
-            _engineThreadQueue.Enqueue(async () =>
+            EngineThreadQueue.Enqueue(async () =>
             {
                 var r = await BeginRegister2(registrationConfiguration, user);
                 if (cb != null) cb(r);
@@ -31,7 +31,7 @@ namespace Dcomms.DRP
 
         public void BeginCreateLocalPeer(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user, Action<LocalDrpPeer> cb = null)
         {
-            _engineThreadQueue.Enqueue(async () =>
+            EngineThreadQueue.Enqueue(async () =>
             {
                 var r = await CreateLocalPeerAsync(registrationConfiguration, user);
                 if (cb != null) cb(r);
@@ -53,7 +53,7 @@ namespace Dcomms.DRP
 
                 localDrpPeer.PublicIpApiProviderResponse = new IPAddress(localPublicIp);
                 WriteToLog_drpGeneral_detail($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse}");
-                await _engineThreadQueue.EnqueueAsync();
+                await EngineThreadQueue.EnqueueAsync();
                 WriteToLog_drpGeneral_detail($"@engine thread");
             }
             else
@@ -211,7 +211,7 @@ namespace Dcomms.DRP
                 var neighborWaitTimeMs = synToSynAckTimeMs * 0.5 - 100; if (neighborWaitTimeMs < 0) neighborWaitTimeMs = 0;
                 if (neighborWaitTimeMs > 20)
                 {
-                    await _engineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(neighborWaitTimeMs)); // wait until the registerACK reaches neighbor N via peers
+                    await EngineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(neighborWaitTimeMs)); // wait until the registerACK reaches neighbor N via peers
                 }
                                 
                 localDrpPeer.ConnectedPeers.Add(connectionToNeighbor);

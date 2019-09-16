@@ -1,16 +1,35 @@
-﻿using Dcomms.Vision;
+﻿using Dcomms.DMP;
+using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Dcomms.DRP
 {
+    /// <summary>
+    /// sandbox for development since 2019-07
+    /// </summary>
     class DrpTester1: IDisposable
     {
         class User : IDrpRegisteredPeerUser
         {
             public void OnReceivedMessage(byte[] message)
+            {
+                throw new NotImplementedException();
+            }
+
+            public UserID_PublicKeys OnReceivedInvite_LookupUser(RegistrationPublicKey remoteRegID)
+            {
+                throw new NotImplementedException();
+            }
+
+            public SessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserID_PublicKeys requesterUserId)
+            {
+                throw new NotImplementedException();
+            }
+            public void OnAcceptedIncomingInvite(Session session)
             {
                 throw new NotImplementedException();
             }
@@ -20,7 +39,8 @@ namespace Dcomms.DRP
         readonly Random _insecureRandom = new Random();
         DrpPeerEngine _ep, _a;
         DrpPeerEngine _x, _n;
-        public DrpTester1(VisionChannel visionChannel)
+        LocalDrpPeer _xLocalDrpPeer, _aLocalDrpPeer, _nLocalDrpPeer;
+        public DrpTester1(VisionChannel visionChannel, Action cb = null)
         {
             _ep = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
@@ -101,9 +121,15 @@ namespace Dcomms.DRP
 
                 _x.BeginRegister(xConfig, new User(), (xLocalPeer) =>
                 {
+                    _xLocalDrpPeer = xLocalPeer;
                     _n.BeginRegister(nConfig, new User(), (nLocalPeer) =>
                     {
-                        _a.BeginRegister(aConfig, new User());
+                        _nLocalDrpPeer = nLocalPeer;
+                        _a.BeginRegister(aConfig, new User(), (aLocalPeer) =>
+                        {
+                            _aLocalDrpPeer = aLocalPeer;
+                            if (cb != null) cb();
+                        });
                     });
                 });               
                 
@@ -116,6 +142,14 @@ namespace Dcomms.DRP
             _a.Dispose();
             _x.Dispose();
             _n.Dispose();
+        }
+
+        public async Task SendInvite_AtoX_Async()
+        {
+            UserRootPrivateKeys.CreateUserId(1, 1, _a.CryptoLibrary, out var aUserPrivateKeys, out var aUserID);
+           \
+            var aUserCertificate = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_a.CryptoLibrary, aUserID, aUserPrivateKeys, );
+            _aLocalDrpPeer.BeginSendInvite();
         }
     }
 }
