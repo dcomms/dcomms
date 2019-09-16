@@ -46,7 +46,7 @@ namespace Dcomms.DRP
             return nextHopResponsePacket;
         }
 
-        async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner)
+        internal async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner)
         {
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(responderEndpoint,
@@ -164,7 +164,7 @@ namespace Dcomms.DRP
         /// sends response to requests
         /// creates an object "ResponderToRetransmittedRequests" which handles further restransmitted requests (in case if the sent response gets lost)
         /// </summary>
-        void RespondToRequestAndRetransmissions(byte[] requestUdpPayloadData, byte[] responseUdpPayloadData, IPEndPoint requesterEndpoint)
+        internal void RespondToRequestAndRetransmissions(byte[] requestUdpPayloadData, byte[] responseUdpPayloadData, IPEndPoint requesterEndpoint)
         {
             SendPacket(responseUdpPayloadData, requesterEndpoint);
             _respondersToRetransmittedRequests.AddLast(new ResponderToRetransmittedRequests

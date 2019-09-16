@@ -61,7 +61,7 @@ namespace Dcomms.DRP
             }
         }
 
-        public ConnectionToNeighbor RouteSynInviteAtRequester(LocalDrpPeer localDrpPeer, InviteSynPacket syn)
+        public ConnectionToNeighbor RouteSynInvite(LocalDrpPeer localDrpPeer, InviteSynPacket syn)
         {
             ConnectionToNeighbor r = null;
             RegistrationPublicKeyDistance minDistance = null;

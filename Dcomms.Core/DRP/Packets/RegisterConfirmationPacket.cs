@@ -14,7 +14,7 @@ namespace Dcomms.DRP.Packets
     /// </summary>
     public class RegisterConfirmationPacket
     {
-        public byte[] OriginalUdpPayloadData;
+        public byte[] DecodedUdpPayloadData;
 
         const byte Flag_AtoEP = 0x01;
         byte Flags;
@@ -137,7 +137,7 @@ namespace Dcomms.DRP.Packets
             var reader = PacketProcedures.CreateBinaryReader(regCfmUdpPayload, 1);
 
             var cfm = new RegisterConfirmationPacket();
-            cfm.OriginalUdpPayloadData = regCfmUdpPayload;
+            cfm.DecodedUdpPayloadData = regCfmUdpPayload;
 
             cfm.Flags = reader.ReadByte();
             if ((cfm.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();

@@ -55,7 +55,7 @@ namespace Dcomms.DRP.Packets
 
             return ms.ToArray();
         }
-        void GetSignedFieldsForSenderHMAC(BinaryWriter w)
+        internal void GetSignedFieldsForSenderHMAC(BinaryWriter w)
         {
             GetSharedSignedFields(w);
             RequesterSignature.Encode(w);
@@ -70,9 +70,11 @@ namespace Dcomms.DRP.Packets
             RequesterEcdhePublicKey.Encode(w);
         }
 
+        internal byte[] DecodedUdpPayloadData;
         public static InviteSynPacket Decode_VerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)
         {
             var r = new InviteSynPacket();
+            r.DecodedUdpPayloadData = udpPayloadData;
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
 
             r.SenderToken32 = P2pConnectionToken32.Decode(reader);

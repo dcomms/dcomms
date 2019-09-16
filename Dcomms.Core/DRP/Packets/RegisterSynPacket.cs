@@ -127,7 +127,7 @@ namespace Dcomms.DRP.Packets
             writer.Write(NumberOfHopsRemaining);
             NhaSeq16.Encode(writer);
         }
-        public byte[] OriginalUdpPayloadData;
+        public byte[] DecodedUdpPayloadData;
 
         /// <summary>
         /// when SYN is received from neighbor, verifies senderHMAC and SenderToken32
@@ -136,7 +136,7 @@ namespace Dcomms.DRP.Packets
         public static RegisterSynPacket Decode_OptionallyVerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighborNullable)
         {
             var r = new RegisterSynPacket();
-            r.OriginalUdpPayloadData = udpPayloadData;
+            r.DecodedUdpPayloadData = udpPayloadData;
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
 
             var flags = reader.ReadByte();

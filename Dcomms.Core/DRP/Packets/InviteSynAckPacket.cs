@@ -30,7 +30,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public HMAC SenderHMAC;
 
-        public byte[] Encode(ConnectionToNeighbor transmitToNeighbor)
+        public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpPacketType.InviteSynAck);
@@ -39,6 +39,8 @@ namespace Dcomms.DRP.Packets
 
             SenderToken32 = transmitToNeighbor.RemotePeerToken32;
             SenderToken32.Encode(w);
+
+            NhaSeq16 = transmitToNeighbor.GetNewNhaSeq16_P2P();
 
             GetSignedFieldsForSenderHMAC(w);
 
@@ -56,16 +58,18 @@ namespace Dcomms.DRP.Packets
             if (includeToResponderSessionDescriptionEncrypted)
                 PacketProcedures.EncodeByteArray65536(w, ToResponderSessionDescriptionEncrypted);
         }
-        void GetSignedFieldsForSenderHMAC(BinaryWriter w)
+        internal void GetSignedFieldsForSenderHMAC(BinaryWriter w)
         {
             GetSharedSignedFields(w, true);
             ResponderSignature.Encode(w);
             NhaSeq16.Encode(w);
         }
 
+        internal byte[] DecodedUdpPayloadData;
         public static InviteSynAckPacket Decode(byte[] udpPayloadData)
         {
             var r = new InviteSynAckPacket();
+            r.DecodedUdpPayloadData = udpPayloadData;
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)

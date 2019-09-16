@@ -164,7 +164,7 @@ namespace Dcomms.DRP
                 WriteToLog_reg_requesterSide_detail($"waiting for SYNACK");
                 var registerSynAckPacketData = await WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(epEndpoint,
                                 RegisterSynAckPacket.GetScanner(syn.RequesterPublicKey_RequestID, syn.Timestamp32S),
-                                DateTimeNowUtc, Configuration.RegSynAckRequesterSideTimoutS                               
+                                DateTimeNowUtc, Configuration.RegSynAckTimoutS                               
                             ));
                 if (registerSynAckPacketData == null) throw new DrpTimeoutException();
                 var synAck = RegisterSynAckPacket.DecodeAndOptionallyVerify(registerSynAckPacketData, syn, connectionToNeighbor);

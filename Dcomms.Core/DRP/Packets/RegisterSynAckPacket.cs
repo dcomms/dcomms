@@ -61,7 +61,7 @@ namespace Dcomms.DRP.Packets
         #endregion
 
         public NextHopAckSequenceNumber16 NhaSeq16; // is not sent from EP to A (because response to the SYNACK is ACK, not NHACK) // goes into NHACK packet at peer that responds to this packet
-        public byte[] OriginalUdpPayloadData;
+        public byte[] DecodedUdpPayloadData;
 
         /// <summary>
         /// decodes the packet, decrypts ToNeighborTxParametersEncrypted, verifies NeighborSignature, verifies match to register SYN
@@ -73,7 +73,7 @@ namespace Dcomms.DRP.Packets
         {
             var reader = PacketProcedures.CreateBinaryReader(registerSynAckPacketData, 1);
             var synAck = new RegisterSynAckPacket();
-            synAck.OriginalUdpPayloadData = registerSynAckPacketData;
+            synAck.DecodedUdpPayloadData = registerSynAckPacketData;
             synAck.Flags = reader.ReadByte();
             if ((synAck.Flags & Flag_EPtoA) == 0) synAck.SenderToken32 = P2pConnectionToken32.Decode(reader);           
             if ((synAck.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
@@ -146,7 +146,7 @@ namespace Dcomms.DRP.Packets
         }
 
         /// <param name="synReceivedFromInP2pMode">is not null for packets between registered peers</param>
-        public byte[] EncodeAtResponder(ConnectionToNeighbor synReceivedFromInP2pMode)
+        public byte[] Encode_OpionallySignSenderHMAC(ConnectionToNeighbor synReceivedFromInP2pMode)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 

@@ -77,7 +77,7 @@ namespace Dcomms.DRP
                         },
                         acceptAt.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
                     if (synReceivedFromInP2pMode == null) synAck.RequesterEndpoint = requesterEndpoint;                    
-                    registerSynAckUdpPayload = synAck.EncodeAtResponder(synReceivedFromInP2pMode);
+                    registerSynAckUdpPayload = synAck.Encode_OpionallySignSenderHMAC(synReceivedFromInP2pMode);
                     
                     var ackScanner = RegisterAckPacket.GetScanner(synReceivedFromInP2pMode, syn.RequesterPublicKey_RequestID, syn.Timestamp32S);
                     byte[] ackUdpData;
@@ -178,7 +178,7 @@ namespace Dcomms.DRP
             }
             var nextHopAckPacketData = nextHopAck.Encode(synReceivedFromInP2pMode == null);
             
-            RespondToRequestAndRetransmissions(syn.OriginalUdpPayloadData, nextHopAckPacketData, requesterEndpoint);
+            RespondToRequestAndRetransmissions(syn.DecodedUdpPayloadData, nextHopAckPacketData, requesterEndpoint);
 
             //   WriteToLog_reg_responderSide_detail($"sent nextHopAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(nextHopAckPacketData)} nhaSeq={registerSynPacket.NhaSeq16}");
         }
@@ -194,7 +194,7 @@ namespace Dcomms.DRP
             nextHopAck.SenderHMAC = receivedSynAckFromNeighbor.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, synAck.GetSignedFieldsForSenderHMAC));
             var nextHopAckPacketData = nextHopAck.Encode(false);
 
-            RespondToRequestAndRetransmissions(synAck.OriginalUdpPayloadData, nextHopAckPacketData, receivedSynAckFromNeighbor.RemoteEndpoint);
+            RespondToRequestAndRetransmissions(synAck.DecodedUdpPayloadData, nextHopAckPacketData, receivedSynAckFromNeighbor.RemoteEndpoint);
 
             //   WriteToLog_reg_responderSide_detail($"sent nextHopAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(nextHopAckPacketData)} nhaSeq={registerSynPacket.NhaSeq16}");
         }
@@ -212,7 +212,7 @@ namespace Dcomms.DRP
             }
 
             var nextHopAckPacketData = nextHopAck.Encode(ack.AtoEP);
-            RespondToRequestAndRetransmissions(ack.OriginalUdpPayloadData, nextHopAckPacketData, remoteEndpoint);
+            RespondToRequestAndRetransmissions(ack.DecodedUdpPayloadData, nextHopAckPacketData, remoteEndpoint);
         }
         void SendNextHopAckResponseToCfm(RegisterConfirmationPacket cfm, IPEndPoint remoteEndpoint, ConnectionToNeighbor synReceivedFromInP2pMode)
         {
@@ -227,7 +227,7 @@ namespace Dcomms.DRP
                 nextHopAck.SenderHMAC = synReceivedFromInP2pMode.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, cfm.GetSignedFieldsForSenderHMAC));
             }
             var nextHopAckPacketData = nextHopAck.Encode(cfm.AtoEP);
-            RespondToRequestAndRetransmissions(cfm.OriginalUdpPayloadData, nextHopAckPacketData, remoteEndpoint);
+            RespondToRequestAndRetransmissions(cfm.DecodedUdpPayloadData, nextHopAckPacketData, remoteEndpoint);
         }
 
         internal bool ValidateReceivedSynTimestamp32S(uint receivedSynTimestamp32S)

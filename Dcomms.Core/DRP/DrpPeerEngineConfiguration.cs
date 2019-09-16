@@ -34,7 +34,7 @@ namespace Dcomms.DRP
         public double UdpLowLevelRequests_ExpirationTimeoutS = 2;
         public double UdpLowLevelRequests_InitialRetransmissionTimeoutS = 0.2;
         public double UdpLowLevelRequests_RetransmissionTimeoutIncrement = 1.5;
-        public double RegSynAckRequesterSideTimoutS = 10;
+        public double RegSynAckTimoutS = 10;
 
         public double InitialPingRequests_ExpirationTimeoutS = 5;
         public double InitialPingRequests_InitialRetransmissionTimeoutS = 0.1;

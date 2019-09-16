@@ -453,7 +453,7 @@ namespace Dcomms.DRP
         }
         #endregion
 
-        internal void OnReceivedSyn(IPEndPoint requesterEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc)
+        internal void OnReceivedRegisterSyn(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
         {
             if (_disposed) return;
             if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -485,7 +485,40 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                _engine.HandleGeneralException($"Exception while processing SYN in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
+                _engine.HandleGeneralException($"Exception while processing REGISTER SYN in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
+            }
+        }
+
+        internal void OnReceivedInviteSyn(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
+        {
+            if (_disposed) return;
+            if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)
+            {
+                _engine.OnReceivedUnauthorizedSourceIpPacket(requesterEndpoint);
+                return;
+            }
+            try
+            {
+                // we got SYN from this instance neighbor
+                var syn = InviteSynPacket.Decode_VerifySenderHMAC(udpPayloadData, this);
+                // SenderToken32 and SenderHMAC are verified at this time
+
+                if (!_engine.ValidateReceivedSynTimestamp32S(syn.Timestamp32S))
+                    throw new BadSignatureException();
+
+                if (syn.ResponderPublicKey.Equals(this.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey))
+                {
+                    _ = this.LocalDrpPeer.AcceptInviteRequestAsync(syn);
+                }
+                else
+                {
+                    var proxyTo = _engine.RouteSynInvite(this.LocalDrpPeer, syn); // routing
+                    _ = this.LocalDrpPeer.ProxyInviteRequestAsync(syn, this, proxyTo);                  
+                }
+            }
+            catch (Exception exc)
+            {
+                _engine.HandleGeneralException($"Exception while processing INVITE SYN in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
 

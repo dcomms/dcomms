@@ -47,7 +47,7 @@ namespace Dcomms.DRP.Packets
 
         public HMAC SenderHMAC; // is NULL for A->EP
         public NextHopAckSequenceNumber16 NhaSeq16;
-        public byte[] OriginalUdpPayloadData;
+        public byte[] DecodedUdpPayloadData;
         public RegisterAckPacket()
         {
         }
@@ -155,7 +155,7 @@ namespace Dcomms.DRP.Packets
             var reader = PacketProcedures.CreateBinaryReader(registerAckPacketData, 1);
 
             var ack = new RegisterAckPacket();
-            ack.OriginalUdpPayloadData = registerAckPacketData;
+            ack.DecodedUdpPayloadData = registerAckPacketData;
             ack.Flags = reader.ReadByte();
             if ((ack.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             if ((ack.Flags & Flag_AtoEP) == 0) ack.SenderToken32 = P2pConnectionToken32.Decode(reader);

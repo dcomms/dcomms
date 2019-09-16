@@ -35,7 +35,7 @@ namespace Dcomms.DRP
             syn.RequesterSignature = RegistrationSignature.Sign(_engine.CryptoLibrary, syn.GetSharedSignedFields, this.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
 
             // find best connected peer to send the request
-            var connectionToNeighbor = _engine.RouteSynInviteAtRequester(this, syn);
+            var connectionToNeighbor = _engine.RouteSynInvite(this, syn);
 
             var synUdpData = syn.Encode_SetP2pFields(connectionToNeighbor);
 
@@ -64,6 +64,9 @@ namespace Dcomms.DRP
                 throw new BadSignatureException();
             WriteToLog_inv_requesterSide_detail($"verified SYNACK");
             session.DeriveSharedDhSecret(_engine.CryptoLibrary, synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
+
+            // send NHACK to SYNACK
+            SendNextHopAckResponseToSynAck(synAck, connectionToNeighbor);
             #endregion
 
 
@@ -133,12 +136,76 @@ namespace Dcomms.DRP
                 throw new BadSignatureException();
 
             WriteToLog_inv_requesterSide_detail($"verified ACK2");
+                       
+            // send NHACK to ACK2
+            SendNextHopAckResponseToAck2(ack2, connectionToNeighbor);
             #endregion
 
             return session;
         }
 
+        void SendNextHopAckResponseToSyn(InviteSynPacket syn, ConnectionToNeighbor receivedSynFromNeighbor, NextHopResponseCode statusCode = NextHopResponseCode.accepted)
+        {
+            var nextHopAck = new NextHopAckPacket
+            {
+                NhaSeq16 = syn.NhaSeq16,
+                StatusCode = statusCode
+            };
 
+            nextHopAck.SenderToken32 = receivedSynFromNeighbor.RemotePeerToken32;
+            nextHopAck.SenderHMAC = receivedSynFromNeighbor.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, syn.GetSignedFieldsForSenderHMAC));
+            var nextHopAckPacketData = nextHopAck.Encode(false);
+
+            _engine.RespondToRequestAndRetransmissions(syn.DecodedUdpPayloadData, nextHopAckPacketData, receivedSynFromNeighbor.RemoteEndpoint);
+
+        }
+
+        void SendNextHopAckResponseToSynAck(InviteSynAckPacket synAck, ConnectionToNeighbor receivedSynAckFromNeighbor)
+        {
+            var nextHopAck = new NextHopAckPacket
+            {
+                NhaSeq16 = synAck.NhaSeq16,
+                StatusCode = NextHopResponseCode.accepted
+            };
+
+            nextHopAck.SenderToken32 = receivedSynAckFromNeighbor.RemotePeerToken32;
+            nextHopAck.SenderHMAC = receivedSynAckFromNeighbor.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, synAck.GetSignedFieldsForSenderHMAC));
+            var nextHopAckPacketData = nextHopAck.Encode(false);
+
+            _engine.RespondToRequestAndRetransmissions(synAck.DecodedUdpPayloadData, nextHopAckPacketData, receivedSynAckFromNeighbor.RemoteEndpoint);
+
+        }
+
+        void SendNextHopAckResponseToAck1(InviteAck1Packet ack1, ConnectionToNeighbor receivedAck1FromNeighbor)
+        {
+            var nextHopAck = new NextHopAckPacket
+            {
+                NhaSeq16 = ack1.NhaSeq16,
+                StatusCode = NextHopResponseCode.accepted
+            };
+
+            nextHopAck.SenderToken32 = receivedAck1FromNeighbor.RemotePeerToken32;
+            nextHopAck.SenderHMAC = receivedAck1FromNeighbor.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, ack1.GetSignedFieldsForSenderHMAC));
+            var nextHopAckPacketData = nextHopAck.Encode(false);
+
+            _engine.RespondToRequestAndRetransmissions(ack1.DecodedUdpPayloadData, nextHopAckPacketData, receivedAck1FromNeighbor.RemoteEndpoint);
+        }
+
+        void SendNextHopAckResponseToAck2(InviteAck2Packet ack2, ConnectionToNeighbor receivedAck2FromNeighbor)
+        {
+            var nextHopAck = new NextHopAckPacket
+            {
+                NhaSeq16 = ack2.NhaSeq16,
+                StatusCode = NextHopResponseCode.accepted
+            };
+
+            nextHopAck.SenderToken32 = receivedAck2FromNeighbor.RemotePeerToken32;
+            nextHopAck.SenderHMAC = receivedAck2FromNeighbor.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, ack2.GetSignedFieldsForSenderHMAC));
+            var nextHopAckPacketData = nextHopAck.Encode(false);
+
+            _engine.RespondToRequestAndRetransmissions(ack2.DecodedUdpPayloadData, nextHopAckPacketData, receivedAck2FromNeighbor.RemoteEndpoint);
+
+        }
 
         void WriteToLog_inv_requesterSide_detail(string msg)
         {

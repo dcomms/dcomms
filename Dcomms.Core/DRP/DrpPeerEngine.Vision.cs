@@ -17,6 +17,8 @@ namespace Dcomms.DRP
         const string VisionChannelModuleName_reg_epSide = "reg.ep";
         const string VisionChannelModuleName_reg_proxySide = "reg.proxy";
         const string VisionChannelModuleName_inv_requesterSide = "inv.requester";
+        const string VisionChannelModuleName_inv_proxySide = "inv.proxy";
+        const string VisionChannelModuleName_inv_responderSide = "inv.responder";
         const string VisionChannelModuleName_engineThread = "engineThread";
         const string VisionChannelModuleName_receiverThread = "receiverThread";
         const string VisionChannelModuleName_p2p = "p2p"; // ping, direct p2p communication
@@ -95,6 +97,18 @@ namespace Dcomms.DRP
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_requesterSide, AttentionLevel.detail, message);
 
         }
+        internal void WriteToLog_inv_proxySide_detail(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide, AttentionLevel.detail, message);
+
+        }
+        internal void WriteToLog_inv_responderSide_detail(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide, AttentionLevel.detail, message);
+
+        }
         void HandleExceptionWhileConnectingToRP(IPEndPoint epEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.mediumPain)
@@ -126,7 +140,7 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.mediumPain, $"exception while responding to registration from {requesterEndpoint}: {exc}");
         }
-        void HandleExceptionWhileProxying(IPEndPoint requesterEndpoint, Exception exc)
+        void HandleExceptionWhileProxyingRegister(IPEndPoint requesterEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.mediumPain, $"exception while proxying registration from {requesterEndpoint}: {exc}");
@@ -135,6 +149,11 @@ namespace Dcomms.DRP
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.detail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, message);
+        }
+        internal void HandleExceptionWhileProxyingInvite(Exception exc)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide, AttentionLevel.mediumPain, $"exception while proxying invite: {exc}");
         }
     }
 }

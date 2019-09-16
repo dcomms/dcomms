@@ -155,7 +155,15 @@ namespace Dcomms.DRP
                             var localRxToken16 = RegisterSynPacket.DecodeToken16FromUdpPayloadData_P2Pmode(udpPayloadData);
                             var connectedPeer = ConnectedPeersByToken16[localRxToken16];
                             if (connectedPeer != null)
-                                connectedPeer.OnReceivedSyn(remoteEndpoint, udpPayloadData, receivedAtUtc);
+                                connectedPeer.OnReceivedRegisterSyn(remoteEndpoint, udpPayloadData);
+                        }
+                        break;
+                    case DrpPacketType.InviteSyn:
+                        {
+                            var localRxToken16 = RegisterSynPacket.DecodeToken16FromUdpPayloadData_P2Pmode(udpPayloadData);
+                            var connectedPeer = ConnectedPeersByToken16[localRxToken16];
+                            if (connectedPeer != null)
+                                connectedPeer.OnReceivedInviteSyn(remoteEndpoint, udpPayloadData);
                         }
                         break;
                 }
