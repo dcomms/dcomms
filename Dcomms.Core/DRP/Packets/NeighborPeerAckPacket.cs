@@ -11,9 +11,9 @@ namespace Dcomms.DRP.Packets
     /// is sent from next hop to previous hop, when the next hop receives some packet from neighbor, or from registering peer (EP->A).
     /// stops UDP retransmission of a request packet
     /// </summary>
-    class NextHopAckPacket
+    class NeighborPeerAckPacket
     {
-        public NextHopAckSequenceNumber16 NhaSeq16;
+        public NeighborPeerAckSequenceNumber16 NpaSeq16;
         public const byte Flag_EPtoA = 0x01; // set if packet is transmitted from EP to A, is zero otherwise
         byte Flags;
         const byte FlagsMask_MustBeZero = 0b11110000;
@@ -31,21 +31,21 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public HMAC SenderHMAC;
 
-        public NextHopAckPacket()
+        public NeighborPeerAckPacket()
         { }
 
-        /// <param name="waitNhaFromNeighborNullable">is used to verify NHACK.SenderHMAC</param>
-        public static LowLevelUdpResponseScanner GetScanner(NextHopAckSequenceNumber16 nhaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, 
+        /// <param name="waitNhaFromNeighborNullable">is used to verify NPACK.SenderHMAC</param>
+        public static LowLevelUdpResponseScanner GetScanner(NeighborPeerAckSequenceNumber16 npaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, 
             Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            EncodeHeader(w, nhaSeq16);
+            EncodeHeader(w, npaSeq16);
             var r = new LowLevelUdpResponseScanner { ResponseFirstBytes = ms.ToArray() };
             if (waitNhaFromNeighborNullable != null)
             {
                 r.OptionalFilter = (responseData) =>
                 {
-                    var nhack = new NextHopAckPacket(responseData);
+                    var nhack = new NeighborPeerAckPacket(responseData);
                     if (nhack.SenderHMAC == null) return false;
                     if (!nhack.SenderHMAC.Equals(waitNhaFromNeighborNullable.GetSenderHMAC(w2 => nhack.GetFieldsForHMAC(w2, nhaRequestPacketFieldsForHmacNullable)))) return false;
                     return true;
@@ -53,15 +53,15 @@ namespace Dcomms.DRP.Packets
             }
             return r;
         }
-        static void EncodeHeader(BinaryWriter w, NextHopAckSequenceNumber16 nhaSeq16)
+        static void EncodeHeader(BinaryWriter w, NeighborPeerAckSequenceNumber16 npaSeq16)
         {
             w.Write((byte)DrpPacketType.NextHopAck);
-            nhaSeq16.Encode(w);
+            npaSeq16.Encode(w);
         }
         public byte[] Encode(bool epToA)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
-            EncodeHeader(writer, NhaSeq16);
+            EncodeHeader(writer, NpaSeq16);
             byte flags = 0;
             if (epToA) flags |= Flag_EPtoA;
             writer.Write(flags);
@@ -70,10 +70,10 @@ namespace Dcomms.DRP.Packets
             if (epToA == false)SenderHMAC.Encode(writer);
             return ms.ToArray();
         }
-        public NextHopAckPacket(byte[] nextHopResponsePacketData)
+        public NeighborPeerAckPacket(byte[] nextHopResponsePacketData)
         {
             var reader = PacketProcedures.CreateBinaryReader(nextHopResponsePacketData, 1);
-            NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
+            NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             if ((flags & Flag_EPtoA) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
@@ -83,7 +83,7 @@ namespace Dcomms.DRP.Packets
 
         internal void GetFieldsForHMAC(BinaryWriter w, Action<BinaryWriter> nhaRequestPacketFieldsForHMAC)
         {
-            EncodeHeader(w, NhaSeq16);
+            EncodeHeader(w, NpaSeq16);
             SenderToken32.Encode(w); // it is not null, if we verify HMAC
             w.Write((byte)StatusCode);
             nhaRequestPacketFieldsForHMAC(w);
@@ -127,26 +127,26 @@ namespace Dcomms.DRP.Packets
 
 
     /// <summary>
-    /// gets copied from request/response packets  to "nextHopACK" packet
+    /// gets copied from request/response packets  to "neighborPeerACK" packet
     /// </summary>
-    public class NextHopAckSequenceNumber16
+    public class NeighborPeerAckSequenceNumber16
     {
         public ushort Seq16;
         public void Encode(BinaryWriter writer)
         {
             writer.Write(Seq16);
         }
-        public static NextHopAckSequenceNumber16 Decode(BinaryReader reader)
+        public static NeighborPeerAckSequenceNumber16 Decode(BinaryReader reader)
         {
-            var r = new NextHopAckSequenceNumber16();
+            var r = new NeighborPeerAckSequenceNumber16();
             r.Seq16 = reader.ReadUInt16();
             return r;
         }
         public override bool Equals(object obj)
         {
-            return ((NextHopAckSequenceNumber16)obj).Seq16 == this.Seq16;
+            return ((NeighborPeerAckSequenceNumber16)obj).Seq16 == this.Seq16;
         }
-        public override string ToString() => $"hhaSeq{Seq16}";
+        public override string ToString() => $"npaSeq{Seq16}";
     }
 
 }

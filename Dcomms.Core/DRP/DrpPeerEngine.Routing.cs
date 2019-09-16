@@ -9,16 +9,16 @@ namespace Dcomms.DRP
     {
 
         /// <summary>
-        /// main routing procedure for register SYN requests
+        /// main routing procedure for register REQ requests
         /// </summary>
         /// <param name="receivedAtLocalDrpPeerNullable">
-        /// is set when routing SYN packets that are received via P2P connection from neighbor to the LocalDrpPeer
+        /// is set when routing REQ packets that are received via P2P connection from neighbor to the LocalDrpPeer
         /// </param>
-        internal void RouteRegistrationRequest(LocalDrpPeer receivedAtLocalDrpPeerNullable, RegisterSynPacket syn, out ConnectionToNeighbor proxyToDestinationPeer, out LocalDrpPeer acceptAt)
+        internal void RouteRegistrationRequest(LocalDrpPeer receivedAtLocalDrpPeerNullable, RegisterRequestPacket syn, out ConnectionToNeighbor proxyToDestinationPeer, out LocalDrpPeer acceptAt)
         {
             proxyToDestinationPeer = null;
             acceptAt = null;
-            RegistrationPublicKeyDistance minDistance = null;
+            RegistrationIdDistance minDistance = null;
             if (receivedAtLocalDrpPeerNullable != null)
             {
                 RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, syn, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
@@ -36,14 +36,14 @@ namespace Dcomms.DRP
 
             if (minDistance == null) throw new Exception();
         }
-        void RouteRegistrationRequest_LocalDrpPeerIteration(LocalDrpPeer localDrpPeer, RegisterSynPacket syn,
-            ref RegistrationPublicKeyDistance minDistance,
+        void RouteRegistrationRequest_LocalDrpPeerIteration(LocalDrpPeer localDrpPeer, RegisterRequestPacket req,
+            ref RegistrationIdDistance minDistance,
             ref ConnectionToNeighbor proxyToDestinationPeer, ref LocalDrpPeer acceptAt)
         {
             foreach (var connectedPeer in localDrpPeer.ConnectedPeers)
             {
-                var distanceToConnectedPeer = syn.RequesterPublicKey_RequestID.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
-                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from SYN {syn.RequesterPublicKey_RequestID} to {connectedPeer.RemotePeerPublicKey}");
+                var distanceToConnectedPeer = req.RequesterPublicKey_RequestID.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
+                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterPublicKey_RequestID} to {connectedPeer.RemotePeerPublicKey}");
                 if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
                 {
                     minDistance = distanceToConnectedPeer;
@@ -51,8 +51,8 @@ namespace Dcomms.DRP
                     acceptAt = null;
                 }
             }
-            var distanceToLocalPeer = syn.RequesterPublicKey_RequestID.GetDistanceTo(_cryptoLibrary, localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey);
-            WriteToLog_routing_detail($"distanceToLocalPeer={distanceToLocalPeer} from SYN {syn.RequesterPublicKey_RequestID} to {localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey}");
+            var distanceToLocalPeer = req.RequesterPublicKey_RequestID.GetDistanceTo(_cryptoLibrary, localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey);
+            WriteToLog_routing_detail($"distanceToLocalPeer={distanceToLocalPeer} from REGISTER REQ {req.RequesterPublicKey_RequestID} to {localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey}");
             if (minDistance == null || minDistance.IsGreaterThan(distanceToLocalPeer))
             {
                 minDistance = distanceToLocalPeer;
@@ -61,14 +61,14 @@ namespace Dcomms.DRP
             }
         }
 
-        public ConnectionToNeighbor RouteSynInvite(LocalDrpPeer localDrpPeer, InviteSynPacket syn)
+        public ConnectionToNeighbor RouteInviteRequest(LocalDrpPeer localDrpPeer, InviteRequestPacket req)
         {
             ConnectionToNeighbor r = null;
-            RegistrationPublicKeyDistance minDistance = null;
+            RegistrationIdDistance minDistance = null;
             foreach (var connectedPeer in localDrpPeer.ConnectedPeers)
             {
-                var distanceToConnectedPeer = syn.ResponderPublicKey.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
-                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from SYN {syn.ResponderPublicKey} to {connectedPeer.RemotePeerPublicKey}");
+                var distanceToConnectedPeer = req.ResponderPublicKey.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
+                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from INVITE REQ {req.ResponderPublicKey} to {connectedPeer.RemotePeerPublicKey}");
                 if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
                 {
                     minDistance = distanceToConnectedPeer;

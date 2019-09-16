@@ -19,12 +19,12 @@ namespace Dcomms.DRP
         /// </summary>
         LinkedList<PendingLowLevelUdpRequest> _pendingLowLevelUdpRequests = new LinkedList<PendingLowLevelUdpRequest>(); 
 
-        /// <param name="waitNhaFromNeighborNullable">is used to verify NHACK.SenderHMAC</param>
-        internal async Task<NextHopAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, 
-            NextHopAckSequenceNumber16 nhaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
+        /// <param name="waitNhaFromNeighborNullable">is used to verify NPACK.SenderHMAC</param>
+        internal async Task<NeighborPeerAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, 
+            NeighborPeerAckSequenceNumber16 npaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
         {
-            var nhaScanner = NextHopAckPacket.GetScanner(nhaSeq16, waitNhaFromNeighborNullable, nhaRequestPacketFieldsForHmacNullable);
-            WriteToLog_udp_detail($"waiting for nextHopAck, scanner: {MiscProcedures.ByteArrayToString(nhaScanner.ResponseFirstBytes)} nhaSeq={nhaSeq16}");
+            var nhaScanner = NeighborPeerAckPacket.GetScanner(npaSeq16, waitNhaFromNeighborNullable, nhaRequestPacketFieldsForHmacNullable);
+            WriteToLog_udp_detail($"waiting for nextHopAck, scanner: {MiscProcedures.ByteArrayToString(nhaScanner.ResponseFirstBytes)} nhaSeq={npaSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(responderEndpoint,
                          nhaScanner, 
@@ -34,13 +34,13 @@ namespace Dcomms.DRP
                      ));
             if (nextHopResponsePacketData == null)
             {
-                string msg = $"Did not get NHACK response to DRP request ";
+                string msg = $"Did not get NPACK response to DRP request ";
                 if (requestPacketDataNullable != null) msg += (DrpPacketType)requestPacketDataNullable[0];
                 msg += " - timeout expired";
                 throw new DrpTimeoutException(msg);
             }
 
-            var nextHopResponsePacket = new NextHopAckPacket(nextHopResponsePacketData);
+            var nextHopResponsePacket = new NeighborPeerAckPacket(nextHopResponsePacketData);
             if (nextHopResponsePacket.StatusCode != NextHopResponseCode.accepted)
                 throw new NextHopRejectedException(nextHopResponsePacket.StatusCode);
             return nextHopResponsePacket;
@@ -247,7 +247,7 @@ namespace Dcomms.DRP
     {
         public byte[] ResponseFirstBytes;
         public int? IgnoredByteAtOffset1; // is set to position of 'flags' byte in the scanned response packet
-        public Func<byte[],bool> OptionalFilter; // verifies NHACK.SenderHMAC, ignores invalid HMACs // returns false to ignore the processed response packet
+        public Func<byte[],bool> OptionalFilter; // verifies NPACK.SenderHMAC, ignores invalid HMACs // returns false to ignore the processed response packet
 
         public bool Scan(byte[] udpPayloadData) // may throw parser exception
         {

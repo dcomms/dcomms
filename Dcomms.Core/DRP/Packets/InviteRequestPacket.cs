@@ -10,10 +10,8 @@ namespace Dcomms.DRP.Packets
     /// A=requester
     /// B=responder
     /// A->N->X->B1
-    /// 
-    /// 
     /// </summary>
-    public class InviteSynPacket
+    public class InviteRequestPacket
     {
         /// <summary>
         /// authorizes peer that sends the packet
@@ -23,14 +21,14 @@ namespace Dcomms.DRP.Packets
         const byte FlagsMask_MustBeZero = 0b11110000;
 
         public uint Timestamp32S;
-        public RegistrationPublicKey RequesterPublicKey; // A public key 
-        public RegistrationPublicKey ResponderPublicKey; // B public key
+        public RegistrationId RequesterPublicKey; // A public key 
+        public RegistrationId ResponderPublicKey; // B public key
         public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new DirectChannel connection
         public RegistrationSignature RequesterSignature;
 
         public byte NumberOfHopsRemaining; // max 10 // is decremented by peers
 
-        public NextHopAckSequenceNumber16 NhaSeq16;
+        public NeighborPeerAckSequenceNumber16 NpaSeq16;
 
         /// <summary>
         /// authorizes peer that sends the packet
@@ -42,7 +40,7 @@ namespace Dcomms.DRP.Packets
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpPacketType.InviteSyn);
 
-            NhaSeq16 = transmitToNeighbor.GetNewNhaSeq16_P2P();
+            NpaSeq16 = transmitToNeighbor.GetNewNhaSeq16_P2P();
             SenderToken32 = transmitToNeighbor.RemotePeerToken32;
             SenderToken32.Encode(w);
 
@@ -60,7 +58,7 @@ namespace Dcomms.DRP.Packets
             GetSharedSignedFields(w);
             RequesterSignature.Encode(w);
             w.Write(NumberOfHopsRemaining);
-            NhaSeq16.Encode(w);
+            NpaSeq16.Encode(w);
         }
         internal void GetSharedSignedFields(BinaryWriter w)
         {
@@ -71,9 +69,9 @@ namespace Dcomms.DRP.Packets
         }
 
         internal byte[] DecodedUdpPayloadData;
-        public static InviteSynPacket Decode_VerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)
+        public static InviteRequestPacket Decode_VerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)
         {
-            var r = new InviteSynPacket();
+            var r = new InviteRequestPacket();
             r.DecodedUdpPayloadData = udpPayloadData;
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
 
@@ -85,12 +83,12 @@ namespace Dcomms.DRP.Packets
                 throw new NotImplementedException();
 
             r.Timestamp32S = reader.ReadUInt32();
-            r.RequesterPublicKey = RegistrationPublicKey.Decode(reader);
-            r.ResponderPublicKey = RegistrationPublicKey.Decode(reader);
+            r.RequesterPublicKey = RegistrationId.Decode(reader);
+            r.ResponderPublicKey = RegistrationId.Decode(reader);
             r.RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
             r.RequesterSignature = RegistrationSignature.Decode(reader);
             r.NumberOfHopsRemaining = reader.ReadByte();
-            r.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
+            r.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);
 
             r.SenderHMAC = HMAC.Decode(reader);
             if (r.SenderHMAC.Equals(receivedFromNeighbor.GetSenderHMAC(r.GetSignedFieldsForSenderHMAC)) == false)

@@ -92,7 +92,7 @@ namespace Dcomms.DRP.Packets
         /// comes from responder neighbor when connection is set up; in other cases it is NULL
         /// signs fields: 
         /// { 
-        ///    SYN shared fields,
+        ///    REQ shared fields,
         ///    SYNACK shared fields,
         ///    ACK shared fields,
         ///    ResponderRegistrationConfirmationSignature_MagicNumber

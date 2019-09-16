@@ -37,11 +37,11 @@ namespace Dcomms.DRP
         internal ActionsQueue EngineThreadQueue;
         readonly Random _insecureRandom;
         internal Random InsecureRandom => _insecureRandom;
-        Dictionary<RegistrationPublicKey, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationPublicKey, LocalDrpPeer>(); // accessed only by engine thread       
+        Dictionary<RegistrationId, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationId, LocalDrpPeer>(); // accessed only by engine thread       
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
       
         ushort _seq16Counter_AtoEP; // accessed only by engine thread
-        internal NextHopAckSequenceNumber16 GetNewNhaSeq16_AtoEP() => new NextHopAckSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
+        internal NeighborPeerAckSequenceNumber16 GetNewNhaSeq16_AtoEP() => new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
         public DrpPeerEngineConfiguration Configuration { get; private set; }
 
         #region unique data filters
@@ -120,7 +120,7 @@ namespace Dcomms.DRP
 
             if (packetType == DrpPacketType.RegisterSyn)
             {
-                if (RegisterSynPacket.IsAtoEP(udpPayloadData))
+                if (RegisterRequestPacket.IsAtoEP(udpPayloadData))
                 {
                     ProcessRegisterSynAtoEpPacket(remoteEndpoint, udpPayloadData);
                     return;
@@ -152,7 +152,7 @@ namespace Dcomms.DRP
                         break;
                     case DrpPacketType.RegisterSyn:
                         {
-                            var localRxToken16 = RegisterSynPacket.DecodeToken16FromUdpPayloadData_P2Pmode(udpPayloadData);
+                            var localRxToken16 = RegisterRequestPacket.DecodeToken16FromUdpPayloadData_P2Pmode(udpPayloadData);
                             var connectedPeer = ConnectedPeersByToken16[localRxToken16];
                             if (connectedPeer != null)
                                 connectedPeer.OnReceivedRegisterSyn(remoteEndpoint, udpPayloadData);
@@ -160,7 +160,7 @@ namespace Dcomms.DRP
                         break;
                     case DrpPacketType.InviteSyn:
                         {
-                            var localRxToken16 = RegisterSynPacket.DecodeToken16FromUdpPayloadData_P2Pmode(udpPayloadData);
+                            var localRxToken16 = RegisterRequestPacket.DecodeToken16FromUdpPayloadData_P2Pmode(udpPayloadData);
                             var connectedPeer = ConnectedPeersByToken16[localRxToken16];
                             if (connectedPeer != null)
                                 connectedPeer.OnReceivedInviteSyn(remoteEndpoint, udpPayloadData);
@@ -231,9 +231,9 @@ namespace Dcomms.DRP
         /// <summary>
         /// searches for a known user in local contact book
         /// </summary>
-        DMP.UserID_PublicKeys OnReceivedInvite_LookupUser(RegistrationPublicKey remoteRegID);
+        DMP.UserId OnReceivedInvite_LookupUser(RegistrationId remoteRegID);
 
-        SessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserID_PublicKeys requesterUserId);
+        SessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId);
         void OnAcceptedIncomingInvite(Session session);
     }
 }

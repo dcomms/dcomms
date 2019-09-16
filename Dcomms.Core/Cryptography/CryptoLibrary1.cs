@@ -106,27 +106,27 @@ namespace Dcomms.Cryptography
                 offset += blockSize;
             }
         }
-        void ICryptoLibrary.ProcessAesGcmBlocks(bool encryptOrDecrypt, byte[] key, byte[] iv, byte[] input, byte[] output)
-        {
-            if (input.Length != output.Length) throw new ArgumentException();
+        //void ICryptoLibrary.ProcessAesGcmBlocks(bool encryptOrDecrypt, byte[] key, byte[] iv, byte[] input, byte[] output)
+        //{
+        //    if (input.Length != output.Length) throw new ArgumentException();
 
-            var gcmBlockCipher = new GcmBlockCipher(new AesEngine());
-            var blockSize = CryptoLibraries.AesBlockSize;
-            if (input.Length % blockSize != 0) throw new ArgumentException();
-            gcmBlockCipher.Init(encryptOrDecrypt, new ParametersWithIV(new KeyParameter(key), iv));
-            var numberOfBlocks = input.Length / blockSize;
-            int offset = 0;
-            for (int i = 0; i < numberOfBlocks; i++)
-            {
-                gcmBlockCipher.ProcessAadBytes();
-                gcmBlockCipher.ProcessBytes();
-                gcmBlockCipher.GetMac();
+        //    var gcmBlockCipher = new GcmBlockCipher(new AesEngine());
+        //    var blockSize = CryptoLibraries.AesBlockSize;
+        //    if (input.Length % blockSize != 0) throw new ArgumentException();
+        //    gcmBlockCipher.Init(encryptOrDecrypt, new ParametersWithIV(new KeyParameter(key), iv));
+        //    var numberOfBlocks = input.Length / blockSize;
+        //    int offset = 0;
+        //    for (int i = 0; i < numberOfBlocks; i++)
+        //    {
+        //        gcmBlockCipher.ProcessAadBytes();
+        //        gcmBlockCipher.ProcessBytes();
+        //        gcmBlockCipher.GetMac();
                     
                     
-                  //  ProcessBlock(input, offset, output, offset);
-                offset += blockSize;
-            }
-        }
+        //          //  ProcessBlock(input, offset, output, offset);
+        //        offset += blockSize;
+        //    }
+        //}
 
         byte[] ICryptoLibrary.GetSha256HMAC(byte[] key, byte[] data)
         {

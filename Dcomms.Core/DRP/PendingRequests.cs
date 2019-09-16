@@ -36,7 +36,7 @@ namespace Dcomms.DRP
     //    readonly byte[] _registerSynAckUdpPayload;
     //    readonly DrpPeerEngine _drpPeerEngine;
 
-    //    PendingLowLevelUdpRequest RegisterSynAckLowLevelUdpRequest; //todo retransmit regSynAck  until NextHopAckPacket   (if sent from proxier) or until RegAck (if SYN was sent by A)
+    //    PendingLowLevelUdpRequest RegisterSynAckLowLevelUdpRequest; //todo retransmit regSynAck  until NextHopAckPacket   (if sent from proxier) or until RegAck (if REQ was sent by A)
 
     //    internal ConnectedDrpPeer NewConnectionToRequester; // goes into "connected peers" only after registerACK // or gets disposed on timeout
 
@@ -70,7 +70,7 @@ namespace Dcomms.DRP
     //        //{
     //        //    case State.sentSynAck:
     //        //        if (timeNowUTC > _lastTimeTransmittedSynAck)
-    //        //        //todo retransmit regSynAck  until NextHopAckPacket   (if sent from proxier)        or until RegAck (if SYN was sent by A)
+    //        //        //todo retransmit regSynAck  until NextHopAckPacket   (if sent from proxier)        or until RegAck (if REQ was sent by A)
     //        //        //             SendPacket(_registerSynAckUdpPayload, remoteEndpoint);
     //        //        break;
     //        //}

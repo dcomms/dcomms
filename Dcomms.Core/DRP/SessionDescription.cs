@@ -31,7 +31,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// signs fields 
         /// {
-        ///   shared SYN, SYNACK fields
+        ///   shared REQ, SYNACK fields
         ///   UserCertificate,
         ///   DirectChannelEndPoint
         /// }
@@ -44,12 +44,12 @@ namespace Dcomms.DRP
         }
 
   
-        /// <param name="synAckSdIsReady">
-        /// =true for SD in ACK1
-        /// =false for SD in SYNACK (since the SessionDescription is not initialized yet)
+        /// <param name="ack1SdIsReady">
+        /// =true for SD in ACK2
+        /// =false for SD in ACK1 (since the SessionDescription is not initialized yet)
         /// </param>
-        internal byte[] Encrypt(ICryptoLibrary cryptoLibrary, InviteSynPacket syn, InviteSynAckPacket synAck, Session session,
-            bool synAckSdIsReady
+        internal byte[] Encrypt(ICryptoLibrary cryptoLibrary, InviteRequestPacket req, InviteAck1Packet ack1, Session session,
+            bool ack1SdIsReady
             )
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
@@ -68,8 +68,8 @@ namespace Dcomms.DRP
 
             #region key, iv
             PacketProcedures.CreateBinaryWriter(out var ms2, out var w2);
-            syn.GetSharedSignedFields(w2);
-            synAck.GetSharedSignedFields(w2, synAckSdIsReady);            
+            req.GetSharedSignedFields(w2);
+            ack1.GetSharedSignedFields(w2, ack1SdIsReady);            
             var iv = cryptoLibrary.GetHashSHA256(ms2.ToArray()).Take(16).ToArray();
             ms2.Write(session.SharedDhSecret, 0, session.SharedDhSecret.Length);
             var aesKey = cryptoLibrary.GetHashSHA256(ms2.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
@@ -82,11 +82,11 @@ namespace Dcomms.DRP
        
         /// <param name="receivedFromUser">comes from local contact book</param>
         internal static SessionDescription Decrypt_Verify(ICryptoLibrary cryptoLibrary, byte[] encryptedSdData, 
-            InviteSynPacket syn,
-            InviteSynAckPacket synAck,
+            InviteRequestPacket syn,
+            InviteAck1Packet synAck,
             bool synAckSdIsReady,
             Session session,
-            UserID_PublicKeys receivedFromUser,
+            UserId receivedFromUser,
             DateTime localTimeNowUtc
             )
         {

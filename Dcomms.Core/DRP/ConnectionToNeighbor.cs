@@ -30,9 +30,9 @@ namespace Dcomms.DRP
     public class ConnectionToNeighbor: IDisposable
     {
         internal byte[] SharedAuthKeyForHMAC; //  this key is shared secret, known only at requester (A) and neighbor (N), it is used for HMAC
-        RegisterSynPacket _syn;
-        RegisterSynAckPacket _synAck;
-        RegisterAckPacket _ack;
+        RegisterRequestPacket _syn;
+        RegisterAck1Packet _synAck;
+        RegisterAck2Packet _ack;
 
         #region tx parameters (parameters to transmit direct (p2p) packets from local peer to neighbor)
         public P2pConnectionToken32 RemotePeerToken32;
@@ -42,7 +42,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// initializes parameters to transmit direct (p2p) packets form requester A to neighbor N
         /// </summary>
-        public void Decrypt_synack_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(RegisterSynPacket syn, RegisterSynAckPacket synAck)
+        public void Decrypt_synack_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(RegisterRequestPacket syn, RegisterAck1Packet synAck)
         {            
             SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
@@ -76,9 +76,9 @@ namespace Dcomms.DRP
         const ushort Magic16_responderToRequester = 0x60C1; // is used to validate decrypted data
         
         /// <summary>
-        /// when sending SYN-ACK
+        /// when sending REQ-ACK
         /// </summary>
-        public byte[] Encrypt_synack_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(RegisterSynPacket syn, RegisterSynAckPacket synAck, ConnectionToNeighbor synReceivedFromInP2pMode)
+        public byte[] Encrypt_synack_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(RegisterRequestPacket syn, RegisterAck1Packet synAck, ConnectionToNeighbor synReceivedFromInP2pMode)
         {
             IPEndPoint responderEndpoint;
             if (synReceivedFromInP2pMode != null)
@@ -111,7 +111,7 @@ namespace Dcomms.DRP
             PacketProcedures.EncodeIPEndPoint(wRxParameters, responderEndpoint); // max 19
             LocalRxToken32.Encode(wRxParameters); // +4   max 23
             wRxParameters.Write(Magic16_responderToRequester);    // +2 max 25
-            var bytesRemaining = RegisterSynAckPacket.ToResponderTxParametersEncryptedLength - (int)msRxParameters.Length;
+            var bytesRemaining = RegisterAck1Packet.ToResponderTxParametersEncryptedLength - (int)msRxParameters.Length;
 
             wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));   
 
@@ -119,14 +119,14 @@ namespace Dcomms.DRP
             var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
             _engine.CryptoLibrary.ProcessAesCbcBlocks(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
 
-            if (localRxParametersEncrypted.Length != RegisterSynAckPacket.ToResponderTxParametersEncryptedLength)
+            if (localRxParametersEncrypted.Length != RegisterAck1Packet.ToResponderTxParametersEncryptedLength)
                 throw new Exception();
             return localRxParametersEncrypted;           
 
         }
                
         /// <summary>initializes parameters to transmit direct (p2p) packets form neighbor N to requester A</returns>
-        public void Decrypt_ack_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
+        public void Decrypt_ack_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(RegisterRequestPacket syn, RegisterAck1Packet synAck, RegisterAck2Packet ack)
         {
             #region key, iv
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
@@ -162,7 +162,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// when sending ACK
         /// </summary>
-        public byte[] Encrypt_ack_ToRequesterTxParametersEncrypted_AtRequester(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
+        public byte[] Encrypt_ack_ToRequesterTxParametersEncrypted_AtRequester(RegisterRequestPacket syn, RegisterAck1Packet synAck, RegisterAck2Packet ack)
         {
             #region
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);         
@@ -181,14 +181,14 @@ namespace Dcomms.DRP
             PacketProcedures.EncodeIPEndPoint(wRxParameters, LocalEndpoint); // max 19
             LocalRxToken32.Encode(wRxParameters); // +4 max 23
             wRxParameters.Write(Magic16_ipv4_requesterToResponder); // +2 max 25
-            var bytesRemaining = RegisterAckPacket.ToRequesterTxParametersEncryptedLength - (int)msRxParameters.Length;
+            var bytesRemaining = RegisterAck2Packet.ToRequesterTxParametersEncryptedLength - (int)msRxParameters.Length;
             wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));      
 
             var localRxParametersDecrypted = msRxParameters.ToArray();
             var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
             _engine.CryptoLibrary.ProcessAesCbcBlocks(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
 
-            if (localRxParametersEncrypted.Length != RegisterAckPacket.ToRequesterTxParametersEncryptedLength) throw new Exception();
+            if (localRxParametersEncrypted.Length != RegisterAck2Packet.ToRequesterTxParametersEncryptedLength) throw new Exception();
             return localRxParametersEncrypted;            
         }
         const ushort Magic16_ipv4_requesterToResponder = 0xBFA4; // is used to validate decrypted data
@@ -199,7 +199,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// initializes SharedAuthKeyForHMAC
         /// </summary>
-        public void InitializeP2pStream(RegisterSynPacket syn, RegisterSynAckPacket synAck, RegisterAckPacket ack)
+        public void InitializeP2pStream(RegisterRequestPacket syn, RegisterAck1Packet synAck, RegisterAck2Packet ack)
         {
             if (_disposed) throw new ObjectDisposedException(_name);
 
@@ -245,8 +245,8 @@ namespace Dcomms.DRP
         #endregion
                
         public ConnectedDrpPeerInitiatedBy InitiatedBy;
-        RegistrationPublicKey _remotePeerPublicKey;
-        public RegistrationPublicKey RemotePeerPublicKey
+        RegistrationId _remotePeerPublicKey;
+        public RegistrationId RemotePeerPublicKey
         {
             get => _remotePeerPublicKey;
             set
@@ -268,7 +268,7 @@ namespace Dcomms.DRP
         /// </summary>
         readonly Random _insecureRandom = new Random();
         ushort _seq16Counter_P2P; // accessed only by engine thread
-        internal NextHopAckSequenceNumber16 GetNewNhaSeq16_P2P() => new NextHopAckSequenceNumber16 { Seq16 = _seq16Counter_P2P++ };
+        internal NeighborPeerAckSequenceNumber16 GetNewNhaSeq16_P2P() => new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_P2P++ };
 
         // IirFilterCounter RxInviteRateRps;
         IirFilterCounter RxRegisterRateRps;
@@ -463,8 +463,8 @@ namespace Dcomms.DRP
             }
             try
             {
-                // we got SYN from this instance neighbor
-                var syn = RegisterSynPacket.Decode_OptionallyVerifySenderHMAC(udpPayloadData, this);
+                // we got REQ from this instance neighbor
+                var syn = RegisterRequestPacket.Decode_OptionallyVerifySenderHMAC(udpPayloadData, this);
                 // SenderToken32 and SenderHMAC are verified at this time
 
                 if (!_engine.ValidateReceivedSynTimestamp32S(syn.Timestamp32S))
@@ -485,7 +485,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                _engine.HandleGeneralException($"Exception while processing REGISTER SYN in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
+                _engine.HandleGeneralException($"Exception while processing REGISTER REQ in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
 
@@ -499,8 +499,8 @@ namespace Dcomms.DRP
             }
             try
             {
-                // we got SYN from this instance neighbor
-                var syn = InviteSynPacket.Decode_VerifySenderHMAC(udpPayloadData, this);
+                // we got REQ from this instance neighbor
+                var syn = InviteRequestPacket.Decode_VerifySenderHMAC(udpPayloadData, this);
                 // SenderToken32 and SenderHMAC are verified at this time
 
                 if (!_engine.ValidateReceivedSynTimestamp32S(syn.Timestamp32S))
@@ -512,13 +512,13 @@ namespace Dcomms.DRP
                 }
                 else
                 {
-                    var proxyTo = _engine.RouteSynInvite(this.LocalDrpPeer, syn); // routing
+                    var proxyTo = _engine.RouteInviteRequest(this.LocalDrpPeer, syn); // routing
                     _ = this.LocalDrpPeer.ProxyInviteRequestAsync(syn, this, proxyTo);                  
                 }
             }
             catch (Exception exc)
             {
-                _engine.HandleGeneralException($"Exception while processing INVITE SYN in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
+                _engine.HandleGeneralException($"Exception while processing INVITE REQ in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
 
@@ -526,10 +526,10 @@ namespace Dcomms.DRP
         {
             _engine.SendPacket(udpPayload, RemoteEndpoint);
         }
-        internal async Task SendUdpRequestAsync_Retransmit_WaitForNHACK(byte[] requestUdpData, NextHopAckSequenceNumber16 nhaSeq16, 
+        internal async Task SendUdpRequestAsync_Retransmit_WaitForNPACK(byte[] requestUdpData, NeighborPeerAckSequenceNumber16 npaSeq16, 
             Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
         {
-            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNextHopAck(requestUdpData, RemoteEndpoint, nhaSeq16, this, nhaRequestPacketFieldsForHmacNullable);
+            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(requestUdpData, RemoteEndpoint, npaSeq16, this, nhaRequestPacketFieldsForHmacNullable);
         }
                
         internal void GetResponderRegistrationConfirmationSignatureFields(BinaryWriter w)

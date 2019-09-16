@@ -30,7 +30,7 @@ namespace Dcomms.DRP
                 else return true;
             }
         }
-        bool Pow2IsOK(RegisterSynPacket packet, byte[] proofOrWork2Request)
+        bool Pow2IsOK(RegisterRequestPacket packet, byte[] proofOrWork2Request)
         {
             var ms = new MemoryStream(packet.RequesterPublicKey_RequestID.Ed25519publicKey.Length + proofOrWork2Request.Length + packet.ProofOfWork2.Length);
             using (var writer = new BinaryWriter(ms))
@@ -153,7 +153,7 @@ namespace Dcomms.DRP
                 return;
             }
 
-            var syn = RegisterSynPacket.Decode_OptionallyVerifySenderHMAC(udpPayloadData, null);
+            var syn = RegisterRequestPacket.Decode_OptionallyVerifySenderHMAC(udpPayloadData, null);
 
             if (!Pow2IsOK(syn, pow2RequestState.ProofOfWork2Request))
             {

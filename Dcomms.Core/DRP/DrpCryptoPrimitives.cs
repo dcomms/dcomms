@@ -8,14 +8,17 @@ using System.Text;
 
 namespace Dcomms.DRP
 {
-    public class RegistrationPublicKey
+    /// <summary>
+    /// = public key, point in regID space
+    /// </summary>
+    public class RegistrationId
     {
         //  byte Flags; // will include "type" = "ed25519 by default" // will include "type of distance metric"
         const byte FlagsMask_MustBeZero = 0b11110000;
         public byte[] Ed25519publicKey;
         public byte[] CachedEd25519publicKeySha256;
        
-        public RegistrationPublicKey(byte[] ed25519publicKey)
+        public RegistrationId(byte[] ed25519publicKey)
         {
             Ed25519publicKey = ed25519publicKey;
         }
@@ -27,16 +30,16 @@ namespace Dcomms.DRP
             if (Ed25519publicKey.Length != CryptoLibraries.Ed25519PublicKeySize) throw new ArgumentException();
             writer.Write(Ed25519publicKey);
         }
-        public static RegistrationPublicKey Decode(BinaryReader reader)
+        public static RegistrationId Decode(BinaryReader reader)
         {
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
-            var r = new RegistrationPublicKey(reader.ReadBytes(CryptoLibraries.Ed25519PublicKeySize));        
+            var r = new RegistrationId(reader.ReadBytes(CryptoLibraries.Ed25519PublicKeySize));        
             return r;
         }
         public override bool Equals(object obj)
         {
-            var obj2 = (RegistrationPublicKey)obj;
+            var obj2 = (RegistrationId)obj;
             return MiscProcedures.EqualByteArrays(obj2.Ed25519publicKey, this.Ed25519publicKey);
         }
         public override int GetHashCode()
@@ -47,13 +50,13 @@ namespace Dcomms.DRP
         {
             return MiscProcedures.ByteArrayToString(Ed25519publicKey);
         }
-        public RegistrationPublicKeyDistance GetDistanceTo(ICryptoLibrary cryptoLibrary, RegistrationPublicKey another) => new RegistrationPublicKeyDistance(cryptoLibrary, this, another);
+        public RegistrationIdDistance GetDistanceTo(ICryptoLibrary cryptoLibrary, RegistrationId another) => new RegistrationIdDistance(cryptoLibrary, this, another);
        
     }
-    public class RegistrationPublicKeyDistance
+    public class RegistrationIdDistance
     {
         Int64 _distance_sumSqr; // 32 bytes of reg. public key: split into 16 dimensions of 2 bytes //   euclidean distance
-        public unsafe RegistrationPublicKeyDistance(ICryptoLibrary cryptoLibrary, RegistrationPublicKey rpk1, RegistrationPublicKey rpk2)
+        public unsafe RegistrationIdDistance(ICryptoLibrary cryptoLibrary, RegistrationId rpk1, RegistrationId rpk2)
         {
             if (rpk1.CachedEd25519publicKeySha256 == null) rpk1.CachedEd25519publicKeySha256 = cryptoLibrary.GetHashSHA256(rpk1.Ed25519publicKey);
             var rpk1_ed25519publicKey_sha256 = rpk1.CachedEd25519publicKeySha256;
@@ -94,7 +97,7 @@ namespace Dcomms.DRP
 
            // return distance_i;
         }
-        public bool IsGreaterThan(RegistrationPublicKeyDistance another)
+        public bool IsGreaterThan(RegistrationIdDistance another)
         {
             return this._distance_sumSqr > another._distance_sumSqr;
         }
@@ -137,13 +140,13 @@ namespace Dcomms.DRP
             r.ed25519signature = reader.ReadBytes(CryptoLibraries.Ed25519SignatureSize);
             return r;
         }
-        public static RegistrationSignature DecodeAndVerify(BinaryReader reader, ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, RegistrationPublicKey publicKey)
+        public static RegistrationSignature DecodeAndVerify(BinaryReader reader, ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, RegistrationId publicKey)
         {
             var r = Decode(reader);  
             if (!r.Verify(cryptoLibrary, writeSignedFields, publicKey)) throw new BadSignatureException();     
             return r;
         }
-        public bool Verify(ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, RegistrationPublicKey publicKey)
+        public bool Verify(ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, RegistrationId publicKey)
         {
             var signedData = new MemoryStream();
             using (var writer = new BinaryWriter(signedData))
@@ -211,9 +214,4 @@ namespace Dcomms.DRP
         }
         public override string ToString() => MiscProcedures.ByteArrayToString(hmacSha256);
     }
-
-
-
-     
-
 }

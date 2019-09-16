@@ -9,19 +9,21 @@ namespace Dcomms.DRP.Packets
     {
         // byte Flags;
         const byte FlagsMask_MustBeZero = 0b11110000;
+
         /// <summary>
         /// authorizes peer that sends the packet
         /// </summary>
         public P2pConnectionToken32 SenderToken32;
 
         public uint Timestamp32S;
-        public RegistrationPublicKey RequesterPublicKey; // A public key 
-        public RegistrationPublicKey ResponderPublicKey; // B public key
+        public RegistrationId RequesterPublicKey; // A public key 
+        public RegistrationId ResponderPublicKey; // B public key
 
-        public byte[] ToRequesterSessionDescriptionEncrypted;
-        public RegistrationSignature RequesterSignature;
-        
-        public NextHopAckSequenceNumber16 NhaSeq16;
+        public EcdhPublicKey ResponderEcdhePublicKey;
+        public byte[] ToResponderSessionDescriptionEncrypted;
+        public RegistrationSignature ResponderSignature;
+
+        public NeighborPeerAckSequenceNumber16 NpaSeq16;
 
         /// <summary>
         /// authorizes peer that sends the packet
@@ -31,13 +33,14 @@ namespace Dcomms.DRP.Packets
         public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpPacketType.InviteAck1);
+            w.Write((byte)DrpPacketType.InviteSynAck);
             byte flags = 0;
             w.Write(flags);
 
-            NhaSeq16 = transmitToNeighbor.GetNewNhaSeq16_P2P();
             SenderToken32 = transmitToNeighbor.RemotePeerToken32;
             SenderToken32.Encode(w);
+
+            NpaSeq16 = transmitToNeighbor.GetNewNhaSeq16_P2P();
 
             GetSignedFieldsForSenderHMAC(w);
 
@@ -46,20 +49,20 @@ namespace Dcomms.DRP.Packets
 
             return ms.ToArray();
         }
-                     
-
-        internal void GetSignedFieldsForSenderHMAC(BinaryWriter w)
-        {
-            GetSharedSignedFields(w);
-            RequesterSignature.Encode(w);
-            NhaSeq16.Encode(w);
-        }
-        internal void GetSharedSignedFields(BinaryWriter w)
+        internal void GetSharedSignedFields(BinaryWriter w, bool includeToResponderSessionDescriptionEncrypted)
         {
             w.Write(Timestamp32S);
             RequesterPublicKey.Encode(w);
             ResponderPublicKey.Encode(w);
-            PacketProcedures.EncodeByteArray65536(w, ToRequesterSessionDescriptionEncrypted);
+            ResponderEcdhePublicKey.Encode(w);
+            if (includeToResponderSessionDescriptionEncrypted)
+                PacketProcedures.EncodeByteArray65536(w, ToResponderSessionDescriptionEncrypted);
+        }
+        internal void GetSignedFieldsForSenderHMAC(BinaryWriter w)
+        {
+            GetSharedSignedFields(w, true);
+            ResponderSignature.Encode(w);
+            NpaSeq16.Encode(w);
         }
 
         internal byte[] DecodedUdpPayloadData;
@@ -75,31 +78,32 @@ namespace Dcomms.DRP.Packets
             r.SenderToken32 = P2pConnectionToken32.Decode(reader);
 
             r.Timestamp32S = reader.ReadUInt32();
-            r.RequesterPublicKey = RegistrationPublicKey.Decode(reader);
-            r.ResponderPublicKey = RegistrationPublicKey.Decode(reader);
-            r.ToRequesterSessionDescriptionEncrypted = PacketProcedures.DecodeByteArray65536(reader);
-            r.RequesterSignature = RegistrationSignature.Decode(reader);          
-            r.NhaSeq16 = NextHopAckSequenceNumber16.Decode(reader);
+            r.RequesterPublicKey = RegistrationId.Decode(reader);
+            r.ResponderPublicKey = RegistrationId.Decode(reader);
+            r.ResponderEcdhePublicKey = EcdhPublicKey.Decode(reader);
+            r.ToResponderSessionDescriptionEncrypted = PacketProcedures.DecodeByteArray65536(reader);
+            r.ResponderSignature = RegistrationSignature.Decode(reader);
+            r.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);
 
             r.SenderHMAC = HMAC.Decode(reader);
+
             return r;
         }
 
 
-
         /// <summary>
-        /// creates a scanner that finds ACK1 that matches to SYN
-        /// the scanner will verify ACK1.SenderHMAC
+        /// creates a scanner that finds SYNACK that matches to REQ
+        /// the scanner will verify SYNACK.SenderHMAC
         /// </summary>
         /// <param name="connectionToNeighbor">
-        /// requester peer that sends ACK1
+        /// peer that responds to REQ with SYNACK
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(InviteSynPacket syn, ConnectionToNeighbor connectionToNeighbor)
+        public static LowLevelUdpResponseScanner GetScanner(InviteRequestPacket syn, ConnectionToNeighbor connectionToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpPacketType.InviteAck1);
+            w.Write((byte)DrpPacketType.InviteSynAck);
             w.Write((byte)0); // flags
-
+           
             connectionToNeighbor.LocalRxToken32.Encode(w);
 
             w.Write(syn.Timestamp32S);
@@ -111,16 +115,17 @@ namespace Dcomms.DRP.Packets
                 ResponseFirstBytes = ms.ToArray(),
                 IgnoredByteAtOffset1 = 1 // ignore flags
             };
-
+         
             r.OptionalFilter = (responseData) =>
             {
-                var ack1 = Decode(responseData);
-                if (ack1.SenderHMAC.Equals(connectionToNeighbor.GetSenderHMAC(ack1.GetSignedFieldsForSenderHMAC)) == false) return false;
+                var synack = Decode(responseData);
+                if (synack.SenderHMAC.Equals(connectionToNeighbor.GetSenderHMAC(synack.GetSignedFieldsForSenderHMAC)) == false) return false;
                 return true;
             };
-
+            
             return r;
         }
+
 
     }
 }

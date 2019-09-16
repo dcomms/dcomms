@@ -17,10 +17,10 @@ namespace Dcomms.DRP
     }
     class RequestDetailsRecord
     {
-        RegistrationPublicKey Sender;
-        RegistrationPublicKey Receiver;
-        RegistrationPublicKey Requester;
-        RegistrationPublicKey Responder;
+        RegistrationId Sender;
+        RegistrationId Receiver;
+        RegistrationId Requester;
+        RegistrationId Responder;
         DateTime RequestCreatedTimeUTC;
         DateTime RequestFinishedTimeUTC;
         DrpResponderStatusCode Status;

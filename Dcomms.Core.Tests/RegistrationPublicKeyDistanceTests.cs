@@ -24,10 +24,10 @@ namespace Dcomms.Core.Tests
         }
         unsafe void Test1Subroutine(ushort vector1_i, ushort vector2_i, short correct_d_i)
         {
-            var d_i = RegistrationPublicKeyDistance.VectorComponentRoutine(vector1_i, vector2_i);
+            var d_i = RegistrationIdDistance.VectorComponentRoutine(vector1_i, vector2_i);
             Assert.IsTrue(correct_d_i == d_i);
 
-            d_i = RegistrationPublicKeyDistance.VectorComponentRoutine(vector2_i, vector1_i);
+            d_i = RegistrationIdDistance.VectorComponentRoutine(vector2_i, vector1_i);
             Assert.IsTrue(correct_d_i == d_i);
         }
     }

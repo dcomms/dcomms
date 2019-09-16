@@ -20,12 +20,12 @@ namespace Dcomms.DRP
                 throw new NotImplementedException();
             }
 
-            public UserID_PublicKeys OnReceivedInvite_LookupUser(RegistrationPublicKey remoteRegID)
+            public UserId OnReceivedInvite_LookupUser(RegistrationId remoteRegID)
             {
                 throw new NotImplementedException();
             }
 
-            public SessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserID_PublicKeys requesterUserId)
+            public SessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId)
             {
                 throw new NotImplementedException();
             }
@@ -55,7 +55,7 @@ namespace Dcomms.DRP
                 NumberOfNeighborsToKeep = 20,
             };
             epConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _ep.CryptoLibrary.GeneratePrivateKeyEd25519() };
-            epConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey(_ep.CryptoLibrary.GetPublicKeyEd25519(epConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
+            epConfig.LocalPeerRegistrationPublicKey = new RegistrationId(_ep.CryptoLibrary.GetPublicKeyEd25519(epConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
             _ep.BeginCreateLocalPeer(epConfig, new User(), (rpLocalPeer) =>
             {   
                 _a = new DrpPeerEngine(new DrpPeerEngineConfiguration
@@ -71,7 +71,7 @@ namespace Dcomms.DRP
                     NumberOfNeighborsToKeep = 10
                 };
                 aConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _a.CryptoLibrary.GeneratePrivateKeyEd25519() };
-                aConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey(_a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
+                aConfig.LocalPeerRegistrationPublicKey = new RegistrationId(_a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
     
                 
                 _x = new DrpPeerEngine(new DrpPeerEngineConfiguration
@@ -89,7 +89,7 @@ namespace Dcomms.DRP
 
             _retryx:
                 xConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _x.CryptoLibrary.GeneratePrivateKeyEd25519() };
-                xConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey(_x.CryptoLibrary.GetPublicKeyEd25519(xConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
+                xConfig.LocalPeerRegistrationPublicKey = new RegistrationId(_x.CryptoLibrary.GetPublicKeyEd25519(xConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
                 var distance_eptoa = epConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(_x.CryptoLibrary, aConfig.LocalPeerRegistrationPublicKey);
                 var distance_xtoa = xConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(_x.CryptoLibrary, aConfig.LocalPeerRegistrationPublicKey);
                 if (distance_xtoa.IsGreaterThan(distance_eptoa)) goto _retryx;
@@ -110,7 +110,7 @@ namespace Dcomms.DRP
 
             _retryn:
                 nConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _x.CryptoLibrary.GeneratePrivateKeyEd25519() };
-                nConfig.LocalPeerRegistrationPublicKey = new RegistrationPublicKey(_n.CryptoLibrary.GetPublicKeyEd25519(nConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
+                nConfig.LocalPeerRegistrationPublicKey = new RegistrationId(_n.CryptoLibrary.GetPublicKeyEd25519(nConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
                 var distance_ntoa = nConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(_n.CryptoLibrary, aConfig.LocalPeerRegistrationPublicKey);
                 if (distance_ntoa.IsGreaterThan(distance_xtoa)) goto _retryn;
 
@@ -147,9 +147,14 @@ namespace Dcomms.DRP
         public async Task SendInvite_AtoX_Async()
         {
             UserRootPrivateKeys.CreateUserId(1, 1, _a.CryptoLibrary, out var aUserPrivateKeys, out var aUserID);
-           \
-            var aUserCertificate = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_a.CryptoLibrary, aUserID, aUserPrivateKeys, );
-            _aLocalDrpPeer.BeginSendInvite();
+            UserRootPrivateKeys.CreateUserId(1, 1, _x.CryptoLibrary, out var xUserPrivateKeys, out var xUserID);
+
+            var aUserCertificate = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_a.CryptoLibrary, aUserID, aUserPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
+            _aLocalDrpPeer.BeginSendInvite(aUserCertificate, _xLocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey, xUserID, 
+                session =>
+                {
+                    //todo
+                });
         }
     }
 }

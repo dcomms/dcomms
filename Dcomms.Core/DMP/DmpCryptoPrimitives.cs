@@ -7,7 +7,10 @@ using System.Text;
 
 namespace Dcomms.DMP
 {
-    public class UserID_PublicKeys
+    /// <summary>
+    /// = public root keys of the user
+    /// </summary>
+    public class UserId
     {
         /// <summary>
         /// includes "root keys digital signature algorithm type": "ed25519", "rsa2048"
@@ -40,7 +43,7 @@ namespace Dcomms.DMP
         
         public override bool Equals(object obj)
         {
-            var obj2 = (UserID_PublicKeys)obj;
+            var obj2 = (UserId)obj;
             if (obj2.RootPublicKeys.Count != this.RootPublicKeys.Count)
                 return false;
 
@@ -73,9 +76,9 @@ namespace Dcomms.DMP
             foreach (var rootPublicKey in RootPublicKeys)
                 writer.Write(rootPublicKey);
         }
-        static UserID_PublicKeys Decode(BinaryReader reader)
+        static UserId Decode(BinaryReader reader)
         {
-            var r = new UserID_PublicKeys();
+            var r = new UserId();
             r.Flags = reader.ReadByte();
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
 
@@ -101,12 +104,12 @@ namespace Dcomms.DMP
         public List<byte[]> ed25519privateKeys; 
 
         public static void CreateUserId(int numberOfKeyPairs, byte requiredSignaturesCount, ICryptoLibrary cryptoLibrary, 
-            out UserRootPrivateKeys privateKeys, out UserID_PublicKeys publicKeys)
+            out UserRootPrivateKeys privateKeys, out UserId publicKeys)
         {
             if (numberOfKeyPairs <= 0 || numberOfKeyPairs > 3) throw new ArgumentException(); // the UDP packets can go over 1000 bytes to transfer a big UsersCertificate
             privateKeys = new UserRootPrivateKeys();
             privateKeys.ed25519privateKeys = new List<byte[]>();
-            publicKeys = new UserID_PublicKeys();
+            publicKeys = new UserId();
             publicKeys.MinimalRequiredRootSignaturesCountInCertificate = requiredSignaturesCount;
             publicKeys.MaxCertificateDuration = TimeSpan.FromDays(30);
             publicKeys.RootPublicKeys = new List<byte[]>();
@@ -179,7 +182,7 @@ namespace Dcomms.DMP
         /// throws exception if the certificate is invalid for the specified userId   (the caller knows that certificate came from the userId)
         /// also checks userId - expired or not
         /// </summary>
-        void AssertIsValidNow(ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, DateTime localTimeNowUtc)
+        void AssertIsValidNow(ICryptoLibrary cryptoLibrary, UserId userId, DateTime localTimeNowUtc)
         {                      
             if (localTimeNowUtc > ValidToUtc) throw new CertificateOutOfDateException();
             if (localTimeNowUtc < ValidFromUtc) throw new CertificateOutOfDateException();            
@@ -213,7 +216,7 @@ namespace Dcomms.DMP
             writer.Write(CertificatePublicKey);
             writer.Write(userRootSignature.SignatureSalt);
         }
-        public static UserCertificate GenerateKeyPairsAndSignAtSingleDevice(ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, 
+        public static UserCertificate GenerateKeyPairsAndSignAtSingleDevice(ICryptoLibrary cryptoLibrary, UserId userId, 
             UserRootPrivateKeys userRootPrivatekeys, DateTime fromUtc, DateTime toUtc)
         {
             if (userId.RootPublicKeys.Count > 255) throw new ArgumentException();
@@ -262,7 +265,7 @@ namespace Dcomms.DMP
         /// <summary>
         /// throws exception if the certificate is invalid for the specified userId   (the caller knows that certificate came from the userId)
         /// </summary>
-        public static UserCertificate Decode_AssertIsValidNow(BinaryReader reader, ICryptoLibrary cryptoLibrary, UserID_PublicKeys userId, DateTime localTimeNowUtc)
+        public static UserCertificate Decode_AssertIsValidNow(BinaryReader reader, ICryptoLibrary cryptoLibrary, UserId userId, DateTime localTimeNowUtc)
         {
             var r = new UserCertificate();
             r.Flags = reader.ReadByte();

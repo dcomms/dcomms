@@ -25,7 +25,7 @@ namespace Dcomms.DRP
         public TimeSpan Pow2RequestStatesTablePeriod = TimeSpan.FromSeconds(5);
         public int Pow2RequestStatesTableMaxSize = 100000;
         /// <summary>
-        /// max allowed difference between local system clock and received SYN.Timestamp32S at responder or proxy
+        /// max allowed difference between local system clock and received REQ.Timestamp32S at responder or proxy
         /// </summary>
         public int MaxSynTimestampDifference = 20 * 60;
 
@@ -49,7 +49,7 @@ namespace Dcomms.DRP
     public class DrpPeerRegistrationConfiguration
     {
         public IPEndPoint[] EntryPeerEndpoints; // in case when local peer IP = entry peer IP, it is skipped
-        public RegistrationPublicKey LocalPeerRegistrationPublicKey;
+        public RegistrationId LocalPeerRegistrationPublicKey;
         public RegistrationPrivateKey LocalPeerRegistrationPrivateKey;
         public int? NumberOfNeighborsToKeep;
     }
