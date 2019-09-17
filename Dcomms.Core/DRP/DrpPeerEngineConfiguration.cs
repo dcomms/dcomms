@@ -49,7 +49,7 @@ namespace Dcomms.DRP
     public class DrpPeerRegistrationConfiguration
     {
         public IPEndPoint[] EntryPeerEndpoints; // in case when local peer IP = entry peer IP, it is skipped
-        public RegistrationId LocalPeerRegistrationPublicKey;
+        public RegistrationId LocalPeerRegistrationId;
         public RegistrationPrivateKey LocalPeerRegistrationPrivateKey;
         public int? NumberOfNeighborsToKeep;
     }

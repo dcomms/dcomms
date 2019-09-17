@@ -29,27 +29,27 @@ namespace Dcomms.DRP
     /// </summary>
     public class ConnectionToNeighbor: IDisposable
     {
-        internal byte[] SharedAuthKeyForHMAC; //  this key is shared secret, known only at requester (A) and neighbor (N), it is used for HMAC
+        internal byte[] SharedAuthKeyForNeighborHMAC; //  this key is shared secret, known only at requester (A) and neighbor (N), it is used for HMAC
         RegisterRequestPacket _req;
         RegisterAck1Packet _ack1;
         RegisterAck2Packet _ack2;
 
         #region tx parameters (parameters to transmit direct (p2p) packets from local peer to neighbor)
-        public P2pConnectionToken32 RemotePeerToken32;
+        public NeighborToken32 RemoteNeighborToken32;
         public IPEndPoint RemoteEndpoint; // IP address + UDP port // where to send packets
         internal byte[] SharedDhSecret;
 
         /// <summary>
         /// initializes parameters to transmit direct (p2p) packets form requester A to neighbor N
         /// </summary>
-        public void Decrypt_synack_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(RegisterRequestPacket syn, RegisterAck1Packet synAck)
+        public void Decrypt_ack1_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(RegisterRequestPacket req, RegisterAck1Packet ack1)
         {            
-            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
+            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
             #region iv, key
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
-            syn.GetCommonRequesterProxyResponderFields(writer, true);
-            synAck.GetCommonRequesterProxierResponderFields(writer, false, false);
+            req.GetCommonRequesterProxyResponderFields(writer, true);
+            ack1.GetCommonRequesterProxierResponderFields(writer, false, false);
            
             var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
@@ -58,19 +58,19 @@ namespace Dcomms.DRP
             #endregion
 
 
-            var toNeighborTxParametersDecrypted = new byte[synAck.ToResponderTxParametersEncrypted.Length];
-            _engine.CryptoLibrary.ProcessAesCbcBlocks(false, aesKey, iv, synAck.ToResponderTxParametersEncrypted, toNeighborTxParametersDecrypted);
+            var toNeighborTxParametersDecrypted = new byte[ack1.ToResponderTxParametersEncrypted.Length];
+            _engine.CryptoLibrary.ProcessAesCbcBlocks(false, aesKey, iv, ack1.ToResponderTxParametersEncrypted, toNeighborTxParametersDecrypted);
 
             // parse toNeighborTxParametersDecrypted
             using (var reader = new BinaryReader(new MemoryStream(toNeighborTxParametersDecrypted)))
             {
                 RemoteEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
-                RemotePeerToken32 = P2pConnectionToken32.Decode(reader);
+                RemoteNeighborToken32 = NeighborToken32.Decode(reader);
                 var magic16 = reader.ReadUInt16();
                 if (magic16 != Magic16_responderToRequester) throw new BrokenCipherException();
             }
             
-            _engine.WriteToLog_reg_requesterSide_detail($"decrypted remote endpoint={RemoteEndpoint}, remotePeerToken={RemotePeerToken32}");
+            _engine.WriteToLog_reg_requesterSide_detail($"decrypted remote endpoint={RemoteEndpoint}, remotePeerToken={RemoteNeighborToken32}");
             
         }
         const ushort Magic16_responderToRequester = 0x60C1; // is used to validate decrypted data
@@ -109,7 +109,7 @@ namespace Dcomms.DRP
             // encode localRxParameters
             PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
             PacketProcedures.EncodeIPEndPoint(wRxParameters, responderEndpoint); // max 19
-            LocalRxToken32.Encode(wRxParameters); // +4   max 23
+            LocalNeighborToken32.Encode(wRxParameters); // +4   max 23
             wRxParameters.Write(Magic16_responderToRequester);    // +2 max 25
             var bytesRemaining = RegisterAck1Packet.ToResponderTxParametersEncryptedLength - (int)msRxParameters.Length;
 
@@ -148,12 +148,12 @@ namespace Dcomms.DRP
             using (var reader = new BinaryReader(new MemoryStream(toRequesterTxParametersDecrypted)))
             {
                 RemoteEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
-                RemotePeerToken32 = P2pConnectionToken32.Decode(reader);
+                RemoteNeighborToken32 = NeighborToken32.Decode(reader);
                 var magic16 = reader.ReadUInt16();
                 if (magic16 != Magic16_ipv4_requesterToResponder) throw new BrokenCipherException();
             }
 
-            _engine.WriteToLog_reg_responderSide_detail($"decrypted remote endpoint={RemoteEndpoint}, remotePeerToken={RemotePeerToken32}");
+            _engine.WriteToLog_reg_responderSide_detail($"decrypted remote endpoint={RemoteEndpoint}, remotePeerToken={RemoteNeighborToken32}");
 
             InitializeP2pStream(req, ack1, ack2);            
         }
@@ -178,7 +178,7 @@ namespace Dcomms.DRP
             // encode localRxParameters
             PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
             PacketProcedures.EncodeIPEndPoint(wRxParameters, LocalEndpoint); // max 19
-            LocalRxToken32.Encode(wRxParameters); // +4 max 23
+            LocalNeighborToken32.Encode(wRxParameters); // +4 max 23
             wRxParameters.Write(Magic16_ipv4_requesterToResponder); // +2 max 25
             var bytesRemaining = RegisterAck2Packet.ToRequesterTxParametersEncryptedLength - (int)msRxParameters.Length;
             wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));      
@@ -216,30 +216,30 @@ namespace Dcomms.DRP
 
                 ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
 
-                SharedAuthKeyForHMAC = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
+                SharedAuthKeyForNeighborHMAC = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
 
-                _engine.WriteToLog_p2p_detail(this, $"initialized P2P stream: SharedAuthKeyForHMAC={MiscProcedures.ByteArrayToString(SharedAuthKeyForHMAC)}");
+                _engine.WriteToLog_p2p_detail(this, $"initialized P2P stream: SharedAuthKeyForHMAC={MiscProcedures.ByteArrayToString(SharedAuthKeyForNeighborHMAC)}");
                 //Encryptor = cryptoLibrary.CreateAesEncyptor(iv, aesKey);
                 //Decryptor = cryptoLibrary.CreateAesDecyptor(iv, aesKey);
             }
         }
-        public HMAC GetSenderHMAC(byte[] data)
+        public HMAC GetNeighborHMAC(byte[] data)
         {
             if (_disposed) throw new ObjectDisposedException(_name);
-            if (SharedAuthKeyForHMAC == null) throw new InvalidOperationException();
+            if (SharedAuthKeyForNeighborHMAC == null) throw new InvalidOperationException();
             var r = new HMAC
             {
-                hmacSha256 = _engine.CryptoLibrary.GetSha256HMAC(SharedAuthKeyForHMAC, data)
+                hmacSha256 = _engine.CryptoLibrary.GetSha256HMAC(SharedAuthKeyForNeighborHMAC, data)
             };
             
           //  Engine.WriteToLog_ping_detail($"<< GetSharedHmac(input={MiscProcedures.ByteArrayToString(data)}, sha256={MiscProcedures.ByteArrayToString(_engine.CryptoLibrary.GetHashSHA256(data))}) returns {r}. SharedAuthKeyForHMAC={MiscProcedures.ByteArrayToString(SharedAuthKeyForHMAC)}");
             return r;
         }
-        public HMAC GetSenderHMAC(Action<BinaryWriter> data)
+        public HMAC GetNeighborHMAC(Action<BinaryWriter> data)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             data(w);
-            return GetSenderHMAC(ms.ToArray());
+            return GetNeighborHMAC(ms.ToArray());
         }
         #endregion
                
@@ -256,7 +256,7 @@ namespace Dcomms.DRP
         }
         string _name = "ConnectionToNeighbor";
         public override string ToString() => _name;
-        public readonly P2pConnectionToken32 LocalRxToken32; // is generated by local peer
+        public readonly NeighborToken32 LocalNeighborToken32; // is generated by local peer
         /// <summary>
         /// ip address and port of local peer, which _can_ be accessible by remote peers via internet
         /// </summary>
@@ -267,7 +267,7 @@ namespace Dcomms.DRP
         /// </summary>
         readonly Random _insecureRandom = new Random();
         ushort _seq16Counter_P2P; // accessed only by engine thread
-        internal NeighborPeerAckSequenceNumber16 GetNewNhaSeq16_P2P() => new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_P2P++ };
+        internal NeighborPeerAckSequenceNumber16 GetNewNpaSeq16_P2P() => new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_P2P++ };
 
         // IirFilterCounter RxInviteRateRps;
         IirFilterCounter RxRegisterRateRps;
@@ -299,10 +299,10 @@ namespace Dcomms.DRP
             _engine = engine;
             _lastTimeCreatedOrReceivedVerifiedResponsePacket = _engine.DateTimeNowUtc;
             InitiatedBy = initiatedBy;
-            P2pConnectionToken32 localRxToken32 = null;
+            NeighborToken32 localRxToken32 = null;
             for (int i = 0; i < 100; i++)
             {
-                localRxToken32 = new P2pConnectionToken32 { Token32 = (uint)_engine.InsecureRandom.Next() };
+                localRxToken32 = new NeighborToken32 { Token32 = (uint)_engine.InsecureRandom.Next() };
                 var rToken16 = localRxToken32.Token16;
                 if (_engine.ConnectedPeersByToken16[rToken16] == null)
                 {
@@ -311,7 +311,7 @@ namespace Dcomms.DRP
             }
             if (localRxToken32 == null) throw new InsufficientResourcesException();
 
-            LocalRxToken32 = localRxToken32;
+            LocalNeighborToken32 = localRxToken32;
             
             _engine.CryptoLibrary.GenerateEcdh25519Keypair(out LocalEcdhe25519PrivateKey, out LocalEcdhe25519PublicKey);
         }
@@ -320,7 +320,7 @@ namespace Dcomms.DRP
             if (_disposed) return;
             _disposed = true;
             _localDrpPeer.ConnectedNeighbors.Remove(this);
-            _engine.ConnectedPeersByToken16[LocalRxToken32.Token16] = null;
+            _engine.ConnectedPeersByToken16[LocalNeighborToken32.Token16] = null;
         }
 
         #region ping pong
@@ -329,14 +329,14 @@ namespace Dcomms.DRP
             if (_disposed) throw new ObjectDisposedException(_name);
             var r = new PingPacket
             {
-                SenderToken32 = RemotePeerToken32,
+                NeighborToken32 = RemoteNeighborToken32,
                 MaxRxInviteRateRps = 10, //todo get from some local capabilities   like number of neighbors
                 MaxRxRegisterRateRps = 10, //todo get from some local capabilities   like number of neighbors
                 PingRequestId32 = (uint)_insecureRandom.Next(),
             };
             if (requestRegistrationConfirmationSignature)
                 r.Flags |= PingPacket.Flags_RegistrationConfirmationSignatureRequested;
-            r.SenderHMAC = GetSenderHMAC(r.GetSignedFieldsForSenderHMAC);
+            r.NeighborHMAC = GetNeighborHMAC(r.GetSignedFieldsForNeighborHMAC);
             return r;
         }
         public void OnTimer100ms(DateTime timeNowUTC, out bool needToRestartLoop) // engine thread
@@ -434,15 +434,15 @@ namespace Dcomms.DRP
                 var pong = new PongPacket
                 {
                     PingRequestId32 = pingRequestPacket.PingRequestId32,
-                    SenderToken32 = RemotePeerToken32,
+                    NeighborToken32 = RemoteNeighborToken32,
                 };
                 if ((pingRequestPacket.Flags & PingPacket.Flags_RegistrationConfirmationSignatureRequested) != 0)
                 {
                     pong.ResponderRegistrationConfirmationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
                         GetResponderRegistrationConfirmationSignatureFields, _localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);                
                 }
-                pong.SenderHMAC = GetSenderHMAC(pong.GetSignedFieldsForSenderHMAC);
-              //  _engine.WriteToLog_ping_detail($" sending ping response with senderHMAC={pong.SenderHMAC}");
+                pong.NeighborHMAC = GetNeighborHMAC(pong.GetSignedFieldsForNeighborHMAC);
+              //  _engine.WriteToLog_ping_detail($" sending ping response with senderHMAC={pong.NeighborHMAC}");
                 SendPacket(pong.Encode());
             }
             catch (Exception exc)
@@ -452,7 +452,7 @@ namespace Dcomms.DRP
         }
         #endregion
 
-        internal void OnReceivedRegisterSyn(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
+        internal void OnReceivedRegisterReq(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
         {
             if (_disposed) return;
             if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -463,22 +463,22 @@ namespace Dcomms.DRP
             try
             {
                 // we got REQ from this instance neighbor
-                var syn = RegisterRequestPacket.Decode_OptionallyVerifySenderHMAC(udpPayloadData, this);
-                // SenderToken32 and SenderHMAC are verified at this time
+                var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpPayloadData, this);
+                // NeighborToken32 and NeighborHMAC are verified at this time
 
-                if (!_engine.ValidateReceivedReqTimestamp32S(syn.Timestamp32S))
+                if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
                     throw new BadSignatureException();
                 
                               
-                _engine.RouteRegistrationRequest(this.LocalDrpPeer, syn, out var proxyToDestinationPeer, out var acceptAt); // routing
+                _engine.RouteRegistrationRequest(this.LocalDrpPeer, req, out var proxyToDestinationPeer, out var acceptAt); // routing
 
                 if (acceptAt != null)
                 {   // accept the registration request here at this.LocalDrpPeer                                       
-                    _ = _engine.AcceptRegisterRequestAsync(acceptAt, syn, requesterEndpoint, this);
+                    _ = _engine.AcceptRegisterRequestAsync(acceptAt, req, requesterEndpoint, this);
                 }
                 else if (proxyToDestinationPeer != null)
                 {  // proxy the registration request to another peer
-                    _ = _engine.ProxyRegisterRequestAsync(proxyToDestinationPeer, syn, requesterEndpoint, this);
+                    _ = _engine.ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, this);
                 }
                 else throw new Exception();
             }
@@ -499,20 +499,20 @@ namespace Dcomms.DRP
             try
             {
                 // we got REQ from this instance neighbor
-                var syn = InviteRequestPacket.Decode_VerifySenderHMAC(udpPayloadData, this);
-                // SenderToken32 and SenderHMAC are verified at this time
+                var req = InviteRequestPacket.Decode_VerifyNeighborHMAC(udpPayloadData, this);
+                // NeighborToken32 and NeighborHMAC are verified at this time
 
-                if (!_engine.ValidateReceivedReqTimestamp32S(syn.Timestamp32S))
+                if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
                     throw new BadSignatureException();
 
-                if (syn.ResponderPublicKey.Equals(this.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey))
+                if (req.ResponderPublicKey.Equals(this.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId))
                 {
-                    _ = this.LocalDrpPeer.AcceptInviteRequestAsync(syn, this);
+                    _ = this.LocalDrpPeer.AcceptInviteRequestAsync(req, this);
                 }
                 else
                 {
-                    var proxyTo = _engine.RouteInviteRequest(this.LocalDrpPeer, syn); // routing
-                    _ = this.LocalDrpPeer.ProxyInviteRequestAsync(syn, this, proxyTo);                  
+                    var destinationPeer = _engine.RouteInviteRequest(this.LocalDrpPeer, req); // routing
+                    _ = this.LocalDrpPeer.ProxyInviteRequestAsync(req, this, destinationPeer);                  
                 }
             }
             catch (Exception exc)
@@ -547,7 +547,7 @@ namespace Dcomms.DRP
     /// is needed  1) for faster lookup of remote peer by first 16 of 32 bits 2) to have multiple DRP peer reg IDs running at same UDP port
     /// is unique at remote (responder) peer; is used to identify local (sender) peer at remote peer (together with HMAC)
     /// </summary>
-    public class P2pConnectionToken32
+    public class NeighborToken32
     {
         public uint Token32;
         public ushort Token16 => (ushort)(Token32 & 0x0000FFFF);
@@ -555,15 +555,15 @@ namespace Dcomms.DRP
         {
             writer.Write(Token32);
         }
-        public static P2pConnectionToken32 Decode(BinaryReader reader)
+        public static NeighborToken32 Decode(BinaryReader reader)
         {
-            var r = new P2pConnectionToken32();
+            var r = new NeighborToken32();
             r.Token32 = reader.ReadUInt32();
             return r;
         }
         public override bool Equals(object obj)
         {
-            return ((P2pConnectionToken32)obj).Token32 == this.Token32;
+            return ((NeighborToken32)obj).Token32 == this.Token32;
         }
         public override string ToString() => Token32.ToString("X8");
     }

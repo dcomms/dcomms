@@ -20,21 +20,21 @@ namespace Dcomms.DRP.Packets
 
         /// <summary>
         /// is not transmitted in A-EP packet
-        /// comes from ConnectionToNeighbor.RemotePeerToken32 in case when this packet goes ofver established P2P connection (flag A-EP is zero)
+        /// comes from ConnectionToNeighbor.RemoteNeighborToken32 in case when this packet goes ofver established P2P connection (flag A-EP is zero)
         /// </summary>
-        public P2pConnectionToken32 SenderToken32; 
+        public NeighborToken32 NeighborToken32; 
         public NextHopResponseCode StatusCode;
         /// <summary>
         /// signature of sender neighbor peer
         /// is NULL for EP->A packet
         /// uses common secret of neighbors within P2P connection
         /// </summary>
-        public HMAC SenderHMAC;
+        public HMAC NeighborHMAC;
 
         public NeighborPeerAckPacket()
         { }
 
-        /// <param name="waitNhaFromNeighborNullable">is used to verify NPACK.SenderHMAC</param>
+        /// <param name="waitNhaFromNeighborNullable">is used to verify NPACK.NeighborHMAC</param>
         public static LowLevelUdpResponseScanner GetScanner(NeighborPeerAckSequenceNumber16 npaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, 
             Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
         {
@@ -46,8 +46,8 @@ namespace Dcomms.DRP.Packets
                 r.OptionalFilter = (responseData) =>
                 {
                     var npack = new NeighborPeerAckPacket(responseData);
-                    if (npack.SenderHMAC == null) return false;
-                    if (!npack.SenderHMAC.Equals(waitNhaFromNeighborNullable.GetSenderHMAC(w2 => npack.GetFieldsForHMAC(w2, nhaRequestPacketFieldsForHmacNullable)))) return false;
+                    if (npack.NeighborHMAC == null) return false;
+                    if (!npack.NeighborHMAC.Equals(waitNhaFromNeighborNullable.GetNeighborHMAC(w2 => npack.GetFieldsForHMAC(w2, nhaRequestPacketFieldsForHmacNullable)))) return false;
                     return true;
                 };
             }
@@ -55,7 +55,7 @@ namespace Dcomms.DRP.Packets
         }
         static void EncodeHeader(BinaryWriter w, NeighborPeerAckSequenceNumber16 npaSeq16)
         {
-            w.Write((byte)DrpPacketType.NextHopAck);
+            w.Write((byte)DrpPacketType.NeighborPeerAck);
             npaSeq16.Encode(w);
         }
         public byte[] Encode(bool epToA)
@@ -65,9 +65,9 @@ namespace Dcomms.DRP.Packets
             byte flags = 0;
             if (epToA) flags |= Flag_EPtoA;
             writer.Write(flags);
-            if (epToA == false)SenderToken32.Encode(writer);
+            if (epToA == false)NeighborToken32.Encode(writer);
             writer.Write((byte)StatusCode);
-            if (epToA == false)SenderHMAC.Encode(writer);
+            if (epToA == false)NeighborHMAC.Encode(writer);
             return ms.ToArray();
         }
         public NeighborPeerAckPacket(byte[] nextHopResponsePacketData)
@@ -76,15 +76,15 @@ namespace Dcomms.DRP.Packets
             NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
-            if ((flags & Flag_EPtoA) == 0) SenderToken32 = P2pConnectionToken32.Decode(reader);
+            if ((flags & Flag_EPtoA) == 0) NeighborToken32 = NeighborToken32.Decode(reader);
             StatusCode = (NextHopResponseCode)reader.ReadByte();
-            if ((flags & Flag_EPtoA) == 0) SenderHMAC = HMAC.Decode(reader);
+            if ((flags & Flag_EPtoA) == 0) NeighborHMAC = HMAC.Decode(reader);
         } 
 
         internal void GetFieldsForHMAC(BinaryWriter w, Action<BinaryWriter> nhaRequestPacketFieldsForHMAC)
         {
             EncodeHeader(w, NpaSeq16);
-            SenderToken32.Encode(w); // it is not null, if we verify HMAC
+            NeighborToken32.Encode(w); // it is not null, if we verify HMAC
             w.Write((byte)StatusCode);
             nhaRequestPacketFieldsForHMAC(w);
         }

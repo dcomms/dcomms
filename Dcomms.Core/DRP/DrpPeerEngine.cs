@@ -118,11 +118,11 @@ namespace Dcomms.DRP
                 return;
             }
 
-            if (packetType == DrpPacketType.RegisterSyn)
+            if (packetType == DrpPacketType.RegisterReq)
             {
                 if (RegisterRequestPacket.IsAtoEP(udpPayloadData))
                 {
-                    ProcessRegisterSynAtoEpPacket(remoteEndpoint, udpPayloadData);
+                    ProcessRegisterReqAtoEpPacket(remoteEndpoint, udpPayloadData);
                     return;
                 }
             }
@@ -150,15 +150,15 @@ namespace Dcomms.DRP
                                 connectedPeer.OnReceivedPong(remoteEndpoint, udpPayloadData, receivedAtUtc);
                         }
                         break;
-                    case DrpPacketType.RegisterSyn:
+                    case DrpPacketType.RegisterReq:
                         {
                             var localRxToken16 = RegisterRequestPacket.DecodeToken16FromUdpPayloadData_P2Pmode(udpPayloadData);
                             var connectedPeer = ConnectedPeersByToken16[localRxToken16];
                             if (connectedPeer != null)
-                                connectedPeer.OnReceivedRegisterSyn(remoteEndpoint, udpPayloadData);
+                                connectedPeer.OnReceivedRegisterReq(remoteEndpoint, udpPayloadData);
                         }
                         break;
-                    case DrpPacketType.InviteSyn:
+                    case DrpPacketType.InviteReq:
                         {
                             var localRxToken16 = RegisterRequestPacket.DecodeToken16FromUdpPayloadData_P2Pmode(udpPayloadData);
                             var connectedPeer = ConnectedPeersByToken16[localRxToken16];

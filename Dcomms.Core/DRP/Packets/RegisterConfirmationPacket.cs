@@ -8,7 +8,7 @@ namespace Dcomms.DRP.Packets
     /// <summary>
     /// is sent by A when it receives signed ping response from N
     /// A->EP->M
-    /// EP and X proxies have authorized the registration request already, by RequesterPublicKey_RequestID
+    /// EP and X proxies have authorized the registration request already, by RequesterRegistrationId
     /// the proxies finalize the pending REGISTER request, erase state, 
     /// verify signatures of N and A, update RDRs and ratings
     /// </summary>
@@ -24,12 +24,12 @@ namespace Dcomms.DRP.Packets
 
         /// <summary>
         /// is not transmitted in A-EP packet
-        /// comes from ConnectionToNeighbor.RemotePeerToken32 in case when this packet goes over established P2P connection (flag A-EP is zero)
+        /// comes from ConnectionToNeighbor.RemoteNeighborToken32 in case when this packet goes over established P2P connection (flag A-EP is zero)
         /// </summary>
-        public P2pConnectionToken32 SenderToken32; 
+        public NeighborToken32 NeighborToken32; 
 
-        public RegistrationId RequesterPublicKey_RequestID;
-        public uint RegisterSynTimestamp32S;
+        public RegistrationId RequesterRegistrationId;
+        public uint ReqTimestamp32S;
         /// <summary>
         /// comes from pong packet from responder 
         /// is verified by N, EP,M  before updating rating
@@ -42,31 +42,31 @@ namespace Dcomms.DRP.Packets
         public RegistrationSignature RequesterRegistrationConfirmationSignature;
 
         public NeighborPeerAckSequenceNumber16 NpaSeq16;
-        public HMAC SenderHMAC; // is NULL for A->EP
+        public HMAC NeighborHMAC; // is NULL for A->EP
 
         const ushort RequesterRegistrationConfirmationSignature_MagicNumber = 0x39E1;
         public static void GetRequesterRegistrationConfirmationSignatureFields(BinaryWriter writer, RegistrationSignature responderRegistrationConfirmationSignature, 
-            RegisterRequestPacket syn, RegisterAck1Packet synAck, RegisterAck2Packet ack)
+            RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
         {
             responderRegistrationConfirmationSignature.Encode(writer);
-            syn.GetCommonRequesterProxyResponderFields(writer, true);
-            synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
-            ack.GetCommonRequesterProxyResponderFields(writer, true, true);
+            req.GetCommonRequesterProxyResponderFields(writer, true);
+            ack1.GetCommonRequesterProxierResponderFields(writer, true, true);
+            ack2.GetCommonRequesterProxyResponderFields(writer, true, true);
             writer.Write(RequesterRegistrationConfirmationSignature_MagicNumber);
 
         }
         const ushort ResponderRegistrationConfirmationSignature_MagicNumber = 0x18F0;
-        public static void GetResponderRegistrationConfirmationSignatureFields(BinaryWriter writer, RegisterRequestPacket syn, RegisterAck1Packet synAck, RegisterAck2Packet ack)
+        public static void GetResponderRegistrationConfirmationSignatureFields(BinaryWriter writer, RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
         {
-            syn.GetCommonRequesterProxyResponderFields(writer, true);
-            synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
-            ack.GetCommonRequesterProxyResponderFields(writer, true, true);
+            req.GetCommonRequesterProxyResponderFields(writer, true);
+            ack1.GetCommonRequesterProxierResponderFields(writer, true, true);
+            ack2.GetCommonRequesterProxyResponderFields(writer, true, true);
             writer.Write(ResponderRegistrationConfirmationSignature_MagicNumber);
         }
 
         /// <param name="connectionToNeighborNullable">
         /// peer that sends CFM
-        /// if not null - the scanner will verify CFM.SenderHMAC
+        /// if not null - the scanner will verify CFM.NeighborHMAC
         /// </param>
         public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegistrationId requesterPublicKey_RequestID, uint registerSynTimestamp32S)
         {
@@ -76,7 +76,7 @@ namespace Dcomms.DRP.Packets
             w.Write((byte)0); // ignored flags
 
             if (connectionToNeighborNullable != null)
-                connectionToNeighborNullable.LocalRxToken32.Encode(w);
+                connectionToNeighborNullable.LocalNeighborToken32.Encode(w);
 
             w.Write(registerSynTimestamp32S);        
             requesterPublicKey_RequestID.Encode(w);
@@ -91,7 +91,7 @@ namespace Dcomms.DRP.Packets
                 r.OptionalFilter = (responseData) =>
                 {
                     var cfm = DecodeAndOptionallyVerify(responseData, null, null);
-                    if (cfm.SenderHMAC.Equals(connectionToNeighborNullable.GetSenderHMAC(cfm.GetSignedFieldsForSenderHMAC)) == false) return false;
+                    if (cfm.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(cfm.GetSignedFieldsForNeighborHMAC)) == false) return false;
                     return true;
                 };
             }
@@ -101,7 +101,7 @@ namespace Dcomms.DRP.Packets
         }
 
         /// <param name="connectionToNeighbor">is not null for packets between registered peers</param>
-        public byte[] Encode_OptionallySignSenderHMAC(ConnectionToNeighbor connectionToNeighbor)
+        public byte[] Encode_OptionallySignNeighborHMAC(ConnectionToNeighbor connectionToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
@@ -111,12 +111,12 @@ namespace Dcomms.DRP.Packets
             writer.Write(Flags);
             if (connectionToNeighbor != null)
             {
-                SenderToken32 = connectionToNeighbor.RemotePeerToken32;
-                SenderToken32.Encode(writer);
+                NeighborToken32 = connectionToNeighbor.RemoteNeighborToken32;
+                NeighborToken32.Encode(writer);
             }
 
-            writer.Write(RegisterSynTimestamp32S);
-            RequesterPublicKey_RequestID.Encode(writer);
+            writer.Write(ReqTimestamp32S);
+            RequesterRegistrationId.Encode(writer);
 
             ResponderRegistrationConfirmationSignature.Encode(writer);
             RequesterRegistrationConfirmationSignature.Encode(writer);
@@ -124,8 +124,8 @@ namespace Dcomms.DRP.Packets
             NpaSeq16.Encode(writer);
             if (connectionToNeighbor != null)
             {
-                this.SenderHMAC = connectionToNeighbor.GetSenderHMAC(this.GetSignedFieldsForSenderHMAC);
-                this.SenderHMAC.Encode(writer);
+                this.NeighborHMAC = connectionToNeighbor.GetNeighborHMAC(this.GetSignedFieldsForNeighborHMAC);
+                this.NeighborHMAC.Encode(writer);
             }
 
 
@@ -141,17 +141,17 @@ namespace Dcomms.DRP.Packets
 
             cfm.Flags = reader.ReadByte();
             if ((cfm.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
-            if ((cfm.Flags & Flag_AtoEP) == 0) cfm.SenderToken32 = P2pConnectionToken32.Decode(reader);
+            if ((cfm.Flags & Flag_AtoEP) == 0) cfm.NeighborToken32 = NeighborToken32.Decode(reader);
 
-            cfm.RegisterSynTimestamp32S = reader.ReadUInt32();
-            cfm.RequesterPublicKey_RequestID = RegistrationId.Decode(reader);
-            if (synNullable != null) cfm.AssertMatchToRegisterSyn(synNullable);
+            cfm.ReqTimestamp32S = reader.ReadUInt32();
+            cfm.RequesterRegistrationId = RegistrationId.Decode(reader);
+            if (synNullable != null) cfm.AssertMatchToRegisterReq(synNullable);
 
             if (newConnectionToRequesterAtResponderNullable != null)
             {
                 cfm.ResponderRegistrationConfirmationSignature = RegistrationSignature.DecodeAndVerify(reader, newConnectionToRequesterAtResponderNullable.Engine.CryptoLibrary,
                     w => newConnectionToRequesterAtResponderNullable.GetResponderRegistrationConfirmationSignatureFields(w),
-                    newConnectionToRequesterAtResponderNullable.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey
+                    newConnectionToRequesterAtResponderNullable.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId
                     );
                 cfm.RequesterRegistrationConfirmationSignature = RegistrationSignature.DecodeAndVerify(reader, newConnectionToRequesterAtResponderNullable.Engine.CryptoLibrary,
                     w => newConnectionToRequesterAtResponderNullable.GetRequesterRegistrationConfirmationSignatureFields(w, cfm.ResponderRegistrationConfirmationSignature),
@@ -167,24 +167,24 @@ namespace Dcomms.DRP.Packets
             cfm.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);                 
             if ((cfm.Flags & Flag_AtoEP) == 0)
             {
-                cfm.SenderHMAC = HMAC.Decode(reader);
+                cfm.NeighborHMAC = HMAC.Decode(reader);
             }
 
             return cfm;
         }
-        void AssertMatchToRegisterSyn(RegisterRequestPacket localRegisterSyn)
+        void AssertMatchToRegisterReq(RegisterRequestPacket localRegisterReq)
         {
-            if (localRegisterSyn.RequesterPublicKey_RequestID.Equals(this.RequesterPublicKey_RequestID) == false)
+            if (localRegisterReq.RequesterRegistrationId.Equals(this.RequesterRegistrationId) == false)
                 throw new UnmatchedFieldsException();
-            if (localRegisterSyn.Timestamp32S != this.RegisterSynTimestamp32S)
+            if (localRegisterReq.ReqTimestamp32S != this.ReqTimestamp32S)
                 throw new UnmatchedFieldsException();
         }
         
-        internal void GetSignedFieldsForSenderHMAC(BinaryWriter writer)
+        internal void GetSignedFieldsForNeighborHMAC(BinaryWriter writer)
         {
-            SenderToken32.Encode(writer);
-            writer.Write(RegisterSynTimestamp32S);
-            RequesterPublicKey_RequestID.Encode(writer);
+            NeighborToken32.Encode(writer);
+            writer.Write(ReqTimestamp32S);
+            RequesterRegistrationId.Encode(writer);
             ResponderRegistrationConfirmationSignature.Encode(writer);
             RequesterRegistrationConfirmationSignature.Encode(writer);
             NpaSeq16.Encode(writer);

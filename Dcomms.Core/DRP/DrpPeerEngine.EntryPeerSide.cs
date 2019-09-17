@@ -32,10 +32,10 @@ namespace Dcomms.DRP
         }
         bool Pow2IsOK(RegisterRequestPacket packet, byte[] proofOrWork2Request)
         {
-            var ms = new MemoryStream(packet.RequesterPublicKey_RequestID.Ed25519publicKey.Length + proofOrWork2Request.Length + packet.ProofOfWork2.Length);
+            var ms = new MemoryStream(packet.RequesterRegistrationId.Ed25519publicKey.Length + proofOrWork2Request.Length + packet.ProofOfWork2.Length);
             using (var writer = new BinaryWriter(ms))
             {
-                writer.Write(packet.RequesterPublicKey_RequestID.Ed25519publicKey);
+                writer.Write(packet.RequesterRegistrationId.Ed25519publicKey);
                 writer.Write(proofOrWork2Request);
                 writer.Write(packet.ProofOfWork2);
                 ms.Position = 0;
@@ -110,7 +110,7 @@ namespace Dcomms.DRP
                 if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.needsAttention)
                     Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.needsAttention, $"pow1 filter rejected request from {requesterEndpoint}: invalid pow1");
 
-                OnReceivedBadRegisterSynPow1(requesterEndpoint);
+                OnReceivedBadRegisterReqPow1(requesterEndpoint);
                 // no response
                 return false;
             }
@@ -144,20 +144,20 @@ namespace Dcomms.DRP
         /// <summary>
         /// is executed by receiver thread
         /// </summary>
-        void ProcessRegisterSynAtoEpPacket(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
+        void ProcessRegisterReqAtoEpPacket(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
         {  
             var pow2RequestState = _pow2RequestsTable.TryGetPow2RequestState(requesterEndpoint);
             if (pow2RequestState == null)
             {
-                OnReceivedRegisterSynAtoEpPacketFromUnknownSource(requesterEndpoint);
+                OnReceivedRegisterReqAtoEpPacketFromUnknownSource(requesterEndpoint);
                 return;
             }
 
-            var syn = RegisterRequestPacket.Decode_OptionallyVerifySenderHMAC(udpPayloadData, null);
+            var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpPayloadData, null);
 
-            if (!Pow2IsOK(syn, pow2RequestState.ProofOfWork2Request))
+            if (!Pow2IsOK(req, pow2RequestState.ProofOfWork2Request))
             {
-                OnReceivedRegisterSynAtoEpPacketWithBadPow2(requesterEndpoint);
+                OnReceivedRegisterReqAtoEpPacketWithBadPow2(requesterEndpoint);
                 // intentionally we dont respond to requester, in case if it is attack
                 return;
             }
@@ -165,15 +165,15 @@ namespace Dcomms.DRP
           
             EngineThreadQueue.Enqueue(() =>
             {             
-                RouteRegistrationRequest(null, syn, out var proxyToDestinationPeer, out var acceptAt); // routing
+                RouteRegistrationRequest(null, req, out var proxyToDestinationPeer, out var acceptAt); // routing
 
                  if (proxyToDestinationPeer != null)
                 {  // proxy the registration request via the local EP to another peer
-                    _ = ProxyRegisterRequestAsync(proxyToDestinationPeer, syn, requesterEndpoint, null);
+                    _ = ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, null);
                 }
                 else if (acceptAt != null)
                 {   // accept the registration request here, at EP
-                    _ = AcceptRegisterRequestAsync(acceptAt, syn, requesterEndpoint, null);
+                    _ = AcceptRegisterRequestAsync(acceptAt, req, requesterEndpoint, null);
                 }
                 else throw new Exception();
             });

@@ -14,19 +14,19 @@ namespace Dcomms.DRP
         /// <param name="receivedAtLocalDrpPeerNullable">
         /// is set when routing REQ packets that are received via P2P connection from neighbor to the LocalDrpPeer
         /// </param>
-        internal void RouteRegistrationRequest(LocalDrpPeer receivedAtLocalDrpPeerNullable, RegisterRequestPacket syn, out ConnectionToNeighbor proxyToDestinationPeer, out LocalDrpPeer acceptAt)
+        internal void RouteRegistrationRequest(LocalDrpPeer receivedAtLocalDrpPeerNullable, RegisterRequestPacket req, out ConnectionToNeighbor proxyToDestinationPeer, out LocalDrpPeer acceptAt)
         {
             proxyToDestinationPeer = null;
             acceptAt = null;
             RegistrationIdDistance minDistance = null;
             if (receivedAtLocalDrpPeerNullable != null)
             {
-                RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, syn, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
+                RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, req, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
             }
             else
             {
                 foreach (var localDrpPeer in LocalPeers.Values)
-                    RouteRegistrationRequest_LocalDrpPeerIteration(localDrpPeer, syn, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
+                    RouteRegistrationRequest_LocalDrpPeerIteration(localDrpPeer, req, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
             }
 
             if (proxyToDestinationPeer != null)
@@ -42,8 +42,8 @@ namespace Dcomms.DRP
         {
             foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors)
             {
-                var distanceToConnectedPeer = req.RequesterPublicKey_RequestID.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
-                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterPublicKey_RequestID} to {connectedPeer.RemotePeerPublicKey}");
+                var distanceToConnectedPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
+                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterRegistrationId} to {connectedPeer.RemotePeerPublicKey}");
                 if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
                 {
                     minDistance = distanceToConnectedPeer;
@@ -51,8 +51,8 @@ namespace Dcomms.DRP
                     acceptAt = null;
                 }
             }
-            var distanceToLocalPeer = req.RequesterPublicKey_RequestID.GetDistanceTo(_cryptoLibrary, localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey);
-            WriteToLog_routing_detail($"distanceToLocalPeer={distanceToLocalPeer} from REGISTER REQ {req.RequesterPublicKey_RequestID} to {localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey}");
+            var distanceToLocalPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId);
+            WriteToLog_routing_detail($"distanceToLocalPeer={distanceToLocalPeer} from REGISTER REQ {req.RequesterRegistrationId} to {localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId}");
             if (minDistance == null || minDistance.IsGreaterThan(distanceToLocalPeer))
             {
                 minDistance = distanceToLocalPeer;

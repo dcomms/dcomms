@@ -55,7 +55,7 @@ namespace Dcomms.DRP
                 NumberOfNeighborsToKeep = 20,
             };
             epConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _ep.CryptoLibrary.GeneratePrivateKeyEd25519() };
-            epConfig.LocalPeerRegistrationPublicKey = new RegistrationId(_ep.CryptoLibrary.GetPublicKeyEd25519(epConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
+            epConfig.LocalPeerRegistrationId = new RegistrationId(_ep.CryptoLibrary.GetPublicKeyEd25519(epConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
             _ep.BeginCreateLocalPeer(epConfig, new User(), (rpLocalPeer) =>
             {   
                 _a = new DrpPeerEngine(new DrpPeerEngineConfiguration
@@ -71,7 +71,7 @@ namespace Dcomms.DRP
                     NumberOfNeighborsToKeep = 10
                 };
                 aConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _a.CryptoLibrary.GeneratePrivateKeyEd25519() };
-                aConfig.LocalPeerRegistrationPublicKey = new RegistrationId(_a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
+                aConfig.LocalPeerRegistrationId = new RegistrationId(_a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
     
                 
                 _x = new DrpPeerEngine(new DrpPeerEngineConfiguration
@@ -89,9 +89,9 @@ namespace Dcomms.DRP
 
             _retryx:
                 xConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _x.CryptoLibrary.GeneratePrivateKeyEd25519() };
-                xConfig.LocalPeerRegistrationPublicKey = new RegistrationId(_x.CryptoLibrary.GetPublicKeyEd25519(xConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
-                var distance_eptoa = epConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(_x.CryptoLibrary, aConfig.LocalPeerRegistrationPublicKey);
-                var distance_xtoa = xConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(_x.CryptoLibrary, aConfig.LocalPeerRegistrationPublicKey);
+                xConfig.LocalPeerRegistrationId = new RegistrationId(_x.CryptoLibrary.GetPublicKeyEd25519(xConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
+                var distance_eptoa = epConfig.LocalPeerRegistrationId.GetDistanceTo(_x.CryptoLibrary, aConfig.LocalPeerRegistrationId);
+                var distance_xtoa = xConfig.LocalPeerRegistrationId.GetDistanceTo(_x.CryptoLibrary, aConfig.LocalPeerRegistrationId);
                 if (distance_xtoa.IsGreaterThan(distance_eptoa)) goto _retryx;
 
 
@@ -110,13 +110,13 @@ namespace Dcomms.DRP
 
             _retryn:
                 nConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _x.CryptoLibrary.GeneratePrivateKeyEd25519() };
-                nConfig.LocalPeerRegistrationPublicKey = new RegistrationId(_n.CryptoLibrary.GetPublicKeyEd25519(nConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
-                var distance_ntoa = nConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(_n.CryptoLibrary, aConfig.LocalPeerRegistrationPublicKey);
+                nConfig.LocalPeerRegistrationId = new RegistrationId(_n.CryptoLibrary.GetPublicKeyEd25519(nConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
+                var distance_ntoa = nConfig.LocalPeerRegistrationId.GetDistanceTo(_n.CryptoLibrary, aConfig.LocalPeerRegistrationId);
                 if (distance_ntoa.IsGreaterThan(distance_xtoa)) goto _retryn;
 
 
-                var distance_xton = xConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(_n.CryptoLibrary, nConfig.LocalPeerRegistrationPublicKey);
-                var distance_epton = epConfig.LocalPeerRegistrationPublicKey.GetDistanceTo(_n.CryptoLibrary, nConfig.LocalPeerRegistrationPublicKey);
+                var distance_xton = xConfig.LocalPeerRegistrationId.GetDistanceTo(_n.CryptoLibrary, nConfig.LocalPeerRegistrationId);
+                var distance_epton = epConfig.LocalPeerRegistrationId.GetDistanceTo(_n.CryptoLibrary, nConfig.LocalPeerRegistrationId);
                 if (distance_xton.IsGreaterThan(distance_epton)) goto _retryn;
 
                 _x.BeginRegister(xConfig, new User(), (xLocalPeer) =>
@@ -150,7 +150,7 @@ namespace Dcomms.DRP
             UserRootPrivateKeys.CreateUserId(1, 1, _x.CryptoLibrary, out var xUserPrivateKeys, out var xUserID);
 
             var aUserCertificate = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_a.CryptoLibrary, aUserID, aUserPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
-            _aLocalDrpPeer.BeginSendInvite(aUserCertificate, _xLocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey, xUserID, 
+            _aLocalDrpPeer.BeginSendInvite(aUserCertificate, _xLocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId, xUserID, 
                 session =>
                 {
                     //todo

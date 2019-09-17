@@ -125,12 +125,12 @@ namespace Dcomms.DRP
         internal void OnReceivedUnauthorizedSourceIpPacket(IPEndPoint remoteEndpoint)
         {
         }
-        internal void OnReceivedBadRegisterSynPow1(IPEndPoint remoteEndpoint)
+        internal void OnReceivedBadRegisterReqPow1(IPEndPoint remoteEndpoint)
         {
         }
-        internal void OnReceivedRegisterSynAtoEpPacketFromUnknownSource(IPEndPoint remoteEndpoint)
+        internal void OnReceivedRegisterReqAtoEpPacketFromUnknownSource(IPEndPoint remoteEndpoint)
         { }
-        internal void OnReceivedRegisterSynAtoEpPacketWithBadPow2(IPEndPoint remoteEndpoint)
+        internal void OnReceivedRegisterReqAtoEpPacketWithBadPow2(IPEndPoint remoteEndpoint)
         { }
         void OnReceivedBadSignature(IPEndPoint remoteEndpoint)
         {

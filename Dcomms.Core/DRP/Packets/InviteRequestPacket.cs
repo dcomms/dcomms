@@ -16,15 +16,15 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// authorizes peer that sends the packet
         /// </summary>
-        public P2pConnectionToken32 SenderToken32;
+        public NeighborToken32 NeighborToken32;
         // byte Flags;
         const byte FlagsMask_MustBeZero = 0b11110000;
 
-        public uint Timestamp32S;
-        public RegistrationId RequesterPublicKey; // A public key 
+        public uint ReqTimestamp32S;
+        public RegistrationId RequesterRegistrationId; // A public key 
         public RegistrationId ResponderPublicKey; // B public key
         public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new DirectChannel connection
-        public RegistrationSignature RequesterSignature;
+        public RegistrationSignature RequesterRegistrationSignature;
 
         public byte NumberOfHopsRemaining; // max 10 // is decremented by peers
 
@@ -33,74 +33,74 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// authorizes peer that sends the packet
         /// </summary>
-        public HMAC SenderHMAC;
+        public HMAC NeighborHMAC;
 
         public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpPacketType.InviteSyn);
+            w.Write((byte)DrpPacketType.InviteReq);
 
-            NpaSeq16 = transmitToNeighbor.GetNewNhaSeq16_P2P();
-            SenderToken32 = transmitToNeighbor.RemotePeerToken32;
-            SenderToken32.Encode(w);
+            NpaSeq16 = transmitToNeighbor.GetNewNpaSeq16_P2P();
+            NeighborToken32 = transmitToNeighbor.RemoteNeighborToken32;
+            NeighborToken32.Encode(w);
 
             byte flags = 0;
             w.Write(flags);
-            GetSignedFieldsForSenderHMAC(w);
+            GetSignedFieldsForNeighborHMAC(w);
 
-            SenderHMAC = transmitToNeighbor.GetSenderHMAC(GetSignedFieldsForSenderHMAC);
-            SenderHMAC.Encode(w);
+            NeighborHMAC = transmitToNeighbor.GetNeighborHMAC(GetSignedFieldsForNeighborHMAC);
+            NeighborHMAC.Encode(w);
 
             return ms.ToArray();
         }
-        internal void GetSignedFieldsForSenderHMAC(BinaryWriter w)
+        internal void GetSignedFieldsForNeighborHMAC(BinaryWriter w)
         {
             GetSharedSignedFields(w);
-            RequesterSignature.Encode(w);
+            RequesterRegistrationSignature.Encode(w);
             w.Write(NumberOfHopsRemaining);
             NpaSeq16.Encode(w);
         }
         internal void GetSharedSignedFields(BinaryWriter w)
         {
-            w.Write(Timestamp32S);
-            RequesterPublicKey.Encode(w);
+            w.Write(ReqTimestamp32S);
+            RequesterRegistrationId.Encode(w);
             ResponderPublicKey.Encode(w);
             RequesterEcdhePublicKey.Encode(w);
         }
 
         internal byte[] DecodedUdpPayloadData;
-        public static InviteRequestPacket Decode_VerifySenderHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)
+        public static InviteRequestPacket Decode_VerifyNeighborHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)
         {
             var r = new InviteRequestPacket();
             r.DecodedUdpPayloadData = udpPayloadData;
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
 
-            r.SenderToken32 = P2pConnectionToken32.Decode(reader);
-            if (receivedFromNeighbor.LocalRxToken32.Equals(r.SenderToken32) == false)
+            r.NeighborToken32 = NeighborToken32.Decode(reader);
+            if (receivedFromNeighbor.LocalNeighborToken32.Equals(r.NeighborToken32) == false)
                 throw new UnmatchedFieldsException();
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)
                 throw new NotImplementedException();
 
-            r.Timestamp32S = reader.ReadUInt32();
-            r.RequesterPublicKey = RegistrationId.Decode(reader);
+            r.ReqTimestamp32S = reader.ReadUInt32();
+            r.RequesterRegistrationId = RegistrationId.Decode(reader);
             r.ResponderPublicKey = RegistrationId.Decode(reader);
             r.RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
-            r.RequesterSignature = RegistrationSignature.Decode(reader);
+            r.RequesterRegistrationSignature = RegistrationSignature.Decode(reader);
             r.NumberOfHopsRemaining = reader.ReadByte();
             r.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);
 
-            r.SenderHMAC = HMAC.Decode(reader);
-            if (r.SenderHMAC.Equals(receivedFromNeighbor.GetSenderHMAC(r.GetSignedFieldsForSenderHMAC)) == false)
+            r.NeighborHMAC = HMAC.Decode(reader);
+            if (r.NeighborHMAC.Equals(receivedFromNeighbor.GetNeighborHMAC(r.GetSignedFieldsForNeighborHMAC)) == false)
                 throw new BadSignatureException();
 
             return r;
         }
         public void GetUniqueRequestIdFields(BinaryWriter writer)
         {
-            RequesterPublicKey.Encode(writer);
+            RequesterRegistrationId.Encode(writer);
             ResponderPublicKey.Encode(writer);
-            writer.Write(Timestamp32S);
+            writer.Write(ReqTimestamp32S);
         }
     }
 }

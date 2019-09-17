@@ -9,18 +9,18 @@ namespace Dcomms.DRP
     partial class LocalDrpPeer
     {
         /// <summary>
-        /// Timestamp32S, SenderToken32 and SenderHMAC are verified at this time
+        /// Timestamp32S, NeighborToken32 and NeighborHMAC are verified at this time
         /// </summary>
         internal async Task AcceptInviteRequestAsync(InviteRequestPacket req, ConnectionToNeighbor sourcePeer)
         {
-            if (!req.RequesterPublicKey.Equals(this.RegistrationConfiguration.LocalPeerRegistrationPublicKey))
+            if (!req.RequesterRegistrationId.Equals(this.RegistrationConfiguration.LocalPeerRegistrationId))
                 throw new ArgumentException();
 
             _engine.WriteToLog_inv_responderSide_detail($"accepting invite");
             
             // check if regID exists in contact book, get userID from the local contact book
             // ignore the REQ packet if no such user in contacts
-            var remoteRequesterUserIdFromLocalContactBook = this._drpPeerApp.OnReceivedInvite_LookupUser(req.RequesterPublicKey);
+            var remoteRequesterUserIdFromLocalContactBook = this._drpPeerApp.OnReceivedInvite_LookupUser(req.RequesterRegistrationId);
             if (remoteRequesterUserIdFromLocalContactBook == null)
             { // ignore INVITEs from unknown users
                 _engine.WriteToLog_inv_responderSide_detail($"ignored invite from unknown user (no user found in local contact book by requester regID)");
@@ -31,10 +31,10 @@ namespace Dcomms.DRP
             _engine.RecentUniqueInviteRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
 
             // verify requester reg. signature
-            if (!req.RequesterSignature.Verify(_engine.CryptoLibrary, req.GetSharedSignedFields, req.RequesterPublicKey))
+            if (!req.RequesterRegistrationSignature.Verify(_engine.CryptoLibrary, req.GetSharedSignedFields, req.RequesterRegistrationId))
                 throw new BadSignatureException();
             
-            _pendingInviteRequests.Add(req.RequesterPublicKey);
+            _pendingInviteRequests.Add(req.RequesterRegistrationId);
 
             try
             {
@@ -49,14 +49,14 @@ namespace Dcomms.DRP
                 #region send ACK1. sign local SD by local user
                 var ack1 = new InviteAck1Packet
                 {
-                    Timestamp32S = req.Timestamp32S,
-                    RequesterPublicKey = req.RequesterPublicKey,
-                    ResponderPublicKey = req.ResponderPublicKey,
+                    ReqTimestamp32S = req.ReqTimestamp32S,
+                    RequesterRegistrationId = req.RequesterRegistrationId,
+                    ResponderRegistrationId = req.ResponderPublicKey,
                     ResponderEcdhePublicKey = new EcdhPublicKey(session.LocalEcdhePublicKey),                         
                 };
                 ack1.ToResponderSessionDescriptionEncrypted = session.LocalSessionDescription.Encrypt(_engine.CryptoLibrary,
                     req, ack1, session, false);
-                ack1.ResponderSignature = RegistrationSignature.Sign(_engine.CryptoLibrary, w =>
+                ack1.ResponderRegistrationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary, w =>
                     {
                         req.GetSharedSignedFields(w);
                         ack1.GetSharedSignedFields(w, true);
@@ -66,7 +66,7 @@ namespace Dcomms.DRP
 
                 var ack1UdpData = ack1.Encode_SetP2pFields(sourcePeer);
                 _engine.WriteToLog_inv_responderSide_detail($"sending ACK1 to source peer, awaiting for NPACK");
-                _ = sourcePeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack1UdpData, ack1.NpaSeq16, ack1.GetSignedFieldsForSenderHMAC);
+                _ = sourcePeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack1UdpData, ack1.NpaSeq16, ack1.GetSignedFieldsForNeighborHMAC);
                 // not waiting for NPACK, wait for ACK2
                 #endregion
 
@@ -76,12 +76,12 @@ namespace Dcomms.DRP
                     InviteAck2Packet.GetScanner(req, sourcePeer));
                 _engine.WriteToLog_inv_responderSide_detail($"received ACK2");
                 var ack2 = InviteAck2Packet.Decode(ack2UdpData);
-                if (!ack2.RequesterSignature.Verify(_engine.CryptoLibrary, w =>
+                if (!ack2.RequesterRegistrationSignature.Verify(_engine.CryptoLibrary, w =>
                     {
                         req.GetSharedSignedFields(w);
                         ack1.GetSharedSignedFields(w, true);
                         ack2.GetSharedSignedFields(w);
-                    }, req.RequesterPublicKey))
+                    }, req.RequesterRegistrationId))
                     throw new BadSignatureException();
                 // decrypt, verify SD remote user's certificate and signature
                 session.RemoteSessionDescription = SessionDescription.Decrypt_Verify(_engine.CryptoLibrary, 
@@ -96,11 +96,11 @@ namespace Dcomms.DRP
                 // send CFM with signature
                 var cfm = new InviteConfirmationPacket
                 {
-                    Timestamp32S = req.Timestamp32S,
-                    RequesterPublicKey = req.RequesterPublicKey,
-                    ResponderPublicKey = req.ResponderPublicKey,                    
+                    ReqTimestamp32S = req.ReqTimestamp32S,
+                    RequesterRegistrationId = req.RequesterRegistrationId,
+                    ResponderRegistrationId = req.ResponderPublicKey,                    
                 };
-                cfm.ResponderSignature = RegistrationSignature.Sign(_engine.CryptoLibrary, w =>
+                cfm.ResponderRegistrationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary, w =>
                     {
                         req.GetSharedSignedFields(w);
                         ack1.GetSharedSignedFields(w, true);
@@ -109,7 +109,7 @@ namespace Dcomms.DRP
                 var cfmUdpData = cfm.Encode_SetP2pFields(sourcePeer);
 
                 _engine.WriteToLog_inv_responderSide_detail($"sending CFM to source peer, waiting for NPACK");
-                await sourcePeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(cfmUdpData, cfm.NpaSeq16, cfm.GetSignedFieldsForSenderHMAC);
+                await sourcePeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(cfmUdpData, cfm.NpaSeq16, cfm.GetSignedFieldsForNeighborHMAC);
                 _engine.WriteToLog_inv_responderSide_detail($"received NPACK to CFM");
 
                 _drpPeerApp.OnAcceptedIncomingInvite(session);
@@ -120,7 +120,7 @@ namespace Dcomms.DRP
             }
             finally
             {
-                _pendingInviteRequests.Remove(req.RequesterPublicKey);
+                _pendingInviteRequests.Remove(req.RequesterRegistrationId);
             }
         }
     }

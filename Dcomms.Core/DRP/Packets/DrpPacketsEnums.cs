@@ -11,17 +11,17 @@ namespace Dcomms.DRP.Packets
     {
         RegisterPow1Request = 1,
         RegisterPow1Response = 2,
-        RegisterSyn = 3,
-        NextHopAck = 4,
-        RegisterSynAck = 5,
-        RegisterAck = 6,
+        RegisterReq = 3,
+        NeighborPeerAck = 4,
+        RegisterAck1 = 5,
+        RegisterAck2 = 6,
         Ping = 7,
         Pong = 8,
         RegisterConfirmation = 9,
-        InviteSyn = 10,
-        InviteSynAck = 11,
-        InviteAck1 = 12,
-        InviteAck2 = 13
+        InviteReq = 10,
+        InviteAck1 = 11,
+        InviteAck2 = 12,
+        InviteCfm = 13
     }
           
     public enum DrpResponderStatusCode

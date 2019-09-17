@@ -9,7 +9,6 @@ namespace Dcomms.DRP
 {
 	/// <summary>
     /// low-level requests, retransmissions  
-    /// used for registration requester-side and for SYNACK responder-side
     /// </summary>
     public partial class DrpPeerEngine
     {
@@ -19,7 +18,7 @@ namespace Dcomms.DRP
         /// </summary>
         LinkedList<PendingLowLevelUdpRequest> _pendingLowLevelUdpRequests = new LinkedList<PendingLowLevelUdpRequest>(); 
 
-        /// <param name="waitNhaFromNeighborNullable">is used to verify NPACK.SenderHMAC</param>
+        /// <param name="waitNhaFromNeighborNullable">is used to verify NPACK.NeighborHMAC</param>
         internal async Task<NeighborPeerAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, 
             NeighborPeerAckSequenceNumber16 npaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
         {
@@ -247,7 +246,7 @@ namespace Dcomms.DRP
     {
         public byte[] ResponseFirstBytes;
         public int? IgnoredByteAtOffset1; // is set to position of 'flags' byte in the scanned response packet
-        public Func<byte[],bool> OptionalFilter; // verifies NPACK.SenderHMAC, ignores invalid HMACs // returns false to ignore the processed response packet
+        public Func<byte[],bool> OptionalFilter; // verifies NPACK.NeighborHMAC, ignores invalid HMACs // returns false to ignore the processed response packet
 
         public bool Scan(byte[] udpPayloadData) // may throw parser exception
         {

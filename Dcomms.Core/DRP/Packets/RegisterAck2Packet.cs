@@ -9,27 +9,27 @@ namespace Dcomms.DRP.Packets
     /// <summary>
     /// is sent from A to N with encrypted IP address of A
     /// A->EP->M->N
-    /// peers remember the register request operation by RequesterPublicKey_RequestID 
+    /// peers remember the register request operation by RequesterRegistrationId 
     /// peers have the processed request already authorized, while processing this packet
     /// </summary>
     public class RegisterAck2Packet
     {
         /// <summary>
         /// is not transmitted in A-EP packet
-        /// comes from ConnectionToNeighbor.RemotePeerToken32 in case when this packet goes ofver established P2P connection (flag A-EP is zero)
+        /// comes from ConnectionToNeighbor.RemoteNeighborToken32 in case when this packet goes ofver established P2P connection (flag A-EP is zero)
         /// </summary>
-        public P2pConnectionToken32 SenderToken32;
+        public NeighborToken32 NeighborToken32;
         /// <summary>
         /// 1: if packet is transmitted from registering A to EP, 
-        /// 0: if packet is transmitted between neighbor peers (from sender to receiver). SenderHMAC is sent 
+        /// 0: if packet is transmitted between neighbor peers (from sender to receiver). NeighborHMAC is sent 
         /// </summary>
         static byte Flag_AtoEP = 0x01;
         public static byte Flag_ipv6 = 0x02;  // set if requester is accessible via ipv6 address. default (0) means ipv4
         public byte Flags;
         public bool AtoEP => (Flags & Flag_AtoEP) != 0;
         const byte FlagsMask_MustBeZero = 0b11110000;
-        public uint RegisterSynTimestamp32S;
-        public RegistrationId RequesterPublicKey_RequestID;
+        public uint ReqTimestamp32S;
+        public RegistrationId RequesterRegistrationId;
         /// <summary>
         /// IP address of A + UDP port + salt     
         /// goes into N->A p2pStreamParameters
@@ -38,14 +38,14 @@ namespace Dcomms.DRP.Packets
         public const int ToRequesterTxParametersEncryptedLength = 32;
         /// <summary>
         /// signs fields: {
-        ///  shared REQ, SYNACK fields
-        ///  RequesterPublicKey_RequestID,RegisterSynTimestamp32S,ToRequesterTxParametersEncrypted 
+        ///  shared REQ, ACK1 fields
+        ///  RequesterRegistrationId,RegisterReqTimestamp32S,ToRequesterTxParametersEncrypted 
         /// }
         /// is verified by N (responder)
         /// </summary>
         public RegistrationSignature RequesterSignature;
 
-        public HMAC SenderHMAC; // is NULL for A->EP
+        public HMAC NeighborHMAC; // is NULL for A->EP
         public NeighborPeerAckSequenceNumber16 NpaSeq16;
         public byte[] DecodedUdpPayloadData;
         public RegisterAck2Packet()
@@ -53,19 +53,19 @@ namespace Dcomms.DRP.Packets
         }
         /// <param name="connectionToNeighborNullable">
         /// peer that sends ACK
-        /// if not null - the scanner will verify ACK.SenderHMAC
+        /// if not null - the scanner will verify ACK.NeighborHMAC
         /// </param>
         public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegistrationId requesterPublicKey_RequestID, uint registerSynTimestamp32S)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
-            writer.Write((byte)DrpPacketType.RegisterAck);
+            writer.Write((byte)DrpPacketType.RegisterAck2);
           
             writer.Write((byte)0); // ignored flags
 
             if (connectionToNeighborNullable != null)
             {
-                connectionToNeighborNullable.LocalRxToken32.Encode(writer);
+                connectionToNeighborNullable.LocalNeighborToken32.Encode(writer);
             }
 
             writer.Write(registerSynTimestamp32S);
@@ -81,7 +81,7 @@ namespace Dcomms.DRP.Packets
                 r.OptionalFilter = (responseData) =>
                 {
                     var ack = Decode_OptionallyVerify_InitializeP2pStreamAtResponder(responseData, null, null, null);
-                    if (ack.SenderHMAC.Equals(connectionToNeighborNullable.GetSenderHMAC(ack.GetSignedFieldsForSenderHMAC)) == false) return false;
+                    if (ack.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(ack.GetSignedFieldsForNeighborHMAC)) == false) return false;
                     return true;
                 };
             }
@@ -91,19 +91,19 @@ namespace Dcomms.DRP.Packets
         }
 
         /// <param name="connectionToNeighbor">is null for A->EP mode</param>
-        public byte[] Encode_OptionallySignSenderHMAC(ConnectionToNeighbor connectionToNeighborNullable)
+        public byte[] Encode_OptionallySignNeighborHMAC(ConnectionToNeighbor connectionToNeighborNullable)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             
-            writer.Write((byte)DrpPacketType.RegisterAck);
+            writer.Write((byte)DrpPacketType.RegisterAck2);
             byte flags = 0;
             if (connectionToNeighborNullable == null) flags |= Flag_AtoEP;
             writer.Write(flags);
 
             if (connectionToNeighborNullable != null)
             {
-                SenderToken32 = connectionToNeighborNullable.RemotePeerToken32;
-                SenderToken32.Encode(writer);
+                NeighborToken32 = connectionToNeighborNullable.RemoteNeighborToken32;
+                NeighborToken32.Encode(writer);
             }
 
             GetCommonRequesterProxyResponderFields(writer, true, true);
@@ -111,7 +111,7 @@ namespace Dcomms.DRP.Packets
             NpaSeq16.Encode(writer);
 
             if (connectionToNeighborNullable != null)
-                connectionToNeighborNullable.GetSenderHMAC(this.GetSignedFieldsForSenderHMAC).Encode(writer);
+                connectionToNeighborNullable.GetNeighborHMAC(this.GetSignedFieldsForNeighborHMAC).Encode(writer);
             
             return ms.ToArray();
         }
@@ -120,24 +120,24 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public void GetCommonRequesterProxyResponderFields(BinaryWriter writer, bool includeRequesterSignature, bool includeTxParameters)
         {
-            writer.Write(RegisterSynTimestamp32S);
-            RequesterPublicKey_RequestID.Encode(writer);
+            writer.Write(ReqTimestamp32S);
+            RequesterRegistrationId.Encode(writer);
             if (includeTxParameters) writer.Write(ToRequesterTxParametersEncrypted);
             if (includeRequesterSignature) RequesterSignature.Encode(writer);
         }
         
-        internal void GetSignedFieldsForSenderHMAC(BinaryWriter writer)
+        internal void GetSignedFieldsForNeighborHMAC(BinaryWriter writer)
         {
-            SenderToken32.Encode(writer);
+            NeighborToken32.Encode(writer);
             GetCommonRequesterProxyResponderFields(writer, true, true);
             NpaSeq16.Encode(writer);
         }
 
-        void AssertMatchToSyn(RegisterRequestPacket remoteRegisterSyn)
+        void AssertMatchToSyn(RegisterRequestPacket remoteRegisterReq)
         {
-            if (!this.RequesterPublicKey_RequestID.Equals(remoteRegisterSyn.RequesterPublicKey_RequestID))
+            if (!this.RequesterRegistrationId.Equals(remoteRegisterReq.RequesterRegistrationId))
                 throw new UnmatchedFieldsException();
-            if (this.RegisterSynTimestamp32S != remoteRegisterSyn.Timestamp32S)
+            if (this.ReqTimestamp32S != remoteRegisterReq.ReqTimestamp32S)
                 throw new UnmatchedFieldsException();
         }
 
@@ -158,10 +158,10 @@ namespace Dcomms.DRP.Packets
             ack.DecodedUdpPayloadData = registerAckPacketData;
             ack.Flags = reader.ReadByte();
             if ((ack.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
-            if ((ack.Flags & Flag_AtoEP) == 0) ack.SenderToken32 = P2pConnectionToken32.Decode(reader);
+            if ((ack.Flags & Flag_AtoEP) == 0) ack.NeighborToken32 = NeighborToken32.Decode(reader);
 
-            ack.RegisterSynTimestamp32S = reader.ReadUInt32();
-            ack.RequesterPublicKey_RequestID = RegistrationId.Decode(reader);
+            ack.ReqTimestamp32S = reader.ReadUInt32();
+            ack.RequesterRegistrationId = RegistrationId.Decode(reader);
             if (synNullable != null) ack.AssertMatchToSyn(synNullable);
 
             ack.ToRequesterTxParametersEncrypted = reader.ReadBytes(ToRequesterTxParametersEncryptedLength);
@@ -182,7 +182,7 @@ namespace Dcomms.DRP.Packets
                         synAckNullable.GetCommonRequesterProxierResponderFields(w, true, true);
                         ack.GetCommonRequesterProxyResponderFields(w, false, true);
                     },
-                    synNullable.RequesterPublicKey_RequestID))
+                    synNullable.RequesterRegistrationId))
                     throw new BadSignatureException();
             }
 
@@ -190,7 +190,7 @@ namespace Dcomms.DRP.Packets
 
             if ((ack.Flags & Flag_AtoEP) == 0)
             {
-                ack.SenderHMAC = HMAC.Decode(reader); // is verified by Filter
+                ack.NeighborHMAC = HMAC.Decode(reader); // is verified by Filter
             }
                        
             return ack;

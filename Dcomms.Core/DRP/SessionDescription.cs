@@ -31,7 +31,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// signs fields 
         /// {
-        ///   shared REQ, SYNACK fields
+        ///   shared REQ, ACK1 fields
         ///   UserCertificate,
         ///   DirectChannelEndPoint
         /// }
