@@ -16,95 +16,92 @@ namespace Dcomms.DRP
         /// <param name="receivedFromInP2pMode">
         /// is null in A-EP mode
         /// </param>
-        internal async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterRequestPacket syn, IPEndPoint requesterEndpoint, ConnectionToNeighbor synReceivedFromInP2pMode) // engine thread
+        internal async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterRequestPacket req, IPEndPoint requesterEndpoint, ConnectionToNeighbor sourcePeer) // engine thread
         {
-            WriteToLog_reg_responderSide_detail($"accepting registration from {requesterEndpoint}: NpaSeq16={syn.NpaSeq16}, NumberOfHopsRemaining={syn.NumberOfHopsRemaining}, epEndpoint={syn.EpEndpoint}, synReceivedFromInP2pMode={synReceivedFromInP2pMode}");
+            WriteToLog_reg_responderSide_detail($"accepting registration from {requesterEndpoint}: NpaSeq16={req.NpaSeq16}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, epEndpoint={req.EpEndpoint}, sourcePeer={sourcePeer}");
 
-            if (syn.AtoEP ^ (synReceivedFromInP2pMode == null))
+            if (req.AtoEP ^ (sourcePeer == null))
                 throw new InvalidOperationException();
 
-            if (synReceivedFromInP2pMode == null)
+            if (sourcePeer == null)
             {
                 // check Timestamp32S and signature of requester (A)
-                if (!ValidateReceivedSynTimestamp32S(syn.Timestamp32S) ||
-                        !syn.RequesterSignature.Verify(_cryptoLibrary,
-                            w => syn.GetCommonRequesterProxyResponderFields(w, false),
-                            syn.RequesterPublicKey_RequestID
+                if (!ValidateReceivedReqTimestamp32S(req.Timestamp32S) ||
+                        !req.RequesterSignature.Verify(_cryptoLibrary,
+                            w => req.GetCommonRequesterProxyResponderFields(w, false),
+                            req.RequesterPublicKey_RequestID
                         )
                     )
                     throw new BadSignatureException();
-                if (syn.EpEndpoint.Address.Equals(acceptAt.PublicIpApiProviderResponse) == false)
+                if (req.EpEndpoint.Address.Equals(acceptAt.PublicIpApiProviderResponse) == false)
                 {
                     throw new PossibleMitmException();
                 }
             }
 
-            RecentUniquePublicEcdhKeys.AssertIsUnique(syn.RequesterEcdhePublicKey.Ecdh25519PublicKey);
-            _recentUniqueRegistrationRequests.AssertIsUnique(syn.GetUniqueRequestIdFields);
+            RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+            _recentUniqueRegistrationRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
 
-            _pendingRegisterRequests.Add(syn.RequesterPublicKey_RequestID);
+            _pendingRegisterRequests.Add(req.RequesterPublicKey_RequestID);
             try
             {
-
                 WriteToLog_reg_responderSide_detail($"sending NPACK to REQ to {requesterEndpoint}");
-
-                SendNextHopAckResponseToSyn(syn, requesterEndpoint, NextHopResponseCode.accepted, synReceivedFromInP2pMode);
+                SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.accepted, sourcePeer);
 
                 var newConnectionToNeighbor = new ConnectionToNeighbor(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer)
                 {
-                    LocalEndpoint = synReceivedFromInP2pMode?.LocalEndpoint ?? syn.EpEndpoint,
-					RemotePeerPublicKey = syn.RequesterPublicKey_RequestID					
+                    LocalEndpoint = sourcePeer?.LocalEndpoint ?? req.EpEndpoint,
+					RemotePeerPublicKey = req.RequesterPublicKey_RequestID					
                 };
-                byte[] registerSynAckUdpPayload;
+                byte[] ack1UdpData;
                 try
                 {
-                    var synAck = new RegisterAck1Packet
+                    var ack1 = new RegisterAck1Packet
                     {                        
-                        RequesterPublicKey_RequestID = syn.RequesterPublicKey_RequestID,
-                        RegisterSynTimestamp32S = syn.Timestamp32S,
+                        RequesterPublicKey_RequestID = req.RequesterPublicKey_RequestID,
+                        RegisterSynTimestamp32S = req.Timestamp32S,
                         ResponderEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                         ResponderPublicKey = acceptAt.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
                         ResponderStatusCode = DrpResponderStatusCode.confirmed,
-                        NpaSeq16 = GetNewNhaSeq16_AtoEP(),
+                        NpaSeq16 = GetNewNpaSeq16_AtoEP(),
                     };
-                    RecentUniquePublicEcdhKeys.AssertIsUnique(synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
-                    synAck.ToResponderTxParametersEncrypted = newConnectionToNeighbor.Encrypt_synack_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(syn, synAck, synReceivedFromInP2pMode);
-                    synAck.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
+                    RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
+                    ack1.ToResponderTxParametersEncrypted = newConnectionToNeighbor.Encrypt_ack1_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(req, ack1, sourcePeer);
+                    ack1.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         (w2) =>
                         {
-                            syn.GetCommonRequesterProxyResponderFields(w2, true);
-                            synAck.GetCommonRequesterProxierResponderFields(w2, false, true);
+                            req.GetCommonRequesterProxyResponderFields(w2, true);
+                            ack1.GetCommonRequesterProxierResponderFields(w2, false, true);
                         },
                         acceptAt.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
-                    if (synReceivedFromInP2pMode == null) synAck.RequesterEndpoint = requesterEndpoint;                    
-                    registerSynAckUdpPayload = synAck.Encode_OpionallySignSenderHMAC(synReceivedFromInP2pMode);
+                    if (sourcePeer == null) ack1.RequesterEndpoint = requesterEndpoint;                    
+                    ack1UdpData = ack1.Encode_OpionallySignSenderHMAC(sourcePeer);
                     
-                    var ackScanner = RegisterAck2Packet.GetScanner(synReceivedFromInP2pMode, syn.RequesterPublicKey_RequestID, syn.Timestamp32S);
-                    byte[] ackUdpData;
-                    if (synReceivedFromInP2pMode == null)
-                    {   // wait for ACK, retransmitting SYNACK
-                        WriteToLog_reg_responderSide_detail($"sending SYNACK, waiting for ACK");
-                        ackUdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(registerSynAckUdpPayload, requesterEndpoint, ackScanner);
+                    var ack2Scanner = RegisterAck2Packet.GetScanner(sourcePeer, req.RequesterPublicKey_RequestID, req.Timestamp32S);
+                    byte[] ack2UdpData;
+                    if (sourcePeer == null)
+                    {   // wait for ACK2, retransmitting ACK1
+                        WriteToLog_reg_responderSide_detail($"sending ACK1, waiting for ACK2");
+                        ack2UdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(ack1UdpData, requesterEndpoint, ack2Scanner);
                     }
                     else
                     {   // retransmit SYNACK until NPACK (via P2P); at same time wait for ACK
-                        WriteToLog_reg_responderSide_detail($"sending SYNACK, awaiting for NPACK");
-                        _ = OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(registerSynAckUdpPayload, requesterEndpoint,
-                            synAck.NpaSeq16, synReceivedFromInP2pMode, synAck.GetSignedFieldsForSenderHMAC);
+                        WriteToLog_reg_responderSide_detail($"sending ACK1, awaiting for NPACK");
+                        _ = OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack1UdpData, requesterEndpoint,
+                            ack1.NpaSeq16, sourcePeer, ack1.GetSignedFieldsForSenderHMAC);
                         // not waiting for NPACK, wait for ACK
-                        WriteToLog_reg_responderSide_detail($"waiting for ACK");                        
-                        ackUdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requesterEndpoint, ackScanner);                
+                        WriteToLog_reg_responderSide_detail($"waiting for ACK2");                        
+                        ack2UdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requesterEndpoint, ack2Scanner);                
                     }
 
-                    WriteToLog_reg_responderSide_detail($"received ACK");
-                    var ack = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(
-                        ackUdpData, syn, synAck, newConnectionToNeighbor);
+                    WriteToLog_reg_responderSide_detail($"received ACK2");
+                    var ack2 = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(ack2UdpData, req, ack1, newConnectionToNeighbor);
 
-                    WriteToLog_reg_responderSide_detail($"verified ACK");
-                    acceptAt.ConnectedPeers.Add(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A                    
-                    SendNextHopAckResponseToAck(ack, requesterEndpoint, synReceivedFromInP2pMode); // send NPACK to ACK
+                    WriteToLog_reg_responderSide_detail($"verified ACK2");
+                    acceptAt.ConnectedNeighbors.Add(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A                    
+                    SendNeighborPeerAckResponseToRegisterAck2(ack2, requesterEndpoint, sourcePeer); // send NPACK to ACK
 
-                    _ = WaitForRegistrationConfirmationRequestAsync(requesterEndpoint, syn, newConnectionToNeighbor, synReceivedFromInP2pMode);
+                    _ = WaitForRegistrationConfirmationRequestAsync(requesterEndpoint, req, newConnectionToNeighbor, sourcePeer);
 
                     #region send ping, verify pong
                     var ping = newConnectionToNeighbor.CreatePing(true);
@@ -117,13 +114,13 @@ namespace Dcomms.DRP
                                     Configuration.InitialPingRequests_RetransmissionTimeoutIncrement
                                 );
 
-                    WriteToLog_reg_responderSide_detail($"sent ping");
+                    WriteToLog_reg_responderSide_detail($"sent PING");
                     var pongPacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pong from A
                     if (pongPacketData == null) throw new DrpTimeoutException();
                     var pong = PongPacket.DecodeAndVerify(_cryptoLibrary,
                         pongPacketData, ping, newConnectionToNeighbor,
                         true);
-                    WriteToLog_reg_responderSide_detail($"verified pong");
+                    WriteToLog_reg_responderSide_detail($"verified PONG");
                     newConnectionToNeighbor.OnReceivedVerifiedPong(pong, pendingPingRequest.ResponseReceivedAtUtc.Value,
                         pendingPingRequest.ResponseReceivedAtUtc.Value - pendingPingRequest.InitialTxTimeUTC.Value);
                     #endregion
@@ -140,7 +137,7 @@ namespace Dcomms.DRP
             }
             finally
             {
-                _pendingRegisterRequests.Remove(syn.RequesterPublicKey_RequestID);
+                _pendingRegisterRequests.Remove(req.RequesterPublicKey_RequestID);
             }
         }
         async Task WaitForRegistrationConfirmationRequestAsync(IPEndPoint requesterEndpoint, RegisterRequestPacket syn, ConnectionToNeighbor newConnectionToNeighbor, ConnectionToNeighbor synReceivedFromInP2pMode)
@@ -154,7 +151,7 @@ namespace Dcomms.DRP
                 var registerCfmPacket = RegisterConfirmationPacket.DecodeAndOptionallyVerify(regCfmUdpPayload, syn, newConnectionToNeighbor);
                 WriteToLog_reg_responderSide_detail($"verified CFM");
 
-                SendNextHopAckResponseToCfm(registerCfmPacket, requesterEndpoint, synReceivedFromInP2pMode);
+                SendNeighborPeerAckResponseToRegisterCfm(registerCfmPacket, requesterEndpoint, synReceivedFromInP2pMode);
                 WriteToLog_reg_responderSide_detail($"sent NPACK to CFM");
             }
 			catch (Exception exc)
@@ -164,77 +161,72 @@ namespace Dcomms.DRP
             }
         }
 
-        void SendNextHopAckResponseToSyn(RegisterRequestPacket syn, IPEndPoint requesterEndpoint, NextHopResponseCode statusCode, ConnectionToNeighbor synReceivedFromInP2pMode)
+        void SendNeighborPeerAckResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, NextHopResponseCode statusCode, ConnectionToNeighbor neighbor)
         {
-            var nextHopAck = new NeighborPeerAckPacket
+            var npAck = new NeighborPeerAckPacket
             {
-                NpaSeq16 = syn.NpaSeq16,
+                NpaSeq16 = req.NpaSeq16,
                 StatusCode = statusCode
             };
-            if (synReceivedFromInP2pMode != null)
+            if (neighbor != null)
             {
-                nextHopAck.SenderToken32 = synReceivedFromInP2pMode.RemotePeerToken32;
-                nextHopAck.SenderHMAC = synReceivedFromInP2pMode.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, syn.GetSignedFieldsForSenderHMAC));
+                npAck.SenderToken32 = neighbor.RemotePeerToken32;
+                npAck.SenderHMAC = neighbor.GetSenderHMAC(w => npAck.GetFieldsForHMAC(w, req.GetSignedFieldsForSenderHMAC));
             }
-            var nextHopAckPacketData = nextHopAck.Encode(synReceivedFromInP2pMode == null);
+            var npAckUdpData = npAck.Encode(neighbor == null);
             
-            RespondToRequestAndRetransmissions(syn.DecodedUdpPayloadData, nextHopAckPacketData, requesterEndpoint);
+            RespondToRequestAndRetransmissions(req.DecodedUdpPayloadData, npAckUdpData, requesterEndpoint);
 
-            //   WriteToLog_reg_responderSide_detail($"sent nextHopAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(nextHopAckPacketData)} nhaSeq={registerSynPacket.NpaSeq16}");
+            //   WriteToLog_reg_responderSide_detail($"sent npAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(npAckUdpData)} nhaSeq={registerSynPacket.NpaSeq16}");
         }
-        void SendNextHopAckResponseToSynAck(RegisterAck1Packet synAck, ConnectionToNeighbor receivedSynAckFromNeighbor)
+        void SendNeighborPeerAckResponseToRegisterAck1(RegisterAck1Packet ack1, ConnectionToNeighbor neighbor)
         {
-            var nextHopAck = new NeighborPeerAckPacket
+            var npAck = new NeighborPeerAckPacket
             {
-                NpaSeq16 = synAck.NpaSeq16,
+                NpaSeq16 = ack1.NpaSeq16,
                 StatusCode = NextHopResponseCode.accepted
             };
 
-            nextHopAck.SenderToken32 = receivedSynAckFromNeighbor.RemotePeerToken32;
-            nextHopAck.SenderHMAC = receivedSynAckFromNeighbor.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, synAck.GetSignedFieldsForSenderHMAC));
-            var nextHopAckPacketData = nextHopAck.Encode(false);
+            npAck.SenderToken32 = neighbor.RemotePeerToken32;
+            npAck.SenderHMAC = neighbor.GetSenderHMAC(w => npAck.GetFieldsForHMAC(w, ack1.GetSignedFieldsForSenderHMAC));
+            var npAckUdpData = npAck.Encode(false);
 
-            RespondToRequestAndRetransmissions(synAck.DecodedUdpPayloadData, nextHopAckPacketData, receivedSynAckFromNeighbor.RemoteEndpoint);
+            RespondToRequestAndRetransmissions(ack1.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
 
-            //   WriteToLog_reg_responderSide_detail($"sent nextHopAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(nextHopAckPacketData)} nhaSeq={registerSynPacket.NpaSeq16}");
+            //   WriteToLog_reg_responderSide_detail($"sent npAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(npAckUdpData)} nhaSeq={registerSynPacket.NpaSeq16}");
         }
-        void SendNextHopAckResponseToAck(RegisterAck2Packet ack, IPEndPoint remoteEndpoint, ConnectionToNeighbor synReceivedFromInP2pMode)
+        void SendNeighborPeerAckResponseToRegisterAck2(RegisterAck2Packet ack2, IPEndPoint remoteEndpoint, ConnectionToNeighbor neighbor)
         {
-            var nextHopAck = new NeighborPeerAckPacket
+            var npAck = new NeighborPeerAckPacket
             {
-                NpaSeq16 = ack.NpaSeq16,
+                NpaSeq16 = ack2.NpaSeq16,
                 StatusCode = NextHopResponseCode.accepted
             };
-            if (ack.AtoEP == false)
+            if (ack2.AtoEP == false)
             {
-                nextHopAck.SenderToken32 = synReceivedFromInP2pMode.RemotePeerToken32;
-                nextHopAck.SenderHMAC = synReceivedFromInP2pMode.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, ack.GetSignedFieldsForSenderHMAC));
+                npAck.SenderToken32 = neighbor.RemotePeerToken32;
+                npAck.SenderHMAC = neighbor.GetSenderHMAC(w => npAck.GetFieldsForHMAC(w, ack2.GetSignedFieldsForSenderHMAC));
             }
 
-            var nextHopAckPacketData = nextHopAck.Encode(ack.AtoEP);
-            RespondToRequestAndRetransmissions(ack.DecodedUdpPayloadData, nextHopAckPacketData, remoteEndpoint);
+            var npAckUdpData = npAck.Encode(ack2.AtoEP);
+            RespondToRequestAndRetransmissions(ack2.DecodedUdpPayloadData, npAckUdpData, remoteEndpoint);
         }
-        void SendNextHopAckResponseToCfm(RegisterConfirmationPacket cfm, IPEndPoint remoteEndpoint, ConnectionToNeighbor synReceivedFromInP2pMode)
+        void SendNeighborPeerAckResponseToRegisterCfm(RegisterConfirmationPacket cfm, IPEndPoint remoteEndpoint, ConnectionToNeighbor neighbor)
         {
-            var nextHopAck = new NeighborPeerAckPacket
+            var npAck = new NeighborPeerAckPacket
             {
                 NpaSeq16 = cfm.NpaSeq16,
                 StatusCode = NextHopResponseCode.accepted
             };
             if (cfm.AtoEP == false)
             {
-                nextHopAck.SenderToken32 = synReceivedFromInP2pMode.RemotePeerToken32;
-                nextHopAck.SenderHMAC = synReceivedFromInP2pMode.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, cfm.GetSignedFieldsForSenderHMAC));
+                npAck.SenderToken32 = neighbor.RemotePeerToken32;
+                npAck.SenderHMAC = neighbor.GetSenderHMAC(w => npAck.GetFieldsForHMAC(w, cfm.GetSignedFieldsForSenderHMAC));
             }
-            var nextHopAckPacketData = nextHopAck.Encode(cfm.AtoEP);
-            RespondToRequestAndRetransmissions(cfm.DecodedUdpPayloadData, nextHopAckPacketData, remoteEndpoint);
+            var npAckUdpData = npAck.Encode(cfm.AtoEP);
+            RespondToRequestAndRetransmissions(cfm.DecodedUdpPayloadData, npAckUdpData, remoteEndpoint);
         }
 
-        internal bool ValidateReceivedSynTimestamp32S(uint receivedSynTimestamp32S)
-        {
-            var differenceS = Math.Abs((int)receivedSynTimestamp32S - Timestamp32S);
-            return differenceS < Configuration.MaxSynTimestampDifference;
-        }
         /// <summary>
         /// protects local per from processing same (retransmitted) REQ packet
         /// protects the P2P network against looped REQ requests

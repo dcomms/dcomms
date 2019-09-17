@@ -13,7 +13,7 @@ namespace Dcomms.DRP
     /// </summary>
     class DrpTester1: IDisposable
     {
-        class User : IDrpRegisteredPeerUser
+        class User : IDrpRegisteredPeerApp
         {
             public void OnReceivedMessage(byte[] message)
             {

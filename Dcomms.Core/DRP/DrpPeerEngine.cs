@@ -41,7 +41,7 @@ namespace Dcomms.DRP
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
       
         ushort _seq16Counter_AtoEP; // accessed only by engine thread
-        internal NeighborPeerAckSequenceNumber16 GetNewNhaSeq16_AtoEP() => new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
+        internal NeighborPeerAckSequenceNumber16 GetNewNpaSeq16_AtoEP() => new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
         public DrpPeerEngineConfiguration Configuration { get; private set; }
 
         #region unique data filters
@@ -201,7 +201,7 @@ namespace Dcomms.DRP
             foreach (var localPeer in LocalPeers.Values)
             {
               _restart_loop:
-                foreach (var connectedPeer in localPeer.ConnectedPeers)
+                foreach (var connectedPeer in localPeer.ConnectedNeighbors)
                 {
                     connectedPeer.OnTimer100ms(timeNowUTC, out var needToRestartLoop);
                     if (needToRestartLoop)
@@ -223,9 +223,14 @@ namespace Dcomms.DRP
         }
         #endregion
 
+        internal bool ValidateReceivedReqTimestamp32S(uint receivedSynTimestamp32S)
+        {
+            var differenceS = Math.Abs((int)receivedSynTimestamp32S - Timestamp32S);
+            return differenceS < Configuration.MaxSynTimestampDifference;
+        }
     }
 
-    public interface IDrpRegisteredPeerUser
+    public interface IDrpRegisteredPeerApp 
     {
         void OnReceivedMessage(byte[] message);
         /// <summary>

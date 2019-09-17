@@ -18,93 +18,92 @@ namespace Dcomms.DRP
         /// <summary>
         /// Timestamp32S, SenderToken32 and SenderHMAC are verified at this time
         /// </summary>
-        internal async Task ProxyInviteRequestAsync(InviteRequestPacket syn, ConnectionToNeighbor requester, ConnectionToNeighbor responder)
+        internal async Task ProxyInviteRequestAsync(InviteRequestPacket req, ConnectionToNeighbor sourcePeer, ConnectionToNeighbor destinationPeer)
         {
             _engine.WriteToLog_inv_proxySide_detail($"proxying invite");
 
-            _engine.RecentUniqueInviteRequests.AssertIsUnique(syn.GetUniqueRequestIdFields);
-            _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(syn.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+            _engine.RecentUniqueInviteRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
+            _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
             
-            if (syn.NumberOfHopsRemaining <= 1)
+            if (req.NumberOfHopsRemaining <= 1)
             {
-                SendNextHopAckResponseToReq(syn, requester, NextHopResponseCode.rejected_numberOfHopsRemainingReachedZero);
+                SendNeighborPeerAckResponseToReq(req, sourcePeer, NextHopResponseCode.rejected_numberOfHopsRemainingReachedZero);
                 return;
             }
 
-            _pendingInviteRequests.Add(syn.RequesterPublicKey);
+            _pendingInviteRequests.Add(req.RequesterPublicKey);
             try
             {
-                // send nhack
-                _engine.WriteToLog_inv_proxySide_detail($"sending NPACK to REQ requester");
-                SendNextHopAckResponseToReq(syn, requester);
+                // send npack
+                _engine.WriteToLog_inv_proxySide_detail($"sending NPACK to REQ source peer");
+                SendNeighborPeerAckResponseToReq(req, sourcePeer);
 
-                syn.NumberOfHopsRemaining--;
+                req.NumberOfHopsRemaining--;
 
                 // send (proxy) REQ to responder. wait for NPACK, verify NPACK.senderHMAC, retransmit REQ   
-                var synUdpData = syn.Encode_SetP2pFields(responder);
-                await responder.SendUdpRequestAsync_Retransmit_WaitForNPACK(synUdpData,
-                    syn.NpaSeq16, syn.GetSignedFieldsForSenderHMAC);
+                var reqUdpData = req.Encode_SetP2pFields(destinationPeer);
+                await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.NpaSeq16, req.GetSignedFieldsForSenderHMAC);
 
-                #region wait for SYNACK from responder  verify SenderHMAC
-                _engine.WriteToLog_inv_proxySide_detail($"waiting for SYNACK from responder");
-                var inviteSynAckPacketData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(responder.RemoteEndpoint,
-                                InviteAck1Packet.GetScanner(syn, responder),
+                #region wait for ACK1 from responder  verify SenderHMAC
+                _engine.WriteToLog_inv_proxySide_detail($"waiting for ACK1 from responder");
+                var ack1UdpData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
+                                InviteAck1Packet.GetScanner(req, destinationPeer),
                                     _engine.DateTimeNowUtc, _engine.Configuration.InviteRequestsTimoutS
                                 ));
-                if (inviteSynAckPacketData == null) throw new DrpTimeoutException("Did not receive SYNACK on timeout");
-                var synAck = InviteAck1Packet.Decode(inviteSynAckPacketData);
-                _engine.WriteToLog_inv_proxySide_detail($"verified SYNACK from responder");
+                if (ack1UdpData == null) throw new DrpTimeoutException("Did not receive ACK1 on timeout");
+                var ack1 = InviteAck1Packet.Decode(ack1UdpData);
+                _engine.WriteToLog_inv_proxySide_detail($"verified ACK1 from responder");
                 
                 // respond with NPACK
-                SendNextHopAckResponseToAck1(synAck, responder);
+                SendNeighborPeerAckResponseToAck1(ack1, destinationPeer);
                 #endregion
 
-                #region send SYNACK to requester , wait for NPACK and ACK1
-                var synAckUdpData = synAck.Encode_SetP2pFields(requester);
+                #region send ACK1 to requester, wait for NPACK and ACK2
+                var ack1UdpDataTx = ack1.Encode_SetP2pFields(sourcePeer);
 
-                _engine.WriteToLog_inv_proxySide_detail($"sending SYNACK, awaiting for NPACK");
-                _ = _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(synAckUdpData, requester.RemoteEndpoint,
-                    synAck.NpaSeq16, requester, synAck.GetSignedFieldsForSenderHMAC);
+                _engine.WriteToLog_inv_proxySide_detail($"sending ACK1, awaiting for NPACK");
+                _ = _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack1UdpDataTx, sourcePeer.RemoteEndpoint,
+                    ack1.NpaSeq16, sourcePeer, ack1.GetSignedFieldsForSenderHMAC);
                 // not waiting for NPACK, wait for ACK1
-                _engine.WriteToLog_inv_proxySide_detail($"waiting for ACK1");
+                _engine.WriteToLog_inv_proxySide_detail($"waiting for ACK2");
 
-                var ack1UdpData = await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requester.RemoteEndpoint, 
-                    InviteAck2Packet.GetScanner(syn, requester));
-                _engine.WriteToLog_inv_proxySide_detail($"received ACK1");
-                var ack1 = InviteAck2Packet.Decode(ack1UdpData);
+                var ack2UdpData = await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, sourcePeer.RemoteEndpoint, 
+                    InviteAck2Packet.GetScanner(req, sourcePeer));
+                _engine.WriteToLog_inv_proxySide_detail($"received ACK2");
+                var ack2 = InviteAck2Packet.Decode(ack2UdpData);
                 #endregion
 
-                // send NPACK to ACK1
-                _engine.WriteToLog_inv_proxySide_detail($"sending NPACK to ACK1 to requester");
-                SendNextHopAckResponseToAck2(ack1, requester);
+                // send NPACK to ACK2
+                _engine.WriteToLog_inv_proxySide_detail($"sending NPACK to ACK2 to source peer");
+                SendNeighborPeerAckResponseToAck2(ack2, sourcePeer);
 
-                // send ACK1 to responder
-                // put ACK1.NpaSeq16, sendertoken32, senderHMAC  
+                // send ACK2 to responder
+                // put ACK2.NpaSeq16, sendertoken32, senderHMAC  
                 // wait for NPACK
-                var ack1UdpDataTx = ack1.Encode_SetP2pFields(responder);
-                _engine.WriteToLog_inv_proxySide_detail($"sending ACK1 to responder");
-                await responder.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack1UdpDataTx,
-                    ack1.NpaSeq16, ack1.GetSignedFieldsForSenderHMAC);
-                _engine.WriteToLog_inv_proxySide_detail($"received NPACK to ACK1 from responder");
+                var ack2UdpDataTx = ack2.Encode_SetP2pFields(destinationPeer);
+                _engine.WriteToLog_inv_proxySide_detail($"sending ACK2 to responder");
+                await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2UdpDataTx,
+                    ack2.NpaSeq16, ack2.GetSignedFieldsForSenderHMAC);
+                _engine.WriteToLog_inv_proxySide_detail($"received NPACK to ACK2 from destination peer");
 
-                // wait for ACK2 from responder
-                _engine.WriteToLog_inv_proxySide_detail($"waiting for ACK2 from responder");
-                var ack2PacketData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(responder.RemoteEndpoint,
-                                InviteConfirmationPacket.GetScanner(syn, responder),
+                // wait for CFM from responder
+                _engine.WriteToLog_inv_proxySide_detail($"waiting for CFM from responder");
+                var cfmUdpData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
+                                InviteConfirmationPacket.GetScanner(req, destinationPeer),
                                     _engine.DateTimeNowUtc, _engine.Configuration.InviteRequestsTimoutS
                                 ));
-                if (ack2PacketData == null) throw new DrpTimeoutException("Did not receive ACK2 on timeout");
-                var ack2 = InviteConfirmationPacket.Decode(ack2PacketData);
-                // todo verify signature, updte RDRs and QoS here
-                _engine.WriteToLog_inv_proxySide_detail($"verified ACK2 from responder");
+                if (cfmUdpData == null) throw new DrpTimeoutException("Did not receive CFM on timeout");
+                var cfm = InviteConfirmationPacket.Decode(cfmUdpData);
+                // todo verify signature, update RDRs and QoS
+                _engine.WriteToLog_inv_proxySide_detail($"verified CFM from responder");
 
-                // send ACK2 to requester
-                var ack2PacketDataTx = ack2.Encode_SetP2pFields(requester);
+                // send CFM to requester
+                var cfmUdpDataTx = cfm.Encode_SetP2pFields(sourcePeer);
 
-                _engine.WriteToLog_inv_proxySide_detail($"sending ACK2 to requester, waiting for NPACK");
-                await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack2PacketDataTx, requester.RemoteEndpoint,
-                    ack2.NpaSeq16, requester, ack2.GetSignedFieldsForSenderHMAC);
-                _engine.WriteToLog_inv_proxySide_detail($"received NPACK to ACK2 from requester");
+                _engine.WriteToLog_inv_proxySide_detail($"sending CFM to requester, waiting for NPACK");
+                await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(cfmUdpDataTx, sourcePeer.RemoteEndpoint,
+                    cfm.NpaSeq16, sourcePeer, cfm.GetSignedFieldsForSenderHMAC);
+                _engine.WriteToLog_inv_proxySide_detail($"received NPACK to CFM from source peer");
             }
             catch (Exception exc)
             {
@@ -112,7 +111,7 @@ namespace Dcomms.DRP
             }
             finally
             {
-                _pendingInviteRequests.Remove(syn.RequesterPublicKey);
+                _pendingInviteRequests.Remove(req.RequesterPublicKey);
             }
         }
     }

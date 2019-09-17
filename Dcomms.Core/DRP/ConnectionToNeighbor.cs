@@ -30,9 +30,9 @@ namespace Dcomms.DRP
     public class ConnectionToNeighbor: IDisposable
     {
         internal byte[] SharedAuthKeyForHMAC; //  this key is shared secret, known only at requester (A) and neighbor (N), it is used for HMAC
-        RegisterRequestPacket _syn;
-        RegisterAck1Packet _synAck;
-        RegisterAck2Packet _ack;
+        RegisterRequestPacket _req;
+        RegisterAck1Packet _ack1;
+        RegisterAck2Packet _ack2;
 
         #region tx parameters (parameters to transmit direct (p2p) packets from local peer to neighbor)
         public P2pConnectionToken32 RemotePeerToken32;
@@ -76,29 +76,29 @@ namespace Dcomms.DRP
         const ushort Magic16_responderToRequester = 0x60C1; // is used to validate decrypted data
         
         /// <summary>
-        /// when sending REQ-ACK
+        /// when sending ACK1
         /// </summary>
-        public byte[] Encrypt_synack_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(RegisterRequestPacket syn, RegisterAck1Packet synAck, ConnectionToNeighbor synReceivedFromInP2pMode)
+        public byte[] Encrypt_ack1_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(RegisterRequestPacket req, RegisterAck1Packet ack1, ConnectionToNeighbor neighbor)
         {
             IPEndPoint responderEndpoint;
-            if (synReceivedFromInP2pMode != null)
+            if (neighbor != null)
             {
-                responderEndpoint = synReceivedFromInP2pMode.LocalEndpoint;
+                responderEndpoint = neighbor.LocalEndpoint;
             }
             else
             {
-                responderEndpoint = syn.EpEndpoint;
+                responderEndpoint = req.EpEndpoint;
             }
 
             if (responderEndpoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new NotImplementedException();
 
-            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, syn.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+            SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
 
             #region key, iv
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             
-            syn.GetCommonRequesterProxyResponderFields(writer, true);
-            synAck.GetCommonRequesterProxierResponderFields(writer, false, false);
+            req.GetCommonRequesterProxyResponderFields(writer, true);
+            ack1.GetCommonRequesterProxierResponderFields(writer, false, false);
 
             var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();;
             ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
@@ -121,19 +121,19 @@ namespace Dcomms.DRP
 
             if (localRxParametersEncrypted.Length != RegisterAck1Packet.ToResponderTxParametersEncryptedLength)
                 throw new Exception();
-            return localRxParametersEncrypted;           
+            return localRxParametersEncrypted;          
 
         }
                
         /// <summary>initializes parameters to transmit direct (p2p) packets form neighbor N to requester A</returns>
-        public void Decrypt_ack_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(RegisterRequestPacket syn, RegisterAck1Packet synAck, RegisterAck2Packet ack)
+        public void Decrypt_ack2_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
         {
             #region key, iv
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
            
-            syn.GetCommonRequesterProxyResponderFields(writer, true);
-            synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
-            ack.GetCommonRequesterProxyResponderFields(writer, false, false);
+            req.GetCommonRequesterProxyResponderFields(writer, true);
+            ack1.GetCommonRequesterProxierResponderFields(writer, true, true);
+            ack2.GetCommonRequesterProxyResponderFields(writer, false, false);
             
             var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
@@ -141,8 +141,8 @@ namespace Dcomms.DRP
             var aesKey = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
             #endregion 
 
-            var toRequesterTxParametersDecrypted = new byte[ack.ToRequesterTxParametersEncrypted.Length];
-            _engine.CryptoLibrary.ProcessAesCbcBlocks(false, aesKey, iv, ack.ToRequesterTxParametersEncrypted, toRequesterTxParametersDecrypted);
+            var toRequesterTxParametersDecrypted = new byte[ack2.ToRequesterTxParametersEncrypted.Length];
+            _engine.CryptoLibrary.ProcessAesCbcBlocks(false, aesKey, iv, ack2.ToRequesterTxParametersEncrypted, toRequesterTxParametersDecrypted);
 
             // parse toRequesterTxParametersDecrypted
             using (var reader = new BinaryReader(new MemoryStream(toRequesterTxParametersDecrypted)))
@@ -155,20 +155,19 @@ namespace Dcomms.DRP
 
             _engine.WriteToLog_reg_responderSide_detail($"decrypted remote endpoint={RemoteEndpoint}, remotePeerToken={RemotePeerToken32}");
 
-            InitializeP2pStream(syn, synAck, ack);
-            
+            InitializeP2pStream(req, ack1, ack2);            
         }
 
         /// <summary>
         /// when sending ACK
         /// </summary>
-        public byte[] Encrypt_ack_ToRequesterTxParametersEncrypted_AtRequester(RegisterRequestPacket syn, RegisterAck1Packet synAck, RegisterAck2Packet ack)
+        public byte[] Encrypt_ack2_ToRequesterTxParametersEncrypted_AtRequester(RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
         {
-            #region
+            #region aes key, iv
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);         
-            syn.GetCommonRequesterProxyResponderFields(writer, true);
-            synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
-            ack.GetCommonRequesterProxyResponderFields(writer, false, false);
+            req.GetCommonRequesterProxyResponderFields(writer, true);
+            ack1.GetCommonRequesterProxierResponderFields(writer, true, true);
+            ack2.GetCommonRequesterProxyResponderFields(writer, false, false);
            
             var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
@@ -199,20 +198,20 @@ namespace Dcomms.DRP
         /// <summary>
         /// initializes SharedAuthKeyForHMAC
         /// </summary>
-        public void InitializeP2pStream(RegisterRequestPacket syn, RegisterAck1Packet synAck, RegisterAck2Packet ack)
+        public void InitializeP2pStream(RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
         {
             if (_disposed) throw new ObjectDisposedException(_name);
 
-            _syn = syn;
-            _synAck = synAck;
-            _ack = ack;
+            _req = req;
+            _ack1 = ack1;
+            _ack2 = ack2;
 
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                syn.GetCommonRequesterProxyResponderFields(writer, true);
-                synAck.GetCommonRequesterProxierResponderFields(writer, true, true);
-                ack.GetCommonRequesterProxyResponderFields(writer, false, true);           
+                req.GetCommonRequesterProxyResponderFields(writer, true);
+                ack1.GetCommonRequesterProxierResponderFields(writer, true, true);
+                ack2.GetCommonRequesterProxyResponderFields(writer, false, true);           
                 //  var iv = cryptoLibrary.GetHashSHA256(ms.ToArray()); // todo use for p2p  encryption
 
                 ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
@@ -320,7 +319,7 @@ namespace Dcomms.DRP
         {
             if (_disposed) return;
             _disposed = true;
-            _localDrpPeer.ConnectedPeers.Remove(this);
+            _localDrpPeer.ConnectedNeighbors.Remove(this);
             _engine.ConnectedPeersByToken16[LocalRxToken32.Token16] = null;
         }
 
@@ -467,7 +466,7 @@ namespace Dcomms.DRP
                 var syn = RegisterRequestPacket.Decode_OptionallyVerifySenderHMAC(udpPayloadData, this);
                 // SenderToken32 and SenderHMAC are verified at this time
 
-                if (!_engine.ValidateReceivedSynTimestamp32S(syn.Timestamp32S))
+                if (!_engine.ValidateReceivedReqTimestamp32S(syn.Timestamp32S))
                     throw new BadSignatureException();
                 
                               
@@ -503,7 +502,7 @@ namespace Dcomms.DRP
                 var syn = InviteRequestPacket.Decode_VerifySenderHMAC(udpPayloadData, this);
                 // SenderToken32 and SenderHMAC are verified at this time
 
-                if (!_engine.ValidateReceivedSynTimestamp32S(syn.Timestamp32S))
+                if (!_engine.ValidateReceivedReqTimestamp32S(syn.Timestamp32S))
                     throw new BadSignatureException();
 
                 if (syn.ResponderPublicKey.Equals(this.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey))
@@ -534,11 +533,11 @@ namespace Dcomms.DRP
                
         internal void GetResponderRegistrationConfirmationSignatureFields(BinaryWriter w)
         {
-            RegisterConfirmationPacket.GetResponderRegistrationConfirmationSignatureFields(w, _syn, _synAck, _ack);
+            RegisterConfirmationPacket.GetResponderRegistrationConfirmationSignatureFields(w, _req, _ack1, _ack2);
         }
         internal void GetRequesterRegistrationConfirmationSignatureFields(BinaryWriter w, RegistrationSignature responderRegistrationConfirmationSignature)
         {
-            RegisterConfirmationPacket.GetRequesterRegistrationConfirmationSignatureFields(w, responderRegistrationConfirmationSignature, _syn, _synAck, _ack);
+            RegisterConfirmationPacket.GetRequesterRegistrationConfirmationSignatureFields(w, responderRegistrationConfirmationSignature, _req, _ack1, _ack2);
         }
     }
 

@@ -22,16 +22,16 @@ namespace Dcomms.DRP
        // LocalDrpPeerState State;
         readonly DrpPeerRegistrationConfiguration _registrationConfiguration;
         public DrpPeerRegistrationConfiguration RegistrationConfiguration => _registrationConfiguration;
-        readonly IDrpRegisteredPeerUser _user;
+        readonly IDrpRegisteredPeerApp _drpPeerApp;
         readonly DrpPeerEngine _engine;
         internal ICryptoLibrary CryptoLibrary => _engine.CryptoLibrary;
-        public LocalDrpPeer(DrpPeerEngine engine, DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
+        public LocalDrpPeer(DrpPeerEngine engine, DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp)
         {
             _engine = engine;
             _registrationConfiguration = registrationConfiguration;
-            _user = user;
+            _drpPeerApp = drpPeerApp;
         }
-        public List<ConnectionToNeighbor> ConnectedPeers = new List<ConnectionToNeighbor>(); // neighbors
+        public List<ConnectionToNeighbor> ConnectedNeighbors = new List<ConnectionToNeighbor>();
        
         public void Dispose() // unregisters
         {

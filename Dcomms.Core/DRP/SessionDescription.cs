@@ -82,9 +82,9 @@ namespace Dcomms.DRP
        
         /// <param name="receivedFromUser">comes from local contact book</param>
         internal static SessionDescription Decrypt_Verify(ICryptoLibrary cryptoLibrary, byte[] encryptedSdData, 
-            InviteRequestPacket syn,
-            InviteAck1Packet synAck,
-            bool synAckSdIsReady,
+            InviteRequestPacket req,
+            InviteAck1Packet ack1,
+            bool ack1SdIsReady,
             Session session,
             UserId receivedFromUser,
             DateTime localTimeNowUtc
@@ -92,8 +92,8 @@ namespace Dcomms.DRP
         {
             #region key, iv
             PacketProcedures.CreateBinaryWriter(out var ms2, out var w2);
-            syn.GetSharedSignedFields(w2);
-            synAck.GetSharedSignedFields(w2, synAckSdIsReady);
+            req.GetSharedSignedFields(w2);
+            ack1.GetSharedSignedFields(w2, ack1SdIsReady);
             var iv = cryptoLibrary.GetHashSHA256(ms2.ToArray()).Take(16).ToArray();
             ms2.Write(session.SharedDhSecret, 0, session.SharedDhSecret.Length);
             var aesKey = cryptoLibrary.GetHashSHA256(ms2.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
@@ -112,8 +112,8 @@ namespace Dcomms.DRP
             r.UserCertificateSignature = UserCertificateSignature.DecodeAndVerify(reader, cryptoLibrary, 
                 w =>
                 {
-                    syn.GetSharedSignedFields(w);
-                    synAck.GetSharedSignedFields(w, true);
+                    req.GetSharedSignedFields(w);
+                    ack1.GetSharedSignedFields(w, true);
                     r.WriteSignedFields(w);
                 },
                 r.UserCertificate);

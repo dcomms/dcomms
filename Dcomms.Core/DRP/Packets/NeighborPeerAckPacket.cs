@@ -45,9 +45,9 @@ namespace Dcomms.DRP.Packets
             {
                 r.OptionalFilter = (responseData) =>
                 {
-                    var nhack = new NeighborPeerAckPacket(responseData);
-                    if (nhack.SenderHMAC == null) return false;
-                    if (!nhack.SenderHMAC.Equals(waitNhaFromNeighborNullable.GetSenderHMAC(w2 => nhack.GetFieldsForHMAC(w2, nhaRequestPacketFieldsForHmacNullable)))) return false;
+                    var npack = new NeighborPeerAckPacket(responseData);
+                    if (npack.SenderHMAC == null) return false;
+                    if (!npack.SenderHMAC.Equals(waitNhaFromNeighborNullable.GetSenderHMAC(w2 => npack.GetFieldsForHMAC(w2, nhaRequestPacketFieldsForHmacNullable)))) return false;
                     return true;
                 };
             }

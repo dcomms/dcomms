@@ -47,19 +47,19 @@ namespace Dcomms.DRP
             req.RequesterSignature = RegistrationSignature.Sign(_engine.CryptoLibrary, req.GetSharedSignedFields, this.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
 
             // find best connected peer to send the request
-            var destinationNeighbor = _engine.RouteInviteRequest(this, req);
+            var destinationPeer = _engine.RouteInviteRequest(this, req);
 
-            var reqUdpData = req.Encode_SetP2pFields(destinationNeighbor);
+            var reqUdpData = req.Encode_SetP2pFields(destinationPeer);
 
             WriteToLog_inv_requesterSide_detail($"sending REQ, waiting for NPACK");
-            await destinationNeighbor.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.NpaSeq16);
+            await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.NpaSeq16);
             WriteToLog_inv_requesterSide_detail($"received NPACK");
 
 
             #region wait for ACK1
             WriteToLog_inv_requesterSide_detail($"waiting for ACK1");
-            var ack1UdpData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationNeighbor.RemoteEndpoint,
-                            InviteAck1Packet.GetScanner(req, destinationNeighbor),
+            var ack1UdpData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
+                            InviteAck1Packet.GetScanner(req, destinationPeer),
                                 _engine.DateTimeNowUtc, _engine.Configuration.InviteRequestsTimoutS
                             ));
             if (ack1UdpData == null) throw new DrpTimeoutException();
@@ -78,7 +78,7 @@ namespace Dcomms.DRP
             session.DeriveSharedDhSecret(_engine.CryptoLibrary, ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
             // send NPACK to ACK1
-            SendNextHopAckResponseToAck1(ack1, destinationNeighbor);
+            SendNeighborPeerAckResponseToAck1(ack1, destinationPeer);
             #endregion
 
 
@@ -92,7 +92,7 @@ namespace Dcomms.DRP
             // sign and encode local SD
             session.LocalSessionDescription = new SessionDescription
             {
-                DirectChannelEndPoint = destinationNeighbor.LocalEndpoint,
+                DirectChannelEndPoint = destinationPeer.LocalEndpoint,
                 UserCertificate = requesterUserCertificate
             };
             session.LocalSessionDescription.UserCertificateSignature = UserCertificateSignature.Sign(_engine.CryptoLibrary,
@@ -119,18 +119,18 @@ namespace Dcomms.DRP
                     ack1.GetSharedSignedFields(w, true);
                     ack2.GetSharedSignedFields(w);
                 }, this.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
-            var ack2UdpData = ack1.Encode_SetP2pFields(destinationNeighbor);
+            var ack2UdpData = ack1.Encode_SetP2pFields(destinationPeer);
 
             WriteToLog_inv_requesterSide_detail($"sending ACK2, waiting for NPACK");
-            await destinationNeighbor.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2UdpData, ack2.NpaSeq16);
+            await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2UdpData, ack2.NpaSeq16);
             WriteToLog_inv_requesterSide_detail($"received NPACK");
             #endregion
             
 
             #region wait for CFM
             WriteToLog_inv_requesterSide_detail($"waiting for CFM");
-            var cfmUdpData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationNeighbor.RemoteEndpoint,
-                            InviteConfirmationPacket.GetScanner(req, destinationNeighbor),
+            var cfmUdpData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
+                            InviteConfirmationPacket.GetScanner(req, destinationPeer),
                             _engine.DateTimeNowUtc, _engine.Configuration.InviteRequestsTimoutS
                             ));
             if (cfmUdpData == null) throw new DrpTimeoutException();
@@ -150,69 +150,69 @@ namespace Dcomms.DRP
             WriteToLog_inv_requesterSide_detail($"verified CFM");
                        
             // send NPACK to CFM
-            SendNextHopAckResponseToCfm(cfm, destinationNeighbor);
+            SendNeighborPeerAckResponseToCfm(cfm, destinationPeer);
             #endregion
 
             return session;
         }
 
-        void SendNextHopAckResponseToReq(InviteRequestPacket req, ConnectionToNeighbor neighbor, NextHopResponseCode statusCode = NextHopResponseCode.accepted)
+        void SendNeighborPeerAckResponseToReq(InviteRequestPacket req, ConnectionToNeighbor neighbor, NextHopResponseCode statusCode = NextHopResponseCode.accepted)
         {
-            var nextHopAck = new NeighborPeerAckPacket
+            var npAck = new NeighborPeerAckPacket
             {
                 NpaSeq16 = req.NpaSeq16,
                 StatusCode = statusCode
             };
 
-            nextHopAck.SenderToken32 = neighbor.RemotePeerToken32;
-            nextHopAck.SenderHMAC = neighbor.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, req.GetSignedFieldsForSenderHMAC));
-            var nextHopAckPacketData = nextHopAck.Encode(false);
+            npAck.SenderToken32 = neighbor.RemotePeerToken32;
+            npAck.SenderHMAC = neighbor.GetSenderHMAC(w => npAck.GetFieldsForHMAC(w, req.GetSignedFieldsForSenderHMAC));
+            var npAckUdpData = npAck.Encode(false);
 
-            _engine.RespondToRequestAndRetransmissions(req.DecodedUdpPayloadData, nextHopAckPacketData, neighbor.RemoteEndpoint);
+            _engine.RespondToRequestAndRetransmissions(req.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
 
         }
-        void SendNextHopAckResponseToAck1(InviteAck1Packet ack1, ConnectionToNeighbor neighbor)
+        void SendNeighborPeerAckResponseToAck1(InviteAck1Packet ack1, ConnectionToNeighbor neighbor)
         {
-            var nextHopAck = new NeighborPeerAckPacket
+            var npAck = new NeighborPeerAckPacket
             {
                 NpaSeq16 = ack1.NpaSeq16,
                 StatusCode = NextHopResponseCode.accepted
             };
 
-            nextHopAck.SenderToken32 = neighbor.RemotePeerToken32;
-            nextHopAck.SenderHMAC = neighbor.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, ack1.GetSignedFieldsForSenderHMAC));
-            var nextHopAckPacketData = nextHopAck.Encode(false);
+            npAck.SenderToken32 = neighbor.RemotePeerToken32;
+            npAck.SenderHMAC = neighbor.GetSenderHMAC(w => npAck.GetFieldsForHMAC(w, ack1.GetSignedFieldsForSenderHMAC));
+            var npAckUdpData = npAck.Encode(false);
 
-            _engine.RespondToRequestAndRetransmissions(ack1.DecodedUdpPayloadData, nextHopAckPacketData, neighbor.RemoteEndpoint);
+            _engine.RespondToRequestAndRetransmissions(ack1.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
 
         }
-        void SendNextHopAckResponseToAck2(InviteAck2Packet ack2, ConnectionToNeighbor neighbor)
+        void SendNeighborPeerAckResponseToAck2(InviteAck2Packet ack2, ConnectionToNeighbor neighbor)
         {
-            var nextHopAck = new NeighborPeerAckPacket
+            var npAck = new NeighborPeerAckPacket
             {
                 NpaSeq16 = ack2.NpaSeq16,
                 StatusCode = NextHopResponseCode.accepted
             };
 
-            nextHopAck.SenderToken32 = neighbor.RemotePeerToken32;
-            nextHopAck.SenderHMAC = neighbor.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, ack2.GetSignedFieldsForSenderHMAC));
-            var nextHopAckPacketData = nextHopAck.Encode(false);
+            npAck.SenderToken32 = neighbor.RemotePeerToken32;
+            npAck.SenderHMAC = neighbor.GetSenderHMAC(w => npAck.GetFieldsForHMAC(w, ack2.GetSignedFieldsForSenderHMAC));
+            var npAckUdpData = npAck.Encode(false);
 
-            _engine.RespondToRequestAndRetransmissions(ack2.DecodedUdpPayloadData, nextHopAckPacketData, neighbor.RemoteEndpoint);
+            _engine.RespondToRequestAndRetransmissions(ack2.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
         }
-        void SendNextHopAckResponseToCfm(InviteConfirmationPacket cfm, ConnectionToNeighbor neighbor)
+        void SendNeighborPeerAckResponseToCfm(InviteConfirmationPacket cfm, ConnectionToNeighbor neighbor)
         {
-            var nextHopAck = new NeighborPeerAckPacket
+            var npAck = new NeighborPeerAckPacket
             {
                 NpaSeq16 = cfm.NpaSeq16,
                 StatusCode = NextHopResponseCode.accepted
             };
 
-            nextHopAck.SenderToken32 = neighbor.RemotePeerToken32;
-            nextHopAck.SenderHMAC = neighbor.GetSenderHMAC(w => nextHopAck.GetFieldsForHMAC(w, cfm.GetSignedFieldsForSenderHMAC));
-            var nextHopAckPacketData = nextHopAck.Encode(false);
+            npAck.SenderToken32 = neighbor.RemotePeerToken32;
+            npAck.SenderHMAC = neighbor.GetSenderHMAC(w => npAck.GetFieldsForHMAC(w, cfm.GetSignedFieldsForSenderHMAC));
+            var npAckUdpData = npAck.Encode(false);
 
-            _engine.RespondToRequestAndRetransmissions(cfm.DecodedUdpPayloadData, nextHopAckPacketData, neighbor.RemoteEndpoint);
+            _engine.RespondToRequestAndRetransmissions(cfm.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
 
         }
 

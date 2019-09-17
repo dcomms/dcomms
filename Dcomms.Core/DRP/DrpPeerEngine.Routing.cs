@@ -40,7 +40,7 @@ namespace Dcomms.DRP
             ref RegistrationIdDistance minDistance,
             ref ConnectionToNeighbor proxyToDestinationPeer, ref LocalDrpPeer acceptAt)
         {
-            foreach (var connectedPeer in localDrpPeer.ConnectedPeers)
+            foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors)
             {
                 var distanceToConnectedPeer = req.RequesterPublicKey_RequestID.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
                 WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterPublicKey_RequestID} to {connectedPeer.RemotePeerPublicKey}");
@@ -65,7 +65,7 @@ namespace Dcomms.DRP
         {
             ConnectionToNeighbor r = null;
             RegistrationIdDistance minDistance = null;
-            foreach (var connectedPeer in localDrpPeer.ConnectedPeers)
+            foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors)
             {
                 var distanceToConnectedPeer = req.ResponderPublicKey.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
                 WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from INVITE REQ {req.ResponderPublicKey} to {connectedPeer.RemotePeerPublicKey}");

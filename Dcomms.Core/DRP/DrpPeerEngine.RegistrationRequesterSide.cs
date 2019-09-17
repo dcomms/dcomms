@@ -17,31 +17,31 @@ namespace Dcomms.DRP
         /// <summary>
         /// returns control only when LocalDrpPeer is registered and ready for operation ("local user logged in")
         /// </summary>
-        public void BeginRegister(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user, Action<LocalDrpPeer> cb = null)
+        public void BeginRegister(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp, Action<LocalDrpPeer> cb = null)
         {
             WriteToLog_reg_requesterSide_detail($">> BeginRegister()");
                        
             EngineThreadQueue.Enqueue(async () =>
             {
-                var r = await BeginRegister2(registrationConfiguration, user);
+                var r = await BeginRegister2(registrationConfiguration, drpPeerApp);
                 if (cb != null) cb(r);
             });
             
         }
 
-        public void BeginCreateLocalPeer(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user, Action<LocalDrpPeer> cb = null)
+        public void BeginCreateLocalPeer(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp, Action<LocalDrpPeer> cb = null)
         {
             EngineThreadQueue.Enqueue(async () =>
             {
-                var r = await CreateLocalPeerAsync(registrationConfiguration, user);
+                var r = await CreateLocalPeerAsync(registrationConfiguration, drpPeerApp);
                 if (cb != null) cb(r);
             });
 
         }
 
-        async Task<LocalDrpPeer> CreateLocalPeerAsync(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
+        async Task<LocalDrpPeer> CreateLocalPeerAsync(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp)
         {
-            var localDrpPeer = new LocalDrpPeer(this, registrationConfiguration, user);
+            var localDrpPeer = new LocalDrpPeer(this, registrationConfiguration, drpPeerApp);
 
             if (Configuration.ForcedPublicIpApiProviderResponse == null)
             {
@@ -63,7 +63,7 @@ namespace Dcomms.DRP
             LocalPeers.Add(registrationConfiguration.LocalPeerRegistrationPublicKey, localDrpPeer);
             return localDrpPeer;
         }
-        async Task<LocalDrpPeer> BeginRegister2(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerUser user)
+        async Task<LocalDrpPeer> BeginRegister2(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerApp user)
         {
             WriteToLog_reg_requesterSide_detail($"@BeginRegister2() engine thread");
 
@@ -129,97 +129,97 @@ namespace Dcomms.DRP
                 throw new Pow1RejectedException(pow1ResponsePacket.StatusCode);
             #endregion
                        
-            var connectionToNeighbor = new ConnectionToNeighbor(this, localDrpPeer, ConnectedDrpPeerInitiatedBy.localPeer);
-            RegisterRequestPacket syn;
+            var newConnectionToNeighbor = new ConnectionToNeighbor(this, localDrpPeer, ConnectedDrpPeerInitiatedBy.localPeer);
+            RegisterRequestPacket req;
             PongPacket pong;
             PendingLowLevelUdpRequest pendingPingRequest;
             try
             {
                 #region register REQ
                 // calculate PoW2
-                syn = new RegisterRequestPacket
+                req = new RegisterRequestPacket
                 {
                     RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
                     Timestamp32S = Timestamp32S,
                     MinimalDistanceToNeighbor = 0,
                     NumberOfHopsRemaining = 10,
-                    RequesterEcdhePublicKey = new EcdhPublicKey(connectionToNeighbor.LocalEcdhe25519PublicKey),
-                    NpaSeq16 = GetNewNhaSeq16_AtoEP(),
+                    RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
+                    NpaSeq16 = GetNewNpaSeq16_AtoEP(),
                     EpEndpoint = epEndpoint
                 };
-                RecentUniquePublicEcdhKeys.AssertIsUnique(syn.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+                RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
                 WriteToLog_reg_requesterSide_detail($"calculating PoW2");
-                GenerateRegisterSynPow2(syn, pow1ResponsePacket.ProofOfWork2Request);
-                syn.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary,
-                    w => syn.GetCommonRequesterProxyResponderFields(w, false),
+                GenerateRegisterSynPow2(req, pow1ResponsePacket.ProofOfWork2Request);
+                req.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary,
+                    w => req.GetCommonRequesterProxyResponderFields(w, false),
                     localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey
                     );
-                var synToSynAckStopwatch = Stopwatch.StartNew();
+                var reqToAck1Stopwatch = Stopwatch.StartNew();
 
-                WriteToLog_reg_requesterSide_detail($"sending REQ, waiting for NPACK. NpaSeq16={syn.NpaSeq16}");
-                await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(syn.Encode_OptionallySignSenderHMAC(null), epEndpoint, syn.NpaSeq16);
+                WriteToLog_reg_requesterSide_detail($"sending REQ, waiting for NPACK. NpaSeq16={req.NpaSeq16}");
+                await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(req.Encode_OptionallySignSenderHMAC(null), epEndpoint, req.NpaSeq16);
                 #endregion
 
-                #region wait for SYNACK
-                WriteToLog_reg_requesterSide_detail($"waiting for SYNACK");
-                var registerSynAckPacketData = await WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(epEndpoint,
-                                RegisterAck1Packet.GetScanner(syn.RequesterPublicKey_RequestID, syn.Timestamp32S),
-                                DateTimeNowUtc, Configuration.RegSynAckTimoutS                               
+                #region wait for ACK1
+                WriteToLog_reg_requesterSide_detail($"waiting for ACK1");
+                var ack1UdpData = await WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(epEndpoint,
+                                RegisterAck1Packet.GetScanner(req.RequesterPublicKey_RequestID, req.Timestamp32S),
+                                DateTimeNowUtc, Configuration.RegisterRequestsTimoutS                               
                             ));
-                if (registerSynAckPacketData == null) throw new DrpTimeoutException();
-                var synAck = RegisterAck1Packet.DecodeAndOptionallyVerify(registerSynAckPacketData, syn, connectionToNeighbor);
-                WriteToLog_reg_requesterSide_detail($"verified SYNACK. RequesterEndpoint={synAck.RequesterEndpoint}");
+                if (ack1UdpData == null) throw new DrpTimeoutException();
+                var ack1 = RegisterAck1Packet.DecodeAndOptionallyVerify(ack1UdpData, req, newConnectionToNeighbor);
+                WriteToLog_reg_requesterSide_detail($"verified ACK1. RequesterEndpoint={ack1.RequesterEndpoint}");
                 #endregion
 
                 // check if it matches to previously known local public IP
-                if (synAck.RequesterEndpoint.Address.Equals(localDrpPeer.PublicIpApiProviderResponse) == false)
+                if (ack1.RequesterEndpoint.Address.Equals(localDrpPeer.PublicIpApiProviderResponse) == false)
                 {
                     // MITM attack / EP sent local (requester) endpoint IP some bad IP address
                     throw new PossibleMitmException();
                 }
-                RecentUniquePublicEcdhKeys.AssertIsUnique(synAck.ResponderEcdhePublicKey.Ecdh25519PublicKey);
+                RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
-                connectionToNeighbor.LocalEndpoint = synAck.RequesterEndpoint;
-                connectionToNeighbor.RemotePeerPublicKey = synAck.ResponderPublicKey;
-                synToSynAckStopwatch.Stop();
-                var synToSynAckTimeMs = synToSynAckStopwatch.Elapsed.TotalMilliseconds;
-                WriteToLog_reg_requesterSide_detail($"measured REQ-SYNACK RTT = {(int)synToSynAckTimeMs}ms");
+                newConnectionToNeighbor.LocalEndpoint = ack1.RequesterEndpoint;
+                newConnectionToNeighbor.RemotePeerPublicKey = ack1.ResponderPublicKey;
+                reqToAck1Stopwatch.Stop();
+                var reqToAck1TimeMs = reqToAck1Stopwatch.Elapsed.TotalMilliseconds;
+                WriteToLog_reg_requesterSide_detail($"measured REQ-ACK1 RTT = {(int)reqToAck1TimeMs}ms");
 
-                #region send ACK, encode local IP
-                var ack = new RegisterAck2Packet
+                #region send ACK2, encode local IP
+                var ack2 = new RegisterAck2Packet
                 {
-                    RegisterSynTimestamp32S = syn.Timestamp32S,
+                    RegisterSynTimestamp32S = req.Timestamp32S,
                     RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
-                    NpaSeq16 = GetNewNhaSeq16_AtoEP()
+                    NpaSeq16 = GetNewNpaSeq16_AtoEP()
                 };            
-                ack.ToRequesterTxParametersEncrypted = connectionToNeighbor.Encrypt_ack_ToRequesterTxParametersEncrypted_AtRequester(syn, synAck, ack);
-                connectionToNeighbor.InitializeP2pStream(syn, synAck, ack);
-                ack.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary, w =>
+                ack2.ToRequesterTxParametersEncrypted = newConnectionToNeighbor.Encrypt_ack2_ToRequesterTxParametersEncrypted_AtRequester(req, ack1, ack2);
+                newConnectionToNeighbor.InitializeP2pStream(req, ack1, ack2);
+                ack2.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary, w =>
                     {
-                        syn.GetCommonRequesterProxyResponderFields(w, true);
-                        synAck.GetCommonRequesterProxierResponderFields(w, true, true);
-                        ack.GetCommonRequesterProxyResponderFields(w, false, true);
+                        req.GetCommonRequesterProxyResponderFields(w, true);
+                        ack1.GetCommonRequesterProxierResponderFields(w, true, true);
+                        ack2.GetCommonRequesterProxyResponderFields(w, false, true);
                     },
                     localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey
                  );
 
-                WriteToLog_reg_requesterSide_detail($"sending ACK, waiting for NPACK");
-                RespondToRequestAndRetransmissions(registerSynAckPacketData, ack.Encode_OptionallySignSenderHMAC(null), epEndpoint);
-                await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(null, epEndpoint, ack.NpaSeq16);
+                WriteToLog_reg_requesterSide_detail($"sending ACK2 (in response to ACK1), waiting for NPACK");
+                RespondToRequestAndRetransmissions(ack1UdpData, ack2.Encode_OptionallySignSenderHMAC(null), epEndpoint);
+                await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(null, epEndpoint, ack2.NpaSeq16);
                 #endregion
 
-                var neighborWaitTimeMs = synToSynAckTimeMs * 0.5 - 100; if (neighborWaitTimeMs < 0) neighborWaitTimeMs = 0;
+                var neighborWaitTimeMs = reqToAck1TimeMs * 0.5 - 100; if (neighborWaitTimeMs < 0) neighborWaitTimeMs = 0;
                 if (neighborWaitTimeMs > 20)
                 {
-                    await EngineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(neighborWaitTimeMs)); // wait until the registerACK reaches neighbor N via peers
+                    await EngineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(neighborWaitTimeMs)); // wait until the ACK2 reaches neighbor N via peers
                 }
                                 
-                localDrpPeer.ConnectedPeers.Add(connectionToNeighbor);
+                localDrpPeer.ConnectedNeighbors.Add(newConnectionToNeighbor);
 
                 #region send ping request directly to neighbor N, retransmit               
-                var pingRequest = connectionToNeighbor.CreatePing(true);
-                pendingPingRequest = new PendingLowLevelUdpRequest(connectionToNeighbor.RemoteEndpoint,
-                                PongPacket.GetScanner(connectionToNeighbor.LocalRxToken32, pingRequest.PingRequestId32),
+                var pingRequest = newConnectionToNeighbor.CreatePing(true);
+                pendingPingRequest = new PendingLowLevelUdpRequest(newConnectionToNeighbor.RemoteEndpoint,
+                                PongPacket.GetScanner(newConnectionToNeighbor.LocalRxToken32, pingRequest.PingRequestId32),
                                 DateTimeNowUtc,
                                 Configuration.InitialPingRequests_ExpirationTimeoutS,
                                 pingRequest.Encode(),
@@ -227,21 +227,21 @@ namespace Dcomms.DRP
                                 Configuration.InitialPingRequests_RetransmissionTimeoutIncrement
                             );
 
-                WriteToLog_reg_requesterSide_detail($"sending ping, waiting for pong");
+                WriteToLog_reg_requesterSide_detail($"sending PING, waiting for PONG");
                 var pongPacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest);
                 if (pongPacketData == null) throw new DrpTimeoutException();
                 pong = PongPacket.DecodeAndVerify(_cryptoLibrary,
-                    pongPacketData, pingRequest, connectionToNeighbor,
+                    pongPacketData, pingRequest, newConnectionToNeighbor,
                     true);
-                WriteToLog_reg_requesterSide_detail($"verified pong");
-                connectionToNeighbor.OnReceivedVerifiedPong(pong, pendingPingRequest.ResponseReceivedAtUtc.Value,
+                WriteToLog_reg_requesterSide_detail($"verified PONG");
+                newConnectionToNeighbor.OnReceivedVerifiedPong(pong, pendingPingRequest.ResponseReceivedAtUtc.Value,
                     pendingPingRequest.ResponseReceivedAtUtc.Value - pendingPingRequest.InitialTxTimeUTC.Value);
                 #endregion
             }
             catch
             {
-                // todo update quality
-                connectionToNeighbor.Dispose(); // remove from token32 table
+                // todo update QoS
+                newConnectionToNeighbor.Dispose(); // remove from token32 table
                 throw;
             }
                        
@@ -250,13 +250,13 @@ namespace Dcomms.DRP
             {
                 var cfm = new RegisterConfirmationPacket
                 {
-                    RegisterSynTimestamp32S = syn.Timestamp32S,
+                    RegisterSynTimestamp32S = req.Timestamp32S,
                     RequesterPublicKey_RequestID = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPublicKey,
                     ResponderRegistrationConfirmationSignature = pong.ResponderRegistrationConfirmationSignature,
-                    NpaSeq16 = GetNewNhaSeq16_AtoEP()
+                    NpaSeq16 = GetNewNpaSeq16_AtoEP()
                 };
                 cfm.RequesterRegistrationConfirmationSignature = RegistrationSignature.Sign(_cryptoLibrary,
-                    w => connectionToNeighbor.GetRequesterRegistrationConfirmationSignatureFields(w, cfm.ResponderRegistrationConfirmationSignature),
+                    w => newConnectionToNeighbor.GetRequesterRegistrationConfirmationSignatureFields(w, cfm.ResponderRegistrationConfirmationSignature),
                     localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
                 WriteToLog_reg_requesterSide_detail($"sending CFM, waiting for NPACK");
                 await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(cfm.Encode_OptionallySignSenderHMAC(null), epEndpoint, cfm.NpaSeq16);
@@ -268,7 +268,7 @@ namespace Dcomms.DRP
             }
             #endregion
               
-            return connectionToNeighbor;
+            return newConnectionToNeighbor;
         }
         /// <returns>bytes of IP address</returns>
         async Task<byte[]> SendPublicIpAddressApiRequestAsync(string url)

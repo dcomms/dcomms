@@ -167,7 +167,7 @@ namespace Dcomms.DRP.Packets
             ack.ToRequesterTxParametersEncrypted = reader.ReadBytes(ToRequesterTxParametersEncryptedLength);
             if (newConnectionAtResponderToRequesterNullable != null)
             {
-                newConnectionAtResponderToRequesterNullable.Decrypt_ack_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(synNullable, synAckNullable, ack);
+                newConnectionAtResponderToRequesterNullable.Decrypt_ack2_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(synNullable, synAckNullable, ack);
             }
 
             ack.RequesterSignature = RegistrationSignature.Decode(reader);
