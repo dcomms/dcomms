@@ -36,18 +36,19 @@ namespace Dcomms.DRP.Packets
 
         /// <param name="waitNhaFromNeighborNullable">is used to verify NPACK.NeighborHMAC</param>
         public static LowLevelUdpResponseScanner GetScanner(NeighborPeerAckSequenceNumber16 npaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, 
-            Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
+            Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             EncodeHeader(w, npaSeq16);
             var r = new LowLevelUdpResponseScanner { ResponseFirstBytes = ms.ToArray() };
             if (waitNhaFromNeighborNullable != null)
             {
+                if (npaRequestFieldsForNeighborHmacNullable == null) throw new ArgumentNullException();
                 r.OptionalFilter = (responseData) =>
                 {
                     var npack = new NeighborPeerAckPacket(responseData);
                     if (npack.NeighborHMAC == null) return false;
-                    if (!npack.NeighborHMAC.Equals(waitNhaFromNeighborNullable.GetNeighborHMAC(w2 => npack.GetFieldsForHMAC(w2, nhaRequestPacketFieldsForHmacNullable)))) return false;
+                    if (!npack.NeighborHMAC.Equals(waitNhaFromNeighborNullable.GetNeighborHMAC(w2 => npack.GetSignedFieldsForNeighborHMAC(w2, npaRequestFieldsForNeighborHmacNullable)))) return false;
                     return true;
                 };
             }
@@ -81,8 +82,9 @@ namespace Dcomms.DRP.Packets
             if ((flags & Flag_EPtoA) == 0) NeighborHMAC = HMAC.Decode(reader);
         } 
 
-        internal void GetFieldsForHMAC(BinaryWriter w, Action<BinaryWriter> nhaRequestPacketFieldsForHMAC)
+        internal void GetSignedFieldsForNeighborHMAC(BinaryWriter w, Action<BinaryWriter> nhaRequestPacketFieldsForHMAC)
         {
+            if (nhaRequestPacketFieldsForHMAC == null) throw new ArgumentNullException();
             EncodeHeader(w, NpaSeq16);
             NeighborToken32.Encode(w); // it is not null, if we verify HMAC
             w.Write((byte)StatusCode);

@@ -106,7 +106,7 @@ namespace Dcomms.DRP.Packets
                 NeighborToken32.Encode(writer);
             }
 
-            GetCommonRequesterProxyResponderFields(writer, true, true);
+            GetSharedSignedFields(writer, true, true);
 
             NpaSeq16.Encode(writer);
 
@@ -118,7 +118,7 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// used for signature at requester; as source for p2p stream AEAD hash
         /// </summary>
-        public void GetCommonRequesterProxyResponderFields(BinaryWriter writer, bool includeRequesterSignature, bool includeTxParameters)
+        public void GetSharedSignedFields(BinaryWriter writer, bool includeRequesterSignature, bool includeTxParameters)
         {
             writer.Write(ReqTimestamp32S);
             RequesterRegistrationId.Encode(writer);
@@ -129,7 +129,7 @@ namespace Dcomms.DRP.Packets
         internal void GetSignedFieldsForNeighborHMAC(BinaryWriter writer)
         {
             NeighborToken32.Encode(writer);
-            GetCommonRequesterProxyResponderFields(writer, true, true);
+            GetSharedSignedFields(writer, true, true);
             NpaSeq16.Encode(writer);
         }
 
@@ -178,9 +178,9 @@ namespace Dcomms.DRP.Packets
                 if (!ack.RequesterSignature.Verify(newConnectionAtResponderToRequesterNullable.Engine.CryptoLibrary,
                     w =>
                     {
-                        synNullable.GetCommonRequesterProxyResponderFields(w, true);
-                        synAckNullable.GetCommonRequesterProxierResponderFields(w, true, true);
-                        ack.GetCommonRequesterProxyResponderFields(w, false, true);
+                        synNullable.GetSharedSignedFields(w, true);
+                        synAckNullable.GetSharedSignedFields(w, true, true);
+                        ack.GetSharedSignedFields(w, false, true);
                     },
                     synNullable.RequesterRegistrationId))
                     throw new BadSignatureException();

@@ -45,7 +45,7 @@ namespace Dcomms.DRP.Packets
             return ms.ToArray();
         }
 
-        public static ushort DecodeToken16FromUdpPayloadData(byte[] udpPayloadData)
+        public static ushort DecodeNeighborToken16(byte[] udpPayloadData)
         { // first byte is packet type. then 4 bytes are NeighborToken32
             return (ushort)(udpPayloadData[1] | (udpPayloadData[2] << 8));
         }
@@ -149,7 +149,7 @@ namespace Dcomms.DRP.Packets
           
             return r;
         }
-        public static ushort DecodeToken16FromUdpPayloadData(byte[] udpPayloadData)
+        public static ushort DecodeNeighborToken16(byte[] udpPayloadData)
         { // first byte is packet type. then 4 bytes are NeighborToken32
             return (ushort)(udpPayloadData[1] | (udpPayloadData[2] << 8));
         }

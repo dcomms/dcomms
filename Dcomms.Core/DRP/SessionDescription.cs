@@ -26,7 +26,7 @@ namespace Dcomms.DRP
         /// at user who received this SessionDescription (via INVITE): IP address and UDP port to send DMP data send via direct channel to remote party
         /// </summary>
         public IPEndPoint DirectChannelEndPoint;
-
+        public SessionType SessionType;
 
         /// <summary>
         /// signs fields 
@@ -38,9 +38,12 @@ namespace Dcomms.DRP
         /// </summary>
         public UserCertificateSignature UserCertificateSignature { get; set; }
 
+        public override string ToString() => $"dsEP={DirectChannelEndPoint}, sessionType={SessionType}";
+
         internal void WriteSignedFields(BinaryWriter w)
         {
             PacketProcedures.EncodeIPEndPoint(w, DirectChannelEndPoint);
+            w.Write((byte)SessionType);
         }
 
   
@@ -56,6 +59,7 @@ namespace Dcomms.DRP
             w.Write(Flags);
             UserCertificate.Encode(w);
             PacketProcedures.EncodeIPEndPoint(w, DirectChannelEndPoint);
+            w.Write((byte)SessionType);
             UserCertificateSignature.Encode(w);
             var bytesInLastBlock = (int)ms.Position % CryptoLibraries.AesBlockSize;
             if (bytesInLastBlock != 0)
@@ -109,17 +113,24 @@ namespace Dcomms.DRP
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             r.UserCertificate = UserCertificate.Decode_AssertIsValidNow(reader, cryptoLibrary, receivedFromUser, localTimeNowUtc);
             r.DirectChannelEndPoint = PacketProcedures.DecodeIPEndPoint(reader);
+            r.SessionType = (SessionType)reader.ReadByte();
             r.UserCertificateSignature = UserCertificateSignature.DecodeAndVerify(reader, cryptoLibrary, 
                 w =>
                 {
                     req.GetSharedSignedFields(w);
-                    ack1.GetSharedSignedFields(w, true);
+                    ack1.GetSharedSignedFields(w, ack1SdIsReady);
                     r.WriteSignedFields(w);
                 },
-                r.UserCertificate);
-                       
+                r.UserCertificate);                       
             return r;
         }
+    }
+    public enum SessionType
+    {
+        technicalMessages, 
+        asyncUserMessages,
+        realtimeVoice,
+        realtimeVideoAndVoice
     }
 }
  

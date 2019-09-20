@@ -104,7 +104,7 @@ namespace Dcomms.DRP.Packets
 
             w.Write(req.ReqTimestamp32S);
             req.RequesterRegistrationId.Encode(w);
-            req.ResponderPublicKey.Encode(w);
+            req.ResponderRegistrationId.Encode(w);
 
             var r = new LowLevelUdpResponseScanner
             {

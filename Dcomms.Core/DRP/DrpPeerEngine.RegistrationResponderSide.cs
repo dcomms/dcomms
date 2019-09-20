@@ -28,7 +28,7 @@ namespace Dcomms.DRP
                 // check Timestamp32S and signature of requester (A)
                 if (!ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S) ||
                         !req.RequesterSignature.Verify(_cryptoLibrary,
-                            w => req.GetCommonRequesterProxyResponderFields(w, false),
+                            w => req.GetSharedSignedFields(w, false),
                             req.RequesterRegistrationId
                         )
                     )
@@ -70,8 +70,8 @@ namespace Dcomms.DRP
                     ack1.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         (w2) =>
                         {
-                            req.GetCommonRequesterProxyResponderFields(w2, true);
-                            ack1.GetCommonRequesterProxierResponderFields(w2, false, true);
+                            req.GetSharedSignedFields(w2, true);
+                            ack1.GetSharedSignedFields(w2, false, true);
                         },
                         acceptAt.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
                     if (sourcePeer == null) ack1.RequesterEndpoint = requesterEndpoint;                    
@@ -171,7 +171,7 @@ namespace Dcomms.DRP
             if (neighbor != null)
             {
                 npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
-                npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetFieldsForHMAC(w, req.GetSignedFieldsForNeighborHMAC));
+                npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetSignedFieldsForNeighborHMAC(w, req.GetSignedFieldsForNeighborHMAC));
             }
             var npAckUdpData = npAck.Encode(neighbor == null);
             
@@ -188,7 +188,7 @@ namespace Dcomms.DRP
             };
 
             npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
-            npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetFieldsForHMAC(w, ack1.GetSignedFieldsForNeighborHMAC));
+            npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetSignedFieldsForNeighborHMAC(w, ack1.GetSignedFieldsForNeighborHMAC));
             var npAckUdpData = npAck.Encode(false);
 
             RespondToRequestAndRetransmissions(ack1.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
@@ -205,7 +205,7 @@ namespace Dcomms.DRP
             if (ack2.AtoEP == false)
             {
                 npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
-                npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetFieldsForHMAC(w, ack2.GetSignedFieldsForNeighborHMAC));
+                npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetSignedFieldsForNeighborHMAC(w, ack2.GetSignedFieldsForNeighborHMAC));
             }
 
             var npAckUdpData = npAck.Encode(ack2.AtoEP);
@@ -221,7 +221,7 @@ namespace Dcomms.DRP
             if (cfm.AtoEP == false)
             {
                 npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
-                npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetFieldsForHMAC(w, cfm.GetSignedFieldsForNeighborHMAC));
+                npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetSignedFieldsForNeighborHMAC(w, cfm.GetSignedFieldsForNeighborHMAC));
             }
             var npAckUdpData = npAck.Encode(cfm.AtoEP);
             RespondToRequestAndRetransmissions(cfm.DecodedUdpPayloadData, npAckUdpData, remoteEndpoint);

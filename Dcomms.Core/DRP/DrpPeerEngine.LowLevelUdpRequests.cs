@@ -20,9 +20,9 @@ namespace Dcomms.DRP
 
         /// <param name="waitNhaFromNeighborNullable">is used to verify NPACK.NeighborHMAC</param>
         internal async Task<NeighborPeerAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, 
-            NeighborPeerAckSequenceNumber16 npaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
+            NeighborPeerAckSequenceNumber16 npaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
-            var npaScanner = NeighborPeerAckPacket.GetScanner(npaSeq16, waitNhaFromNeighborNullable, nhaRequestPacketFieldsForHmacNullable);
+            var npaScanner = NeighborPeerAckPacket.GetScanner(npaSeq16, waitNhaFromNeighborNullable, npaRequestFieldsForNeighborHmacNullable);
             WriteToLog_udp_detail($"waiting for npAck, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} nhaSeq={npaSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(responderEndpoint,

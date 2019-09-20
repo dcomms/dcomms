@@ -9,14 +9,21 @@ namespace Dcomms.DRP
 {
     partial class LocalDrpPeer
     {
-        public void BeginSendInvite(UserCertificate requesterUserCertificate, RegistrationId responderRegId, UserId responderUserId, Action<Session> cb)
+        public void BeginSendInvite(UserCertificate requesterUserCertificate, RegistrationId responderRegId, UserId responderUserId, SessionDescription localSessionDescription, Action<Session> cb)
         {
             WriteToLog_inv_requesterSide_detail($">> BeginSendInvite()");
 
             _engine.EngineThreadQueue.Enqueue(async () =>
             {
-                var r = await SendInviteAsync(requesterUserCertificate, responderRegId, responderUserId);
-                if (cb != null) cb(r);
+                try
+                {
+                    var r = await SendInviteAsync(requesterUserCertificate, responderRegId, responderUserId, localSessionDescription);
+                    if (cb != null) cb(r);
+                }
+                catch (Exception exc)
+                {
+                    _engine.HandleExceptionInInviteRequester(exc);
+                }
             });
 
         }
@@ -31,7 +38,7 @@ namespace Dcomms.DRP
         /// <param name="responderRegId">
         /// comes from local contact book
         /// </param>
-        public async Task<Session> SendInviteAsync(UserCertificate requesterUserCertificate, RegistrationId responderRegId, UserId responderUserId)
+        public async Task<Session> SendInviteAsync(UserCertificate requesterUserCertificate, RegistrationId responderRegId, UserId responderUserId, SessionDescription localSessionDescription)
         {
             var session = new Session(this);
 
@@ -40,7 +47,7 @@ namespace Dcomms.DRP
                 NumberOfHopsRemaining = 10,
                 RequesterEcdhePublicKey = new EcdhPublicKey(session.LocalEcdhePublicKey),
                 RequesterRegistrationId = this.RegistrationConfiguration.LocalPeerRegistrationId,
-                ResponderPublicKey = responderRegId,
+                ResponderRegistrationId = responderRegId,
                 ReqTimestamp32S = _engine.Timestamp32S,
             };
             _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
@@ -52,7 +59,7 @@ namespace Dcomms.DRP
             var reqUdpData = req.Encode_SetP2pFields(destinationPeer);
 
             WriteToLog_inv_requesterSide_detail($"sending REQ, waiting for NPACK");
-            await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.NpaSeq16);
+            await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.NpaSeq16, req.GetSignedFieldsForNeighborHMAC);
             WriteToLog_inv_requesterSide_detail($"received NPACK");
 
 
@@ -90,11 +97,11 @@ namespace Dcomms.DRP
                 responderUserId, _engine.DateTimeNowUtc);
 
             // sign and encode local SD
-            session.LocalSessionDescription = new SessionDescription
-            {
-                DirectChannelEndPoint = destinationPeer.LocalEndpoint,
-                UserCertificate = requesterUserCertificate
-            };
+            session.LocalSessionDescription = localSessionDescription;
+
+
+            session.LocalSessionDescription.UserCertificate = requesterUserCertificate;
+            
             session.LocalSessionDescription.UserCertificateSignature = UserCertificateSignature.Sign(_engine.CryptoLibrary,
                 w =>
                 {
@@ -109,7 +116,7 @@ namespace Dcomms.DRP
             var ack2 = new InviteAck2Packet
             {
                 RequesterRegistrationId = req.RequesterRegistrationId,
-                ResponderRegistrationId = req.ResponderPublicKey,
+                ResponderRegistrationId = req.ResponderRegistrationId,
                 ReqTimestamp32S = req.ReqTimestamp32S,
                 ToRequesterSessionDescriptionEncrypted = session.LocalSessionDescription.Encrypt(_engine.CryptoLibrary, req, ack1, session, true)
             };
@@ -119,10 +126,10 @@ namespace Dcomms.DRP
                     ack1.GetSharedSignedFields(w, true);
                     ack2.GetSharedSignedFields(w);
                 }, this.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
-            var ack2UdpData = ack1.Encode_SetP2pFields(destinationPeer);
+            var ack2UdpData = ack2.Encode_SetP2pFields(destinationPeer);
 
             WriteToLog_inv_requesterSide_detail($"sending ACK2, waiting for NPACK");
-            await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2UdpData, ack2.NpaSeq16);
+            await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2UdpData, ack2.NpaSeq16, ack2.GetSignedFieldsForNeighborHMAC);
             WriteToLog_inv_requesterSide_detail($"received NPACK");
             #endregion
             
@@ -165,7 +172,7 @@ namespace Dcomms.DRP
             };
 
             npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
-            npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetFieldsForHMAC(w, req.GetSignedFieldsForNeighborHMAC));
+            npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetSignedFieldsForNeighborHMAC(w, req.GetSignedFieldsForNeighborHMAC));
             var npAckUdpData = npAck.Encode(false);
 
             _engine.RespondToRequestAndRetransmissions(req.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
@@ -180,7 +187,7 @@ namespace Dcomms.DRP
             };
 
             npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
-            npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetFieldsForHMAC(w, ack1.GetSignedFieldsForNeighborHMAC));
+            npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetSignedFieldsForNeighborHMAC(w, ack1.GetSignedFieldsForNeighborHMAC));
             var npAckUdpData = npAck.Encode(false);
 
             _engine.RespondToRequestAndRetransmissions(ack1.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
@@ -195,7 +202,7 @@ namespace Dcomms.DRP
             };
 
             npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
-            npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetFieldsForHMAC(w, ack2.GetSignedFieldsForNeighborHMAC));
+            npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetSignedFieldsForNeighborHMAC(w, ack2.GetSignedFieldsForNeighborHMAC));
             var npAckUdpData = npAck.Encode(false);
 
             _engine.RespondToRequestAndRetransmissions(ack2.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
@@ -209,7 +216,7 @@ namespace Dcomms.DRP
             };
 
             npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
-            npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetFieldsForHMAC(w, cfm.GetSignedFieldsForNeighborHMAC));
+            npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetSignedFieldsForNeighborHMAC(w, cfm.GetSignedFieldsForNeighborHMAC));
             var npAckUdpData = npAck.Encode(false);
 
             _engine.RespondToRequestAndRetransmissions(cfm.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);

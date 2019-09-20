@@ -34,7 +34,7 @@ namespace Dcomms.DRP
             _pendingInviteRequests.Add(req.RequesterRegistrationId);
             try
             {
-                // send npack
+                // send NPACK to REQ
                 _engine.WriteToLog_inv_proxySide_detail($"sending NPACK to REQ source peer");
                 SendNeighborPeerAckResponseToReq(req, sourcePeer);
 
@@ -54,7 +54,7 @@ namespace Dcomms.DRP
                 var ack1 = InviteAck1Packet.Decode(ack1UdpData);
                 _engine.WriteToLog_inv_proxySide_detail($"verified ACK1 from responder");
                 
-                // respond with NPACK
+                // respond with NPACK to ACk1
                 SendNeighborPeerAckResponseToAck1(ack1, destinationPeer);
                 #endregion
 
@@ -96,6 +96,9 @@ namespace Dcomms.DRP
                 var cfm = InviteConfirmationPacket.Decode(cfmUdpData);
                 // todo verify signature, update RDRs and QoS
                 _engine.WriteToLog_inv_proxySide_detail($"verified CFM from responder");
+
+                // respond NPACK to CFM to destination peer
+                SendNeighborPeerAckResponseToCfm(cfm, destinationPeer);
 
                 // send CFM to requester
                 var cfmUdpDataTx = cfm.Encode_SetP2pFields(sourcePeer);

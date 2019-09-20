@@ -48,8 +48,8 @@ namespace Dcomms.DRP
 
             #region iv, key
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
-            req.GetCommonRequesterProxyResponderFields(writer, true);
-            ack1.GetCommonRequesterProxierResponderFields(writer, false, false);
+            req.GetSharedSignedFields(writer, true);
+            ack1.GetSharedSignedFields(writer, false, false);
            
             var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
@@ -97,8 +97,8 @@ namespace Dcomms.DRP
             #region key, iv
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             
-            req.GetCommonRequesterProxyResponderFields(writer, true);
-            ack1.GetCommonRequesterProxierResponderFields(writer, false, false);
+            req.GetSharedSignedFields(writer, true);
+            ack1.GetSharedSignedFields(writer, false, false);
 
             var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();;
             ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
@@ -131,9 +131,9 @@ namespace Dcomms.DRP
             #region key, iv
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
            
-            req.GetCommonRequesterProxyResponderFields(writer, true);
-            ack1.GetCommonRequesterProxierResponderFields(writer, true, true);
-            ack2.GetCommonRequesterProxyResponderFields(writer, false, false);
+            req.GetSharedSignedFields(writer, true);
+            ack1.GetSharedSignedFields(writer, true, true);
+            ack2.GetSharedSignedFields(writer, false, false);
             
             var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
@@ -165,9 +165,9 @@ namespace Dcomms.DRP
         {
             #region aes key, iv
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);         
-            req.GetCommonRequesterProxyResponderFields(writer, true);
-            ack1.GetCommonRequesterProxierResponderFields(writer, true, true);
-            ack2.GetCommonRequesterProxyResponderFields(writer, false, false);
+            req.GetSharedSignedFields(writer, true);
+            ack1.GetSharedSignedFields(writer, true, true);
+            ack2.GetSharedSignedFields(writer, false, false);
            
             var iv = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()).Take(16).ToArray();
 
@@ -209,9 +209,9 @@ namespace Dcomms.DRP
             var ms = new MemoryStream();
             using (var writer = new BinaryWriter(ms))
             {
-                req.GetCommonRequesterProxyResponderFields(writer, true);
-                ack1.GetCommonRequesterProxierResponderFields(writer, true, true);
-                ack2.GetCommonRequesterProxyResponderFields(writer, false, true);           
+                req.GetSharedSignedFields(writer, true);
+                ack1.GetSharedSignedFields(writer, true, true);
+                ack2.GetSharedSignedFields(writer, false, true);           
                 //  var iv = cryptoLibrary.GetHashSHA256(ms.ToArray()); // todo use for p2p  encryption
 
                 ms.Write(SharedDhSecret, 0, SharedDhSecret.Length);
@@ -505,7 +505,7 @@ namespace Dcomms.DRP
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
                     throw new BadSignatureException();
 
-                if (req.ResponderPublicKey.Equals(this.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId))
+                if (req.ResponderRegistrationId.Equals(this.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId))
                 {
                     _ = this.LocalDrpPeer.AcceptInviteRequestAsync(req, this);
                 }
@@ -526,9 +526,9 @@ namespace Dcomms.DRP
             _engine.SendPacket(udpPayload, RemoteEndpoint);
         }
         internal async Task SendUdpRequestAsync_Retransmit_WaitForNPACK(byte[] requestUdpData, NeighborPeerAckSequenceNumber16 npaSeq16, 
-            Action<BinaryWriter> nhaRequestPacketFieldsForHmacNullable = null)
+            Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
-            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(requestUdpData, RemoteEndpoint, npaSeq16, this, nhaRequestPacketFieldsForHmacNullable);
+            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(requestUdpData, RemoteEndpoint, npaSeq16, this, npaRequestFieldsForNeighborHmacNullable);
         }
                
         internal void GetResponderRegistrationConfirmationSignatureFields(BinaryWriter w)

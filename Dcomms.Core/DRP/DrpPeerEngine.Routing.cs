@@ -67,8 +67,8 @@ namespace Dcomms.DRP
             RegistrationIdDistance minDistance = null;
             foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors)
             {
-                var distanceToConnectedPeer = req.ResponderPublicKey.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
-                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from INVITE REQ {req.ResponderPublicKey} to {connectedPeer.RemotePeerPublicKey}");
+                var distanceToConnectedPeer = req.ResponderRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemotePeerPublicKey);
+                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from INVITE REQ {req.ResponderRegistrationId} to {connectedPeer.RemotePeerPublicKey}");
                 if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
                 {
                     minDistance = distanceToConnectedPeer;

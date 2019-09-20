@@ -13,10 +13,10 @@ namespace Dcomms.DRP
         /// </summary>
         internal async Task AcceptInviteRequestAsync(InviteRequestPacket req, ConnectionToNeighbor sourcePeer)
         {
-            if (!req.RequesterRegistrationId.Equals(this.RegistrationConfiguration.LocalPeerRegistrationId))
+            if (!req.ResponderRegistrationId.Equals(this.RegistrationConfiguration.LocalPeerRegistrationId))
                 throw new ArgumentException();
 
-            _engine.WriteToLog_inv_responderSide_detail($"accepting invite");
+            _engine.WriteToLog_inv_responderSide_detail($"accepting invite from {req.RequesterRegistrationId}");
             
             // check if regID exists in contact book, get userID from the local contact book
             // ignore the REQ packet if no such user in contacts
@@ -26,6 +26,7 @@ namespace Dcomms.DRP
                 _engine.WriteToLog_inv_responderSide_detail($"ignored invite from unknown user (no user found in local contact book by requester regID)");
                 return;
             }
+            _engine.WriteToLog_inv_responderSide_detail($"resolved user {remoteRequesterUserIdFromLocalContactBook} by requester regID={req.RequesterRegistrationId}");
 
             _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
             _engine.RecentUniqueInviteRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
@@ -44,16 +45,28 @@ namespace Dcomms.DRP
 
                 var session = new Session(this);
                 session.DeriveSharedDhSecret(_engine.CryptoLibrary, req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
-                session.LocalSessionDescription = _drpPeerApp.OnReceivedInvite_GetLocalSessionDescription(remoteRequesterUserIdFromLocalContactBook);
+                session.LocalSessionDescription = _drpPeerApp.OnReceivedInvite_GetLocalSessionDescription(remoteRequesterUserIdFromLocalContactBook, out var localUserCertificateWithPrivateKey);
+                session.LocalSessionDescription.UserCertificate = localUserCertificateWithPrivateKey;
+               
 
                 #region send ACK1. sign local SD by local user
                 var ack1 = new InviteAck1Packet
                 {
                     ReqTimestamp32S = req.ReqTimestamp32S,
                     RequesterRegistrationId = req.RequesterRegistrationId,
-                    ResponderRegistrationId = req.ResponderPublicKey,
+                    ResponderRegistrationId = req.ResponderRegistrationId,
                     ResponderEcdhePublicKey = new EcdhPublicKey(session.LocalEcdhePublicKey),                         
                 };
+                session.LocalSessionDescription.UserCertificateSignature = DMP.UserCertificateSignature.Sign(_engine.CryptoLibrary, 
+                    w =>
+                    {
+                      
+                        req.GetSharedSignedFields(w);
+                        ack1.GetSharedSignedFields(w, false);
+                        session.LocalSessionDescription.WriteSignedFields(w);                       
+                    },
+                    localUserCertificateWithPrivateKey);
+
                 ack1.ToResponderSessionDescriptionEncrypted = session.LocalSessionDescription.Encrypt(_engine.CryptoLibrary,
                     req, ack1, session, false);
                 ack1.ResponderRegistrationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary, w =>
@@ -98,7 +111,7 @@ namespace Dcomms.DRP
                 {
                     ReqTimestamp32S = req.ReqTimestamp32S,
                     RequesterRegistrationId = req.RequesterRegistrationId,
-                    ResponderRegistrationId = req.ResponderPublicKey,                    
+                    ResponderRegistrationId = req.ResponderRegistrationId,                    
                 };
                 cfm.ResponderRegistrationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary, w =>
                     {

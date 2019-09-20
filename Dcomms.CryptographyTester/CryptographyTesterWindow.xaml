@@ -43,14 +43,32 @@
                 <StackPanel Orientation="Horizontal">
                     <Button Content="refresh" Command="{Binding RefreshGui}" />
                     <TextBlock Text="Filter:" />
+                    
+                    
+                    <TextBlock Text="Level:" />
+                    <ComboBox SelectedItem="{Binding DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding DisplayFilterMinLevels}" VerticalAlignment="Center"/>
+
+
                     <TextBlock Text="Source:" />
                     <TextBox Text="{Binding DisplayFilterSourceId, Mode=TwoWay}" Width="100"/>
+                    
+                    <TextBlock Text="Modules:" />
+                    <TextBox Text="{Binding DisplayFilterModuleContainsStrings, Mode=TwoWay}" Width="100"/>                   
+
+
                     <TextBlock Text="Message contains:" />
                     <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="100" />
                 </StackPanel>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedLogMessages}" AutoGenerateColumns="False" >
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Level" Binding="{Binding AttentionLevelStr, Mode=OneTime}" />
+                        <DataGridTemplateColumn Header="Level" >
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            
+                        </DataGridTemplateColumn>
                         <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
                         <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
                         <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />

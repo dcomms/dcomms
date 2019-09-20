@@ -90,8 +90,8 @@ namespace Dcomms.DRP.Packets
                     reader, newConnectionToNeighborAtRequesterNullable.Engine.CryptoLibrary,
                     w =>
                     {
-                        synNullable.GetCommonRequesterProxyResponderFields(w, true);
-                        ack1.GetCommonRequesterProxierResponderFields(w, false, true);
+                        synNullable.GetSharedSignedFields(w, true);
+                        ack1.GetSharedSignedFields(w, false, true);
                     },
                     ack1.ResponderRegistrationId);
             }
@@ -129,7 +129,7 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// fields for responder signature and for AEAD hash
         /// </summary>
-        public void GetCommonRequesterProxierResponderFields(BinaryWriter writer, bool includeSignature, bool includeTxParameters)
+        public void GetSharedSignedFields(BinaryWriter writer, bool includeSignature, bool includeTxParameters)
         {
             RequesterRegistrationId.Encode(writer);
             writer.Write(ReqTimestamp32S);
@@ -159,7 +159,7 @@ namespace Dcomms.DRP.Packets
                 NeighborToken32.Encode(writer);
             }
 
-            GetCommonRequesterProxierResponderFields(writer, true, true);
+            GetSharedSignedFields(writer, true, true);
 
             if (synReceivedFromInP2pMode != null)
             {
@@ -178,7 +178,7 @@ namespace Dcomms.DRP.Packets
         internal void GetSignedFieldsForNeighborHMAC(BinaryWriter w)
         {
             NeighborToken32.Encode(w);
-            GetCommonRequesterProxierResponderFields(w, true, true);
+            GetSharedSignedFields(w, true, true);
             NpaSeq16.Encode(w);
         }
 

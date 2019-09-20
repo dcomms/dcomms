@@ -96,14 +96,14 @@ namespace Dcomms.DRP.Packets
         public static LowLevelUdpResponseScanner GetScanner(InviteRequestPacket req, ConnectionToNeighbor connectionToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpPacketType.InviteAck1);
+            w.Write((byte)DrpPacketType.InviteCfm);
             w.Write((byte)0); // flags
 
             connectionToNeighbor.LocalNeighborToken32.Encode(w);
 
             w.Write(req.ReqTimestamp32S);
             req.RequesterRegistrationId.Encode(w);
-            req.ResponderPublicKey.Encode(w);
+            req.ResponderRegistrationId.Encode(w);
 
             var r = new LowLevelUdpResponseScanner
             {

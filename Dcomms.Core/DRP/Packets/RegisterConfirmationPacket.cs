@@ -49,18 +49,18 @@ namespace Dcomms.DRP.Packets
             RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
         {
             responderRegistrationConfirmationSignature.Encode(writer);
-            req.GetCommonRequesterProxyResponderFields(writer, true);
-            ack1.GetCommonRequesterProxierResponderFields(writer, true, true);
-            ack2.GetCommonRequesterProxyResponderFields(writer, true, true);
+            req.GetSharedSignedFields(writer, true);
+            ack1.GetSharedSignedFields(writer, true, true);
+            ack2.GetSharedSignedFields(writer, true, true);
             writer.Write(RequesterRegistrationConfirmationSignature_MagicNumber);
 
         }
         const ushort ResponderRegistrationConfirmationSignature_MagicNumber = 0x18F0;
         public static void GetResponderRegistrationConfirmationSignatureFields(BinaryWriter writer, RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
         {
-            req.GetCommonRequesterProxyResponderFields(writer, true);
-            ack1.GetCommonRequesterProxierResponderFields(writer, true, true);
-            ack2.GetCommonRequesterProxyResponderFields(writer, true, true);
+            req.GetSharedSignedFields(writer, true);
+            ack1.GetSharedSignedFields(writer, true, true);
+            ack2.GetSharedSignedFields(writer, true, true);
             writer.Write(ResponderRegistrationConfirmationSignature_MagicNumber);
         }
 

@@ -13,16 +13,17 @@ namespace Dcomms.DRP.Packets
     /// </summary>
     public class InviteRequestPacket
     {
+        // byte Flags;
+        const byte FlagsMask_MustBeZero = 0b11110000;
+
         /// <summary>
         /// authorizes peer that sends the packet
         /// </summary>
         public NeighborToken32 NeighborToken32;
-        // byte Flags;
-        const byte FlagsMask_MustBeZero = 0b11110000;
 
         public uint ReqTimestamp32S;
         public RegistrationId RequesterRegistrationId; // A public key 
-        public RegistrationId ResponderPublicKey; // B public key
+        public RegistrationId ResponderRegistrationId; // B public key
         public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new DirectChannel connection
         public RegistrationSignature RequesterRegistrationSignature;
 
@@ -39,13 +40,13 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpPacketType.InviteReq);
+            byte flags = 0;
+            w.Write(flags);
 
             NpaSeq16 = transmitToNeighbor.GetNewNpaSeq16_P2P();
             NeighborToken32 = transmitToNeighbor.RemoteNeighborToken32;
             NeighborToken32.Encode(w);
 
-            byte flags = 0;
-            w.Write(flags);
             GetSignedFieldsForNeighborHMAC(w);
 
             NeighborHMAC = transmitToNeighbor.GetNeighborHMAC(GetSignedFieldsForNeighborHMAC);
@@ -64,7 +65,7 @@ namespace Dcomms.DRP.Packets
         {
             w.Write(ReqTimestamp32S);
             RequesterRegistrationId.Encode(w);
-            ResponderPublicKey.Encode(w);
+            ResponderRegistrationId.Encode(w);
             RequesterEcdhePublicKey.Encode(w);
         }
 
@@ -74,17 +75,17 @@ namespace Dcomms.DRP.Packets
             var r = new InviteRequestPacket();
             r.DecodedUdpPayloadData = udpPayloadData;
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
-
-            r.NeighborToken32 = NeighborToken32.Decode(reader);
-            if (receivedFromNeighbor.LocalNeighborToken32.Equals(r.NeighborToken32) == false)
-                throw new UnmatchedFieldsException();
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)
                 throw new NotImplementedException();
 
+            r.NeighborToken32 = NeighborToken32.Decode(reader);
+            if (receivedFromNeighbor.LocalNeighborToken32.Equals(r.NeighborToken32) == false)
+                throw new UnmatchedFieldsException();
+
             r.ReqTimestamp32S = reader.ReadUInt32();
             r.RequesterRegistrationId = RegistrationId.Decode(reader);
-            r.ResponderPublicKey = RegistrationId.Decode(reader);
+            r.ResponderRegistrationId = RegistrationId.Decode(reader);
             r.RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
             r.RequesterRegistrationSignature = RegistrationSignature.Decode(reader);
             r.NumberOfHopsRemaining = reader.ReadByte();
@@ -96,10 +97,17 @@ namespace Dcomms.DRP.Packets
 
             return r;
         }
+
+
+        public static ushort DecodeNeighborToken16(byte[] udpPayloadData)
+        { // first 2 bytes ares packet type and flags. then 4 bytes are NeighborToken32
+            return (ushort)(udpPayloadData[2] | (udpPayloadData[3] << 8));
+        }
+
         public void GetUniqueRequestIdFields(BinaryWriter writer)
         {
             RequesterRegistrationId.Encode(writer);
-            ResponderPublicKey.Encode(writer);
+            ResponderRegistrationId.Encode(writer);
             writer.Write(ReqTimestamp32S);
         }
     }

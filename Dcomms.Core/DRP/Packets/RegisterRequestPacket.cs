@@ -90,7 +90,7 @@ namespace Dcomms.DRP.Packets
                 NeighborToken32.Encode(writer);
             }
 
-            GetCommonRequesterProxyResponderFields(writer, true);
+            GetSharedSignedFields(writer, true);
 
             if (connectionToNeighborNullable == null)
             {
@@ -110,7 +110,7 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// used for signature at requester; as source AEAD hash
         /// </summary>
-        public void GetCommonRequesterProxyResponderFields(BinaryWriter writer, bool includeRequesterSignature)
+        public void GetSharedSignedFields(BinaryWriter writer, bool includeRequesterSignature)
         {
             RequesterRegistrationId.Encode(writer);
             RequesterEcdhePublicKey.Encode(writer);
@@ -122,7 +122,7 @@ namespace Dcomms.DRP.Packets
         internal void GetSignedFieldsForNeighborHMAC(BinaryWriter writer)
         {
             NeighborToken32.Encode(writer);
-            GetCommonRequesterProxyResponderFields(writer, true);
+            GetSharedSignedFields(writer, true);
             writer.Write(NumberOfHopsRemaining);
             NpaSeq16.Encode(writer);
         }
@@ -179,7 +179,7 @@ namespace Dcomms.DRP.Packets
            return (flags & Flag_AtoEP) != 0;
         }
         
-        public static ushort DecodeToken16FromUdpPayloadData_P2Pmode(byte[] udpPayloadData)
+        public static ushort DecodeNeighborToken16(byte[] udpPayloadData)
         { // first 2 bytes ares packet type and flags. then 4 bytes are NeighborToken32
             return (ushort)(udpPayloadData[2] | (udpPayloadData[3] << 8));
         }

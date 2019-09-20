@@ -1,7 +1,9 @@
-﻿using Dcomms.DMP;
+﻿using Dcomms.Cryptography;
+using Dcomms.DMP;
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,23 +17,46 @@ namespace Dcomms.DRP
     {
         class User : IDrpRegisteredPeerApp
         {
+            public readonly UserRootPrivateKeys UserRootPrivateKeys;
+            public readonly UserId UserId;
+
+            public readonly UserCertificate UserCertificateWithPrivateKey;
+            public readonly DrpPeerEngine DrpPeerEngine;
+            public User(DrpPeerEngine drpPeerEngine)
+            {
+                DrpPeerEngine = drpPeerEngine;
+                UserRootPrivateKeys.CreateUserId(3, 2, DrpPeerEngine.CryptoLibrary, out UserRootPrivateKeys, out UserId);
+                UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
+            }
+
             public void OnReceivedMessage(byte[] message)
             {
                 throw new NotImplementedException();
             }
-
+            public readonly Dictionary<RegistrationId, UserId> ContactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
             public UserId OnReceivedInvite_LookupUser(RegistrationId remoteRegID)
             {
-                throw new NotImplementedException();
+                return ContactBookUsersByRegId[remoteRegID];
             }
 
-            public SessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId)
+            public SessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId, out UserCertificate userCertificateWithPrivateKey)
             {
-                throw new NotImplementedException();
+                userCertificateWithPrivateKey = UserCertificateWithPrivateKey;
+                var r = new SessionDescription
+                {
+                    SessionType = SessionType.asyncUserMessages,
+                    DirectChannelEndPoint = new IPEndPoint(IPAddress.Parse("1.2.3.4"), 56789),
+                };
+
+                DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+                    $"responding with local session {r}");
+
+                return r;
             }
             public void OnAcceptedIncomingInvite(Session session)
             {
-                throw new NotImplementedException();
+                DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+                    $"accepted remote session: {session.RemoteSessionDescription}");
             }
         }
 
@@ -40,8 +65,12 @@ namespace Dcomms.DRP
         DrpPeerEngine _ep, _a;
         DrpPeerEngine _x, _n;
         LocalDrpPeer _xLocalDrpPeer, _aLocalDrpPeer, _nLocalDrpPeer;
+        User _aUser, _xUser;
+        readonly VisionChannel _visionChannel;
+        const string DrpTesterVisionChannelModuleName = "drpTester";
         public DrpTester1(VisionChannel visionChannel, Action cb = null)
         {
+            _visionChannel = visionChannel;
             _ep = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 InsecureRandomSeed = _insecureRandom.Next(),
@@ -56,7 +85,7 @@ namespace Dcomms.DRP
             };
             epConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _ep.CryptoLibrary.GeneratePrivateKeyEd25519() };
             epConfig.LocalPeerRegistrationId = new RegistrationId(_ep.CryptoLibrary.GetPublicKeyEd25519(epConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
-            _ep.BeginCreateLocalPeer(epConfig, new User(), (rpLocalPeer) =>
+            _ep.BeginCreateLocalPeer(epConfig, new User(_ep), (rpLocalPeer) =>
             {   
                 _a = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
@@ -119,14 +148,26 @@ namespace Dcomms.DRP
                 var distance_epton = epConfig.LocalPeerRegistrationId.GetDistanceTo(_n.CryptoLibrary, nConfig.LocalPeerRegistrationId);
                 if (distance_xton.IsGreaterThan(distance_epton)) goto _retryn;
 
-                _x.BeginRegister(xConfig, new User(), (xLocalPeer) =>
+                _xUser = new User(_x);
+                var swX = Stopwatch.StartNew();
+                _x.BeginRegister(xConfig, _xUser, (xLocalPeer) =>
                 {
+                    _visionChannel.Emit(_x.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                        AttentionLevel.guiActivity, $"registration complete in {(int)swX.Elapsed.TotalMilliseconds}ms");
+                  
                     _xLocalDrpPeer = xLocalPeer;
-                    _n.BeginRegister(nConfig, new User(), (nLocalPeer) =>
+                    var swN = Stopwatch.StartNew();
+                    _n.BeginRegister(nConfig, new User(_n), (nLocalPeer) =>
                     {
+                        _visionChannel.Emit(_n.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                            AttentionLevel.guiActivity, $"registration complete in {(int)swN.Elapsed.TotalMilliseconds}ms");
                         _nLocalDrpPeer = nLocalPeer;
-                        _a.BeginRegister(aConfig, new User(), (aLocalPeer) =>
+                        _aUser = new User(_a);
+                        var swA = Stopwatch.StartNew();
+                        _a.BeginRegister(aConfig, _aUser, (aLocalPeer) =>
                         {
+                            _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                                AttentionLevel.guiActivity, $"registration complete in {(int)swA.Elapsed.TotalMilliseconds}ms");
                             _aLocalDrpPeer = aLocalPeer;
                             if (cb != null) cb();
                         });
@@ -146,14 +187,24 @@ namespace Dcomms.DRP
 
         public async Task SendInvite_AtoX_Async()
         {
-            UserRootPrivateKeys.CreateUserId(1, 1, _a.CryptoLibrary, out var aUserPrivateKeys, out var aUserID);
-            UserRootPrivateKeys.CreateUserId(1, 1, _x.CryptoLibrary, out var xUserPrivateKeys, out var xUserID);
+            _xUser.ContactBookUsersByRegId.Add(_aLocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId, _aUser.UserId);
 
-            var aUserCertificate = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_a.CryptoLibrary, aUserID, aUserPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
-            _aLocalDrpPeer.BeginSendInvite(aUserCertificate, _xLocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId, xUserID, 
+            var aUserCertificate = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_a.CryptoLibrary, _aUser.UserId, _aUser.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
+
+            var localSessionDescription = new SessionDescription
+            {
+                DirectChannelEndPoint = new IPEndPoint(IPAddress.Parse("10.20.30.40"), 7890),
+                SessionType = SessionType.asyncUserMessages
+            };
+            _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"sending invite with local session {localSessionDescription}");
+            var sw = Stopwatch.StartNew();
+
+            _aLocalDrpPeer.BeginSendInvite(aUserCertificate, _xLocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId, _xUser.UserId, localSessionDescription,
                 session =>
                 {
-                    //todo
+                    _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+                        $"remote peer accepted invite session in {(int)sw.Elapsed.TotalMilliseconds}ms: {session.RemoteSessionDescription}");
+
                 });
         }
     }

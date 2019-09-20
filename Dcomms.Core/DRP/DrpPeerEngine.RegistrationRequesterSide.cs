@@ -23,8 +23,15 @@ namespace Dcomms.DRP
                        
             EngineThreadQueue.Enqueue(async () =>
             {
-                var r = await BeginRegister2(registrationConfiguration, drpPeerApp);
-                if (cb != null) cb(r);
+                try
+                {
+                    var r = await BeginRegister2(registrationConfiguration, drpPeerApp);
+                    if (cb != null) cb(r);
+                }
+                catch (Exception exc)
+                {
+                    HandleExceptionInRegistrationRequester(exc);
+                }
             });
             
         }
@@ -151,7 +158,7 @@ namespace Dcomms.DRP
                 WriteToLog_reg_requesterSide_detail($"calculating PoW2");
                 GenerateRegisterReqPow2(req, pow1ResponsePacket.ProofOfWork2Request);
                 req.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary,
-                    w => req.GetCommonRequesterProxyResponderFields(w, false),
+                    w => req.GetSharedSignedFields(w, false),
                     localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey
                     );
                 var reqToAck1Stopwatch = Stopwatch.StartNew();
@@ -196,9 +203,9 @@ namespace Dcomms.DRP
                 newConnectionToNeighbor.InitializeP2pStream(req, ack1, ack2);
                 ack2.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary, w =>
                     {
-                        req.GetCommonRequesterProxyResponderFields(w, true);
-                        ack1.GetCommonRequesterProxierResponderFields(w, true, true);
-                        ack2.GetCommonRequesterProxyResponderFields(w, false, true);
+                        req.GetSharedSignedFields(w, true);
+                        ack1.GetSharedSignedFields(w, true, true);
+                        ack2.GetSharedSignedFields(w, false, true);
                     },
                     localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey
                  );
