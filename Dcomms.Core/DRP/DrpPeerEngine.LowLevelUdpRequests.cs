@@ -34,7 +34,7 @@ namespace Dcomms.DRP
             if (nextHopResponsePacketData == null)
             {
                 string msg = $"Did not get NPACK response to DRP request ";
-                if (requestPacketDataNullable != null) msg += (DrpPacketType)requestPacketDataNullable[0];
+                if (requestPacketDataNullable != null) msg += (DrpDmpPacketTypes)requestPacketDataNullable[0];
                 msg += " - timeout expired";
                 throw new DrpTimeoutException(msg);
             }
@@ -75,7 +75,7 @@ namespace Dcomms.DRP
             if (udpPayload.Length > 548)
                 throw new ArgumentException("Transmitted UDP packet size is too big to bypass internet safely without fragmentation");
             _socket.Send(udpPayload, udpPayload.Length, remoteEndpoint);
-            WriteToLog_udp_detail($"sent packet {(DrpPacketType)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes)");
+            WriteToLog_udp_detail($"sent packet {(DrpDmpPacketTypes)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes)");
         }
         internal async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
         {
@@ -107,7 +107,7 @@ namespace Dcomms.DRP
                 {
                     request.OnRetransmitted();
                     SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);                   
-                    WriteToLog_udp_lightPain($"retransmitted request {(DrpPacketType)request.RequestPacketDataNullable[0]} to {request.ResponderEndpoint}. scanner firstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
+                    WriteToLog_udp_lightPain($"retransmitted request {(DrpDmpPacketTypes)request.RequestPacketDataNullable[0]} to {request.ResponderEndpoint}. scanner firstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
                 }
                 item = item.Next;
             }

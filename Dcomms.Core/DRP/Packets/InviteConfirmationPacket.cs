@@ -31,7 +31,7 @@ namespace Dcomms.DRP.Packets
         public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpPacketType.InviteCfm);
+            w.Write((byte)DrpDmpPacketTypes.InviteCfm);
             byte flags = 0;
             w.Write(flags);
 
@@ -96,7 +96,7 @@ namespace Dcomms.DRP.Packets
         public static LowLevelUdpResponseScanner GetScanner(InviteRequestPacket req, ConnectionToNeighbor connectionToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpPacketType.InviteCfm);
+            w.Write((byte)DrpDmpPacketTypes.InviteCfm);
             w.Write((byte)0); // flags
 
             connectionToNeighbor.LocalNeighborToken32.Encode(w);

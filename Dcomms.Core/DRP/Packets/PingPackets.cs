@@ -12,13 +12,13 @@ namespace Dcomms.DRP.Packets
         /// comes from ConnectionToNeighbor.RemoteNeighborToken32
         /// </summary>
         public NeighborToken32 NeighborToken32;
-        public const byte Flags_RegistrationConfirmationSignatureRequested = 0x01;
-        public byte Flags;
+        public uint PingRequestId32; // is used to avoid mismatch between delayed responses and requests // is used as salt also
+        public byte Flags; // is signed by HMAC
         const byte FlagsMask_MustBeZero = 0b11110000;
-        public uint PingRequestId32; // is used to avoid mismatch between delyed responses and requests // is used as salt also
+        public const byte Flags_RegistrationConfirmationSignatureRequested = 0x01;
         public float? MaxRxInviteRateRps;   // zero means NULL // signal from sender "how much I can receive via this p2p connection"
         public float? MaxRxRegisterRateRps; // zero means NULL // signal from sender "how much I can receive via this p2p connection"
-        public HMAC NeighborHMAC; // signs fields { DrpPacketType.PingRequestPacket,NeighborToken32,Flags,PingRequestId32,MaxRxInviteRateRps,MaxRxRegisterRateRps  }, to authenticate the request
+        public HMAC NeighborHMAC; // signs fields { DrpDmpPacketTypes.PingRequestPacket,NeighborToken32,Flags,PingRequestId32,MaxRxInviteRateRps,MaxRxRegisterRateRps  }, to authenticate the request
 
         static ushort RpsToUint16(float? rps) // resolution=0.01 RPS    max value=0.65K RPS
         {
@@ -30,10 +30,10 @@ namespace Dcomms.DRP.Packets
         }
         public void GetSignedFieldsForNeighborHMAC(BinaryWriter writer)
         {
-            writer.Write((byte)DrpPacketType.Ping);
+            writer.Write((byte)DrpDmpPacketTypes.Ping);
             NeighborToken32.Encode(writer);
-            writer.Write(Flags);
             writer.Write(PingRequestId32);
+            writer.Write(Flags);
             writer.Write(RpsToUint16(MaxRxInviteRateRps));
             writer.Write(RpsToUint16(MaxRxRegisterRateRps));
         }
@@ -56,9 +56,9 @@ namespace Dcomms.DRP.Packets
 
             var r = new PingPacket();
             r.NeighborToken32 = NeighborToken32.Decode(reader);
+            r.PingRequestId32 = reader.ReadUInt32();
             r.Flags = reader.ReadByte();
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
-            r.PingRequestId32 = reader.ReadUInt32();
             r.MaxRxInviteRateRps = RpsFromUint16(reader.ReadUInt16());
             r.MaxRxRegisterRateRps = RpsFromUint16(reader.ReadUInt16());
             r.NeighborHMAC = HMAC.Decode(reader);
@@ -162,7 +162,7 @@ namespace Dcomms.DRP.Packets
         }
         static void GetHeaderFields(BinaryWriter writer, NeighborToken32 senderToken32, uint pingRequestId32)
         {
-            writer.Write((byte)DrpPacketType.Pong);
+            writer.Write((byte)DrpDmpPacketTypes.Pong);
             senderToken32.Encode(writer);
             writer.Write(pingRequestId32);
         }

@@ -80,7 +80,7 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
-            writer.Write((byte)DrpPacketType.RegisterReq);
+            writer.Write((byte)DrpDmpPacketTypes.RegisterReq);
             byte flags = 0;
             if (connectionToNeighborNullable == null) flags |= Flag_AtoEP;
             writer.Write(flags);

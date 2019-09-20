@@ -59,7 +59,7 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
-            writer.Write((byte)DrpPacketType.RegisterAck2);
+            writer.Write((byte)DrpDmpPacketTypes.RegisterAck2);
           
             writer.Write((byte)0); // ignored flags
 
@@ -95,7 +95,7 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             
-            writer.Write((byte)DrpPacketType.RegisterAck2);
+            writer.Write((byte)DrpDmpPacketTypes.RegisterAck2);
             byte flags = 0;
             if (connectionToNeighborNullable == null) flags |= Flag_AtoEP;
             writer.Write(flags);

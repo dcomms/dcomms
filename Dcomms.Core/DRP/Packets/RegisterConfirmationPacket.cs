@@ -71,7 +71,7 @@ namespace Dcomms.DRP.Packets
         public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegistrationId requesterPublicKey_RequestID, uint registerSynTimestamp32S)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpPacketType.RegisterConfirmation);
+            w.Write((byte)DrpDmpPacketTypes.RegisterConfirmation);
             
             w.Write((byte)0); // ignored flags
 
@@ -105,7 +105,7 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
-            writer.Write((byte)DrpPacketType.RegisterConfirmation);
+            writer.Write((byte)DrpDmpPacketTypes.RegisterConfirmation);
             Flags = 0;
             if (connectionToNeighbor == null) Flags |= Flag_AtoEP;
             writer.Write(Flags);

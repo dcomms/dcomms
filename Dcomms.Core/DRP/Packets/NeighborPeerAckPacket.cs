@@ -56,7 +56,7 @@ namespace Dcomms.DRP.Packets
         }
         static void EncodeHeader(BinaryWriter w, NeighborPeerAckSequenceNumber16 npaSeq16)
         {
-            w.Write((byte)DrpPacketType.NeighborPeerAck);
+            w.Write((byte)DrpDmpPacketTypes.NeighborPeerAck);
             npaSeq16.Encode(w);
         }
         public byte[] Encode(bool epToA)

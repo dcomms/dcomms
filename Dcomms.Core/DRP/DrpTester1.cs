@@ -46,6 +46,7 @@ namespace Dcomms.DRP
                 {
                     SessionType = SessionType.asyncUserMessages,
                     DirectChannelEndPoint = new IPEndPoint(IPAddress.Parse("1.2.3.4"), 56789),
+                    DirectChannelToken32 = new DirectChannelToken32 {  Token32=0x123456 }
                 };
 
                 DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
@@ -194,7 +195,8 @@ namespace Dcomms.DRP
             var localSessionDescription = new SessionDescription
             {
                 DirectChannelEndPoint = new IPEndPoint(IPAddress.Parse("10.20.30.40"), 7890),
-                SessionType = SessionType.asyncUserMessages
+                SessionType = SessionType.asyncUserMessages,
+                DirectChannelToken32 = new DirectChannelToken32 { Token32 = 0x7654321 }
             };
             _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"sending invite with local session {localSessionDescription}");
             var sw = Stopwatch.StartNew();

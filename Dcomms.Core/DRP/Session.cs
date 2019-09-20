@@ -1,6 +1,7 @@
 ﻿using Dcomms.Cryptography;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace Dcomms.DRP
@@ -23,6 +24,13 @@ namespace Dcomms.DRP
         {
             _localDrpPeer = localDrpPeer;
             _localDrpPeer.CryptoLibrary.GenerateEcdh25519Keypair(out LocalEcdhePrivateKey, out LocalEcdhePublicKey);
+        }
+
+
+
+        public HMAC GetPingPongHMAC(Action<BinaryWriter> writeSignedFields)
+        {
+            throw new NotImplementedException();
         }
     }
 }

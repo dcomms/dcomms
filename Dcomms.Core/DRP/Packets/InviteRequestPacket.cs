@@ -39,7 +39,7 @@ namespace Dcomms.DRP.Packets
         public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpPacketType.InviteReq);
+            w.Write((byte)DrpDmpPacketTypes.InviteReq);
             byte flags = 0;
             w.Write(flags);
 

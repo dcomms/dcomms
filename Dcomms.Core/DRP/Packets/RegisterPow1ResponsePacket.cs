@@ -25,7 +25,7 @@ namespace Dcomms.DRP.Packets
         }
         static void GetHeaderBytes(BinaryWriter writer, uint pow1RequestId)
         {
-            writer.Write((byte)DrpPacketType.RegisterPow1Response);
+            writer.Write((byte)DrpDmpPacketTypes.RegisterPow1Response);
             writer.Write(pow1RequestId);
         }
         public byte[] Encode()

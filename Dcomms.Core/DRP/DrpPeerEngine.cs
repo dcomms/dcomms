@@ -110,15 +110,15 @@ namespace Dcomms.DRP
         }
         void ProcessReceivedUdpPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData) // receiver thread
         {
-            var packetType = (DrpPacketType)udpPayloadData[0];
+            var packetType = (DrpDmpPacketTypes)udpPayloadData[0];
             WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint} ({udpPayloadData.Length} bytes)");
-            if (packetType == DrpPacketType.RegisterPow1Request)
+            if (packetType == DrpDmpPacketTypes.RegisterPow1Request)
             {
                 ProcessRegisterPow1RequestPacket(remoteEndpoint, udpPayloadData);
                 return;
             }
 
-            if (packetType == DrpPacketType.RegisterReq)
+            if (packetType == DrpDmpPacketTypes.RegisterReq)
             {
                 if (RegisterRequestPacket.IsAtoEP(udpPayloadData))
                 {
@@ -135,7 +135,7 @@ namespace Dcomms.DRP
 
                 switch (packetType)
                 {
-                    case DrpPacketType.Ping:
+                    case DrpDmpPacketTypes.Ping:
                         {
                             var neighborToken16 = PingPacket.DecodeNeighborToken16(udpPayloadData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
@@ -145,7 +145,7 @@ namespace Dcomms.DRP
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
 
                         } break;
-                    case DrpPacketType.Pong:
+                    case DrpDmpPacketTypes.Pong:
                         {
                             var neighborToken16 = PongPacket.DecodeNeighborToken16(udpPayloadData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
@@ -155,7 +155,7 @@ namespace Dcomms.DRP
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }
                         break;
-                    case DrpPacketType.RegisterReq:
+                    case DrpDmpPacketTypes.RegisterReq:
                         {
                             var neighborToken16 = RegisterRequestPacket.DecodeNeighborToken16(udpPayloadData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
@@ -165,7 +165,7 @@ namespace Dcomms.DRP
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }
                         break;
-                    case DrpPacketType.InviteReq:
+                    case DrpDmpPacketTypes.InviteReq:
                         {
                             var neighborToken16 = InviteRequestPacket.DecodeNeighborToken16(udpPayloadData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
