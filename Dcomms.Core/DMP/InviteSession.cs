@@ -1,15 +1,16 @@
 ﻿using Dcomms.Cryptography;
+using Dcomms.DRP;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace Dcomms.DRP
+namespace Dcomms.DMP
 {
-    public class Session
+    public class InviteSession
     {
-        public SessionDescription LocalSessionDescription { get; set; }
-        public SessionDescription RemoteSessionDescription { get; set; }
+        public InviteSessionDescription LocalSessionDescription { get; set; }
+        public InviteSessionDescription RemoteSessionDescription { get; set; }
 
         readonly byte[] LocalEcdhePrivateKey;
         readonly public byte[] LocalEcdhePublicKey;
@@ -20,7 +21,7 @@ namespace Dcomms.DRP
         }
 
         readonly LocalDrpPeer _localDrpPeer;
-        public Session(LocalDrpPeer localDrpPeer)
+        public InviteSession(LocalDrpPeer localDrpPeer)
         {
             _localDrpPeer = localDrpPeer;
             _localDrpPeer.CryptoLibrary.GenerateEcdh25519Keypair(out LocalEcdhePrivateKey, out LocalEcdhePublicKey);

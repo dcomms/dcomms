@@ -1,4 +1,5 @@
-﻿using Dcomms.DRP.Packets;
+﻿using Dcomms.DMP;
+using Dcomms.DRP.Packets;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -43,7 +44,7 @@ namespace Dcomms.DRP
                 _engine.WriteToLog_inv_responderSide_detail($"sending NPACK to REQ source peer");
                 SendNeighborPeerAckResponseToReq(req, sourcePeer);
 
-                var session = new Session(this);
+                var session = new InviteSession(this);
                 session.DeriveSharedDhSecret(_engine.CryptoLibrary, req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
                 session.LocalSessionDescription = _drpPeerApp.OnReceivedInvite_GetLocalSessionDescription(remoteRequesterUserIdFromLocalContactBook, out var localUserCertificateWithPrivateKey);
                 session.LocalSessionDescription.UserCertificate = localUserCertificateWithPrivateKey;
@@ -97,7 +98,7 @@ namespace Dcomms.DRP
                     }, req.RequesterRegistrationId))
                     throw new BadSignatureException();
                 // decrypt, verify SD remote user's certificate and signature
-                session.RemoteSessionDescription = SessionDescription.Decrypt_Verify(_engine.CryptoLibrary, 
+                session.RemoteSessionDescription = InviteSessionDescription.Decrypt_Verify(_engine.CryptoLibrary, 
                     ack2.ToRequesterSessionDescriptionEncrypted,
                     req, ack1, true, session, remoteRequesterUserIdFromLocalContactBook, _engine.DateTimeNowUtc);
 

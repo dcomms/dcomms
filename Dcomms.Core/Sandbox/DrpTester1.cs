@@ -1,5 +1,6 @@
 ﻿using Dcomms.Cryptography;
 using Dcomms.DMP;
+using Dcomms.DRP;
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Dcomms.DRP
+namespace Dcomms.Sandbox
 {
     /// <summary>
     /// sandbox for development since 2019-07
@@ -39,10 +40,10 @@ namespace Dcomms.DRP
                 return ContactBookUsersByRegId[remoteRegID];
             }
 
-            public SessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId, out UserCertificate userCertificateWithPrivateKey)
+            public InviteSessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId, out UserCertificate userCertificateWithPrivateKey)
             {
                 userCertificateWithPrivateKey = UserCertificateWithPrivateKey;
-                var r = new SessionDescription
+                var r = new InviteSessionDescription
                 {
                     SessionType = SessionType.asyncUserMessages,
                     DirectChannelEndPoint = new IPEndPoint(IPAddress.Parse("1.2.3.4"), 56789),
@@ -54,7 +55,7 @@ namespace Dcomms.DRP
 
                 return r;
             }
-            public void OnAcceptedIncomingInvite(Session session)
+            public void OnAcceptedIncomingInvite(InviteSession session)
             {
                 DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
                     $"accepted remote session: {session.RemoteSessionDescription}");
@@ -192,7 +193,7 @@ namespace Dcomms.DRP
 
             var aUserCertificate = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_a.CryptoLibrary, _aUser.UserId, _aUser.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
 
-            var localSessionDescription = new SessionDescription
+            var localSessionDescription = new InviteSessionDescription
             {
                 DirectChannelEndPoint = new IPEndPoint(IPAddress.Parse("10.20.30.40"), 7890),
                 SessionType = SessionType.asyncUserMessages,

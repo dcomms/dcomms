@@ -247,7 +247,7 @@ namespace Dcomms.DRP
         /// </summary>
         DMP.UserId OnReceivedInvite_LookupUser(RegistrationId remoteRegID);
 
-        SessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId, out DMP.UserCertificate userCertificateWithPrivateKey);
-        void OnAcceptedIncomingInvite(Session session);
+        DMP.InviteSessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId, out DMP.UserCertificate userCertificateWithPrivateKey);
+        void OnAcceptedIncomingInvite(DMP.InviteSession session);
     }
 }

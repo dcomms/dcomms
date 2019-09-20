@@ -61,7 +61,7 @@ namespace Dcomms.DMP.Packets
             return (ushort)(udpPayloadData[1] | (udpPayloadData[2] << 8));
         }
 
-        public static DmpPingPacket DecodeAndVerify(byte[] udpPayloadData, Session session)
+        public static DmpPingPacket DecodeAndVerify(byte[] udpPayloadData, InviteSession session)
         {
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
 
@@ -111,7 +111,7 @@ namespace Dcomms.DMP.Packets
         /// <param name="reader">is positioned after first byte = packet type</param>
         public static DmpPongPacket DecodeAndVerify(ICryptoLibrary cryptoLibrary,
             byte[] udpPayloadData, DmpPingPacket pingRequestPacketToCheckRequestId32, 
-            Session session
+            InviteSession session
             )
         {
             var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);

@@ -9,7 +9,7 @@ namespace Dcomms.DRP
 {
     partial class LocalDrpPeer
     {
-        public void BeginSendInvite(UserCertificate requesterUserCertificate, RegistrationId responderRegId, UserId responderUserId, SessionDescription localSessionDescription, Action<Session> cb)
+        public void BeginSendInvite(UserCertificate requesterUserCertificate, RegistrationId responderRegId, UserId responderUserId, InviteSessionDescription localSessionDescription, Action<InviteSession> cb)
         {
             WriteToLog_inv_requesterSide_detail($">> BeginSendInvite()");
 
@@ -38,9 +38,9 @@ namespace Dcomms.DRP
         /// <param name="responderRegId">
         /// comes from local contact book
         /// </param>
-        public async Task<Session> SendInviteAsync(UserCertificate requesterUserCertificate, RegistrationId responderRegId, UserId responderUserId, SessionDescription localSessionDescription)
+        public async Task<InviteSession> SendInviteAsync(UserCertificate requesterUserCertificate, RegistrationId responderRegId, UserId responderUserId, InviteSessionDescription localSessionDescription)
         {
-            var session = new Session(this);
+            var session = new InviteSession(this);
 
             var req = new InviteRequestPacket
             {
@@ -91,7 +91,7 @@ namespace Dcomms.DRP
 
 
             // decode and verify SD
-            session.RemoteSessionDescription = SessionDescription.Decrypt_Verify(_engine.CryptoLibrary, 
+            session.RemoteSessionDescription = InviteSessionDescription.Decrypt_Verify(_engine.CryptoLibrary, 
                 ack1.ToResponderSessionDescriptionEncrypted, 
                 req, ack1, false, session,                
                 responderUserId, _engine.DateTimeNowUtc);

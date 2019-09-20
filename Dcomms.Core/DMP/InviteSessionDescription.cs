@@ -8,9 +8,9 @@ using System.Linq;
 using System.Net;
 using System.Text;
 
-namespace Dcomms.DRP
+namespace Dcomms.DMP
 {
-    public class SessionDescription
+    public class InviteSessionDescription
     {
         byte Flags; // will include type = DMP/WebRTP SDP
         const byte FlagsMask_MustBeZero = 0b11110000;
@@ -53,7 +53,7 @@ namespace Dcomms.DRP
         /// =true for SD in ACK2
         /// =false for SD in ACK1 (since the SessionDescription is not initialized yet)
         /// </param>
-        internal byte[] Encrypt(ICryptoLibrary cryptoLibrary, InviteRequestPacket req, InviteAck1Packet ack1, Session session,
+        internal byte[] Encrypt(ICryptoLibrary cryptoLibrary, InviteRequestPacket req, InviteAck1Packet ack1, InviteSession session,
             bool ack1SdIsReady
             )
         {
@@ -88,11 +88,11 @@ namespace Dcomms.DRP
         }
        
         /// <param name="receivedFromUser">comes from local contact book</param>
-        internal static SessionDescription Decrypt_Verify(ICryptoLibrary cryptoLibrary, byte[] encryptedSdData, 
+        internal static InviteSessionDescription Decrypt_Verify(ICryptoLibrary cryptoLibrary, byte[] encryptedSdData, 
             InviteRequestPacket req,
             InviteAck1Packet ack1,
             bool ack1SdIsReady,
-            Session session,
+            InviteSession session,
             UserId receivedFromUser,
             DateTime localTimeNowUtc
             )
@@ -110,7 +110,7 @@ namespace Dcomms.DRP
             var plainTextSdData = new byte[encryptedSdData.Length];
             cryptoLibrary.ProcessAesCbcBlocks(false, aesKey, iv, encryptedSdData, plainTextSdData);
 
-            var r = new SessionDescription();
+            var r = new InviteSessionDescription();
             var reader = PacketProcedures.CreateBinaryReader(plainTextSdData, 0);
             r.Flags = reader.ReadByte();
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
