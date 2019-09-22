@@ -327,7 +327,7 @@ namespace Dcomms.DMP
             writer.Write(CertificateSignature);
 
         }
-        static UserCertificateSignature Decode(BinaryReader reader)
+        internal static UserCertificateSignature Decode(BinaryReader reader)
         {
             var r = new UserCertificateSignature();
             r.Flags = reader.ReadByte();

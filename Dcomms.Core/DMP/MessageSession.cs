@@ -14,11 +14,10 @@ namespace Dcomms.DMP
     /// </summary>
     class MessageSession
     {
-        public uint MessageId32;
-
         public MessageSessionStatusCode Status { get; private set; } = MessageSessionStatusCode.created;
 
         byte[] _iv, _aesKey;
+        internal byte[] AesKey => _aesKey;
         internal void DeriveKeys(ICryptoLibrary cryptoLibrary, byte[] sharedPingPongHmacKey, MessageStartPacket messageStart,
             byte[] directChannelSharedDhSecretE)
         {
@@ -44,7 +43,7 @@ namespace Dcomms.DMP
            
             cryptoLibrary.ProcessAesCbcBlocks(true, _aesKey, _iv, decryptedMessageData, encryptedMessageData);
 
-            Status = MessageSessionStatusCode.finishedSuccessfully;
+            Status = MessageSessionStatusCode.encryptionDecryptionCompleted;
             return encryptedMessageData;
         }
 
@@ -57,7 +56,7 @@ namespace Dcomms.DMP
 
             var messageText = MessageEncoderDecoder.DecodePlainTextMessageWithPadding_plainTextUtf8_256(decryptedMessageData);
 
-            Status = MessageSessionStatusCode.finishedSuccessfully;
+            Status = MessageSessionStatusCode.encryptionDecryptionCompleted;
             return messageText;
         }
 
@@ -69,6 +68,7 @@ namespace Dcomms.DMP
         created = 0,
         inProgress = 1,
         canceled = 2,
-        finishedSuccessfully = 3,
+        encryptionDecryptionCompleted = 3,
+        finalSignatureVerified = 4
     }
 }

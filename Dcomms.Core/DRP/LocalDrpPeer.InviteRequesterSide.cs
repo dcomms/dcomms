@@ -27,7 +27,7 @@ namespace Dcomms.DRP
 
                         await session.SetupAEkeysAsync();
 
-                        await session.SendShortSingleMessageAsync(messageText);
+                        await session.SendShortSingleMessageAsync(messageText, requesterUserCertificate);
                     }
                     finally
                     {

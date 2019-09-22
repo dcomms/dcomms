@@ -23,24 +23,20 @@ namespace Dcomms.DMP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpDmpPacketTypes.MessageStart);
-            localDirectChannelToken32.Encode(w);
-            
-            var r = new LowLevelUdpResponseScanner
+            localDirectChannelToken32.Encode(w);            
+            return new LowLevelUdpResponseScanner
             {
-                ResponseFirstBytes = ms.ToArray()
-            };
-
-            r.OptionalFilter = (udpData) =>
-            {
-                var msgStart = Decode(udpData);
-                if (msgStart.MessageHMAC.Equals(
-                    session.GetMessageHMAC(w2 => msgStart.GetSignedFieldsForMessageHMAC(w2, true))                    
-                    ) == false)
-                    return false;
-                return true;
-            };
-
-            return r;
+                ResponseFirstBytes = ms.ToArray(),
+                OptionalFilter = (udpData) =>
+                {
+                    var msgStart = Decode(udpData);
+                    if (msgStart.MessageHMAC.Equals(
+                        session.GetMessageHMAC(w2 => msgStart.GetSignedFieldsForMessageHMAC(w2, true))
+                        ) == false)
+                        return false;
+                    return true;
+                }
+            };          
         }
 
         internal byte[] DecodedUdpData;

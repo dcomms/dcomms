@@ -148,6 +148,8 @@ namespace Dcomms.DRP
                     Engine.WriteToLog_inv_responderSide_detail($"received NPACK to CFM");
 
                     session.DeriveSharedPingPongHmacKey(req, ack1, ack2, cfm);
+
+                    await session.SetupAEkeysAsync();
                 }
                 catch
                 {
@@ -155,10 +157,13 @@ namespace Dcomms.DRP
                     throw;
                 }
 
-                await session.SetupAEkeysAsync();
 
-                // todo not always receive. maybe send
-                _ = ReceiveShortSingleMessageAsync(session);
+                if (autoReceiveShortSingleMessage == true)
+                {
+                    _ = ReceiveShortSingleMessageAsync(session);
+                }
+                else
+                    session.Dispose(); // todo implement other things
             }
             catch (Exception exc)
             {
@@ -176,7 +181,7 @@ namespace Dcomms.DRP
             string receivedMessage;
             try
             {
-                receivedMessage = await session.ReceiveShortSingleMessageAsync(); 
+                receivedMessage = await session.ReceiveShortSingleMessageAsync(session.RemoteSessionDescription.UserCertificate); 
             }
             finally
             {
