@@ -9,8 +9,7 @@ namespace Dcomms.DMP.Packets
     {
         public uint MessageId32;
         public byte[] ReceiverFinalNonce;
-        MessageSessionStatusCode ReceiverStatus;
-
-        HMAC MessageSessionHMAC;
+        public MessageSessionStatusCode ReceiverStatus;
+        public HMAC MessageHMAC;
     }
 }

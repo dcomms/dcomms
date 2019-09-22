@@ -30,8 +30,8 @@ namespace Dcomms.CCP
             {
                 try
                 {
-                    var udpPayloadData = _socket.Receive(ref remoteEndpoint);
-                    _user.ProcessPacket(new CcpUdpRemoteEndpoint(remoteEndpoint), udpPayloadData);
+                    var udpData = _socket.Receive(ref remoteEndpoint);
+                    _user.ProcessPacket(new CcpUdpRemoteEndpoint(remoteEndpoint), udpData);
                 }
                 catch (SocketException exc)
                 {

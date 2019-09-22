@@ -94,8 +94,8 @@ namespace Dcomms.DRP
             {
                 try
                 {
-                    var udpPayloadData = _socket.Receive(ref remoteEndpoint);
-                    ProcessReceivedUdpPacket(remoteEndpoint, udpPayloadData);
+                    var udpData = _socket.Receive(ref remoteEndpoint);
+                    ProcessReceivedUdpPacket(remoteEndpoint, udpData);
                 }
                 catch (SocketException exc)
                 {
@@ -110,21 +110,21 @@ namespace Dcomms.DRP
                 }
             }
         }
-        void ProcessReceivedUdpPacket(IPEndPoint remoteEndpoint, byte[] udpPayloadData) // receiver thread
+        void ProcessReceivedUdpPacket(IPEndPoint remoteEndpoint, byte[] udpData) // receiver thread
         {
-            var packetType = (DrpDmpPacketTypes)udpPayloadData[0];
-            WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint} ({udpPayloadData.Length} bytes)");
+            var packetType = (DrpDmpPacketTypes)udpData[0];
+            WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint} ({udpData.Length} bytes)");
             if (packetType == DrpDmpPacketTypes.RegisterPow1Request)
             {
-                ProcessRegisterPow1RequestPacket(remoteEndpoint, udpPayloadData);
+                ProcessRegisterPow1RequestPacket(remoteEndpoint, udpData);
                 return;
             }
 
             if (packetType == DrpDmpPacketTypes.RegisterReq)
             {
-                if (RegisterRequestPacket.IsAtoEP(udpPayloadData))
+                if (RegisterRequestPacket.IsAtoEP(udpData))
                 {
-                    ProcessRegisterReqAtoEpPacket(remoteEndpoint, udpPayloadData);
+                    ProcessRegisterReqAtoEpPacket(remoteEndpoint, udpData);
                     return;
                 }
             }
@@ -132,57 +132,57 @@ namespace Dcomms.DRP
             var receivedAtUtc = DateTimeNowUtc;
             EngineThreadQueue.Enqueue(() =>
             {
-                if (RespondersToRetransmittedRequests_ProcessPacket(remoteEndpoint, udpPayloadData)) return;
-                if (PendingUdpRequests_ProcessPacket(remoteEndpoint, udpPayloadData, receivedAtUtc)) return;
+                if (RespondersToRetransmittedRequests_ProcessPacket(remoteEndpoint, udpData)) return;
+                if (PendingUdpRequests_ProcessPacket(remoteEndpoint, udpData, receivedAtUtc)) return;
 
                 switch (packetType)
                 {
                     case DrpDmpPacketTypes.Ping:
                         {
-                            var neighborToken16 = PingPacket.DecodeNeighborToken16(udpPayloadData);
+                            var neighborToken16 = PingPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             if (connectedPeer != null)
-                                connectedPeer.OnReceivedPing(remoteEndpoint, udpPayloadData);
+                                connectedPeer.OnReceivedPing(remoteEndpoint, udpData);
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
 
                         } break;
                     case DrpDmpPacketTypes.Pong:
                         {
-                            var neighborToken16 = PongPacket.DecodeNeighborToken16(udpPayloadData);
+                            var neighborToken16 = PongPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             if (connectedPeer != null)
-                                connectedPeer.OnReceivedPong(remoteEndpoint, udpPayloadData, receivedAtUtc);
+                                connectedPeer.OnReceivedPong(remoteEndpoint, udpData, receivedAtUtc);
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }
                         break;
                     case DrpDmpPacketTypes.RegisterReq:
                         {
-                            var neighborToken16 = RegisterRequestPacket.DecodeNeighborToken16(udpPayloadData);
+                            var neighborToken16 = RegisterRequestPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             if (connectedPeer != null)
-                                connectedPeer.OnReceivedRegisterReq(remoteEndpoint, udpPayloadData);
+                                connectedPeer.OnReceivedRegisterReq(remoteEndpoint, udpData);
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }
                         break;
                     case DrpDmpPacketTypes.InviteReq:
                         {
-                            var neighborToken16 = InviteRequestPacket.DecodeNeighborToken16(udpPayloadData);
+                            var neighborToken16 = InviteRequestPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             if (connectedPeer != null)
-                                connectedPeer.OnReceivedInviteSyn(remoteEndpoint, udpPayloadData);
+                                connectedPeer.OnReceivedInviteSyn(remoteEndpoint, udpData);
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }
                         break;
                     case DrpDmpPacketTypes.DmpPing:
                         {
-                            var dcToken16 = DMP.Packets.DmpPingPacket.DecodeDcToken16(udpPayloadData);
+                            var dcToken16 = DMP.Packets.DmpPingPacket.DecodeDcToken16(udpData);
                             var session = InviteSessionsByToken16[dcToken16];
                             if (session != null)
-                                session.OnReceivedDmpPing(remoteEndpoint, udpPayloadData);
+                                session.OnReceivedDmpPing(remoteEndpoint, udpData);
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid DcToken={dcToken16}");
                         }

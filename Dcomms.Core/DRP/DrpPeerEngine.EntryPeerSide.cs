@@ -57,9 +57,9 @@ namespace Dcomms.DRP
         /// <summary>
         /// is executed by receiver thread
         /// </summary>
-        void ProcessRegisterPow1RequestPacket(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
+        void ProcessRegisterPow1RequestPacket(IPEndPoint requesterEndpoint, byte[] udpData)
         {
-            var packet = new RegisterPow1RequestPacket(udpPayloadData);
+            var packet = new RegisterPow1RequestPacket(udpData);
             if (!PassPow1filter(requesterEndpoint, packet))
             {
                 if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.needsAttention)
@@ -144,7 +144,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// is executed by receiver thread
         /// </summary>
-        void ProcessRegisterReqAtoEpPacket(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
+        void ProcessRegisterReqAtoEpPacket(IPEndPoint requesterEndpoint, byte[] udpData)
         {  
             var pow2RequestState = _pow2RequestsTable.TryGetPow2RequestState(requesterEndpoint);
             if (pow2RequestState == null)
@@ -153,7 +153,7 @@ namespace Dcomms.DRP
                 return;
             }
 
-            var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpPayloadData, null);
+            var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpData, null);
 
             if (!Pow2IsOK(req, pow2RequestState.ProofOfWork2Request))
             {

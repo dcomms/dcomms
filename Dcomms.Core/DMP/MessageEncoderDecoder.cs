@@ -26,7 +26,7 @@ namespace Dcomms.DMP
                        
             return ms.ToArray();
         }
-        internal static string DecodePlainTextMessage(byte[] decryptedMessageData)
+        internal static string DecodePlainTextMessageWithPadding_plainTextUtf8_256(byte[] decryptedMessageData)
         {
             var type = (EncodedDataType)decryptedMessageData[0];
             if (type != EncodedDataType.plainTextUtf8_256) throw new ArgumentException();

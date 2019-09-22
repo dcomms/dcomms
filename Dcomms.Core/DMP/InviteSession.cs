@@ -51,6 +51,7 @@ namespace Dcomms.DMP
         }
         #endregion
 
+        byte[] MessageHMACkey;
         #region DirectChannelSharedDhSecrets  A+E
         byte[] DirectChannelSharedDhSecretA;
         byte[] LocalDirectChannelEcdhePrivateKeyA, LocalDirectChannelEcdhePublicKeyA;
@@ -65,24 +66,32 @@ namespace Dcomms.DMP
 
             DirectChannelSharedDhSecretA = _localDrpPeer.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalDirectChannelEcdhePrivateKeyA, remoteDirectChannelEcdhePublicKeyA);
             DirectChannelSharedDhSecretE = _localDrpPeer.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalDirectChannelEcdhePrivateKeyE, remoteDirectChannelEcdhePublicKeyE);
+
+            if (SharedPingPongHmacKey == null) throw new InvalidOperationException();
+            PacketProcedures.CreateBinaryWriter(out var msA, out var wA);
+            wA.Write(SharedPingPongHmacKey);
+            wA.Write(DirectChannelSharedDhSecretA);
+            MessageHMACkey = _localDrpPeer.CryptoLibrary.GetHashSHA256(msA.ToArray());
+
+
         }
 
-        public HMAC GetMessageSessionHMAC(byte[] data)
+        public HMAC GetMessageHMAC(byte[] data)
         {
             if (_disposed) throw new ObjectDisposedException(ToString());
-            if (DirectChannelSharedDhSecretA == null) throw new InvalidOperationException();
+            if (MessageHMACkey == null) throw new InvalidOperationException();
             var r = new HMAC
             {
-                hmacSha256 = _localDrpPeer.CryptoLibrary.GetSha256HMAC(DirectChannelSharedDhSecretA, data)
+                hmacSha256 = _localDrpPeer.CryptoLibrary.GetSha256HMAC(MessageHMACkey, data)
             };
 
             return r;
         }
-        public HMAC GetMessageSessionHMAC(Action<BinaryWriter> writeSignedFields)
+        public HMAC GetMessageHMAC(Action<BinaryWriter> writeSignedFields)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             writeSignedFields(w);
-            return GetMessageSessionHMAC(ms.ToArray());
+            return GetMessageHMAC(ms.ToArray());
         }
         #endregion
 
@@ -130,12 +139,12 @@ namespace Dcomms.DMP
 
                
         #region ping pong packets
-        internal void OnReceivedDmpPing(IPEndPoint remoteEndpoint, byte[] udpPayloadData) // engine thread
+        internal void OnReceivedDmpPing(IPEndPoint remoteEndpoint, byte[] udpData) // engine thread
         {
             if (!remoteEndpoint.Equals(RemoteSessionDescription.DirectChannelEndPoint))
                 throw new PossibleMitmException();
 
-            var ping = DmpPingPacket.DecodeAndVerify(udpPayloadData, this);
+            var ping = DmpPingPacket.DecodeAndVerify(udpData, this);
 
             var pong = new DmpPongPacket
             {
@@ -180,8 +189,8 @@ namespace Dcomms.DMP
             var pingData = ping.Encode();
 
             var pongUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(pingData, RemoteSessionDescription.DirectChannelEndPoint,
-                DmpPongPacket.GetScanner(LocalDirectChannelToken32, ping.PingRequestId32));
-            var pong = DmpPongPacket.DecodeAndVerify(_localDrpPeer.CryptoLibrary, pongUdpData, ping, this);
+                DmpPongPacket.GetScanner(LocalDirectChannelToken32, ping.PingRequestId32, this)); // scanner also verifies HMAC
+            var pong = DmpPongPacket.Decode(pongUdpData);
 
             this.DeriveDirectChannelSharedDhSecretsAE(pong.PublicEcdheKeyA.Ecdh25519PublicKey, pong.PublicEcdheKeyA.Ecdh25519PublicKey);                      
         }
@@ -197,11 +206,11 @@ namespace Dcomms.DMP
                 DirectChannelToken32 = RemoteSessionDescription.DirectChannelToken32,
                 MessageTimestamp64 = _localDrpPeer.Engine.Timestamp64,                
             };
-            messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecretA, DirectChannelSharedDhSecretE);
+            messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecretE);
             messageStart.EncryptedMessageData = messageSession.EncryptShortSingleMessage(_localDrpPeer.CryptoLibrary, messageText);
 
             // sign with HMAC
-            messageStart.MessageSessionHMAC = GetMessageSessionHMAC(w => messageStart.GetSignedFieldsForMessageSessionHMAC(w, true));
+            messageStart.MessageHMAC = GetMessageHMAC(w => messageStart.GetSignedFieldsForMessageHMAC(w, true));
 
             // send msgstart, wait for msgack
             var messageStartUdpData = messageStart.Encode();
@@ -220,25 +229,35 @@ namespace Dcomms.DMP
 
             // wait for msgstart
             var messageStartUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, RemoteSessionDescription.DirectChannelEndPoint,
-                MessageStartPacket.GetScanner(LocalDirectChannelToken32));
+                MessageStartPacket.GetScanner(LocalDirectChannelToken32, this) // scanner verifies MessageHMAC
+                );
+
             var messageStart = MessageStartPacket.Decode(messageStartUdpData);
             messageSession.MessageId32 = messageStart.MessageId32;
+            
+            messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecretE);
 
-            // verify messageHMAC
+            // decrypt
+            var receivedMessage = messageSession.DecryptShortSingleMessage(_localDrpPeer.CryptoLibrary, messageStart.EncryptedMessageData);
 
 
-            messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecretA, DirectChannelSharedDhSecretE, SharedInviteAckDhSecret);
-
-
-            // respond with msgack  + receiverNonce
+            // respond with msgack + ReceiverFinalNonce
+            var messageAck = new MessageAckPacket
+            {
+                MessageId32 = messageStart.MessageId32,
+                ReceiverStatus = MessageSessionStatusCode.finishedSuccessfully,
+                ReceiverFinalNonce = xxx,
+            };
+            messageAck.MessageHMAC = GetMessageHMAC(messageAck.GetSignedFields);
+            var messageAckUdpData = messageAck.Encode();
+            _localDrpPeer.Engine.RespondToRequestAndRetransmissions(messageStart.DecodedUdpData, messageAckUdpData, RemoteSessionDescription.DirectChannelEndPoint);
 
             // wait for msgPART WITH STATUS=FINISHED
             // verify messageHMAC
 
-            // verify signature
+            // verify signature of sender user
 
-            // decode
-            return messageSession.DecryptShortSingleMessage(_localDrpPeer.CryptoLibrary, messageStart.EncryptedMessageData);
+            return receivedMessage;
 
 
         }

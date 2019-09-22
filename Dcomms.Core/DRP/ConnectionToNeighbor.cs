@@ -393,7 +393,7 @@ namespace Dcomms.DRP
             _engine.WriteToLog_p2p_detail(this, $"measured RTT: {(int)requestResponseDelay.TotalMilliseconds}ms");
             _latestPingPongDelay = requestResponseDelay;
         }
-        internal void OnReceivedPong(IPEndPoint remoteEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc) // engine thread
+        internal void OnReceivedPong(IPEndPoint remoteEndpoint, byte[] udpData, DateTime receivedAtUtc) // engine thread
         {
             if (_disposed) return;
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -403,7 +403,7 @@ namespace Dcomms.DRP
             }
             try
             {
-                var pong = PongPacket.DecodeAndVerify(_engine.CryptoLibrary, udpPayloadData, null, this, false);
+                var pong = PongPacket.DecodeAndVerify(_engine.CryptoLibrary, udpData, null, this, false);
                 OnReceivedVerifiedPong(pong, receivedAtUtc, null);
 
                 if (_latestPingSent?.PingRequestId32 == pong.PingRequestId32)
@@ -419,7 +419,7 @@ namespace Dcomms.DRP
                 _engine.HandleGeneralException($"Exception while processing PONG in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
-        internal void OnReceivedPing(IPEndPoint remoteEndpoint, byte[] udpPayloadData) // engine thread
+        internal void OnReceivedPing(IPEndPoint remoteEndpoint, byte[] udpData) // engine thread
         {
             if (_disposed) return;
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -429,7 +429,7 @@ namespace Dcomms.DRP
             }
             try
             {
-                var pingRequestPacket = PingPacket.DecodeAndVerify(udpPayloadData, this);
+                var pingRequestPacket = PingPacket.DecodeAndVerify(udpData, this);
                 _latestPingReceived = pingRequestPacket;
                 var pong = new PongPacket
                 {
@@ -452,7 +452,7 @@ namespace Dcomms.DRP
         }
         #endregion
 
-        internal void OnReceivedRegisterReq(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
+        internal void OnReceivedRegisterReq(IPEndPoint requesterEndpoint, byte[] udpData)
         {
             if (_disposed) return;
             if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -463,7 +463,7 @@ namespace Dcomms.DRP
             try
             {
                 // we got REQ from this instance neighbor
-                var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpPayloadData, this);
+                var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpData, this);
                 // NeighborToken32 and NeighborHMAC are verified at this time
 
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
@@ -488,7 +488,7 @@ namespace Dcomms.DRP
             }
         }
 
-        internal void OnReceivedInviteSyn(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
+        internal void OnReceivedInviteSyn(IPEndPoint requesterEndpoint, byte[] udpData)
         {
             if (_disposed) return;
             if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -499,7 +499,7 @@ namespace Dcomms.DRP
             try
             {
                 // we got REQ from this instance neighbor
-                var req = InviteRequestPacket.Decode_VerifyNeighborHMAC(udpPayloadData, this);
+                var req = InviteRequestPacket.Decode_VerifyNeighborHMAC(udpData, this);
                 // NeighborToken32 and NeighborHMAC are verified at this time
 
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))

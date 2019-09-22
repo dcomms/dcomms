@@ -56,14 +56,14 @@ namespace Dcomms.DMP.Packets
             return ms.ToArray();
         }
 
-        public static ushort DecodeDcToken16(byte[] udpPayloadData)
+        public static ushort DecodeDcToken16(byte[] udpData)
         { // first byte is packet type. then 4 bytes are DirectChannelToken32
-            return (ushort)(udpPayloadData[1] | (udpPayloadData[2] << 8));
+            return (ushort)(udpData[1] | (udpData[2] << 8));
         }
 
-        public static DmpPingPacket DecodeAndVerify(byte[] udpPayloadData, InviteSession session)
+        public static DmpPingPacket DecodeAndVerify(byte[] udpData, InviteSession session)
         {
-            var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
+            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
 
             var r = new DmpPingPacket();
             r.DirectChannelToken32 = DirectChannelToken32.Decode(reader);
@@ -108,13 +108,9 @@ namespace Dcomms.DMP.Packets
 
         public HMAC PingPongHMAC; 
 
-        /// <param name="reader">is positioned after first byte = packet type</param>
-        public static DmpPongPacket DecodeAndVerify(ICryptoLibrary cryptoLibrary,
-            byte[] udpPayloadData, DmpPingPacket pingRequestPacketToCheckRequestId32, 
-            InviteSession session
-            )
+        public static DmpPongPacket Decode(byte[] udpData)
         {
-            var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
+            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
             var r = new DmpPongPacket();
             r.DirectChannelToken32 = DirectChannelToken32.Decode(reader);
             r.PingRequestId32 = reader.ReadUInt32();
@@ -128,36 +124,31 @@ namespace Dcomms.DMP.Packets
             }
 
             r.PingPongHMAC = HMAC.Decode(reader);
-
-
-            // verify PingRequestId32
-            if (r.PingRequestId32 != pingRequestPacketToCheckRequestId32.PingRequestId32)
-                throw new UnmatchedFieldsException();
-
-            // verify DirectChannelToken32
-            if (!r.DirectChannelToken32.Equals(session.LocalSessionDescription.DirectChannelToken32))
-                throw new UnmatchedFieldsException();
-
-            // verify PingPongHMAC
-            var expectedHMAC = session.GetPingPongHMAC(r.GetSignedFieldsForPingPongHMAC);
-            if (r.PingPongHMAC.Equals(expectedHMAC) == false)
-            {
-             //   connectedPeerWhoSentTheResponse.Engine.WriteToLog_p2p_detail(connectedPeerWhoSentTheResponse, $"incorrect sender HMAC in ping response: {r.NeighborHMAC}. expected: {expectedHMAC}");
-                throw new BadSignatureException();
-            }
-          
+                      
             return r;
         }
-        public static ushort DecodeDcToken16(byte[] udpPayloadData)
+        public static ushort DecodeDcToken16(byte[] udpData)
         { // first byte is packet type. then 4 bytes are DirectChannelToken32
-            return (ushort)(udpPayloadData[1] | (udpPayloadData[2] << 8));
+            return (ushort)(udpData[1] | (udpData[2] << 8));
         }
 
-        public static LowLevelUdpResponseScanner GetScanner(DirectChannelToken32 senderToken32, uint pingRequestId32)
+        public static LowLevelUdpResponseScanner GetScanner(DirectChannelToken32 senderToken32, uint pingRequestId32, InviteSession session)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             GetHeaderFields(w, senderToken32, pingRequestId32);
-            return new LowLevelUdpResponseScanner { ResponseFirstBytes = ms.ToArray() };
+            return new LowLevelUdpResponseScanner
+            {
+                ResponseFirstBytes = ms.ToArray(),
+                OptionalFilter = (udpData) =>
+                {
+                    var pong = Decode(udpData);
+                    if (pong.PingPongHMAC.Equals(
+                        session.GetPingPongHMAC(pong.GetSignedFieldsForPingPongHMAC)
+                        ) == false)
+                        return false;
+                    return true;
+                }
+            };
         }
         static void GetHeaderFields(BinaryWriter writer, DirectChannelToken32 directChannelToken32, uint pingRequestId32)
         {

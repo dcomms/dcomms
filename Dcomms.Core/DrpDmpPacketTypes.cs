@@ -22,8 +22,8 @@ namespace Dcomms
 
         DmpPing = 20,
         DmpPong = 21,
-        MsgStart = 22,
-        MsgPart = 23,
-        MsgAck = 24
+        MessageStart = 22,
+        MessagePart = 23,
+        MessageAck = 24
     }
 }

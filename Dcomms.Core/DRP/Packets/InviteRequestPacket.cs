@@ -70,11 +70,11 @@ namespace Dcomms.DRP.Packets
         }
 
         internal byte[] DecodedUdpPayloadData;
-        public static InviteRequestPacket Decode_VerifyNeighborHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighbor)
+        public static InviteRequestPacket Decode_VerifyNeighborHMAC(byte[] udpData, ConnectionToNeighbor receivedFromNeighbor)
         {
             var r = new InviteRequestPacket();
-            r.DecodedUdpPayloadData = udpPayloadData;
-            var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
+            r.DecodedUdpPayloadData = udpData;
+            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)
                 throw new NotImplementedException();
@@ -99,9 +99,9 @@ namespace Dcomms.DRP.Packets
         }
 
 
-        public static ushort DecodeNeighborToken16(byte[] udpPayloadData)
+        public static ushort DecodeNeighborToken16(byte[] udpData)
         { // first 2 bytes ares packet type and flags. then 4 bytes are NeighborToken32
-            return (ushort)(udpPayloadData[2] | (udpPayloadData[3] << 8));
+            return (ushort)(udpData[2] | (udpData[3] << 8));
         }
 
         public void GetUniqueRequestIdFields(BinaryWriter writer)

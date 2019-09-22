@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Dcomms.DRP;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -9,5 +10,6 @@ namespace Dcomms.DMP.Packets
         public uint MessageId32;
         UserCertificateSignature SenderSignature;
         MessageSessionStatusCode SenderStatus;
+        public HMAC MessageHMAC;
     }
 }

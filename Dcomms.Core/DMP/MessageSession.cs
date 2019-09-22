@@ -8,34 +8,29 @@ using System.Text;
 
 namespace Dcomms.DMP
 {
+    /// <summary>
+    /// stores IV and AES key;
+    /// encrypts and decrypts messages
+    /// </summary>
     class MessageSession
     {
         public uint MessageId32;
 
         public MessageSessionStatusCode Status { get; private set; } = MessageSessionStatusCode.created;
 
-        byte[] _iv, _aesKey; // encryption
-        byte[] _hmacKey; // authentication
-
+        byte[] _iv, _aesKey;
         internal void DeriveKeys(ICryptoLibrary cryptoLibrary, byte[] sharedPingPongHmacKey, MessageStartPacket messageStart,
-            byte[] directChannelSharedDhSecretA,
             byte[] directChannelSharedDhSecretE)
         {
             if (Status != MessageSessionStatusCode.created) throw new InvalidOperationException();
 
             PacketProcedures.CreateBinaryWriter(out var msE, out var wE);
-            messageStart.GetSignedFieldsForMessageSessionHMAC(wE, false);
+            messageStart.GetSignedFieldsForMessageHMAC(wE, false);
             wE.Write(sharedPingPongHmacKey);
             _iv = cryptoLibrary.GetHashSHA256(msE.ToArray()).Take(16).ToArray();
             wE.Write(directChannelSharedDhSecretE);
             _aesKey = cryptoLibrary.GetHashSHA256(msE.ToArray());
             
-            PacketProcedures.CreateBinaryWriter(out var msA, out var wA);
-            messageStart.GetSignedFieldsForMessageSessionHMAC(wA, false);
-            wA.Write(sharedPingPongHmacKey);
-            wA.Write(directChannelSharedDhSecretA);
-            _hmacKey = cryptoLibrary.GetHashSHA256(msA.ToArray());
-
             Status = MessageSessionStatusCode.inProgress;
         }
 
@@ -57,9 +52,10 @@ namespace Dcomms.DMP
         {
             if (Status != MessageSessionStatusCode.inProgress) throw new InvalidOperationException();
 
+            var decryptedMessageData = new byte[encryptedMessageData.Length];
+            cryptoLibrary.ProcessAesCbcBlocks(false, _aesKey, _iv, encryptedMessageData, decryptedMessageData);
 
-
-
+            var messageText = MessageEncoderDecoder.DecodePlainTextMessageWithPadding_plainTextUtf8_256(decryptedMessageData);
 
             Status = MessageSessionStatusCode.finishedSuccessfully;
             return messageText;

@@ -45,14 +45,14 @@ namespace Dcomms.DRP.Packets
             return ms.ToArray();
         }
 
-        public static ushort DecodeNeighborToken16(byte[] udpPayloadData)
+        public static ushort DecodeNeighborToken16(byte[] udpData)
         { // first byte is packet type. then 4 bytes are NeighborToken32
-            return (ushort)(udpPayloadData[1] | (udpPayloadData[2] << 8));
+            return (ushort)(udpData[1] | (udpData[2] << 8));
         }
 
-        public static PingPacket DecodeAndVerify(byte[] udpPayloadData, ConnectionToNeighbor connectedPeerWhoSentTheRequest)
+        public static PingPacket DecodeAndVerify(byte[] udpData, ConnectionToNeighbor connectedPeerWhoSentTheRequest)
         {
-            var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
+            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
 
             var r = new PingPacket();
             r.NeighborToken32 = NeighborToken32.Decode(reader);
@@ -105,11 +105,11 @@ namespace Dcomms.DRP.Packets
 
         /// <param name="reader">is positioned after first byte = packet type</param>
         public static PongPacket DecodeAndVerify(ICryptoLibrary cryptoLibrary,
-            byte[] udpPayloadData, PingPacket optionalPingRequestPacketToCheckRequestId32, 
+            byte[] udpData, PingPacket optionalPingRequestPacketToCheckRequestId32, 
             ConnectionToNeighbor connectedPeerWhoSentTheResponse, bool requireSignature
             )
         {
-            var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
+            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
             var r = new PongPacket();
             r.NeighborToken32 = NeighborToken32.Decode(reader);
             r.PingRequestId32 = reader.ReadUInt32();
@@ -149,9 +149,9 @@ namespace Dcomms.DRP.Packets
           
             return r;
         }
-        public static ushort DecodeNeighborToken16(byte[] udpPayloadData)
+        public static ushort DecodeNeighborToken16(byte[] udpData)
         { // first byte is packet type. then 4 bytes are NeighborToken32
-            return (ushort)(udpPayloadData[1] | (udpPayloadData[2] << 8));
+            return (ushort)(udpData[1] | (udpData[2] << 8));
         }
 
         public static LowLevelUdpResponseScanner GetScanner(NeighborToken32 senderToken32, uint pingRequestId32)

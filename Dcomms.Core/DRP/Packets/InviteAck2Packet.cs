@@ -63,11 +63,11 @@ namespace Dcomms.DRP.Packets
         }
 
         internal byte[] DecodedUdpPayloadData;
-        public static InviteAck2Packet Decode(byte[] udpPayloadData)
+        public static InviteAck2Packet Decode(byte[] udpData)
         {
             var r = new InviteAck2Packet();
-            r.DecodedUdpPayloadData = udpPayloadData;
-            var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
+            r.DecodedUdpPayloadData = udpData;
+            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)
                 throw new NotImplementedException();

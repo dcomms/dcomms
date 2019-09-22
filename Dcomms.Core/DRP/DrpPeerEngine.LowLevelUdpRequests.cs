@@ -119,23 +119,23 @@ namespace Dcomms.DRP
         /// <returns>
         /// true if the response is linked to request, and the packet is processed
         /// </returns>
-        bool PendingUdpRequests_ProcessPacket(IPEndPoint responderEndpoint, byte[] udpPayloadData, DateTime receivedAtUtc)
+        bool PendingUdpRequests_ProcessPacket(IPEndPoint responderEndpoint, byte[] udpData, DateTime receivedAtUtc)
         {
             // todo optimize tis by storing pending requests indexed
             for (var item = _pendingLowLevelUdpRequests.First; item != null; item = item.Next)
             {
                 var request = item.Value;
 
-                WriteToLog_udp_detail($"matching to pending request... responderEndpoint={responderEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)} " +
+                WriteToLog_udp_detail($"matching to pending request... responderEndpoint={responderEndpoint}, udpData={MiscProcedures.ByteArrayToString(udpData)} " +
                     $"request.ResponderEndpoint={request.ResponderEndpoint} request.ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
 
                 try
                 {
-                    if (request.ResponderEndpoint.Equals(responderEndpoint) && request.ResponseScanner.Scan(udpPayloadData))
+                    if (request.ResponderEndpoint.Equals(responderEndpoint) && request.ResponseScanner.Scan(udpData))
                     {
                         _pendingLowLevelUdpRequests.Remove(item);
                         request.ResponseReceivedAtUtc = receivedAtUtc;
-                        request.TaskCompletionSource.SetResult(udpPayloadData);
+                        request.TaskCompletionSource.SetResult(udpData);
                         return true;
                     }
                 }
@@ -145,7 +145,7 @@ namespace Dcomms.DRP
                 }
             }
 
-            WriteToLog_udp_detail($"match to pending request was not found for packet from {responderEndpoint}, udpPayloadData={MiscProcedures.ByteArrayToString(udpPayloadData)}");
+            WriteToLog_udp_detail($"match to pending request was not found for packet from {responderEndpoint}, udpData={MiscProcedures.ByteArrayToString(udpData)}");
 
             return false;
         }
@@ -176,12 +176,12 @@ namespace Dcomms.DRP
         }
 
 
-        bool RespondersToRetransmittedRequests_ProcessPacket(IPEndPoint requesterEndpoint, byte[] udpPayloadData)
+        bool RespondersToRetransmittedRequests_ProcessPacket(IPEndPoint requesterEndpoint, byte[] udpData)
         {
             for (var item = _respondersToRetransmittedRequests.First; item != null; item = item.Next)
             {
                 var responder = item.Value;
-                if (responder.RequesterEndpoint.Equals(requesterEndpoint) && MiscProcedures.EqualByteArrays(responder.RequestUdpPayloadData, udpPayloadData))
+                if (responder.RequesterEndpoint.Equals(requesterEndpoint) && MiscProcedures.EqualByteArrays(responder.RequestUdpPayloadData, udpData))
                 {
                     SendPacket(responder.ResponseUdpPayloadData, requesterEndpoint);
                     return true;
@@ -248,12 +248,12 @@ namespace Dcomms.DRP
         public int? IgnoredByteAtOffset1; // is set to position of 'flags' byte in the scanned response packet
         public Func<byte[],bool> OptionalFilter; // verifies NPACK.NeighborHMAC, ignores invalid HMACs // returns false to ignore the processed response packet
 
-        public bool Scan(byte[] udpPayloadData) // may throw parser exception
+        public bool Scan(byte[] udpData) // may throw parser exception
         {
-            if (!MiscProcedures.EqualByteArrayHeader(ResponseFirstBytes, udpPayloadData, IgnoredByteAtOffset1)) return false;
+            if (!MiscProcedures.EqualByteArrayHeader(ResponseFirstBytes, udpData, IgnoredByteAtOffset1)) return false;
             if (OptionalFilter != null)
             {
-                if (!OptionalFilter(udpPayloadData)) return false;               
+                if (!OptionalFilter(udpData)) return false;               
             }
             return true;
         }

@@ -30,16 +30,17 @@ namespace Dcomms.Sandbox
                 UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
             }
 
-            public void OnReceivedMessage(string message)
+            public void OnReceivedShortSingleMessage(string message)
             {
                 DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
                     $"received message: {message}");
             }
             public readonly Dictionary<RegistrationId, UserId> ContactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
-            public void OnReceivedInvite(RegistrationId remoteRegistrationId, out DMP.UserId remoteUserId, out DMP.UserCertificate localUserCertificateWithPrivateKey)
+            public void OnReceivedInvite(RegistrationId remoteRegistrationId, out DMP.UserId remoteUserId, out DMP.UserCertificate localUserCertificateWithPrivateKey, out bool autoReceiveShortSingleMessage)
             {
                 remoteUserId = ContactBookUsersByRegId[remoteRegistrationId];
                 localUserCertificateWithPrivateKey = UserCertificateWithPrivateKey;
+                autoReceiveShortSingleMessage = true;
             }
 
             //public InviteSessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId, out UserCertificate userCertificateWithPrivateKey)

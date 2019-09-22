@@ -169,12 +169,12 @@ namespace Dcomms.P2PTP.LocalLogic
         /// receiver thread
         /// changes state of connected peer
         /// </summary>
-        internal void ProcessReceivedHello(byte[] udpPayloadData, IPEndPoint remoteEndpoint, SocketWithReceiver socket, uint packetReceivedTimestamp32)
+        internal void ProcessReceivedHello(byte[] udpData, IPEndPoint remoteEndpoint, SocketWithReceiver socket, uint packetReceivedTimestamp32)
         {
             // enqueue into manager thread // reduce load of the receiver thread
             _actionsQueue.Enqueue(() =>
             {
-                var helloPacket = new PeerHelloPacket(udpPayloadData);
+                var helloPacket = new PeerHelloPacket(udpData);
                 
                 if (_localPeer.IpLocationScraper == null && !String.IsNullOrEmpty(helloPacket.RequestedFromIp))
                 {

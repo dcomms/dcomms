@@ -132,11 +132,11 @@ namespace Dcomms.DRP.Packets
         /// when REQ is received from neighbor, verifies senderHMAC and NeighborToken32
         /// </summary>
         /// <param name="receivedFromNeighborNullable">is NULL when decoding REQ from A at EP</param>
-        public static RegisterRequestPacket Decode_OptionallyVerifyNeighborHMAC(byte[] udpPayloadData, ConnectionToNeighbor receivedFromNeighborNullable)
+        public static RegisterRequestPacket Decode_OptionallyVerifyNeighborHMAC(byte[] udpData, ConnectionToNeighbor receivedFromNeighborNullable)
         {
             var r = new RegisterRequestPacket();
-            r.DecodedUdpPayloadData = udpPayloadData;
-            var reader = PacketProcedures.CreateBinaryReader(udpPayloadData, 1);
+            r.DecodedUdpPayloadData = udpData;
+            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
 
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)
@@ -173,15 +173,15 @@ namespace Dcomms.DRP.Packets
             return r;
         }
       
-        public static bool IsAtoEP(byte[] udpPayloadData)
+        public static bool IsAtoEP(byte[] udpData)
         {
-            var flags = udpPayloadData[1];
+            var flags = udpData[1];
            return (flags & Flag_AtoEP) != 0;
         }
         
-        public static ushort DecodeNeighborToken16(byte[] udpPayloadData)
+        public static ushort DecodeNeighborToken16(byte[] udpData)
         { // first 2 bytes ares packet type and flags. then 4 bytes are NeighborToken32
-            return (ushort)(udpPayloadData[2] | (udpPayloadData[3] << 8));
+            return (ushort)(udpData[2] | (udpData[3] << 8));
         }
 
         public void GetUniqueRequestIdFields(BinaryWriter writer)
