@@ -30,6 +30,7 @@ namespace Dcomms.DRP
         TimeSpan TimeSWE => _stopwatch.Elapsed; // stopwatch elapsed
         public DateTime DateTimeNowUtc { get { return _startTimeUtc + TimeSWE; } }
         public uint Timestamp32S => MiscProcedures.DateTimeToUint32seconds(DateTimeNowUtc);
+        public Int64 Timestamp64 => MiscProcedures.DateTimeToInt64(DateTimeNowUtc);
         bool _disposing;
         Thread _engineThread;
         Thread _receiverThread;
@@ -39,7 +40,8 @@ namespace Dcomms.DRP
         internal Random InsecureRandom => _insecureRandom;
         Dictionary<RegistrationId, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationId, LocalDrpPeer>(); // accessed only by engine thread       
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
-      
+        internal DMP.InviteSession[] InviteSessionsByToken16 = new DMP.InviteSession[ushort.MaxValue + 1];
+
         ushort _seq16Counter_AtoEP; // accessed only by engine thread
         internal NeighborPeerAckSequenceNumber16 GetNewNpaSeq16_AtoEP() => new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
         public DrpPeerEngineConfiguration Configuration { get; private set; }
@@ -175,6 +177,16 @@ namespace Dcomms.DRP
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }
                         break;
+                    case DrpDmpPacketTypes.DmpPing:
+                        {
+                            var dcToken16 = DMP.Packets.DmpPingPacket.DecodeDcToken16(udpPayloadData);
+                            var session = InviteSessionsByToken16[dcToken16];
+                            if (session != null)
+                                session.OnReceivedDmpPing(remoteEndpoint, udpPayloadData);
+                            else
+                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid DcToken={dcToken16}");
+                        }
+                        break;                  
                 }
             });
         }
@@ -241,13 +253,10 @@ namespace Dcomms.DRP
 
     public interface IDrpRegisteredPeerApp 
     {
-        void OnReceivedMessage(byte[] message);
+        void OnReceivedShortSingleMessage(string messageText);
         /// <summary>
         /// searches for a known user in local contact book
         /// </summary>
-        DMP.UserId OnReceivedInvite_LookupUser(RegistrationId remoteRegID);
-
-        DMP.InviteSessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId, out DMP.UserCertificate userCertificateWithPrivateKey);
-        void OnAcceptedIncomingInvite(DMP.InviteSession session);
+        void OnReceivedInvite(RegistrationId remoteRegistrationId, out DMP.UserId remoteUserId, out DMP.UserCertificate localUserCertificateWithPrivateKey, out bool autoReceiveShortSingleMessage);
     }
 }

@@ -19,15 +19,15 @@ namespace Dcomms.DRP
         /// - RequesterEndpoint validation at requester
         /// </summary>
         public IPAddress PublicIpApiProviderResponse;
-       // LocalDrpPeerState State;
+
         readonly DrpPeerRegistrationConfiguration _registrationConfiguration;
         public DrpPeerRegistrationConfiguration RegistrationConfiguration => _registrationConfiguration;
         readonly IDrpRegisteredPeerApp _drpPeerApp;
-        readonly DrpPeerEngine _engine;
-        internal ICryptoLibrary CryptoLibrary => _engine.CryptoLibrary;
+        internal readonly DrpPeerEngine Engine;
+        internal ICryptoLibrary CryptoLibrary => Engine.CryptoLibrary;
         public LocalDrpPeer(DrpPeerEngine engine, DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp)
         {
-            _engine = engine;
+            Engine = engine;
             _registrationConfiguration = registrationConfiguration;
             _drpPeerApp = drpPeerApp;
         }
@@ -39,13 +39,4 @@ namespace Dcomms.DRP
         }
         public override string ToString() => _registrationConfiguration.LocalPeerRegistrationId.ToString();
     }
-    //enum LocalDrpPeerState
-    //{
-    //    requestingPublicIp,
-    //    pow,
-    //    registerSynSent,
-    //    pingEstablished,
-    //    minNeighborsCountAchieved,
-    //    achievedGoodRatingForNeighbors // ready to send requests
-    //}
 }

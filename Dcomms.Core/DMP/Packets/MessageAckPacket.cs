@@ -8,7 +8,7 @@ namespace Dcomms.DMP.Packets
     class MessageAckPacket
     {
         public uint MessageId32;
-        public byte[] ResponderNonce;
+        public byte[] ReceiverFinalNonce;
         MessageSessionStatusCode ReceiverStatus;
 
         HMAC MessageSessionHMAC;

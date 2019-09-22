@@ -30,36 +30,38 @@ namespace Dcomms.Sandbox
                 UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
             }
 
-            public void OnReceivedMessage(byte[] message)
+            public void OnReceivedMessage(string message)
             {
-                throw new NotImplementedException();
+                DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+                    $"received message: {message}");
             }
             public readonly Dictionary<RegistrationId, UserId> ContactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
-            public UserId OnReceivedInvite_LookupUser(RegistrationId remoteRegID)
+            public void OnReceivedInvite(RegistrationId remoteRegistrationId, out DMP.UserId remoteUserId, out DMP.UserCertificate localUserCertificateWithPrivateKey)
             {
-                return ContactBookUsersByRegId[remoteRegID];
+                remoteUserId = ContactBookUsersByRegId[remoteRegistrationId];
+                localUserCertificateWithPrivateKey = UserCertificateWithPrivateKey;
             }
 
-            public InviteSessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId, out UserCertificate userCertificateWithPrivateKey)
-            {
-                userCertificateWithPrivateKey = UserCertificateWithPrivateKey;
-                var r = new InviteSessionDescription
-                {
-                    SessionType = SessionType.asyncUserMessages,
-                    DirectChannelEndPoint = new IPEndPoint(IPAddress.Parse("1.2.3.4"), 56789),
-                    DirectChannelToken32 = new DirectChannelToken32 {  Token32=0x123456 }
-                };
+            //public InviteSessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId, out UserCertificate userCertificateWithPrivateKey)
+            //{
+            //    userCertificateWithPrivateKey = UserCertificateWithPrivateKey;
+            //    var r = new InviteSessionDescription
+            //    {
+            //        SessionType = SessionType.asyncUserMessages,
+            //        DirectChannelEndPoint = new IPEndPoint(IPAddress.Parse("1.2.3.4"), 56789),
+            //        DirectChannelToken32 = new DirectChannelToken32 {  Token32=0x123456 }
+            //    };
 
-                DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
-                    $"responding with local session {r}");
+            //    DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+            //        $"responding with local session {r}");
 
-                return r;
-            }
-            public void OnAcceptedIncomingInvite(InviteSession session)
-            {
-                DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
-                    $"accepted remote session: {session.RemoteSessionDescription}");
-            }
+            //    return r;
+            //}
+            //public void OnAcceptedIncomingInvite(InviteSession session)
+            //{
+            //    DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+            //        $"accepted remote session: {session.RemoteSessionDescription}");
+            //}
         }
 
         const int EpLocalPort = 6789;
@@ -193,21 +195,13 @@ namespace Dcomms.Sandbox
 
             var aUserCertificate = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_a.CryptoLibrary, _aUser.UserId, _aUser.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
 
-            var localSessionDescription = new InviteSessionDescription
-            {
-                DirectChannelEndPoint = new IPEndPoint(IPAddress.Parse("10.20.30.40"), 7890),
-                SessionType = SessionType.asyncUserMessages,
-                DirectChannelToken32 = new DirectChannelToken32 { Token32 = 0x7654321 }
-            };
-            _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"sending invite with local session {localSessionDescription}");
-            var sw = Stopwatch.StartNew();
+           
 
-            _aLocalDrpPeer.BeginSendInvite(aUserCertificate, _xLocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId, _xUser.UserId, localSessionDescription,
-                session =>
+            _aLocalDrpPeer.BeginSendShortSingleMessage(aUserCertificate, _xLocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId, _xUser.UserId, "test Dcomms message",
+                () =>
                 {
                     _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
-                        $"remote peer accepted invite session in {(int)sw.Elapsed.TotalMilliseconds}ms: {session.RemoteSessionDescription}");
-
+                        $"message was sent successfully");
                 });
         }
     }
