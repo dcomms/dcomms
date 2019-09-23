@@ -14,7 +14,7 @@ namespace Dcomms.DMP
     /// </summary>
     class MessageSession
     {
-        public MessageSessionStatusCode Status { get; private set; } = MessageSessionStatusCode.created;
+        public MessageSessionStatusCode Status { get; set; } = MessageSessionStatusCode.created;
 
         byte[] _iv, _aesKey;
         internal byte[] AesKey => _aesKey;

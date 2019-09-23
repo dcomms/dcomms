@@ -19,6 +19,7 @@ namespace Dcomms.DRP
         const string VisionChannelModuleName_inv_requesterSide = "inv.requester";
         const string VisionChannelModuleName_inv_proxySide = "inv.proxy";
         const string VisionChannelModuleName_inv_responderSide = "inv.responder";
+        const string VisionChannelModuleName_dc = "dc";
         const string VisionChannelModuleName_engineThread = "engineThread";
         const string VisionChannelModuleName_receiverThread = "receiverThread";
         const string VisionChannelModuleName_p2p = "p2p"; // ping, direct p2p communication
@@ -107,6 +108,12 @@ namespace Dcomms.DRP
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide) <= AttentionLevel.mediumPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide, AttentionLevel.detail, message);
+
+        }
+        internal void WriteToLog_dc_detail(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_dc) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_dc, AttentionLevel.detail, message);
 
         }
         void HandleExceptionWhileConnectingToRP(IPEndPoint epEndpoint, Exception exc)

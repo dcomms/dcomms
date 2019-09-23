@@ -59,21 +59,26 @@ namespace Dcomms.DMP
         byte[] DirectChannelSharedDhSecretE;
         byte[] LocalDirectChannelEcdhePrivateKeyE, LocalDirectChannelEcdhePublicKeyE;
 
+        bool _derivedDirectChannelSharedDhSecretsAE;
         void DeriveDirectChannelSharedDhSecretsAE(byte[] remoteDirectChannelEcdhePublicKeyA, byte[] remoteDirectChannelEcdhePublicKeyE)
         {
-            _localDrpPeer.Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(remoteDirectChannelEcdhePublicKeyA);
-            _localDrpPeer.Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(remoteDirectChannelEcdhePublicKeyE);
+            if (!_derivedDirectChannelSharedDhSecretsAE)
+            {
+                _derivedDirectChannelSharedDhSecretsAE = true;
 
-            DirectChannelSharedDhSecretA = _localDrpPeer.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalDirectChannelEcdhePrivateKeyA, remoteDirectChannelEcdhePublicKeyA);
-            DirectChannelSharedDhSecretE = _localDrpPeer.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalDirectChannelEcdhePrivateKeyE, remoteDirectChannelEcdhePublicKeyE);
+                _localDrpPeer.Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(remoteDirectChannelEcdhePublicKeyA);
+                _localDrpPeer.Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(remoteDirectChannelEcdhePublicKeyE);
 
-            if (SharedPingPongHmacKey == null) throw new InvalidOperationException();
-            PacketProcedures.CreateBinaryWriter(out var msA, out var wA);
-            wA.Write(SharedPingPongHmacKey);
-            wA.Write(DirectChannelSharedDhSecretA);
-            MessageHMACkey = _localDrpPeer.CryptoLibrary.GetHashSHA256(msA.ToArray());
+                DirectChannelSharedDhSecretA = _localDrpPeer.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalDirectChannelEcdhePrivateKeyA, remoteDirectChannelEcdhePublicKeyA);
+                DirectChannelSharedDhSecretE = _localDrpPeer.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalDirectChannelEcdhePrivateKeyE, remoteDirectChannelEcdhePublicKeyE);
 
-
+                if (SharedPingPongHmacKey == null) throw new InvalidOperationException();
+                PacketProcedures.CreateBinaryWriter(out var msA, out var wA);
+                wA.Write(SharedPingPongHmacKey);
+                wA.Write(DirectChannelSharedDhSecretA);
+                MessageHMACkey = _localDrpPeer.CryptoLibrary.GetHashSHA256(msA.ToArray());
+              // not safe to write it to log    _localDrpPeer.Engine.WriteToLog_dc_detail($"derived keys: A={MiscProcedures.ByteArrayToString(DirectChannelSharedDhSecretA)}, E={MiscProcedures.ByteArrayToString(DirectChannelSharedDhSecretE)}"); ;
+            }
         }
 
         public HMAC GetMessageHMAC(byte[] data)
@@ -155,7 +160,7 @@ namespace Dcomms.DMP
             {
                 pong.PublicEcdheKeyA = new EcdhPublicKey { Ecdh25519PublicKey = this.LocalDirectChannelEcdhePublicKeyA };
                 pong.PublicEcdheKeyE = new EcdhPublicKey { Ecdh25519PublicKey = this.LocalDirectChannelEcdhePublicKeyE };
-                this.DeriveDirectChannelSharedDhSecretsAE(ping.PublicEcdheKeyA.Ecdh25519PublicKey, ping.PublicEcdheKeyA.Ecdh25519PublicKey);
+                this.DeriveDirectChannelSharedDhSecretsAE(ping.PublicEcdheKeyA.Ecdh25519PublicKey, ping.PublicEcdheKeyE.Ecdh25519PublicKey);
             }
             pong.PingPongHMAC = GetPingPongHMAC(pong.GetSignedFieldsForPingPongHMAC);
 
@@ -192,7 +197,7 @@ namespace Dcomms.DMP
                 DmpPongPacket.GetScanner(LocalDirectChannelToken32, ping.PingRequestId32, this)); // scanner also verifies HMAC
             var pong = DmpPongPacket.Decode(pongUdpData);
 
-            this.DeriveDirectChannelSharedDhSecretsAE(pong.PublicEcdheKeyA.Ecdh25519PublicKey, pong.PublicEcdheKeyA.Ecdh25519PublicKey);                      
+            this.DeriveDirectChannelSharedDhSecretsAE(pong.PublicEcdheKeyA.Ecdh25519PublicKey, pong.PublicEcdheKeyE.Ecdh25519PublicKey);                      
         }
 
 
@@ -235,10 +240,7 @@ namespace Dcomms.DMP
             messagePart.MessageHMAC = GetMessageHMAC(messagePart.GetSignedFieldsForMessageHMAC);            
             var messagePartUdpData = messagePart.Encode();
 
-
             // wait for msgack status=finalSignatureVerified
-            _localDrpPeer.Engine.RespondToRequestAndRetransmissions(messageAckUdpData, messagePartUdpData, RemoteSessionDescription.DirectChannelEndPoint);
-
             await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(messagePartUdpData,
                 RemoteSessionDescription.DirectChannelEndPoint,
                 MessageAckPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.finalSignatureVerified) // scanner also verifies HMAC
@@ -278,7 +280,7 @@ namespace Dcomms.DMP
                 MessagePartPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.encryptionDecryptionCompleted)
                 // scanner verifies MessageHMAC
                 );
-            var messagePart = MessagePartPacket.Decode(messageStartUdpData);
+            var messagePart = MessagePartPacket.Decode(messagePartUdpData);
 
             // verify signature of sender user
             if (!messagePart.SenderSignature.Verify(_localDrpPeer.CryptoLibrary, w =>
@@ -291,11 +293,11 @@ namespace Dcomms.DMP
                 throw new BadSignatureException();
 
             // send msgack status=finalSignatureVerified
+            messageSession.Status = MessageSessionStatusCode.finalSignatureVerified;
             var messageAck_finalSignatureVerified = new MessageAckPacket
             {
                 MessageId32 = messageStart.MessageId32,
                 ReceiverStatus = messageSession.Status,
-                ReceiverFinalNonce = _localDrpPeer.CryptoLibrary.GetRandomBytes(MessageAckPacket.ReceiverFinalNonceSize),
             };
             messageAck_finalSignatureVerified.MessageHMAC = GetMessageHMAC(messageAck_finalSignatureVerified.GetSignedFieldsForMessageHMAC);
             var messageAck_finalSignatureVerified_UdpData = messageAck_finalSignatureVerified.Encode();

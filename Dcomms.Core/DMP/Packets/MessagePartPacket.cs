@@ -23,9 +23,9 @@ namespace Dcomms.DMP.Packets
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             writer.Write((byte)DrpDmpPacketTypes.MessagePart);
             writer.Write(MessageId32);
+            writer.Write((byte)SenderStatus);
             byte flags = 0;
             writer.Write(flags);
-            writer.Write((byte)SenderStatus);
 
             if (SenderStatus == MessageSessionStatusCode.inProgress) PacketProcedures.EncodeByteArray65536(writer, ContinuedEncryptedData);
             else if (SenderStatus == MessageSessionStatusCode.encryptionDecryptionCompleted) SenderSignature.Encode(writer);

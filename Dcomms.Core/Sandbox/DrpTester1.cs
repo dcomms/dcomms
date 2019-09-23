@@ -196,9 +196,12 @@ namespace Dcomms.Sandbox
 
             var aUserCertificate = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_a.CryptoLibrary, _aUser.UserId, _aUser.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
 
-           
 
-            _aLocalDrpPeer.BeginSendShortSingleMessage(aUserCertificate, _xLocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId, _xUser.UserId, "test Dcomms message",
+            var message = $"test Dcomms message {new Random().Next()}";
+            _a.Configuration.VisionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+                $"sending message: {message}");
+
+            _aLocalDrpPeer.BeginSendShortSingleMessage(aUserCertificate, _xLocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId, _xUser.UserId, message,
                 () =>
                 {
                     _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,

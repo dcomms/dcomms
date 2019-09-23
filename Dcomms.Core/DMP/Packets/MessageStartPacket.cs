@@ -47,12 +47,12 @@ namespace Dcomms.DMP.Packets
             var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
             r.DirectChannelToken32 = DirectChannelToken32.Decode(reader);
             r.MessageId32 = reader.ReadUInt32();
-            r.MessageTimestamp64 = reader.ReadInt64();
             
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)
                 throw new NotImplementedException();
             
+            r.MessageTimestamp64 = reader.ReadInt64();
             r.EncryptedMessageData = PacketProcedures.DecodeByteArray65536(reader);           
             r.MessageHMAC = HMAC.Decode(reader);
             return r;
