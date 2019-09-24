@@ -29,7 +29,10 @@
                 <Button Command="{Binding TestAes}" Content="TestAes" />
                 <Button Command="{Binding CreateDrpTester1}" Content="CreateDrpTester1" />
                 <Button Command="{Binding CreateDrpTester1_SendInvite}" Content="CreateDrpTester1+send Invite" />
+
+                <Button Command="{Binding CreateDrpTester2}" Content="CreateDrpTester2" />
                 
+
             </StackPanel>
         </StackPanel>
 

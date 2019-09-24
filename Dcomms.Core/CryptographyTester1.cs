@@ -14,7 +14,7 @@ using System.Windows;
 
 namespace Dcomms
 {
-    public class CryptographyTester1
+    public class CryptographyTester1 :IDisposable
     {
         readonly VisionChannel _visionChannel;
         public CryptographyTester1(VisionChannel visionChannel)
@@ -179,10 +179,24 @@ namespace Dcomms
             });
         });
 
+
+        DrpTester2 _drpTester2;
+        public DelegateCommand CreateDrpTester2 => new DelegateCommand(() =>
+        {
+            if (_drpTester2 != null) throw new InvalidOperationException();
+            _drpTester2 = new DrpTester2(_visionChannel);
+        });
+
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
         {
            // var t = new UniqueDataTracker();
          //   t.TryInputData(null);
         });
+
+        public void Dispose()
+        {
+            if (_drpTester1 != null) _drpTester1.Dispose();
+            if (_drpTester2 != null) _drpTester2.Dispose();
+        }
     }
 }

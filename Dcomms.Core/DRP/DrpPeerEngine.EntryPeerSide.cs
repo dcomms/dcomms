@@ -50,7 +50,8 @@ namespace Dcomms.DRP
         Pow2RequestsTable _pow2RequestsTable;
         partial void Initialize(DrpPeerEngineConfiguration config)
         {
-             _recentUniquePow1Data = new UniqueDataFilter16MbRAM(Timestamp32S, config.RegisterPow1_RecentUniqueDataResetPeriodS);
+             if (config.SandboxModeOnly_DisableRecentUniquePow1Data == false)
+                _recentUniquePow1Data = new UniqueDataFilter16MbRAM(Timestamp32S, config.RegisterPow1_RecentUniqueDataResetPeriodS);
              _pow2RequestsTable = new Pow2RequestsTable(config);
         }
        
@@ -115,21 +116,25 @@ namespace Dcomms.DRP
                 return false;
             }
 
-            // check if pow1 data is unique
-            var dataIsUnique = _recentUniquePow1Data.TryInputData(packet.ProofOfWork1, localTimeSec32);
-            if (dataIsUnique)
+            if (_recentUniquePow1Data != null)
             {
-                return true;
+                // check if pow1 data is unique
+                var dataIsUnique = _recentUniquePow1Data.TryInputData(packet.ProofOfWork1, localTimeSec32);
+                if (dataIsUnique)
+                {
+                    return true;
+                }
+                else
+                {
+                    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.needsAttention)
+                        Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.needsAttention, $"pow1 filter rejected request from {requesterEndpoint}: pow1 data is not unique");
+
+                    // respond with error "try again with unique PoW data"
+                    if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1withError(requesterEndpoint, RegisterPow1ResponseStatusCode.rejected_tryagainRightNowWithThisServer, packet.Pow1RequestId);
+                    return false;
+                }
             }
-            else
-            {
-                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide) <= AttentionLevel.needsAttention)
-                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_epSide, AttentionLevel.needsAttention, $"pow1 filter rejected request from {requesterEndpoint}: pow1 data is not unique");
-                
-                // respond with error "try again with unique PoW data"
-                if (Configuration.RespondToRegisterPow1Errors) RespondToRegisterPow1withError(requesterEndpoint, RegisterPow1ResponseStatusCode.rejected_tryagainRightNowWithThisServer, packet.Pow1RequestId);
-                return false;
-            }             
+            return true;
         }
         void RespondToRegisterPow1withError(IPEndPoint requesterEndpoint, RegisterPow1ResponseStatusCode statusCode, uint pow1RequestId)
         {

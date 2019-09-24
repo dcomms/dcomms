@@ -20,10 +20,17 @@ namespace Dcomms.DRP
             RegisterRequestPacket req, IPEndPoint requesterEndpoint, 
             ConnectionToNeighbor sourcePeer) // engine thread
         {
-            WriteToLog_reg_proxySide_detail($"proxying REGISTER request: remoteEndpoint={requesterEndpoint}, NpaSeq16={req.NpaSeq16}, destinationPeer={destinationPeer}, sourcePeer={sourcePeer}");
-            
             if (req.AtoEP ^ (sourcePeer == null))
                 throw new InvalidOperationException();
+
+            if (_pendingRegisterRequests.Contains(req.RequesterRegistrationId))
+            {
+                WriteToLog_reg_proxySide_detail($"ignoring duplicate REGISTER request: requesterEndpoint={requesterEndpoint}");
+                return;
+            }
+
+            WriteToLog_reg_proxySide_detail($"proxying REGISTER request: requesterEndpoint={requesterEndpoint}, NpaSeq16={req.NpaSeq16}, destinationPeer={destinationPeer}, sourcePeer={sourcePeer}");
+            
             _recentUniqueRegistrationRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
 
             if (!ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))

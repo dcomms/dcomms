@@ -32,7 +32,12 @@ namespace Dcomms.CryptographyTester
             this.DataContext = _tester;
             visionGui.DataContext = VisionChannel;
 
+            this.Closed += CryptographyTesterMainWindow_Closed;
         }
 
+        private void CryptographyTesterMainWindow_Closed(object sender, EventArgs e)
+        {
+            _tester.Dispose();
+        }
     }
 }

@@ -20,7 +20,8 @@ namespace Dcomms.DRP
         public void BeginRegister(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp, Action<LocalDrpPeer> cb = null)
         {
             WriteToLog_reg_requesterSide_detail($">> BeginRegister()");
-                       
+            if (registrationConfiguration.LocalPeerRegistrationId == null) throw new ArgumentNullException();
+
             EngineThreadQueue.Enqueue(async () =>
             {
                 try
@@ -48,6 +49,7 @@ namespace Dcomms.DRP
 
         async Task<LocalDrpPeer> CreateLocalPeerAsync(DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp)
         {
+            if (registrationConfiguration.LocalPeerRegistrationId == null) throw new ArgumentNullException();
             var localDrpPeer = new LocalDrpPeer(this, registrationConfiguration, drpPeerApp);
 
             if (Configuration.ForcedPublicIpApiProviderResponse == null)
@@ -111,7 +113,7 @@ namespace Dcomms.DRP
         /// <returns>null if registration failed with timeout or some error code</returns>
         public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint) // engine thread
         {
-            WriteToLog_reg_requesterSide_detail($"connecting to EP {epEndpoint}");
+            WriteToLog_reg_requesterSide_detail($"connecting to EntryPeer {epEndpoint}");
 
             #region PoW1
             WriteToLog_reg_requesterSide_detail($"generating PoW1 request");

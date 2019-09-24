@@ -18,8 +18,7 @@ namespace Dcomms.DRP
         /// </param>
         internal async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterRequestPacket req, IPEndPoint requesterEndpoint, ConnectionToNeighbor sourcePeer) // engine thread
         {
-            WriteToLog_reg_responderSide_detail($"accepting registration from {requesterEndpoint}: NpaSeq16={req.NpaSeq16}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, epEndpoint={req.EpEndpoint}, sourcePeer={sourcePeer}");
-
+            
             if (req.AtoEP ^ (sourcePeer == null))
                 throw new InvalidOperationException();
 
@@ -39,8 +38,17 @@ namespace Dcomms.DRP
                 }
             }
 
-            RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+            if (_pendingRegisterRequests.Contains(req.RequesterRegistrationId))
+            {
+                // received duplicate REGISTER REQ packet
+                WriteToLog_reg_responderSide_detail($"ignoring duplicate registration request from {requesterEndpoint}");
+                return;
+            }
+
+            WriteToLog_reg_responderSide_detail($"accepting registration from {requesterEndpoint}: NpaSeq16={req.NpaSeq16}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, epEndpoint={req.EpEndpoint}, sourcePeer={sourcePeer}");
+
             _recentUniqueRegistrationRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
+            RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
 
             _pendingRegisterRequests.Add(req.RequesterRegistrationId);
             try

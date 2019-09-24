@@ -15,64 +15,15 @@ namespace Dcomms.Sandbox
     /// sandbox for development since 2019-07
     /// </summary>
     class DrpTester1: IDisposable
-    {
-        class User : IDrpRegisteredPeerApp
-        {
-            public readonly UserRootPrivateKeys UserRootPrivateKeys;
-            public readonly UserId UserId;
-
-            public readonly UserCertificate UserCertificateWithPrivateKey;
-            public readonly DrpPeerEngine DrpPeerEngine;
-            public User(DrpPeerEngine drpPeerEngine)
-            {
-                DrpPeerEngine = drpPeerEngine;
-                UserRootPrivateKeys.CreateUserId(3, 2, DrpPeerEngine.CryptoLibrary, out UserRootPrivateKeys, out UserId);
-                UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
-            }
-
-            public void OnReceivedShortSingleMessage(string message)
-            {
-                DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
-                    $"received message: {message}");
-            }
-            public readonly Dictionary<RegistrationId, UserId> ContactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
-            public void OnReceivedInvite(RegistrationId remoteRegistrationId, out DMP.UserId remoteUserId, out DMP.UserCertificate localUserCertificateWithPrivateKey, out bool autoReceiveShortSingleMessage)
-            {
-                remoteUserId = ContactBookUsersByRegId[remoteRegistrationId];
-                localUserCertificateWithPrivateKey = UserCertificateWithPrivateKey;
-                autoReceiveShortSingleMessage = true;
-            }
-
-            //public InviteSessionDescription OnReceivedInvite_GetLocalSessionDescription(DMP.UserId requesterUserId, out UserCertificate userCertificateWithPrivateKey)
-            //{
-            //    userCertificateWithPrivateKey = UserCertificateWithPrivateKey;
-            //    var r = new InviteSessionDescription
-            //    {
-            //        SessionType = SessionType.asyncUserMessages,
-            //        DirectChannelEndPoint = new IPEndPoint(IPAddress.Parse("1.2.3.4"), 56789),
-            //        DirectChannelToken32 = new DirectChannelToken32 {  Token32=0x123456 }
-            //    };
-
-            //    DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
-            //        $"responding with local session {r}");
-
-            //    return r;
-            //}
-            //public void OnAcceptedIncomingInvite(InviteSession session)
-            //{
-            //    DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
-            //        $"accepted remote session: {session.RemoteSessionDescription}");
-            //}
-        }
-
+    {     
         const int EpLocalPort = 6789;
         readonly Random _insecureRandom = new Random();
         DrpPeerEngine _ep, _a;
         DrpPeerEngine _x, _n;
         LocalDrpPeer _xLocalDrpPeer, _aLocalDrpPeer, _nLocalDrpPeer;
-        User _aUser, _xUser;
+        DrpTesterPeerApp _aUser, _xUser;
         readonly VisionChannel _visionChannel;
-        const string DrpTesterVisionChannelModuleName = "drpTester";
+        internal const string DrpTesterVisionChannelModuleName = "drpTester";
         public DrpTester1(VisionChannel visionChannel, Action cb = null)
         {
             _visionChannel = visionChannel;
@@ -90,7 +41,7 @@ namespace Dcomms.Sandbox
             };
             epConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _ep.CryptoLibrary.GeneratePrivateKeyEd25519() };
             epConfig.LocalPeerRegistrationId = new RegistrationId(_ep.CryptoLibrary.GetPublicKeyEd25519(epConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
-            _ep.BeginCreateLocalPeer(epConfig, new User(_ep), (rpLocalPeer) =>
+            _ep.BeginCreateLocalPeer(epConfig, new DrpTesterPeerApp(_ep), (rpLocalPeer) =>
             {   
                 _a = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
@@ -102,7 +53,7 @@ namespace Dcomms.Sandbox
                 var aConfig = new DrpPeerRegistrationConfiguration
                 {
                     EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) },
-                    NumberOfNeighborsToKeep = 10
+                    NumberOfNeighborsToKeep = 1
                 };
                 aConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _a.CryptoLibrary.GeneratePrivateKeyEd25519() };
                 aConfig.LocalPeerRegistrationId = new RegistrationId(_a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
@@ -118,7 +69,7 @@ namespace Dcomms.Sandbox
                 var xConfig = new DrpPeerRegistrationConfiguration
                 {
                     EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) },
-                    NumberOfNeighborsToKeep = 10
+                    NumberOfNeighborsToKeep = 1
                 };
 
             _retryx:
@@ -139,7 +90,7 @@ namespace Dcomms.Sandbox
                 var nConfig = new DrpPeerRegistrationConfiguration
                 {
                     EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) },
-                    NumberOfNeighborsToKeep = 10
+                    NumberOfNeighborsToKeep = 1
                 };
 
             _retryn:
@@ -153,7 +104,7 @@ namespace Dcomms.Sandbox
                 var distance_epton = epConfig.LocalPeerRegistrationId.GetDistanceTo(_n.CryptoLibrary, nConfig.LocalPeerRegistrationId);
                 if (distance_xton.IsGreaterThan(distance_epton)) goto _retryn;
 
-                _xUser = new User(_x);
+                _xUser = new DrpTesterPeerApp(_x);
                 var swX = Stopwatch.StartNew();
                 _x.BeginRegister(xConfig, _xUser, (xLocalPeer) =>
                 {
@@ -162,12 +113,12 @@ namespace Dcomms.Sandbox
                   
                     _xLocalDrpPeer = xLocalPeer;
                     var swN = Stopwatch.StartNew();
-                    _n.BeginRegister(nConfig, new User(_n), (nLocalPeer) =>
+                    _n.BeginRegister(nConfig, new DrpTesterPeerApp(_n), (nLocalPeer) =>
                     {
                         _visionChannel.Emit(_n.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                             AttentionLevel.guiActivity, $"registration complete in {(int)swN.Elapsed.TotalMilliseconds}ms");
                         _nLocalDrpPeer = nLocalPeer;
-                        _aUser = new User(_a);
+                        _aUser = new DrpTesterPeerApp(_a);
                         var swA = Stopwatch.StartNew();
                         _a.BeginRegister(aConfig, _aUser, (aLocalPeer) =>
                         {

@@ -45,6 +45,8 @@ namespace Dcomms.DRP
 
         public VisionChannel VisionChannel;
         public string VisionChannelSourceId;
+
+        public bool SandboxModeOnly_DisableRecentUniquePow1Data;
     }
     public class DrpPeerRegistrationConfiguration
     {
