@@ -27,7 +27,7 @@ namespace Dcomms.DRP
     /// is negotiated via REGISTER channel
     /// all fields are encrypted when transmitted over REGISTER channel, using single-block AES and shared ECDH key
     /// </summary>
-    public class ConnectionToNeighbor: IDisposable
+    public partial class ConnectionToNeighbor: IDisposable
     {
         internal byte[] SharedAuthKeyForNeighborHMAC; //  this key is shared secret, known only at requester (A) and neighbor (N), it is used for HMAC
         RegisterRequestPacket _req;
@@ -245,13 +245,13 @@ namespace Dcomms.DRP
                
         public ConnectedDrpPeerInitiatedBy InitiatedBy;
         RegistrationId _remotePeerPublicKey;
-        public RegistrationId RemotePeerPublicKey
+        public RegistrationId RemoteRegistrationId
         {
             get => _remotePeerPublicKey;
             set
             {
                 _remotePeerPublicKey = value;
-                _name = $"connTo{RemotePeerPublicKey}";
+                _name = $"connTo{RemoteRegistrationId}";
             }
         }
         string _name = "ConnectionToNeighbor";
@@ -470,7 +470,11 @@ namespace Dcomms.DRP
                     throw new BadSignatureException();
                 
                               
-                _engine.RouteRegistrationRequest(this.LocalDrpPeer, req, out var proxyToDestinationPeer, out var acceptAt); // routing
+                if (!_engine.RouteRegistrationRequest(this.LocalDrpPeer, req, out var proxyToDestinationPeer, out var acceptAt)) // routing
+                { // no route found
+                    _engine.SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable_overloaded_noRouteFound, this);
+                    return;
+                }
 
                 if (acceptAt != null)
                 {   // accept the registration request here at this.LocalDrpPeer                                       

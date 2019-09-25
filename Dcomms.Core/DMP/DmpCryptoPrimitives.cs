@@ -17,6 +17,7 @@ namespace Dcomms.DMP
         /// </summary>
         byte Flags;
         const byte FlagsMask_MustBeZero = 0b11110000;
+        public const byte FlagsMask_UserIdReplacementIsAllowed = 0b00000001;
 
         /// <summary>
         /// specifies max duration of intermediate certificate, which is used for messaging while root private key is stored offline

@@ -120,7 +120,7 @@ namespace Dcomms.DRP.Packets
             if ((flags & Flags_ResponderRegistrationConfirmationSignatureExists) != 0)
                 r.ResponderRegistrationConfirmationSignature = RegistrationSignature.DecodeAndVerify(reader, cryptoLibrary, 
                     w => connectedPeerWhoSentTheResponse.GetResponderRegistrationConfirmationSignatureFields(w), 
-                    connectedPeerWhoSentTheResponse.RemotePeerPublicKey);
+                    connectedPeerWhoSentTheResponse.RemoteRegistrationId);
             else
             {
                 if (requireSignature) throw new UnmatchedFieldsException();

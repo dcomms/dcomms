@@ -111,7 +111,7 @@ namespace Dcomms.DRP
         }
 
         /// <returns>null if registration failed with timeout or some error code</returns>
-        public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint) // engine thread
+        public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint, uint minimalDistanceToNeighbor = 0) // engine thread
         {
             WriteToLog_reg_requesterSide_detail($"connecting to EntryPeer {epEndpoint}");
 
@@ -150,7 +150,7 @@ namespace Dcomms.DRP
                 {
                     RequesterRegistrationId = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId,
                     ReqTimestamp32S = Timestamp32S,
-                    MinimalDistanceToNeighbor = 0,
+                    MinimalDistanceToNeighbor = minimalDistanceToNeighbor,
                     NumberOfHopsRemaining = 10,
                     RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                     NpaSeq16 = GetNewNpaSeq16_AtoEP(),
@@ -189,7 +189,7 @@ namespace Dcomms.DRP
                 RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
                 newConnectionToNeighbor.LocalEndpoint = ack1.RequesterEndpoint;
-                newConnectionToNeighbor.RemotePeerPublicKey = ack1.ResponderRegistrationId;
+                newConnectionToNeighbor.RemoteRegistrationId = ack1.ResponderRegistrationId;
                 reqToAck1Stopwatch.Stop();
                 var reqToAck1TimeMs = reqToAck1Stopwatch.Elapsed.TotalMilliseconds;
                 WriteToLog_reg_requesterSide_detail($"measured REQ-ACK1 RTT = {(int)reqToAck1TimeMs}ms");

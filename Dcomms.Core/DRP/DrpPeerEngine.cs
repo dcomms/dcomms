@@ -228,13 +228,16 @@ namespace Dcomms.DRP
                     if (needToRestartLoop)
                         goto _restart_loop;                   
                 }
+
+
+                localPeer.EngineThreadOnTimer100ms(timeNowUtc);
             }
             //   update IIR counters for rates
             //   send ping in case of inactivity
             //   retransmit packets
 
 
-           // PendingAcceptedRegisterRequests_OnTimer100ms(timeNowUTC);
+            // PendingAcceptedRegisterRequests_OnTimer100ms(timeNowUTC);
 
             // retransmit lowlevel udp requests
             PendingUdpRequests_OnTimer100ms(timeNowUTC);

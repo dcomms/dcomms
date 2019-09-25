@@ -91,16 +91,21 @@ namespace Dcomms.DRP
                  -32000  -32001     1
                  -32767   32768     1
                   32767  -32767     2
-             */           
+             */
 
-           // int distance_i = Math.Abs(unchecked(*vector1_i - *vector2_i));
+            // int distance_i = Math.Abs(unchecked(*vector1_i - *vector2_i));
 
-           // return distance_i;
+            // return distance_i;
         }
         public bool IsGreaterThan(RegistrationIdDistance another)
         {
             return this._distance_sumSqr > another._distance_sumSqr;
         }
+        public bool IsLessThan(uint another)
+        {
+            return this._distance_sumSqr < another * another;
+        }
+
         public override string ToString() => ((float)_distance_sumSqr).ToString("E02");
     }
 

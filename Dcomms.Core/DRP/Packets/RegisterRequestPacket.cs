@@ -39,7 +39,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public uint ReqTimestamp32S;
 
-        public uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood 
+        public uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood // inclusive
         public IPEndPoint EpEndpoint; // unencrypted  // makes sense when EP is behind NAT (e.g amazon) and does not know its public IP
 
         /// <summary>

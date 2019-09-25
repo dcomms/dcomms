@@ -59,7 +59,7 @@ namespace Dcomms.DRP
                 var newConnectionToNeighbor = new ConnectionToNeighbor(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer)
                 {
                     LocalEndpoint = sourcePeer?.LocalEndpoint ?? req.EpEndpoint,
-					RemotePeerPublicKey = req.RequesterRegistrationId					
+					RemoteRegistrationId = req.RequesterRegistrationId					
                 };
                 byte[] ack1UdpData;
                 try
@@ -169,7 +169,7 @@ namespace Dcomms.DRP
             }
         }
 
-        void SendNeighborPeerAckResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, NextHopResponseCode statusCode, ConnectionToNeighbor neighbor)
+        internal void SendNeighborPeerAckResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, NextHopResponseCode statusCode, ConnectionToNeighbor neighbor)
         {
             var npAck = new NeighborPeerAckPacket
             {

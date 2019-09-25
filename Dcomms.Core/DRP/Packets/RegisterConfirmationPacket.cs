@@ -155,7 +155,7 @@ namespace Dcomms.DRP.Packets
                     );
                 cfm.RequesterRegistrationConfirmationSignature = RegistrationSignature.DecodeAndVerify(reader, newConnectionToRequesterAtResponderNullable.Engine.CryptoLibrary,
                     w => newConnectionToRequesterAtResponderNullable.GetRequesterRegistrationConfirmationSignatureFields(w, cfm.ResponderRegistrationConfirmationSignature),
-                    newConnectionToRequesterAtResponderNullable.RemotePeerPublicKey
+                    newConnectionToRequesterAtResponderNullable.RemoteRegistrationId
                     );
             }
             else
