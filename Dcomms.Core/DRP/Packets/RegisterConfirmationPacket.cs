@@ -29,7 +29,7 @@ namespace Dcomms.DRP.Packets
         public NeighborToken32 NeighborToken32; 
 
         public RegistrationId RequesterRegistrationId;
-        public uint ReqTimestamp32S;
+        public Int64 ReqTimestamp64;
         /// <summary>
         /// comes from pong packet from responder 
         /// is verified by N, EP,M  before updating rating
@@ -68,7 +68,7 @@ namespace Dcomms.DRP.Packets
         /// peer that sends CFM
         /// if not null - the scanner will verify CFM.NeighborHMAC
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegistrationId requesterPublicKey_RequestID, uint registerSynTimestamp32S)
+        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegistrationId requesterPublicKey_RequestID, Int64 registerReqTimestamp64)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpDmpPacketTypes.RegisterConfirmation);
@@ -78,7 +78,7 @@ namespace Dcomms.DRP.Packets
             if (connectionToNeighborNullable != null)
                 connectionToNeighborNullable.LocalNeighborToken32.Encode(w);
 
-            w.Write(registerSynTimestamp32S);        
+            w.Write(registerReqTimestamp64);        
             requesterPublicKey_RequestID.Encode(w);
             var r = new LowLevelUdpResponseScanner
             {
@@ -115,7 +115,7 @@ namespace Dcomms.DRP.Packets
                 NeighborToken32.Encode(writer);
             }
 
-            writer.Write(ReqTimestamp32S);
+            writer.Write(ReqTimestamp64);
             RequesterRegistrationId.Encode(writer);
 
             ResponderRegistrationConfirmationSignature.Encode(writer);
@@ -143,7 +143,7 @@ namespace Dcomms.DRP.Packets
             if ((cfm.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             if ((cfm.Flags & Flag_AtoEP) == 0) cfm.NeighborToken32 = NeighborToken32.Decode(reader);
 
-            cfm.ReqTimestamp32S = reader.ReadUInt32();
+            cfm.ReqTimestamp64 = reader.ReadInt64();
             cfm.RequesterRegistrationId = RegistrationId.Decode(reader);
             if (synNullable != null) cfm.AssertMatchToRegisterReq(synNullable);
 
@@ -176,14 +176,14 @@ namespace Dcomms.DRP.Packets
         {
             if (localRegisterReq.RequesterRegistrationId.Equals(this.RequesterRegistrationId) == false)
                 throw new UnmatchedFieldsException();
-            if (localRegisterReq.ReqTimestamp32S != this.ReqTimestamp32S)
+            if (localRegisterReq.ReqTimestamp64 != this.ReqTimestamp64)
                 throw new UnmatchedFieldsException();
         }
         
         internal void GetSignedFieldsForNeighborHMAC(BinaryWriter writer)
         {
             NeighborToken32.Encode(writer);
-            writer.Write(ReqTimestamp32S);
+            writer.Write(ReqTimestamp64);
             RequesterRegistrationId.Encode(writer);
             ResponderRegistrationConfirmationSignature.Encode(writer);
             RequesterRegistrationConfirmationSignature.Encode(writer);

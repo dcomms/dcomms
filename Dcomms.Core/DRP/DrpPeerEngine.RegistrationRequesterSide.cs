@@ -149,7 +149,7 @@ namespace Dcomms.DRP
                 req = new RegisterRequestPacket
                 {
                     RequesterRegistrationId = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId,
-                    ReqTimestamp32S = Timestamp32S,
+                    ReqTimestamp64 = Timestamp64,
                     MinimalDistanceToNeighbor = minimalDistanceToNeighbor,
                     NumberOfHopsRemaining = 10,
                     RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
@@ -172,7 +172,7 @@ namespace Dcomms.DRP
                 #region wait for ACK1
                 WriteToLog_reg_requesterSide_detail($"waiting for ACK1");
                 var ack1UdpData = await WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(epEndpoint,
-                                RegisterAck1Packet.GetScanner(req.RequesterRegistrationId, req.ReqTimestamp32S),
+                                RegisterAck1Packet.GetScanner(req.RequesterRegistrationId, req.ReqTimestamp64),
                                 DateTimeNowUtc, Configuration.RegisterRequestsTimoutS                               
                             ));
                 if (ack1UdpData == null) throw new DrpTimeoutException();
@@ -197,7 +197,7 @@ namespace Dcomms.DRP
                 #region send ACK2, encode local IP
                 var ack2 = new RegisterAck2Packet
                 {
-                    ReqTimestamp32S = req.ReqTimestamp32S,
+                    ReqTimestamp64 = req.ReqTimestamp64,
                     RequesterRegistrationId = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId,
                     NpaSeq16 = GetNewNpaSeq16_AtoEP()
                 };            
@@ -259,7 +259,7 @@ namespace Dcomms.DRP
             {
                 var cfm = new RegisterConfirmationPacket
                 {
-                    ReqTimestamp32S = req.ReqTimestamp32S,
+                    ReqTimestamp64 = req.ReqTimestamp64,
                     RequesterRegistrationId = localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId,
                     ResponderRegistrationConfirmationSignature = pong.ResponderRegistrationConfirmationSignature,
                     NpaSeq16 = GetNewNpaSeq16_AtoEP()

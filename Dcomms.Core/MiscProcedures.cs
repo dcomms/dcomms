@@ -59,13 +59,17 @@ namespace Dcomms
             return (ushort)(dt - _baseDateTime).TotalDays;
         }
 
-        public static Int64 DateTimeToInt64(DateTime dt) 
+        public static Int64 DateTimeToInt64ticks(DateTime dt) 
         {
             return dt.Ticks;
         }
-        public static DateTime Int64ToDateTime(Int64 ticks) 
+        public static DateTime Int64ticksToDateTime(Int64 ticks)
         {
             return new DateTime(ticks);
+        }
+        public static TimeSpan Int64ToTimeSpan(Int64 ticks)
+        {
+            return TimeSpan.FromTicks(ticks);
         }
 
         public static string BandwidthToString(this float bandwidth, float? targetBandwidth = null) => BandwidthToString((float?)bandwidth, targetBandwidth);

@@ -28,7 +28,7 @@ namespace Dcomms.DRP.Packets
         public byte Flags;
         public bool AtoEP => (Flags & Flag_AtoEP) != 0;
         const byte FlagsMask_MustBeZero = 0b11110000;
-        public uint ReqTimestamp32S;
+        public Int64 ReqTimestamp64;
         public RegistrationId RequesterRegistrationId;
         /// <summary>
         /// IP address of A + UDP port + salt     
@@ -52,10 +52,10 @@ namespace Dcomms.DRP.Packets
         {
         }
         /// <param name="connectionToNeighborNullable">
-        /// peer that sends ACK
-        /// if not null - the scanner will verify ACK.NeighborHMAC
+        /// peer that sends ACK2
+        /// if not null - the scanner will verify ACK2.NeighborHMAC
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegistrationId requesterPublicKey_RequestID, uint registerSynTimestamp32S)
+        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegistrationId requesterPublicKey_RequestID, Int64 registerReqTimestamp64)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
@@ -68,7 +68,7 @@ namespace Dcomms.DRP.Packets
                 connectionToNeighborNullable.LocalNeighborToken32.Encode(writer);
             }
 
-            writer.Write(registerSynTimestamp32S);
+            writer.Write(registerReqTimestamp64);
             requesterPublicKey_RequestID.Encode(writer);
 
             var r = new LowLevelUdpResponseScanner
@@ -80,8 +80,8 @@ namespace Dcomms.DRP.Packets
             {
                 r.OptionalFilter = (responseData) =>
                 {
-                    var ack = Decode_OptionallyVerify_InitializeP2pStreamAtResponder(responseData, null, null, null);
-                    if (ack.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(ack.GetSignedFieldsForNeighborHMAC)) == false) return false;
+                    var ack2 = Decode_OptionallyVerify_InitializeP2pStreamAtResponder(responseData, null, null, null);
+                    if (ack2.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(ack2.GetSignedFieldsForNeighborHMAC)) == false) return false;
                     return true;
                 };
             }
@@ -120,7 +120,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public void GetSharedSignedFields(BinaryWriter writer, bool includeRequesterSignature, bool includeTxParameters)
         {
-            writer.Write(ReqTimestamp32S);
+            writer.Write(ReqTimestamp64);
             RequesterRegistrationId.Encode(writer);
             if (includeTxParameters) writer.Write(ToRequesterTxParametersEncrypted);
             if (includeRequesterSignature) RequesterSignature.Encode(writer);
@@ -137,7 +137,7 @@ namespace Dcomms.DRP.Packets
         {
             if (!this.RequesterRegistrationId.Equals(remoteRegisterReq.RequesterRegistrationId))
                 throw new UnmatchedFieldsException();
-            if (this.ReqTimestamp32S != remoteRegisterReq.ReqTimestamp32S)
+            if (this.ReqTimestamp64 != remoteRegisterReq.ReqTimestamp64)
                 throw new UnmatchedFieldsException();
         }
 
@@ -160,7 +160,7 @@ namespace Dcomms.DRP.Packets
             if ((ack.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             if ((ack.Flags & Flag_AtoEP) == 0) ack.NeighborToken32 = NeighborToken32.Decode(reader);
 
-            ack.ReqTimestamp32S = reader.ReadUInt32();
+            ack.ReqTimestamp64 = reader.ReadInt64();
             ack.RequesterRegistrationId = RegistrationId.Decode(reader);
             if (synNullable != null) ack.AssertMatchToSyn(synNullable);
 

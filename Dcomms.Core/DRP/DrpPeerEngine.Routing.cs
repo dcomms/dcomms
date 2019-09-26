@@ -15,19 +15,19 @@ namespace Dcomms.DRP
         /// <param name="receivedAtLocalDrpPeerNullable">
         /// is set when routing REQ packets that are received via P2P connection from neighbor to the LocalDrpPeer
         /// </param>
-        internal bool RouteRegistrationRequest(LocalDrpPeer receivedAtLocalDrpPeerNullable, RegisterRequestPacket req, out ConnectionToNeighbor proxyToDestinationPeer, out LocalDrpPeer acceptAt)
+        internal bool RouteRegistrationRequest(LocalDrpPeer receivedAtLocalDrpPeerNullable, ConnectionToNeighbor sourceNeighborNullable, RegisterRequestPacket req, out ConnectionToNeighbor proxyToDestinationPeer, out LocalDrpPeer acceptAt)
         {
             proxyToDestinationPeer = null;
             acceptAt = null;
             RegistrationIdDistance minDistance = null;
             if (receivedAtLocalDrpPeerNullable != null)
             {
-                RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, req, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
+                RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, sourceNeighborNullable, req, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
             }
             else
             {
                 foreach (var localDrpPeer in LocalPeers.Values)
-                    RouteRegistrationRequest_LocalDrpPeerIteration(localDrpPeer, req, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
+                    RouteRegistrationRequest_LocalDrpPeerIteration(localDrpPeer, sourceNeighborNullable, req, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
             }
 
             if (proxyToDestinationPeer != null)
@@ -46,14 +46,21 @@ namespace Dcomms.DRP
                 return false;
             }
         }
-        void RouteRegistrationRequest_LocalDrpPeerIteration(LocalDrpPeer localDrpPeer, RegisterRequestPacket req,
+        void RouteRegistrationRequest_LocalDrpPeerIteration(LocalDrpPeer localDrpPeer, ConnectionToNeighbor sourceNeighborNullable, RegisterRequestPacket req,
             ref RegistrationIdDistance minDistance,
             ref ConnectionToNeighbor proxyToDestinationPeer, ref LocalDrpPeer acceptAt)
         {
             foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors)
             {
+                if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
+                {
+                    WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}");
+                    continue;
+                }
+
+
                 var distanceToConnectedPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId);
-                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterRegistrationId} to {connectedPeer.RemoteRegistrationId}");
+                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterRegistrationId} to {connectedPeer.RemoteRegistrationId} (req.min={req.MinimalDistanceToNeighbor})");
                 if (req.MinimalDistanceToNeighbor != 0)
                 {
                     if (distanceToConnectedPeer.IsLessThan(req.MinimalDistanceToNeighbor))

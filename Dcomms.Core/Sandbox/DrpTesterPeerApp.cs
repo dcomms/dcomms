@@ -9,13 +9,17 @@ namespace Dcomms.Sandbox
 {
     class DrpTesterPeerApp : IDrpRegisteredPeerApp
     {
+        const string VisionChannelModuleName = "drpTesterApp";
         public readonly UserRootPrivateKeys UserRootPrivateKeys;
         public readonly UserId UserId;
 
         public readonly UserCertificate UserCertificateWithPrivateKey;
         public readonly DrpPeerEngine DrpPeerEngine;
-        public DrpTesterPeerApp(DrpPeerEngine drpPeerEngine)
+        public readonly DrpPeerRegistrationConfiguration DrpPeerRegistrationConfiguration;
+        public LocalDrpPeer LocalDrpPeer;
+        public DrpTesterPeerApp(DrpPeerEngine drpPeerEngine, DrpPeerRegistrationConfiguration drpPeerRegistrationConfiguration)
         {
+            DrpPeerRegistrationConfiguration = drpPeerRegistrationConfiguration;
             DrpPeerEngine = drpPeerEngine;
             UserRootPrivateKeys.CreateUserId(3, 2, DrpPeerEngine.CryptoLibrary, out UserRootPrivateKeys, out UserId);
             UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
@@ -23,7 +27,7 @@ namespace Dcomms.Sandbox
 
         public void OnReceivedShortSingleMessage(string message)
         {
-            DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTester1.DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+            DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.guiActivity,
                 $"received message: {message}");
         }
         public readonly Dictionary<RegistrationId, UserId> ContactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();

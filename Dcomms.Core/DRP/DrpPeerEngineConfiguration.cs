@@ -25,9 +25,9 @@ namespace Dcomms.DRP
         public TimeSpan Pow2RequestStatesTablePeriod = TimeSpan.FromSeconds(5);
         public int Pow2RequestStatesTableMaxSize = 100000;
         /// <summary>
-        /// max allowed difference between local system clock and received REQ.Timestamp32S at responder or proxy
+        /// max allowed difference between local system clock and received REQ timestamps at responder or proxy
         /// </summary>
-        public int MaxSynTimestampDifference = 20 * 60;
+        public int MaxReqTimestampDifferenceS = 20 * 60;
 
         public TimeSpan PendingRegisterRequestsTimeout = TimeSpan.FromSeconds(20);
 

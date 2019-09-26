@@ -95,7 +95,7 @@ namespace Dcomms.DRP.Packets
     {
         accepted = 0, // is sent to previous hop immediately when packet is proxied, to stop retransmission timer
         rejected_serviceUnavailable_overloaded_noRouteFound = 1,
-        rejected_rateExceeded = 2, // anti-ddos
+      //  rejected_rateExceeded = 2, // anti-ddos
         rejected_numberOfHopsRemainingReachedZero = 3
     }
 

@@ -25,7 +25,7 @@ namespace Dcomms.DRP
             if (sourcePeer == null)
             {
                 // check Timestamp32S and signature of requester (A)
-                if (!ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S) ||
+                if (!ValidateReceivedReqTimestamp64(req.ReqTimestamp64) ||
                         !req.RequesterSignature.Verify(_cryptoLibrary,
                             w => req.GetSharedSignedFields(w, false),
                             req.RequesterRegistrationId
@@ -67,7 +67,7 @@ namespace Dcomms.DRP
                     var ack1 = new RegisterAck1Packet
                     {                        
                         RequesterRegistrationId = req.RequesterRegistrationId,
-                        ReqTimestamp32S = req.ReqTimestamp32S,
+                        ReqTimestamp64 = req.ReqTimestamp64,
                         ResponderEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                         ResponderRegistrationId = acceptAt.RegistrationConfiguration.LocalPeerRegistrationId,
                         ResponderStatusCode = DrpResponderStatusCode.confirmed,
@@ -85,7 +85,7 @@ namespace Dcomms.DRP
                     if (sourcePeer == null) ack1.RequesterEndpoint = requesterEndpoint;                    
                     ack1UdpData = ack1.Encode_OpionallySignNeighborHMAC(sourcePeer);
                     
-                    var ack2Scanner = RegisterAck2Packet.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp32S);
+                    var ack2Scanner = RegisterAck2Packet.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp64);
                     byte[] ack2UdpData;
                     if (sourcePeer == null)
                     {   // wait for ACK2, retransmitting ACK1
@@ -152,7 +152,7 @@ namespace Dcomms.DRP
         {
             try
             {
-                var regCfmScanner = RegisterConfirmationPacket.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp32S);
+                var regCfmScanner = RegisterConfirmationPacket.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp64);
                 WriteToLog_reg_responderSide_detail($"waiting for CFM");
                 var regCfmUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requesterEndpoint, regCfmScanner);
                 WriteToLog_reg_responderSide_detail($"received CFM");
@@ -187,7 +187,7 @@ namespace Dcomms.DRP
 
             //   WriteToLog_reg_responderSide_detail($"sent npAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(npAckUdpData)} nhaSeq={registerSynPacket.NpaSeq16}");
         }
-        void SendNeighborPeerAckResponseToRegisterAck1(RegisterAck1Packet ack1, ConnectionToNeighbor neighbor)
+        internal void SendNeighborPeerAckResponseToRegisterAck1(RegisterAck1Packet ack1, ConnectionToNeighbor neighbor)
         {
             var npAck = new NeighborPeerAckPacket
             {

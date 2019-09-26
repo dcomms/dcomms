@@ -30,7 +30,7 @@ namespace Dcomms.DRP
         TimeSpan TimeSWE => _stopwatch.Elapsed; // stopwatch elapsed
         public DateTime DateTimeNowUtc { get { return _startTimeUtc + TimeSWE; } }
         public uint Timestamp32S => MiscProcedures.DateTimeToUint32seconds(DateTimeNowUtc);
-        public Int64 Timestamp64 => MiscProcedures.DateTimeToInt64(DateTimeNowUtc);
+        public Int64 Timestamp64 => MiscProcedures.DateTimeToInt64ticks(DateTimeNowUtc);
         bool _disposing;
         Thread _engineThread;
         Thread _receiverThread;
@@ -230,7 +230,7 @@ namespace Dcomms.DRP
                 }
 
 
-                localPeer.EngineThreadOnTimer100ms(timeNowUtc);
+                localPeer.EngineThreadOnTimer100ms(timeNowUTC);
             }
             //   update IIR counters for rates
             //   send ping in case of inactivity
@@ -247,10 +247,15 @@ namespace Dcomms.DRP
         }
         #endregion
 
-        internal bool ValidateReceivedReqTimestamp32S(uint receivedSynTimestamp32S)
+        internal bool ValidateReceivedReqTimestamp32S(uint receivedReqTimestamp32S)
         {
-            var differenceS = Math.Abs((int)receivedSynTimestamp32S - Timestamp32S);
-            return differenceS < Configuration.MaxSynTimestampDifference;
+            var differenceS = Math.Abs((int)receivedReqTimestamp32S - Timestamp32S);
+            return differenceS < Configuration.MaxReqTimestampDifferenceS;
+        }
+        internal bool ValidateReceivedReqTimestamp64(Int64 receivedReqTimestamp64)
+        {
+            var differenceTicks64 = Math.Abs(receivedReqTimestamp64 - Timestamp64);
+            return MiscProcedures.Int64ToTimeSpan(differenceTicks64) < TimeSpan.FromSeconds(Configuration.MaxReqTimestampDifferenceS);
         }
     }
 

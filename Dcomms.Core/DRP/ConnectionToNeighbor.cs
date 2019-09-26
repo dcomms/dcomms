@@ -163,6 +163,9 @@ namespace Dcomms.DRP
         /// </summary>
         public byte[] Encrypt_ack2_ToRequesterTxParametersEncrypted_AtRequester(RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
         {
+            if (SharedDhSecret == null)
+                throw new InvalidOperationException();
+
             #region aes key, iv
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);         
             req.GetSharedSignedFields(writer, true);
@@ -466,11 +469,11 @@ namespace Dcomms.DRP
                 var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpData, this);
                 // NeighborToken32 and NeighborHMAC are verified at this time
 
-                if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
+                if (!_engine.ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
                     throw new BadSignatureException();
                 
                               
-                if (!_engine.RouteRegistrationRequest(this.LocalDrpPeer, req, out var proxyToDestinationPeer, out var acceptAt)) // routing
+                if (!_engine.RouteRegistrationRequest(this.LocalDrpPeer, this, req, out var proxyToDestinationPeer, out var acceptAt)) // routing
                 { // no route found
                     _engine.SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable_overloaded_noRouteFound, this);
                     return;

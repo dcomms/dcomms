@@ -170,7 +170,7 @@ namespace Dcomms.DRP
           
             EngineThreadQueue.Enqueue(() =>
             {             
-                RouteRegistrationRequest(null, req, out var proxyToDestinationPeer, out var acceptAt); // routing
+                RouteRegistrationRequest(null, null, req, out var proxyToDestinationPeer, out var acceptAt); // routing
 
                  if (proxyToDestinationPeer != null)
                 {  // proxy the registration request via the local EP to another peer
@@ -180,7 +180,10 @@ namespace Dcomms.DRP
                 {   // accept the registration request here, at EP
                     _ = AcceptRegisterRequestAsync(acceptAt, req, requesterEndpoint, null);
                 }
-                else throw new Exception();
+                else
+                {
+                    SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable_overloaded_noRouteFound, null);
+                }
             });
         }
     }

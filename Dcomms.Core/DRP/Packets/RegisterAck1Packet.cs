@@ -23,10 +23,9 @@ namespace Dcomms.DRP.Packets
         public RegistrationId RequesterRegistrationId; // public key of requester (A)
         /// <summary>
         /// against flood by this packet in future, without N (against replay attack)
-        /// is copied from REGISTER REQ request packet by N and put into the REQ-ACK response
-        /// seconds since 2019-01-01 UTC, 32 bits are enough for 136 years
+        /// is copied from REGISTER REQ request packet by N and put into the ACK1 response
         /// </summary>
-        public uint ReqTimestamp32S;
+        public Int64 ReqTimestamp64;
         public DrpResponderStatusCode ResponderStatusCode;
         public EcdhPublicKey ResponderEcdhePublicKey;
         /// <summary>
@@ -77,7 +76,7 @@ namespace Dcomms.DRP.Packets
             if ((ack1.Flags & Flag_EPtoA) == 0) ack1.NeighborToken32 = NeighborToken32.Decode(reader);           
             if ((ack1.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             ack1.RequesterRegistrationId = RegistrationId.Decode(reader);
-            ack1.ReqTimestamp32S = reader.ReadUInt32();
+            ack1.ReqTimestamp64 = reader.ReadInt64();
             ack1.ResponderStatusCode = (DrpResponderStatusCode)reader.ReadByte();
             ack1.ResponderEcdhePublicKey = EcdhPublicKey.Decode(reader);
             ack1.ToResponderTxParametersEncrypted = reader.ReadBytes(ToResponderTxParametersEncryptedLength);
@@ -121,7 +120,7 @@ namespace Dcomms.DRP.Packets
         {
             if (req.RequesterRegistrationId.Equals(this.RequesterRegistrationId) == false)
                 throw new UnmatchedFieldsException();
-            if (req.ReqTimestamp32S != this.ReqTimestamp32S)
+            if (req.ReqTimestamp64 != this.ReqTimestamp64)
                 throw new UnmatchedFieldsException();
         }
 
@@ -132,7 +131,7 @@ namespace Dcomms.DRP.Packets
         public void GetSharedSignedFields(BinaryWriter writer, bool includeSignature, bool includeTxParameters)
         {
             RequesterRegistrationId.Encode(writer);
-            writer.Write(ReqTimestamp32S);
+            writer.Write(ReqTimestamp64);
             writer.Write((byte)ResponderStatusCode);
             ResponderEcdhePublicKey.Encode(writer);
             if (includeTxParameters)
@@ -189,7 +188,7 @@ namespace Dcomms.DRP.Packets
         /// peer that responds to REQ with ACK1
         /// if not null - the scanner will verify ACK1.NeighborHMAC
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(RegistrationId requesterPublicKey_RequestID, uint registerSynTimestamp32S, ConnectionToNeighbor connectionToNeighborNullable = null)
+        public static LowLevelUdpResponseScanner GetScanner(RegistrationId requesterPublicKey_RequestID, Int64 registerReqTimestamp64, ConnectionToNeighbor connectionToNeighborNullable = null)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpDmpPacketTypes.RegisterAck1);
@@ -200,7 +199,7 @@ namespace Dcomms.DRP.Packets
             }
 
             requesterPublicKey_RequestID.Encode(w);
-            w.Write(registerSynTimestamp32S);
+            w.Write(registerReqTimestamp64);
             
             var r = new LowLevelUdpResponseScanner
             {

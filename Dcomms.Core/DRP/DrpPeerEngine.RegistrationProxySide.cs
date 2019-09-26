@@ -33,7 +33,7 @@ namespace Dcomms.DRP
             
             _recentUniqueRegistrationRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
 
-            if (!ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
+            if (!ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
                 throw new BadSignatureException();
 
             if (req.NumberOfHopsRemaining <= 1)
@@ -60,7 +60,7 @@ namespace Dcomms.DRP
                 // verify NeighborHMAC
                 WriteToLog_reg_proxySide_detail($"waiting for ACK1 from destination peer");
                 var ack1UdpData = await WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
-                                RegisterAck1Packet.GetScanner(req.RequesterRegistrationId, req.ReqTimestamp32S, destinationPeer),
+                                RegisterAck1Packet.GetScanner(req.RequesterRegistrationId, req.ReqTimestamp64, destinationPeer),
                                     DateTimeNowUtc, Configuration.RegisterRequestsTimoutS
                                 ));
                 if (ack1UdpData == null) throw new DrpTimeoutException("Did not receive ACK1 on timeout");
@@ -83,7 +83,7 @@ namespace Dcomms.DRP
                 var ack1UdpDataTx = ack1.Encode_OpionallySignNeighborHMAC(sourcePeer);
 
 
-                var ack2Scanner = RegisterAck2Packet.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp32S);
+                var ack2Scanner = RegisterAck2Packet.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp64);
                 byte[] ack2UdpData;
                 if (sourcePeer == null)
                 {   // A-EP mode: wait for ACK2, retransmitting ACK1
@@ -117,7 +117,7 @@ namespace Dcomms.DRP
                 // wait for CFM from source peer
                 var cfmUdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null,
                     requesterEndpoint,
-                    RegisterConfirmationPacket.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp32S)
+                    RegisterConfirmationPacket.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp64)
                     );
                 var cfm = RegisterConfirmationPacket.DecodeAndOptionallyVerify(cfmUdpData, null, null);
 

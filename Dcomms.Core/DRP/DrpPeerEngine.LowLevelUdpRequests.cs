@@ -23,7 +23,7 @@ namespace Dcomms.DRP
             NeighborPeerAckSequenceNumber16 npaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
             var npaScanner = NeighborPeerAckPacket.GetScanner(npaSeq16, waitNhaFromNeighborNullable, npaRequestFieldsForNeighborHmacNullable);
-            WriteToLog_udp_detail($"waiting for npAck, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} nhaSeq={npaSeq16}");
+            WriteToLog_udp_detail($"waiting for NPACK, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} nhaSeq={npaSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(responderEndpoint,
                          npaScanner, 
@@ -64,7 +64,7 @@ namespace Dcomms.DRP
         /// retransmits the packet if no response
         /// returns null on timeout
         /// </summary>
-        async Task<byte[]> SendUdpRequestAsync_Retransmit(PendingLowLevelUdpRequest request)
+        internal async Task<byte[]> SendUdpRequestAsync_Retransmit(PendingLowLevelUdpRequest request)
         {
             request.InitialTxTimeUTC = DateTimeNowUtc;
             if (request.RequestPacketDataNullable != null) SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);          

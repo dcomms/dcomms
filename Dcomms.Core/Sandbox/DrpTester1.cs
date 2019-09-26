@@ -23,7 +23,7 @@ namespace Dcomms.Sandbox
         LocalDrpPeer _xLocalDrpPeer, _aLocalDrpPeer, _nLocalDrpPeer;
         DrpTesterPeerApp _aUser, _xUser;
         readonly VisionChannel _visionChannel;
-        internal const string DrpTesterVisionChannelModuleName = "drpTester";
+        const string DrpTesterVisionChannelModuleName = "drpTester1";
         public DrpTester1(VisionChannel visionChannel, Action cb = null)
         {
             _visionChannel = visionChannel;
@@ -37,11 +37,11 @@ namespace Dcomms.Sandbox
             });
             var epConfig = new DrpPeerRegistrationConfiguration
             {
-                NumberOfNeighborsToKeep = 20,
+           //     NumberOfNeighborsToKeep = 20,
             };
             epConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _ep.CryptoLibrary.GeneratePrivateKeyEd25519() };
             epConfig.LocalPeerRegistrationId = new RegistrationId(_ep.CryptoLibrary.GetPublicKeyEd25519(epConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
-            _ep.BeginCreateLocalPeer(epConfig, new DrpTesterPeerApp(_ep), (rpLocalPeer) =>
+            _ep.BeginCreateLocalPeer(epConfig, new DrpTesterPeerApp(_ep, epConfig), (rpLocalPeer) =>
             {   
                 _a = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
@@ -53,7 +53,6 @@ namespace Dcomms.Sandbox
                 var aConfig = new DrpPeerRegistrationConfiguration
                 {
                     EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) },
-                    NumberOfNeighborsToKeep = 1
                 };
                 aConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _a.CryptoLibrary.GeneratePrivateKeyEd25519() };
                 aConfig.LocalPeerRegistrationId = new RegistrationId(_a.CryptoLibrary.GetPublicKeyEd25519(aConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
@@ -69,7 +68,6 @@ namespace Dcomms.Sandbox
                 var xConfig = new DrpPeerRegistrationConfiguration
                 {
                     EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) },
-                    NumberOfNeighborsToKeep = 1
                 };
 
             _retryx:
@@ -90,7 +88,6 @@ namespace Dcomms.Sandbox
                 var nConfig = new DrpPeerRegistrationConfiguration
                 {
                     EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) },
-                    NumberOfNeighborsToKeep = 1
                 };
 
             _retryn:
@@ -104,7 +101,7 @@ namespace Dcomms.Sandbox
                 var distance_epton = epConfig.LocalPeerRegistrationId.GetDistanceTo(_n.CryptoLibrary, nConfig.LocalPeerRegistrationId);
                 if (distance_xton.IsGreaterThan(distance_epton)) goto _retryn;
 
-                _xUser = new DrpTesterPeerApp(_x);
+                _xUser = new DrpTesterPeerApp(_x, xConfig);
                 var swX = Stopwatch.StartNew();
                 _x.BeginRegister(xConfig, _xUser, (xLocalPeer) =>
                 {
@@ -113,12 +110,12 @@ namespace Dcomms.Sandbox
                   
                     _xLocalDrpPeer = xLocalPeer;
                     var swN = Stopwatch.StartNew();
-                    _n.BeginRegister(nConfig, new DrpTesterPeerApp(_n), (nLocalPeer) =>
+                    _n.BeginRegister(nConfig, new DrpTesterPeerApp(_n, nConfig), (nLocalPeer) =>
                     {
                         _visionChannel.Emit(_n.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                             AttentionLevel.guiActivity, $"registration complete in {(int)swN.Elapsed.TotalMilliseconds}ms");
                         _nLocalDrpPeer = nLocalPeer;
-                        _aUser = new DrpTesterPeerApp(_a);
+                        _aUser = new DrpTesterPeerApp(_a, aConfig);
                         var swA = Stopwatch.StartNew();
                         _a.BeginRegister(aConfig, _aUser, (aLocalPeer) =>
                         {

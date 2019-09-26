@@ -35,12 +35,11 @@ namespace Dcomms.DRP.Packets
                      
         /// <summary>
         /// against flood by this packet in future, without A (against replay attack)
-        /// seconds since 2019-01-01 UTC, 32 bits are enough for 136 years
         /// </summary>
-        public uint ReqTimestamp32S;
+        public Int64 ReqTimestamp64;
 
         public uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood // inclusive
-        public IPEndPoint EpEndpoint; // unencrypted  // makes sense when EP is behind NAT (e.g amazon) and does not know its public IP
+        public IPEndPoint EpEndpoint; // is not null only in A-EP mode // unencrypted  // makes sense when EP is behind NAT (e.g amazon) and does not know its public IP
 
         /// <summary>
         /// signs fields: {RequesterRegistrationId,RequesterEcdhePublicKey,Timestamp32S,MinimalDistanceToNeighbor,EpEndpoint}
@@ -82,7 +81,10 @@ namespace Dcomms.DRP.Packets
 
             writer.Write((byte)DrpDmpPacketTypes.RegisterReq);
             byte flags = 0;
-            if (connectionToNeighborNullable == null) flags |= Flag_AtoEP;
+            if (connectionToNeighborNullable == null)
+            {
+                flags |= Flag_AtoEP;
+            }
             writer.Write(flags);
             if (connectionToNeighborNullable != null)
             {
@@ -114,7 +116,7 @@ namespace Dcomms.DRP.Packets
         {
             RequesterRegistrationId.Encode(writer);
             RequesterEcdhePublicKey.Encode(writer);
-            writer.Write(ReqTimestamp32S);
+            writer.Write(ReqTimestamp64);
             writer.Write(MinimalDistanceToNeighbor);
             PacketProcedures.EncodeIPEndPoint(writer, EpEndpoint);
             if (includeRequesterSignature) RequesterSignature.Encode(writer);
@@ -155,7 +157,7 @@ namespace Dcomms.DRP.Packets
 
             r.RequesterRegistrationId = RegistrationId.Decode(reader);
             r.RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
-            r.ReqTimestamp32S = reader.ReadUInt32();
+            r.ReqTimestamp64 = reader.ReadInt64();
             r.MinimalDistanceToNeighbor = reader.ReadUInt32();
             r.EpEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
             r.RequesterSignature = RegistrationSignature.Decode(reader);
@@ -187,7 +189,7 @@ namespace Dcomms.DRP.Packets
         public void GetUniqueRequestIdFields(BinaryWriter writer)
         {
             RequesterRegistrationId.Encode(writer);
-            writer.Write(ReqTimestamp32S);
+            writer.Write(ReqTimestamp64);
         }
     }
 }

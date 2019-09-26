@@ -52,17 +52,18 @@ namespace Dcomms.DRP
                     try
                     {
                         //    todo extend neighbors via ep (10% probability)  or via existing neighbors --- increase mindistance, from 1
-
-                        if (Engine.InsecureRandom.NextDouble() < 0.1 || ConnectedNeighbors.Count == 0)
+                   //     if (this.RegistrationConfiguration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.1 || ConnectedNeighbors.Count == 0))
+                   //     {
+                   //         var epEndpoint = this.RegistrationConfiguration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.RegistrationConfiguration.EntryPeerEndpoints.Length)];
+                   //         await Engine.RegisterAsync(this, epEndpoint, 1);
+                   //     }
+                     //   else
                         {
-                            var epEndpoint = this.RegistrationConfiguration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.RegistrationConfiguration.EntryPeerEndpoints.Length)];
-                            await Engine.RegisterAsync(this, epEndpoint, 1);
-
-                        }
-                        else
-                        {
-                            var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
-                            await neighborToSendRegister.RegisterAsync(1);
+                            if (ConnectedNeighbors.Count != 0)
+                            {
+                                var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
+                                await neighborToSendRegister.RegisterAsync(1);
+                            }
                         }
                     }
                     finally
