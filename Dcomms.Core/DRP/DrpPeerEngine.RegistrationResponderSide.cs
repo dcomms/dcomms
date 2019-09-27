@@ -45,9 +45,10 @@ namespace Dcomms.DRP
                 return;
             }
 
+            RecentUniqueAcceptedRegistrationRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
+
             WriteToLog_reg_responderSide_detail($"accepting registration from {requesterEndpoint}: NpaSeq16={req.NpaSeq16}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, epEndpoint={req.EpEndpoint}, sourcePeer={sourcePeer}");
 
-            _recentUniqueRegistrationRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
             RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
 
             _pendingRegisterRequests.Add(req.RequesterRegistrationId);

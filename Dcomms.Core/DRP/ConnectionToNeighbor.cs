@@ -459,7 +459,7 @@ namespace Dcomms.DRP
         }
         #endregion
 
-        internal void OnReceivedRegisterReq(IPEndPoint requesterEndpoint, byte[] udpData)
+        internal async Task OnReceivedRegisterReq(IPEndPoint requesterEndpoint, byte[] udpData)
         {
             if (_disposed) return;
             if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -472,12 +472,14 @@ namespace Dcomms.DRP
                 // we got REQ from this instance neighbor
                 var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpData, this);
                 // NeighborToken32 and NeighborHMAC are verified at this time
-
+                
                 if (!_engine.ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
                     throw new BadSignatureException();
-                
-                              
-                if (!_engine.RouteRegistrationRequest(this.LocalDrpPeer, this, req, out var proxyToDestinationPeer, out var acceptAt)) // routing
+
+                var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
+                bool checkRecentUniqueProxiedRegistrationRequests = true;
+_retry:
+                if (!_engine.RouteRegistrationRequest(this.LocalDrpPeer, this, alreadyTriedProxyingToDestinationPeers, req, out var proxyToDestinationPeer, out var acceptAt)) // routing
                 { // no route found
                     _engine.SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, this);
                     return;
@@ -489,7 +491,14 @@ namespace Dcomms.DRP
                 }
                 else if (proxyToDestinationPeer != null)
                 {  // proxy the registration request to another peer
-                    _ = _engine.ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, this);
+                    var needToRerouteToAnotherNeighbor = await _engine.ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, this, checkRecentUniqueProxiedRegistrationRequests);
+                    if (needToRerouteToAnotherNeighbor)
+                    {
+                        alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
+                        _engine.WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}");
+                        checkRecentUniqueProxiedRegistrationRequests = false;
+                        goto _retry;
+                    }
                 }
                 else throw new Exception();
             }

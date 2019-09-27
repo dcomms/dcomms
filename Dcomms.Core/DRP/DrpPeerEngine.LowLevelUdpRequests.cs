@@ -41,7 +41,11 @@ namespace Dcomms.DRP
 
             var nextHopResponsePacket = new NeighborPeerAckPacket(nextHopResponsePacketData);
             if (nextHopResponsePacket.StatusCode != NextHopResponseCode.accepted)
-                throw new NextHopRejectedException(nextHopResponsePacket.StatusCode);
+            {
+                if (nextHopResponsePacket.StatusCode == NextHopResponseCode.rejected_serviceUnavailable)
+                    throw new NextHopRejectedExceptionServiceUnavailable();
+                else throw new NextHopRejectedException(nextHopResponsePacket.StatusCode);
+            }
             return nextHopResponsePacket;
         }
 

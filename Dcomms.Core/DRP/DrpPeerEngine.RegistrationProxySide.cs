@@ -16,31 +16,42 @@ namespace Dcomms.DRP
         /// <param name="receivedFromInP2pMode">
         /// is null in A-EP mode
         /// </param>
-        internal async Task ProxyRegisterRequestAsync(ConnectionToNeighbor destinationPeer, 
+        /// <returns>
+        /// true to retry the request with another eighbor (if the request needs to be "rerouted")
+        /// </returns>
+        internal async Task<bool> ProxyRegisterRequestAsync(ConnectionToNeighbor destinationPeer, 
             RegisterRequestPacket req, IPEndPoint requesterEndpoint, 
-            ConnectionToNeighbor sourcePeer) // engine thread
+            ConnectionToNeighbor sourcePeer, bool checkRecentUniqueProxiedRegistrationRequests
+            ) // engine thread
         {
             if (req.AtoEP ^ (sourcePeer == null))
                 throw new InvalidOperationException();
 
             if (_pendingRegisterRequests.Contains(req.RequesterRegistrationId))
             {
-                WriteToLog_reg_proxySide_lightPain($"rejecting duplicate REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={requesterEndpoint}");
+                WriteToLog_reg_proxySide_detail($"rejecting duplicate REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={requesterEndpoint}");
                 SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, sourcePeer);
-                return;
+                return false;
+            }
+            if (checkRecentUniqueProxiedRegistrationRequests)
+            {
+                if (!RecentUniqueProxiedRegistrationRequests.Filter(req.GetUniqueRequestIdFields))
+                {
+                    WriteToLog_reg_proxySide_lightPain($"rejecting non-unique REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={requesterEndpoint}");
+                    SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, sourcePeer);
+                    return false;
+                }
             }
 
             WriteToLog_reg_proxySide_detail($"proxying REGISTER request: requesterEndpoint={requesterEndpoint}, NpaSeq16={req.NpaSeq16}, destinationPeer={destinationPeer}, sourcePeer={sourcePeer}");
             
-            _recentUniqueRegistrationRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
-
             if (!ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
                 throw new BadSignatureException();
 
             if (req.NumberOfHopsRemaining <= 1)
             {
                 SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_numberOfHopsRemainingReachedZero, sourcePeer);
-                return;
+                return false;
             }
 
             _pendingRegisterRequests.Add(req.RequesterRegistrationId);
@@ -52,10 +63,23 @@ namespace Dcomms.DRP
 
                 req.NumberOfHopsRemaining--;
 
-                // send (proxy) REQ to responder. wait for NPACK, verify NPACK.senderHMAC, retransmit REQ   
+                // send (proxy) REQ to responder. wait for NPACK, verify NPACK.senderHMAC, retransmit REQ
                 req.NpaSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
-                await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(req.Encode_OptionallySignNeighborHMAC(destinationPeer),
-                    req.NpaSeq16, req.GetSignedFieldsForNeighborHMAC);
+                try
+                {
+                    await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(req.Encode_OptionallySignNeighborHMAC(destinationPeer),
+                        req.NpaSeq16, req.GetSignedFieldsForNeighborHMAC);
+                }
+                catch (NextHopRejectedExceptionServiceUnavailable)
+                {
+                    WriteToLog_reg_proxySide_detail($"got response=serviceUnavailable from destination {destinationPeer}");
+                    return true;
+                }
+                catch (Exception reqExc)
+                {
+                    HandleExceptionWhileProxyingRegister(requesterEndpoint, reqExc);
+                    return true;
+                }
 
                 // wait for ACK1 from destination peer
                 // verify NeighborHMAC
@@ -141,6 +165,8 @@ namespace Dcomms.DRP
             {
                 _pendingRegisterRequests.Remove(req.RequesterRegistrationId);
             }
+
+            return false;
         }
     }
 }

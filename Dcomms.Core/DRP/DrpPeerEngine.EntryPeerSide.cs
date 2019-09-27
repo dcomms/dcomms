@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Dcomms.DRP
 {
@@ -169,22 +170,36 @@ namespace Dcomms.DRP
 
           
             EngineThreadQueue.Enqueue(() =>
-            {             
-                RouteRegistrationRequest(null, null, req, out var proxyToDestinationPeer, out var acceptAt); // routing
-
-                 if (proxyToDestinationPeer != null)
-                {  // proxy the registration request via the local EP to another peer
-                    _ = ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, null);
-                }
-                else if (acceptAt != null)
-                {   // accept the registration request here, at EP
-                    _ = AcceptRegisterRequestAsync(acceptAt, req, requesterEndpoint, null);
-                }
-                else
-                {
-                    SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, null);
-                }
+            {
+                _ = ProcessRegisterReqAtoEpPacket2Async(requesterEndpoint, req);
             });
+        }
+        async Task ProcessRegisterReqAtoEpPacket2Async(IPEndPoint requesterEndpoint, RegisterRequestPacket req)
+        {
+            var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
+            bool checkRecentUniqueProxiedRegistrationRequests = true;
+     _retry:
+            RouteRegistrationRequest(null, null, alreadyTriedProxyingToDestinationPeers, req, out var proxyToDestinationPeer, out var acceptAt); // routing
+
+            if (proxyToDestinationPeer != null)
+            {  // proxy the registration request via the local EP to another peer
+                var needToRerouteToAnotherNeighbor = await ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, null, checkRecentUniqueProxiedRegistrationRequests);
+                if (needToRerouteToAnotherNeighbor)
+                {
+                    alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
+                    WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}");
+                    checkRecentUniqueProxiedRegistrationRequests = false;
+                    goto _retry;
+                }
+            }
+            else if (acceptAt != null)
+            {   // accept the registration request here, at EP
+                _ = AcceptRegisterRequestAsync(acceptAt, req, requesterEndpoint, null);
+            }
+            else
+            {
+                SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, null);
+            }
         }
     }
 

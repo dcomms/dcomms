@@ -97,7 +97,7 @@ namespace Dcomms.DRP.Packets
         /// <summary>
         /// - route not found (no neighbor found to forward the request)
         /// - overloaded
-        /// - loop detected
+        /// - loop detected at proxy (this proxy is already proxying the request)
         /// requester MAY send the rejected request to another neighbor
         /// </summary>
         rejected_serviceUnavailable = 1,
@@ -123,6 +123,11 @@ namespace Dcomms.DRP.Packets
         {
 
         }
+    }
+    class NextHopRejectedExceptionServiceUnavailable: NextHopRejectedException
+    {
+        public NextHopRejectedExceptionServiceUnavailable():base (NextHopResponseCode.rejected_serviceUnavailable)
+            { }
     }
     class Pow1RejectedException : ApplicationException
     {

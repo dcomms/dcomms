@@ -163,8 +163,8 @@ namespace Dcomms.DRP
         }
         void HandleExceptionWhileProxyingRegister(IPEndPoint requesterEndpoint, Exception exc)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.mediumPain, $"exception while proxying registration from {requesterEndpoint}: {exc}");
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.mediumPain, $"exception while proxying registration from {requesterEndpoint}: {exc}");
         }
         internal void WriteToLog_reg_responderSide_detail(string message)
         {
