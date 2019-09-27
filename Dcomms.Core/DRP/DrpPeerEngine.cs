@@ -172,7 +172,7 @@ namespace Dcomms.DRP
                             var neighborToken16 = InviteRequestPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             if (connectedPeer != null)
-                                connectedPeer.OnReceivedInviteSyn(remoteEndpoint, udpData);
+                                connectedPeer.OnReceivedInviteReq(remoteEndpoint, udpData);
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }

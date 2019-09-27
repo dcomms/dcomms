@@ -226,9 +226,13 @@ namespace Dcomms.DRP
                 //Decryptor = cryptoLibrary.CreateAesDecyptor(iv, aesKey);
             }
         }
-        public HMAC GetNeighborHMAC(byte[] data)
+        public void AssertIsNotDisposed()
         {
             if (_disposed) throw new ObjectDisposedException(_name);
+        }
+        public HMAC GetNeighborHMAC(byte[] data)
+        {
+            AssertIsNotDisposed();
             if (SharedAuthKeyForNeighborHMAC == null) throw new InvalidOperationException();
             var r = new HMAC
             {
@@ -475,7 +479,7 @@ namespace Dcomms.DRP
                               
                 if (!_engine.RouteRegistrationRequest(this.LocalDrpPeer, this, req, out var proxyToDestinationPeer, out var acceptAt)) // routing
                 { // no route found
-                    _engine.SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable_overloaded_noRouteFound, this);
+                    _engine.SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, this);
                     return;
                 }
 
@@ -495,7 +499,7 @@ namespace Dcomms.DRP
             }
         }
 
-        internal void OnReceivedInviteSyn(IPEndPoint requesterEndpoint, byte[] udpData)
+        internal void OnReceivedInviteReq(IPEndPoint requesterEndpoint, byte[] udpData)
         {
             if (_disposed) return;
             if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)

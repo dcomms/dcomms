@@ -41,7 +41,7 @@ namespace Dcomms.DRP
             if (_pendingRegisterRequests.Contains(req.RequesterRegistrationId))
             {
                 // received duplicate REGISTER REQ packet
-                WriteToLog_reg_responderSide_detail($"ignoring duplicate registration request from {requesterEndpoint}");
+                WriteToLog_reg_responderSide_lightPain($"ignoring duplicate registration request {req.RequesterRegistrationId} from {requesterEndpoint}");
                 return;
             }
 

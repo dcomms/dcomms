@@ -15,6 +15,7 @@ namespace Dcomms.Vision
         /// "sent request X" "received response X totally 10 times"
         /// </summary>
         detail,
+        higherLevelDetail,
         /// <summary>
         /// "pressed button X", "started app", "closed app after 10 minutes"
         /// </summary>
@@ -71,7 +72,23 @@ namespace Dcomms.Vision
                     Emit(visionChannelSourceId, moduleName, AttentionLevel.detail, $"value={value}");
             }
         }
+        public const char PathSeparator = '/';
+        protected readonly Dictionary<string, IVisibleModule> _visibleModulesByPath = new Dictionary<string, IVisibleModule>(); // locked
+        /// <param name="visionChannelSourceIdModuleNamePath">may contain ModuleName, some object name</param>
+        public virtual void RegisterVisibleModule(string visionChannelSourceId, string path, IVisibleModule visibleModule)
+        {
+            lock (_visibleModulesByPath)
+            {
+                _visibleModulesByPath.Add(visionChannelSourceId + PathSeparator + path, visibleModule);
+            }
+        }
     }
+    public interface IVisibleModule
+    {
+        string Status { get; } // " connected neighbors count: 5"
+    }
+
+
     public class SimplestVisionChannel : VisionChannel
     {
         readonly Action<string> _wtl;

@@ -36,51 +36,76 @@
             </StackPanel>
         </StackPanel>
 
-        <Grid x:Name="visionGui" Grid.Column="1">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
 
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="refresh" Command="{Binding RefreshGui}" />
-                    <TextBlock Text="Filter:" />
-                    
-                    
-                    <TextBlock Text="Level:" />
-                    <ComboBox SelectedItem="{Binding DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding DisplayFilterMinLevels}" VerticalAlignment="Center"/>
+        <TabControl Grid.Column="1" x:Name="visionGui">
+            <TabItem Header="Log">
+                <Grid>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-
-                    <TextBlock Text="Source:" />
-                    <TextBox Text="{Binding DisplayFilterSourceId, Mode=TwoWay}" Width="100"/>
-                    
-                    <TextBlock Text="Modules:" />
-                    <TextBox Text="{Binding DisplayFilterModuleContainsStrings, Mode=TwoWay}" Width="100"/>                   
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="refresh" Command="{Binding RefreshDisplayedLogMessages}" />
+                            <TextBlock Text="Filter:" />
 
 
-                    <TextBlock Text="Message contains:" />
-                    <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="100" />
-                </StackPanel>
-                <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedLogMessages}" AutoGenerateColumns="False" >
-                    <DataGrid.Columns>
-                        <DataGridTemplateColumn Header="Level" >
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                            
-                        </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
-                        <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
-                        <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
-                        <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
-                        <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" />
-                    </DataGrid.Columns>
-                </DataGrid>
-            </Grid>
-            
-        </Grid>
+                            <TextBlock Text="Level:" />
+                            <ComboBox SelectedItem="{Binding DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding DisplayFilterMinLevels}" VerticalAlignment="Center"/>
+
+
+                            <TextBlock Text="Source:" />
+                            <TextBox Text="{Binding DisplayFilterSourceId, Mode=TwoWay}" Width="100"/>
+
+                            <TextBlock Text="Modules:" />
+                            <TextBox Text="{Binding DisplayFilterModuleContainsStrings, Mode=TwoWay}" Width="100"/>
+
+
+                            <TextBlock Text="Message contains:" />
+                            <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="100" />
+                        </StackPanel>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedLogMessages}" AutoGenerateColumns="False" >
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="Level" >
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+
+                </Grid>
+            </TabItem>
+            <TabItem Header="Modules">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="refresh" Command="{Binding RefreshDisplayedVisibleModules}" />                      
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedVisibleModules}" AutoGenerateColumns="False" >
+                        <DataGrid.Columns>                          
+                            <DataGridTextColumn Header="Path" Binding="{Binding Path, Mode=OneTime}" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status, Mode=OneTime}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+        
     </Grid>
 </Window>

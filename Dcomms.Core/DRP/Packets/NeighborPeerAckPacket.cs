@@ -94,8 +94,14 @@ namespace Dcomms.DRP.Packets
     enum NextHopResponseCode
     {
         accepted = 0, // is sent to previous hop immediately when packet is proxied, to stop retransmission timer
-        rejected_serviceUnavailable_overloaded_noRouteFound = 1,
-      //  rejected_rateExceeded = 2, // anti-ddos
+        /// <summary>
+        /// - route not found (no neighbor found to forward the request)
+        /// - overloaded
+        /// - loop detected
+        /// requester MAY send the rejected request to another neighbor
+        /// </summary>
+        rejected_serviceUnavailable = 1,
+    
         rejected_numberOfHopsRemainingReachedZero = 3
     }
 

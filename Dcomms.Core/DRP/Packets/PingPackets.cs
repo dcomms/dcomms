@@ -109,6 +109,7 @@ namespace Dcomms.DRP.Packets
             ConnectionToNeighbor connectedPeerWhoSentTheResponse, bool requireSignature
             )
         {
+            connectedPeerWhoSentTheResponse.AssertIsNotDisposed();
             var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
             var r = new PongPacket();
             r.NeighborToken32 = NeighborToken32.Decode(reader);

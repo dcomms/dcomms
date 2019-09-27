@@ -64,11 +64,30 @@ namespace Dcomms.Vision
             lock (_logMessages)
                 _logMessages.AddLast(msg);
         }
-        public ICommand RefreshGui => new DelegateCommand(() =>
+        public ICommand RefreshDisplayedLogMessages => new DelegateCommand(() =>
         {
             if (PropertyChanged != null)
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));
         });
+
+        public IEnumerable<VisibleModule> DisplayedVisibleModules =>
+            _visibleModulesByPath.Select(x => new VisibleModule
+            {
+                Path = x.Key,
+                Status = x.Value.Status
+            }).OrderBy(x => x.Path);
+
+        public ICommand RefreshDisplayedVisibleModules => new DelegateCommand(() =>
+        {
+            if (PropertyChanged != null)
+                PropertyChanged(this, new PropertyChangedEventArgs("DisplayedVisibleModules"));
+        });
+
+        public class VisibleModule
+        {
+            public string Path { get; set; }
+            public string Status { get; set; }
+        }
 
         public class LogMessage
         {
@@ -84,9 +103,10 @@ namespace Dcomms.Vision
                         case AttentionLevel.strongPain: return System.Drawing.Color.FromArgb(255, 200, 0, 0);
                         case AttentionLevel.mediumPain: return System.Drawing.Color.FromArgb(255, 222, 70, 0);
                         case AttentionLevel.lightPain: return System.Drawing.Color.FromArgb(255, 222, 120, 0);
-                        case AttentionLevel.guiPain: return System.Drawing.Color.FromArgb(255, 222, 180, 0);
-                        case AttentionLevel.needsAttention: return System.Drawing.Color.FromArgb(255, 222, 255, 0);
-                        case AttentionLevel.guiActivity: return System.Drawing.Color.FromArgb(255, 180, 255, 0);
+                        case AttentionLevel.guiPain: return System.Drawing.Color.FromArgb(255, 222, 150, 0);
+                        case AttentionLevel.needsAttention: return System.Drawing.Color.FromArgb(255, 222, 190, 0);
+                        case AttentionLevel.guiActivity: return System.Drawing.Color.FromArgb(255, 180, 200, 0);
+                        case AttentionLevel.higherLevelDetail: return System.Drawing.Color.FromArgb(255, 180, 255, 0);
                         case AttentionLevel.detail: return System.Drawing.Color.FromArgb(255, 180, 220, 100);
                         case AttentionLevel.deepDetail: return System.Drawing.Color.FromArgb(255, 180, 220, 200);
                         default: throw new NotImplementedException();

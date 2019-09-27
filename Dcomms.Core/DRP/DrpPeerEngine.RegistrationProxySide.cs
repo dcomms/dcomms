@@ -25,7 +25,8 @@ namespace Dcomms.DRP
 
             if (_pendingRegisterRequests.Contains(req.RequesterRegistrationId))
             {
-                WriteToLog_reg_proxySide_detail($"ignoring duplicate REGISTER request: requesterEndpoint={requesterEndpoint}");
+                WriteToLog_reg_proxySide_lightPain($"rejecting duplicate REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={requesterEndpoint}");
+                SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, sourcePeer);
                 return;
             }
 

@@ -49,12 +49,12 @@ namespace Dcomms.DRP
                 #region wait for ACK1, respond with NPACK
                 _engine.WriteToLog_reg_requesterSide_detail($"waiting for ACK1");
                 var ack1UdpData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(this.RemoteEndpoint,
-                                RegisterAck1Packet.GetScanner(req.RequesterRegistrationId, req.ReqTimestamp64),
+                                RegisterAck1Packet.GetScanner(req.RequesterRegistrationId, req.ReqTimestamp64, this),
                                 _engine.DateTimeNowUtc, _engine.Configuration.RegisterRequestsTimoutS
                             ));
                 if (ack1UdpData == null) throw new DrpTimeoutException();
                 var ack1 = RegisterAck1Packet.DecodeAndOptionallyVerify(ack1UdpData, req, newConnectionToNeighbor);
-                _engine.WriteToLog_reg_requesterSide_detail($"verified ACK1");
+                _engine.WriteToLog_reg_requesterSide_detail($"verified ACK1, sending NPACK to ACK1");
                 
                 _engine.SendNeighborPeerAckResponseToRegisterAck1(ack1, this);
                 #endregion

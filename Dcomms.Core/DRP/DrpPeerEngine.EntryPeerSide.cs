@@ -182,7 +182,7 @@ namespace Dcomms.DRP
                 }
                 else
                 {
-                    SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable_overloaded_noRouteFound, null);
+                    SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, null);
                 }
             });
         }

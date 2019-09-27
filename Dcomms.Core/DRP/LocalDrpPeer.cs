@@ -1,4 +1,5 @@
 ﻿using Dcomms.Cryptography;
+using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -11,7 +12,7 @@ namespace Dcomms.DRP
     /// "contact point" of local user in the regID space
     /// can be "registered" or "registering"
     /// </summary>
-    public partial class LocalDrpPeer: IDisposable
+    public partial class LocalDrpPeer: IDisposable, IVisibleModule
     {
         /// <summary>
         /// is used for:
@@ -26,11 +27,15 @@ namespace Dcomms.DRP
         readonly IDrpRegisteredPeerApp _drpPeerApp;
         internal readonly DrpPeerEngine Engine;
         internal ICryptoLibrary CryptoLibrary => Engine.CryptoLibrary;
+
+        string IVisibleModule.Status => $"connected neighbors: {ConnectedNeighbors.Count}/{_registrationConfiguration.NumberOfNeighborsToKeep}";
+
         public LocalDrpPeer(DrpPeerEngine engine, DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp)
         {
             Engine = engine;
             _registrationConfiguration = registrationConfiguration;
             _drpPeerApp = drpPeerApp;
+            engine.Configuration.VisionChannel?.RegisterVisibleModule(engine.Configuration.VisionChannelSourceId, this.ToString(), this);
         }
         public List<ConnectionToNeighbor> ConnectedNeighbors = new List<ConnectionToNeighbor>();
        
@@ -38,7 +43,7 @@ namespace Dcomms.DRP
         {
 
         }
-        public override string ToString() => _registrationConfiguration.LocalPeerRegistrationId.ToString();
+        public override string ToString() => $"localDrpPeer{_registrationConfiguration.LocalPeerRegistrationId}";
 
         const double ConnectToNeighborPeriodToRetry = 20;
         DateTime? _currentConnectToNewNeighborOperationStartTimeUtc;
@@ -51,17 +56,19 @@ namespace Dcomms.DRP
                     _currentConnectToNewNeighborOperationStartTimeUtc = timeNowUtc;
                     try
                     {
-                        //    todo extend neighbors via ep (10% probability)  or via existing neighbors --- increase mindistance, from 1
-                   //     if (this.RegistrationConfiguration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.1 || ConnectedNeighbors.Count == 0))
-                   //     {
-                   //         var epEndpoint = this.RegistrationConfiguration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.RegistrationConfiguration.EntryPeerEndpoints.Length)];
-                   //         await Engine.RegisterAsync(this, epEndpoint, 1);
-                   //     }
-                     //   else
+                        //    extend neighbors via ep (10% probability)  or via existing neighbors --- increase mindistance, from 1
+                        if (this.RegistrationConfiguration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.1 || ConnectedNeighbors.Count == 0))
+                        {
+                            var epEndpoint = this.RegistrationConfiguration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.RegistrationConfiguration.EntryPeerEndpoints.Length)];
+                            Engine.WriteToLog_inv_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({ConnectedNeighbors.Count} connected neighbors now)");
+                            await Engine.RegisterAsync(this, epEndpoint, 1);
+                        }
+                        else
                         {
                             if (ConnectedNeighbors.Count != 0)
                             {
                                 var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
+                                Engine.WriteToLog_inv_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)");
                                 await neighborToSendRegister.RegisterAsync(1);
                             }
                         }
