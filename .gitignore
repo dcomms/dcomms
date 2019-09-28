@@ -41,3 +41,8 @@
 /Dcomms.NetCoreTester/bin/Release/netcoreapp2.2
 /Dcomms.Core.Tests/bin
 /Dcomms.Core.Tests/obj
+/Dcomms.PocTest1/Dcomms.PocTest1/obj
+/Dcomms.PocTest1/Dcomms.PocTest1/bin/Debug/netstandard2.0
+/Dcomms.PocTest1/Dcomms.PocTest1.Android/bin/Debug
+/Dcomms.PocTest1/Dcomms.PocTest1.Android/obj
+/Dcomms.PocTest1/Dcomms.PocTest1.iOS/obj

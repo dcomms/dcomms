@@ -100,8 +100,7 @@ namespace Dcomms.DRP
                     var nextItem = item.Next;
                     _pendingLowLevelUdpRequests.Remove(item);
                     
-                    WriteToLog_udp_lightPain($"removed pending request, timer expired. responderEndpoint={item.Value.ResponderEndpoint}, " +                      
-                            $"ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");                   
+                    WriteToLog_udp_lightPain($"timer expired, removed pending request {request}");                   
 
                     request.TaskCompletionSource.SetResult(null);
                     item = nextItem;
@@ -111,7 +110,7 @@ namespace Dcomms.DRP
                 {
                     request.OnRetransmitted();
                     SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);                   
-                    WriteToLog_udp_lightPain($"retransmitted request {(DrpDmpPacketTypes)request.RequestPacketDataNullable[0]} to {request.ResponderEndpoint}. scanner firstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
+                    WriteToLog_udp_lightPain($"retransmitting request {request}");
                 }
                 item = item.Next;
             }
@@ -131,7 +130,9 @@ namespace Dcomms.DRP
                 var request = item.Value;
 
                 WriteToLog_udp_detail($"matching to pending request... responderEndpoint={responderEndpoint}, udpData={MiscProcedures.ByteArrayToString(udpData)} " +
-                    $"request.ResponderEndpoint={request.ResponderEndpoint} request.ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}");
+                    $"request={request}" 
+                   // + $" ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}"
+                    );
 
                 try
                 {
@@ -225,7 +226,8 @@ namespace Dcomms.DRP
         public TaskCompletionSource<byte[]> TaskCompletionSource = new TaskCompletionSource<byte[]>();
         public DateTime? ResponseReceivedAtUtc;
         double? _currentRetransmissionTimeoutS;
-        public PendingLowLevelUdpRequest(IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, DateTime timeUtc, 
+        readonly double _expirationTimeoutS;
+        public PendingLowLevelUdpRequest(IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, DateTime timeUtc,
             double expirationTimeoutS,
             byte[] requestPacketDataNullable = null, double? initialRetransmissionTimeoutS = null, double? retransmissionTimeoutIncrement = null)
         {
@@ -236,7 +238,9 @@ namespace Dcomms.DRP
             ResponderEndpoint = responderEndpoint;
             ResponseScanner = responseScanner;
             RequestPacketDataNullable = requestPacketDataNullable;
+            _expirationTimeoutS = expirationTimeoutS;
         }
+        public override string ToString() => $"responderEP={ResponderEndpoint}, {(DrpDmpPacketTypes)ResponseScanner.ResponseFirstBytes[0]}, timeout={_expirationTimeoutS}s";
         public void OnRetransmitted()
         {
             if (NextRetransmissionTimeUTC == null) throw new InvalidOperationException();

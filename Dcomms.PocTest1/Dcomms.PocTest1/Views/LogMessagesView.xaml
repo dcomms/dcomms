@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:d="http://xamarin.com/schemas/2014/forms/design"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="Dcomms.PocTest1.Views.LogMessagesView">
+    <ContentPage.Content>
+        <StackLayout>
+            <Button Text="refresh" Command="{Binding VisionChannel.RefreshDisplayedLogMessages}" />
+
+            <ListView ItemsSource="{Binding VisionChannel.DisplayedLogMessages}" SeparatorVisibility="None" 
+                      BackgroundColor="Transparent" HasUnevenRows="True" >
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <ViewCell.View> 
+                                <Grid Margin="0,0,0,3" Padding="0" RowSpacing="1" ColumnSpacing="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"></RowDefinition>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="30*"></ColumnDefinition>
+                                        <ColumnDefinition Width="100*"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>                                   
+                                    <Label Text="{Binding TimeStr, Mode=OneTime}" ></Label>   
+                                    <Label Grid.Column="1" Text="{Binding Message, Mode=OneTime}"  />
+                                </Grid>
+                            </ViewCell.View>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+                     
+            
+
+            <!--<DataGrid Grid.Row="1" ItemsSource="{Binding }" AutoGenerateColumns="False" >
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="Level" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
+                    <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
+                    <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
+                    <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
+                    <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" />
+                </DataGrid.Columns>
+            </DataGrid>-->
+
+
+        </StackLayout>
+    </ContentPage.Content>
+</ContentPage>
