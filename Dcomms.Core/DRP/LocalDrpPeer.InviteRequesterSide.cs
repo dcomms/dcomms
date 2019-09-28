@@ -62,12 +62,12 @@ namespace Dcomms.DRP
                 {
                     NumberOfHopsRemaining = 10,
                     RequesterEcdhePublicKey = new EcdhPublicKey(session.LocalInviteAckEcdhePublicKey),
-                    RequesterRegistrationId = this.RegistrationConfiguration.LocalPeerRegistrationId,
+                    RequesterRegistrationId = this.Configuration.LocalPeerRegistrationId,
                     ResponderRegistrationId = responderRegistrationId,
                     ReqTimestamp32S = Engine.Timestamp32S,
                 };
                 Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
-                req.RequesterRegistrationSignature = RegistrationSignature.Sign(Engine.CryptoLibrary, req.GetSharedSignedFields, this.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
+                req.RequesterRegistrationSignature = RegistrationSignature.Sign(Engine.CryptoLibrary, req.GetSharedSignedFields, this.Configuration.LocalPeerRegistrationPrivateKey);
 
                 // find best connected peer to send the request
                 var destinationPeer = Engine.RouteInviteRequest(this, req);
@@ -142,7 +142,7 @@ namespace Dcomms.DRP
                         req.GetSharedSignedFields(w);
                         ack1.GetSharedSignedFields(w, true);
                         ack2.GetSharedSignedFields(w);
-                    }, this.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
+                    }, this.Configuration.LocalPeerRegistrationPrivateKey);
                 var ack2UdpData = ack2.Encode_SetP2pFields(destinationPeer);
 
                 WriteToLog_inv_requesterSide_detail($"sending ACK2, waiting for NPACK");

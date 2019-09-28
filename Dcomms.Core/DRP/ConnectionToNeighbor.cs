@@ -299,6 +299,7 @@ namespace Dcomms.DRP
         readonly byte[] LocalEcdhe25519PrivateKey;
         public readonly byte[] LocalEcdhe25519PublicKey;
         bool _disposed;
+        internal bool IsDisposed => _disposed;
         public ConnectionToNeighbor(DrpPeerEngine engine, LocalDrpPeer localDrpPeer, ConnectedDrpPeerInitiatedBy initiatedBy)
         {
             _seq16Counter_P2P = (ushort)_insecureRandom.Next(ushort.MaxValue);
@@ -446,7 +447,7 @@ namespace Dcomms.DRP
                 if ((pingRequestPacket.Flags & PingPacket.Flags_RegistrationConfirmationSignatureRequested) != 0)
                 {
                     pong.ResponderRegistrationConfirmationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
-                        GetResponderRegistrationConfirmationSignatureFields, _localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);                
+                        GetResponderRegistrationConfirmationSignatureFields, _localDrpPeer.Configuration.LocalPeerRegistrationPrivateKey);                
                 }
                 pong.NeighborHMAC = GetNeighborHMAC(pong.GetSignedFieldsForNeighborHMAC);
               //  _engine.WriteToLog_ping_detail($" sending ping response with senderHMAC={pong.NeighborHMAC}");
@@ -525,7 +526,7 @@ _retry:
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
                     throw new BadSignatureException();
 
-                if (req.ResponderRegistrationId.Equals(this.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId))
+                if (req.ResponderRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
                 {
                     _ = this.LocalDrpPeer.AcceptInviteRequestAsync(req, this);
                 }

@@ -151,7 +151,7 @@ namespace Dcomms.DRP.Packets
             {
                 cfm.ResponderRegistrationConfirmationSignature = RegistrationSignature.DecodeAndVerify(reader, newConnectionToRequesterAtResponderNullable.Engine.CryptoLibrary,
                     w => newConnectionToRequesterAtResponderNullable.GetResponderRegistrationConfirmationSignatureFields(w),
-                    newConnectionToRequesterAtResponderNullable.LocalDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId
+                    newConnectionToRequesterAtResponderNullable.LocalDrpPeer.Configuration.LocalPeerRegistrationId
                     );
                 cfm.RequesterRegistrationConfirmationSignature = RegistrationSignature.DecodeAndVerify(reader, newConnectionToRequesterAtResponderNullable.Engine.CryptoLibrary,
                     w => newConnectionToRequesterAtResponderNullable.GetRequesterRegistrationConfirmationSignatureFields(w, cfm.ResponderRegistrationConfirmationSignature),

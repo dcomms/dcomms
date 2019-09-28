@@ -31,15 +31,105 @@
                 <Button Command="{Binding CreateDrpTester1_SendInvite}" Content="CreateDrpTester1+send Invite" />
 
                 <Button Command="{Binding CreateDrpTester2}" Content="CreateDrpTester2" />
+                <Button Command="{Binding CreateDrpTester3}" Content="CreateDrpTester3" />
                 
 
             </StackPanel>
         </StackPanel>
 
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid Visibility="{Binding DrpTester3Visible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" MinWidth="190"/>
+                </Grid.ColumnDefinitions>
 
-        <TabControl Grid.Column="1" x:Name="visionGui">
-            <TabItem Header="Log">
-                <Grid>
+                <TextBlock Text="number of engines/sockets:" />
+                <TextBox Grid.Column="1" Text="{Binding DrpTester3.NumberOfEngines, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="1" Text="number of local peers per engine:" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpTester3.NumberOfLocalPeersToRegisterPerEngine, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="2" Text="number of neighbors to keep:" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DrpTester3.NumberOfNeighborsToKeep, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="3" Text="local UDP ports range start:" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpTester3.LocalPortNullable, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="4" Text="entry peers:" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpTester3.EpEndPointsString, Mode=TwoWay}" />
+
+                <StackPanel Orientation="Horizontal" Grid.Row="5" Visibility="{Binding DrpTester3.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
+
+                    <Button Content="Initialize" Margin="3" Command="{Binding DrpTester3.Initialize}" />
+                    <Button Content="Initialize EP host" Margin="3" Command="{Binding DrpTester3.InitializeEpHost}" />
+                    <Button Content="Initialize user" Margin="3" Command="{Binding DrpTester3.InitializeUser}"   />
+                </StackPanel>
+            </Grid>
+            
+            <TabControl Grid.Row="1" x:Name="visionGui">
+               
+                <TabItem Header="Log">
+                    <Grid>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="refresh" Command="{Binding RefreshDisplayedLogMessages}" />
+                                <TextBlock Text="Filter:" />
+
+
+                                <TextBlock Text="Level:" />
+                                <ComboBox SelectedItem="{Binding DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding DisplayFilterMinLevels}" VerticalAlignment="Center"/>
+
+
+                                <TextBlock Text="Source:" />
+                                <TextBox Text="{Binding DisplayFilterSourceId, Mode=TwoWay}" Width="100"/>
+
+                                <TextBlock Text="Modules:" />
+                                <TextBox Text="{Binding DisplayFilterModuleContainsStrings, Mode=TwoWay}" Width="100"/>
+
+
+                                <TextBlock Text="Message contains:" />
+                                <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="100" />
+                            </StackPanel>
+                            <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedLogMessages}" AutoGenerateColumns="False" >
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="Level" >
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
+                                    <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
+                                    <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
+                                    <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Modules">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -47,65 +137,20 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Orientation="Horizontal">
-                            <Button Content="refresh" Command="{Binding RefreshDisplayedLogMessages}" />
-                            <TextBlock Text="Filter:" />
-
-
-                            <TextBlock Text="Level:" />
-                            <ComboBox SelectedItem="{Binding DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding DisplayFilterMinLevels}" VerticalAlignment="Center"/>
-
-
-                            <TextBlock Text="Source:" />
-                            <TextBox Text="{Binding DisplayFilterSourceId, Mode=TwoWay}" Width="100"/>
-
-                            <TextBlock Text="Modules:" />
-                            <TextBox Text="{Binding DisplayFilterModuleContainsStrings, Mode=TwoWay}" Width="100"/>
-
-
-                            <TextBlock Text="Message contains:" />
-                            <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="100" />
+                            <Button Content="refresh" Command="{Binding RefreshDisplayedVisibleModules}" />                      
                         </StackPanel>
-                        <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedLogMessages}" AutoGenerateColumns="False" >
-                            <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="Level" >
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
 
-                                </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
-                                <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
-                                <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
-                                <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
-                                <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" />
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedVisibleModules}" AutoGenerateColumns="False" >
+                            <DataGrid.Columns>                          
+                                <DataGridTextColumn Header="Path" Binding="{Binding Path, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status, Mode=OneTime}" />
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
+                </TabItem>
+            </TabControl>
+        </Grid>
 
-                </Grid>
-            </TabItem>
-            <TabItem Header="Modules">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="refresh" Command="{Binding RefreshDisplayedVisibleModules}" />                      
-                    </StackPanel>
-
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedVisibleModules}" AutoGenerateColumns="False" >
-                        <DataGrid.Columns>                          
-                            <DataGridTextColumn Header="Path" Binding="{Binding Path, Mode=OneTime}" />
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status, Mode=OneTime}" />
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
-            </TabItem>
-        </TabControl>
         
     </Grid>
 </Window>

@@ -20,6 +20,10 @@
         </Style>
 
         <local:ColorToBrushConverter x:Key="ColorToBrushConverter" />
+        <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <local:BoolToVisibilityConverter x:Key="BoolToVisibilityOppositeConverter"
+                                  FalseValue="Visible"
+                                  TrueValue="Collapsed" />
 
     </Application.Resources>
 </Application>

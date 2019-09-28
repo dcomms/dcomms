@@ -14,7 +14,7 @@ using System.Windows;
 
 namespace Dcomms
 {
-    public class CryptographyTester1 :IDisposable
+    public class CryptographyTester1 : BaseNotify, IDisposable
     {
         readonly VisionChannel _visionChannel;
         public CryptographyTester1(VisionChannel visionChannel)
@@ -187,6 +187,17 @@ namespace Dcomms
             _drpTester2 = new DrpTester2(_visionChannel);
         });
 
+
+        public DrpTester3 DrpTester3 { get; private set; }
+        public bool DrpTester3Visible => DrpTester3 != null;
+        public DelegateCommand CreateDrpTester3 => new DelegateCommand(() =>
+        {
+            if (DrpTester3 != null) throw new InvalidOperationException();
+            DrpTester3 = new DrpTester3(_visionChannel);
+            RaisePropertyChanged(() => DrpTester3);
+            RaisePropertyChanged(() => DrpTester3Visible);
+        });
+
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
         {
            // var t = new UniqueDataTracker();
@@ -197,6 +208,7 @@ namespace Dcomms
         {
             if (_drpTester1 != null) _drpTester1.Dispose();
             if (_drpTester2 != null) _drpTester2.Dispose();
+            if (DrpTester3 != null) DrpTester3.Dispose();
         }
     }
 }

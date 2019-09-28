@@ -15,9 +15,9 @@ namespace Dcomms.Sandbox
 
         public readonly UserCertificate UserCertificateWithPrivateKey;
         public readonly DrpPeerEngine DrpPeerEngine;
-        public readonly DrpPeerRegistrationConfiguration DrpPeerRegistrationConfiguration;
+        public readonly LocalDrpPeerConfiguration DrpPeerRegistrationConfiguration;
         public LocalDrpPeer LocalDrpPeer;
-        public DrpTesterPeerApp(DrpPeerEngine drpPeerEngine, DrpPeerRegistrationConfiguration drpPeerRegistrationConfiguration)
+        public DrpTesterPeerApp(DrpPeerEngine drpPeerEngine, LocalDrpPeerConfiguration drpPeerRegistrationConfiguration)
         {
             DrpPeerRegistrationConfiguration = drpPeerRegistrationConfiguration;
             DrpPeerEngine = drpPeerEngine;

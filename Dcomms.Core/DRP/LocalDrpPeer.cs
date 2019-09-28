@@ -22,18 +22,18 @@ namespace Dcomms.DRP
         /// </summary>
         public IPAddress PublicIpApiProviderResponse;
 
-        readonly DrpPeerRegistrationConfiguration _registrationConfiguration;
-        public DrpPeerRegistrationConfiguration RegistrationConfiguration => _registrationConfiguration;
+        readonly LocalDrpPeerConfiguration _configuration;
+        public LocalDrpPeerConfiguration Configuration => _configuration;
         readonly IDrpRegisteredPeerApp _drpPeerApp;
         internal readonly DrpPeerEngine Engine;
         internal ICryptoLibrary CryptoLibrary => Engine.CryptoLibrary;
 
-        string IVisibleModule.Status => $"connected neighbors: {ConnectedNeighbors.Count}/{_registrationConfiguration.NumberOfNeighborsToKeep}";
+        string IVisibleModule.Status => $"connected neighbors: {ConnectedNeighbors.Count}/{_configuration.NumberOfNeighborsToKeep}";
 
-        public LocalDrpPeer(DrpPeerEngine engine, DrpPeerRegistrationConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp)
+        public LocalDrpPeer(DrpPeerEngine engine, LocalDrpPeerConfiguration configuration, IDrpRegisteredPeerApp drpPeerApp)
         {
             Engine = engine;
-            _registrationConfiguration = registrationConfiguration;
+            _configuration = configuration;
             _drpPeerApp = drpPeerApp;
             engine.Configuration.VisionChannel?.RegisterVisibleModule(engine.Configuration.VisionChannelSourceId, this.ToString(), this);
         }
@@ -43,13 +43,13 @@ namespace Dcomms.DRP
         {
 
         }
-        public override string ToString() => $"localDrpPeer{_registrationConfiguration.LocalPeerRegistrationId}";
+        public override string ToString() => $"localDrpPeer{_configuration.LocalPeerRegistrationId}";
 
         const double ConnectToNeighborPeriodToRetry = 20;
         DateTime? _currentConnectToNewNeighborOperationStartTimeUtc;
         async Task ConnectToNewNeighborIfNeededAsync(DateTime timeNowUtc)
         {
-            if (ConnectedNeighbors.Count < _registrationConfiguration.NumberOfNeighborsToKeep)
+            if (ConnectedNeighbors.Count < _configuration.NumberOfNeighborsToKeep)
             {
                 if (_currentConnectToNewNeighborOperationStartTimeUtc == null || timeNowUtc > _currentConnectToNewNeighborOperationStartTimeUtc.Value.AddSeconds(ConnectToNeighborPeriodToRetry))
                 {
@@ -57,9 +57,9 @@ namespace Dcomms.DRP
                     try
                     {
                         //    extend neighbors via ep (10% probability)  or via existing neighbors --- increase mindistance, from 1
-                        if (this.RegistrationConfiguration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.1 || ConnectedNeighbors.Count == 0))
+                        if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.1 || ConnectedNeighbors.Count == 0))
                         {
-                            var epEndpoint = this.RegistrationConfiguration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.RegistrationConfiguration.EntryPeerEndpoints.Length)];
+                            var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
                             Engine.WriteToLog_inv_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({ConnectedNeighbors.Count} connected neighbors now)");
                             await Engine.RegisterAsync(this, epEndpoint, 1);
                         }
@@ -81,12 +81,31 @@ namespace Dcomms.DRP
             }
 
         }
-
-
+        
         internal void EngineThreadOnTimer100ms(DateTime timeNowUtc)
         {
             _ = ConnectToNewNeighborIfNeededAsync(timeNowUtc);            
         }
+    }
 
+    /// <summary>
+    /// configuration of locally hosted DRP peer
+    /// optionally contains config for registration
+    /// </summary>
+    public class LocalDrpPeerConfiguration
+    {
+        public IPEndPoint[] EntryPeerEndpoints; // in case when local peer IP = entry peer IP, it is skipped
+        public RegistrationId LocalPeerRegistrationId { get; private set; }
+        public RegistrationPrivateKey LocalPeerRegistrationPrivateKey { get; private set; }
+        public int? NumberOfNeighborsToKeep;
+        public static LocalDrpPeerConfiguration CreateWithNewKeypair(ICryptoLibrary cryptoLibrary)
+        {;
+            var privatekey = new RegistrationPrivateKey { ed25519privateKey = cryptoLibrary.GeneratePrivateKeyEd25519() };
+            return new LocalDrpPeerConfiguration
+            {
+                LocalPeerRegistrationPrivateKey = privatekey,
+                LocalPeerRegistrationId = new RegistrationId(cryptoLibrary.GetPublicKeyEd25519(privatekey.ed25519privateKey))
+            };
+        }
     }
 }

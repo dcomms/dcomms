@@ -46,13 +46,6 @@ namespace Dcomms.DRP
         public VisionChannel VisionChannel;
         public string VisionChannelSourceId;
 
-        public bool SandboxModeOnly_DisableRecentUniquePow1Data;
-    }
-    public class DrpPeerRegistrationConfiguration
-    {
-        public IPEndPoint[] EntryPeerEndpoints; // in case when local peer IP = entry peer IP, it is skipped
-        public RegistrationId LocalPeerRegistrationId;
-        public RegistrationPrivateKey LocalPeerRegistrationPrivateKey;
-        public int? NumberOfNeighborsToKeep;
+        public bool SandboxModeOnly_DisableRecentUniquePow1Data; //avoids huge RAM consumption when 100 peers are created in a sandbox
     }
 }

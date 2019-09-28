@@ -15,8 +15,7 @@ namespace Dcomms.Sandbox
         const int EpLocalPort = 6789;
         readonly Random _insecureRandom = new Random();
         const string DrpTesterVisionChannelModuleName = "drpTester2";
-
-
+        
         DrpPeerEngine _ep;
         readonly List<DrpTesterPeerApp> _xList = new List<DrpTesterPeerApp>();
 
@@ -39,10 +38,8 @@ namespace Dcomms.Sandbox
                 xList_BeginRegistrations(index + 1);
             });         
         }
-
         void xList_BeginExtendNeighbors()
         {
-
             int index = 0;
             Timer timer = null;
             timer = new Timer((o) =>
@@ -52,19 +49,16 @@ namespace Dcomms.Sandbox
                     timer.Dispose();
                     return;
                 }
-                 var app = _xList[index];
-                 index++;
-            //var app = _xList.First(x => x.LocalDrpPeer?.ConnectedNeighbors?.Count < 2);
+                var app = _xList[index];
+                index++;
+                //var app = _xList.First(x => x.LocalDrpPeer?.ConnectedNeighbors?.Count < 2);
 
-               _visionChannel.Emit(app.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                   AttentionLevel.guiActivity, $"extending neighbors...");
-                app.DrpPeerRegistrationConfiguration.NumberOfNeighborsToKeep = 3;
+                _visionChannel.Emit(app.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"extending neighbors...");
+                app.DrpPeerRegistrationConfiguration.NumberOfNeighborsToKeep = 7;
             }, null, 0, 1000);
         }
-
-
+        
         readonly VisionChannel _visionChannel;
-
         public DrpTester2(VisionChannel visionChannel)
         {
             _visionChannel = visionChannel;
@@ -76,15 +70,11 @@ namespace Dcomms.Sandbox
                 VisionChannelSourceId = "EP",
                 ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
             });
-            var epConfig = new DrpPeerRegistrationConfiguration
+            var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(_ep.CryptoLibrary);
+           
+            _ep.BeginCreateLocalPeer(epLocalDrpPeerConfig, new DrpTesterPeerApp(_ep, epLocalDrpPeerConfig), (rpLocalPeer) =>
             {
-              //  NumberOfNeighborsToKeep = 20,
-            };
-            epConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = _ep.CryptoLibrary.GeneratePrivateKeyEd25519() };
-            epConfig.LocalPeerRegistrationId = new RegistrationId(_ep.CryptoLibrary.GetPublicKeyEd25519(epConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
-            _ep.BeginCreateLocalPeer(epConfig, new DrpTesterPeerApp(_ep, epConfig), (rpLocalPeer) =>
-            {
-                for (int i = 0; i < 20; i++)
+                for (int i = 0; i < 30; i++)
                 {
                     var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
                     {
@@ -94,20 +84,14 @@ namespace Dcomms.Sandbox
                         VisionChannelSourceId = $"X{i}",
                         SandboxModeOnly_DisableRecentUniquePow1Data = true
                     });
-                    var xConfig = new DrpPeerRegistrationConfiguration
-                    {
-                        EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) }
-                    };
-                    xConfig.LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = x.CryptoLibrary.GeneratePrivateKeyEd25519() };
-                    xConfig.LocalPeerRegistrationId = new RegistrationId(x.CryptoLibrary.GetPublicKeyEd25519(xConfig.LocalPeerRegistrationPrivateKey.ed25519privateKey));
-
-                    _xList.Add(new DrpTesterPeerApp(x, xConfig));
+                    var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(x.CryptoLibrary);
+                    xLocalDrpPeerConfig.EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) };                   
+                    _xList.Add(new DrpTesterPeerApp(x, xLocalDrpPeerConfig));
                 }
                 xList_BeginRegistrations(0);
             });
         }
-
-
+        
         public void Dispose()
         {
             _ep.Dispose();

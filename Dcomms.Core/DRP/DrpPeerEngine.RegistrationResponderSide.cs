@@ -70,7 +70,7 @@ namespace Dcomms.DRP
                         RequesterRegistrationId = req.RequesterRegistrationId,
                         ReqTimestamp64 = req.ReqTimestamp64,
                         ResponderEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
-                        ResponderRegistrationId = acceptAt.RegistrationConfiguration.LocalPeerRegistrationId,
+                        ResponderRegistrationId = acceptAt.Configuration.LocalPeerRegistrationId,
                         ResponderStatusCode = DrpResponderStatusCode.confirmed,
                         NpaSeq16 = GetNewNpaSeq16_AtoEP(),
                     };
@@ -82,7 +82,7 @@ namespace Dcomms.DRP
                             req.GetSharedSignedFields(w2, true);
                             ack1.GetSharedSignedFields(w2, false, true);
                         },
-                        acceptAt.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
+                        acceptAt.Configuration.LocalPeerRegistrationPrivateKey);
                     if (sourcePeer == null) ack1.RequesterEndpoint = requesterEndpoint;                    
                     ack1UdpData = ack1.Encode_OpionallySignNeighborHMAC(sourcePeer);
                     

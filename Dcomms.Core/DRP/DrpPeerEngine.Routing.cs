@@ -94,8 +94,8 @@ namespace Dcomms.DRP
             }
             else
             {
-                var distanceToLocalPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId);
-                WriteToLog_routing_detail($"distanceToLocalPeer={distanceToLocalPeer} from REGISTER REQ {req.RequesterRegistrationId} to {localDrpPeer.RegistrationConfiguration.LocalPeerRegistrationId}");
+                var distanceToLocalPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, localDrpPeer.Configuration.LocalPeerRegistrationId);
+                WriteToLog_routing_detail($"distanceToLocalPeer={distanceToLocalPeer} from REGISTER REQ {req.RequesterRegistrationId} to {localDrpPeer.Configuration.LocalPeerRegistrationId}");
                 if (minDistance == null || minDistance.IsGreaterThan(distanceToLocalPeer))
                 {
                     minDistance = distanceToLocalPeer;

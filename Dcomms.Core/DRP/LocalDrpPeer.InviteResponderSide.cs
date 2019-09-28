@@ -14,7 +14,7 @@ namespace Dcomms.DRP
         /// </summary>
         internal async Task AcceptInviteRequestAsync(InviteRequestPacket req, ConnectionToNeighbor sourcePeer)
         {
-            if (!req.ResponderRegistrationId.Equals(this.RegistrationConfiguration.LocalPeerRegistrationId))
+            if (!req.ResponderRegistrationId.Equals(this.Configuration.LocalPeerRegistrationId))
                 throw new ArgumentException();
 
             Engine.WriteToLog_inv_responderSide_detail($"accepting invite from {req.RequesterRegistrationId}");
@@ -92,7 +92,7 @@ namespace Dcomms.DRP
                             req.GetSharedSignedFields(w);
                             ack1.GetSharedSignedFields(w, true);
                         },
-                        this.RegistrationConfiguration.LocalPeerRegistrationPrivateKey
+                        this.Configuration.LocalPeerRegistrationPrivateKey
                     );
 
                     var ack1UdpData = ack1.Encode_SetP2pFields(sourcePeer);
@@ -140,7 +140,7 @@ namespace Dcomms.DRP
                             req.GetSharedSignedFields(w);
                             ack1.GetSharedSignedFields(w, true);
                             ack2.GetSharedSignedFields(w);
-                        }, this.RegistrationConfiguration.LocalPeerRegistrationPrivateKey);
+                        }, this.Configuration.LocalPeerRegistrationPrivateKey);
                     var cfmUdpData = cfm.Encode_SetP2pFields(sourcePeer);
 
                     Engine.WriteToLog_inv_responderSide_detail($"sending CFM to source peer, waiting for NPACK");
