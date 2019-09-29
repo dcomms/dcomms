@@ -10,8 +10,8 @@
             <StackLayout>
                
                 <StackLayout Orientation="Horizontal">
-                    <Label Text="Neighbors:" />
-                    <Entry Text="{Binding DrpTester3.NumberOfNeighborsToKeep, Mode=TwoWay, UpdateSourceEventName=TextChanged}" />
+                    <Label Text="Neighbors:" VerticalOptions="End" />
+                    <Entry Text="{Binding DrpTester3.NumberOfNeighborsToKeep, Mode=TwoWay, UpdateSourceEventName=TextChanged}" WidthRequest="50" />
                 </StackLayout>
 
                 <Button Text="Start" Command="{Binding DrpTester3.InitializeUser}" IsVisible="{Binding DrpTester3.Initialized, Converter={StaticResource OppositeConverter}}" />

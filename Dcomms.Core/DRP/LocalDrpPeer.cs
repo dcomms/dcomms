@@ -28,7 +28,7 @@ namespace Dcomms.DRP
         internal readonly DrpPeerEngine Engine;
         internal ICryptoLibrary CryptoLibrary => Engine.CryptoLibrary;
 
-        string IVisibleModule.Status => $"connected neighbors: {ConnectedNeighbors.Count}/{_configuration.NumberOfNeighborsToKeep}";
+        string IVisibleModule.Status => $"connected neighbors: {ConnectedNeighbors.Count}/{_configuration.NumberOfNeighborsToKeep}. {CurrentRegistrationOperationsCount} pending reg.";
 
         public LocalDrpPeer(DrpPeerEngine engine, LocalDrpPeerConfiguration configuration, IDrpRegisteredPeerApp drpPeerApp)
         {

@@ -17,5 +17,10 @@
                 <views:LogMessagesView />
             </x:Arguments>
         </NavigationPage>
+        <NavigationPage Title="Modules">
+            <x:Arguments>
+                <views:VisibleModulesPage />
+            </x:Arguments>
+        </NavigationPage>
     </TabbedPage.Children>    
 </TabbedPage>

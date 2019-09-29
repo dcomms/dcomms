@@ -75,11 +75,18 @@ namespace Dcomms.Vision
         public const char PathSeparator = '/';
         protected readonly Dictionary<string, IVisibleModule> _visibleModulesByPath = new Dictionary<string, IVisibleModule>(); // locked
         /// <param name="visionChannelSourceIdModuleNamePath">may contain ModuleName, some object name</param>
-        public virtual void RegisterVisibleModule(string visionChannelSourceId, string path, IVisibleModule visibleModule)
+        public void RegisterVisibleModule(string visionChannelSourceId, string path, IVisibleModule visibleModule)
         {
             lock (_visibleModulesByPath)
             {
                 _visibleModulesByPath.Add(visionChannelSourceId + PathSeparator + path, visibleModule);
+            }
+        }
+        public void UnregisterVisibleModule(string visionChannelSourceId, string path)
+        {
+            lock (_visibleModulesByPath)
+            {
+                _visibleModulesByPath.Remove(visionChannelSourceId + PathSeparator + path);
             }
         }
     }
