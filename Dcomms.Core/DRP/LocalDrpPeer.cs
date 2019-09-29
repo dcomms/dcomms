@@ -38,7 +38,9 @@ namespace Dcomms.DRP
             engine.Configuration.VisionChannel?.RegisterVisibleModule(engine.Configuration.VisionChannelSourceId, this.ToString(), this);
         }
         public List<ConnectionToNeighbor> ConnectedNeighbors = new List<ConnectionToNeighbor>();
-       
+        public int CurrentRegistrationOperationsCount;
+
+
         public void Dispose() // unregisters
         {
 
@@ -46,40 +48,33 @@ namespace Dcomms.DRP
         public override string ToString() => $"localDrpPeer{_configuration.LocalPeerRegistrationId}";
 
         const double ConnectToNeighborPeriodToRetry = 20;
-        DateTime? _currentConnectToNewNeighborOperationStartTimeUtc;
+        DateTime? _latestConnectToNewNeighborOperationStartTimeUtc;
         async Task ConnectToNewNeighborIfNeededAsync(DateTime timeNowUtc)
         {
             if (ConnectedNeighbors.Count < _configuration.NumberOfNeighborsToKeep)
             {
-                if (_currentConnectToNewNeighborOperationStartTimeUtc == null || timeNowUtc > _currentConnectToNewNeighborOperationStartTimeUtc.Value.AddSeconds(ConnectToNeighborPeriodToRetry))
+                if (CurrentRegistrationOperationsCount == 0 || timeNowUtc > _latestConnectToNewNeighborOperationStartTimeUtc.Value.AddSeconds(ConnectToNeighborPeriodToRetry))
                 {
-                    _currentConnectToNewNeighborOperationStartTimeUtc = timeNowUtc;
-                    try
+                    _latestConnectToNewNeighborOperationStartTimeUtc = timeNowUtc;
+                   
+                    //    extend neighbors via ep (10% probability)  or via existing neighbors --- increase mindistance, from 1
+                    if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.1 || ConnectedNeighbors.Count == 0))
                     {
-                        //    extend neighbors via ep (10% probability)  or via existing neighbors --- increase mindistance, from 1
-                        if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.1 || ConnectedNeighbors.Count == 0))
-                        {
-                            var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
-                            Engine.WriteToLog_inv_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({ConnectedNeighbors.Count} connected neighbors now)");
-                            await Engine.RegisterAsync(this, epEndpoint, 1);
-                        }
-                        else
-                        {
-                            if (ConnectedNeighbors.Count != 0)
-                            {
-                                var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
-                                Engine.WriteToLog_inv_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)");
-                                await neighborToSendRegister.RegisterAsync(1);
-                            }
-                        }
+                        var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
+                        Engine.WriteToLog_inv_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({ConnectedNeighbors.Count} connected neighbors now)");
+                        await Engine.RegisterAsync(this, epEndpoint, 1);
                     }
-                    finally
+                    else
                     {
-                        _currentConnectToNewNeighborOperationStartTimeUtc = null;
-                    }
+                        if (ConnectedNeighbors.Count != 0)
+                        {
+                            var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
+                            Engine.WriteToLog_inv_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)");
+                            await neighborToSendRegister.RegisterAsync(1);
+                        }
+                    }                   
                 }
             }
-
         }
         
         internal void EngineThreadOnTimer100ms(DateTime timeNowUtc)

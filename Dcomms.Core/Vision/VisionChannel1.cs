@@ -69,6 +69,15 @@ namespace Dcomms.Vision
             if (PropertyChanged != null)
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));
         });
+        public ICommand ClearLogMessages => new DelegateCommand(() =>
+        {
+            lock (_logMessages)
+                _logMessages.Clear();
+
+            if (PropertyChanged != null)
+                PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));
+        });
+        
 
         public IEnumerable<VisibleModule> DisplayedVisibleModules =>
             _visibleModulesByPath.Select(x => new VisibleModule
@@ -102,13 +111,13 @@ namespace Dcomms.Vision
                         case AttentionLevel.death: return System.Drawing.Color.FromArgb(255, 128, 0, 0);
                         case AttentionLevel.strongPain: return System.Drawing.Color.FromArgb(255, 200, 0, 0);
                         case AttentionLevel.mediumPain: return System.Drawing.Color.FromArgb(255, 222, 70, 0);
-                        case AttentionLevel.lightPain: return System.Drawing.Color.FromArgb(255, 222, 120, 0);
-                        case AttentionLevel.guiPain: return System.Drawing.Color.FromArgb(255, 222, 150, 0);
-                        case AttentionLevel.needsAttention: return System.Drawing.Color.FromArgb(255, 222, 190, 0);
-                        case AttentionLevel.guiActivity: return System.Drawing.Color.FromArgb(255, 180, 200, 0);
-                        case AttentionLevel.higherLevelDetail: return System.Drawing.Color.FromArgb(255, 180, 255, 0);
-                        case AttentionLevel.detail: return System.Drawing.Color.FromArgb(255, 180, 220, 100);
-                        case AttentionLevel.deepDetail: return System.Drawing.Color.FromArgb(255, 180, 220, 200);
+                        case AttentionLevel.lightPain: return System.Drawing.Color.FromArgb(255, 252, 150, 0);
+                        case AttentionLevel.guiPain: return System.Drawing.Color.FromArgb(255, 252, 190, 0);
+                        case AttentionLevel.needsAttention: return System.Drawing.Color.FromArgb(255, 252, 220, 0);
+                        case AttentionLevel.guiActivity: return System.Drawing.Color.FromArgb(255, 190, 255, 0);
+                        case AttentionLevel.higherLevelDetail: return System.Drawing.Color.FromArgb(255, 190, 255, 150);
+                        case AttentionLevel.detail: return System.Drawing.Color.FromArgb(255, 210, 255, 200);
+                        case AttentionLevel.deepDetail: return System.Drawing.Color.FromArgb(255, 240, 255, 235);
                         default: throw new NotImplementedException();
                     }
                 }

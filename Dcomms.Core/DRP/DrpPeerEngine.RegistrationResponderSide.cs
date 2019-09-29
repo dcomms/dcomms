@@ -16,7 +16,7 @@ namespace Dcomms.DRP
         /// <param name="receivedFromInP2pMode">
         /// is null in A-EP mode
         /// </param>
-        internal async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterRequestPacket req, IPEndPoint requesterEndpoint, ConnectionToNeighbor sourcePeer) // engine thread
+        internal async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterRequestPacket req, IPEndPoint requesterEndpoint, ConnectionToNeighbor sourcePeer, DateTime reqReceivedTimeUtc) // engine thread
         {
             
             if (req.AtoEP ^ (sourcePeer == null))
@@ -41,20 +41,20 @@ namespace Dcomms.DRP
             if (_pendingRegisterRequests.Contains(req.RequesterRegistrationId))
             {
                 // received duplicate REGISTER REQ packet
-                WriteToLog_reg_responderSide_lightPain($"ignoring duplicate registration request {req.RequesterRegistrationId} from {requesterEndpoint}");
+                WriteToLog_reg_responderSide_needsAttention($"ignoring duplicate registration request {req.RequesterRegistrationId} from {requesterEndpoint}");
                 return;
             }
 
             RecentUniqueAcceptedRegistrationRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
 
-            WriteToLog_reg_responderSide_detail($"accepting registration from {requesterEndpoint}: NpaSeq16={req.NpaSeq16}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, epEndpoint={req.EpEndpoint}, sourcePeer={sourcePeer}");
+            WriteToLog_reg_responderSide_higherLevelDetail($"accepting registration from {requesterEndpoint}: NpaSeq16={req.NpaSeq16}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, epEndpoint={req.EpEndpoint}, sourcePeer={sourcePeer}");
 
             RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
 
             _pendingRegisterRequests.Add(req.RequesterRegistrationId);
             try
             {
-                WriteToLog_reg_responderSide_detail($"sending NPACK to REQ to {requesterEndpoint}");
+                WriteToLog_reg_responderSide_detail($"sending NPACK to REQ to {requesterEndpoint} (delay={(int)(DateTimeNowUtc - reqReceivedTimeUtc).TotalMilliseconds}ms)");
                 SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.accepted, sourcePeer);
 
                 var newConnectionToNeighbor = new ConnectionToNeighbor(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer)
@@ -107,7 +107,9 @@ namespace Dcomms.DRP
                     var ack2 = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(ack2UdpData, req, ack1, newConnectionToNeighbor);
 
                     WriteToLog_reg_responderSide_detail($"verified ACK2");
-                    acceptAt.ConnectedNeighbors.Add(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A                    
+                    acceptAt.ConnectedNeighbors.Add(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A    
+                    WriteToLog_reg_responderSide_higherLevelDetail($"added new connection to list of neighbors: {req.RequesterRegistrationId} from {requesterEndpoint}");
+
                     SendNeighborPeerAckResponseToRegisterAck2(ack2, requesterEndpoint, sourcePeer); // send NPACK to ACK
 
                     _ = WaitForRegistrationConfirmationRequestAsync(requesterEndpoint, req, newConnectionToNeighbor, sourcePeer);
@@ -155,7 +157,7 @@ namespace Dcomms.DRP
             {
                 var regCfmScanner = RegisterConfirmationPacket.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp64);
                 WriteToLog_reg_responderSide_detail($"waiting for CFM");
-                var regCfmUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requesterEndpoint, regCfmScanner);
+                var regCfmUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requesterEndpoint, regCfmScanner, Configuration.RegisterRequestsTimoutS);
                 WriteToLog_reg_responderSide_detail($"received CFM");
                 var registerCfmPacket = RegisterConfirmationPacket.DecodeAndOptionallyVerify(regCfmUdpPayload, req, newConnectionToNeighbor);
                 WriteToLog_reg_responderSide_detail($"verified CFM");
@@ -165,6 +167,7 @@ namespace Dcomms.DRP
             }
 			catch (Exception exc)
             {
+                WriteToLog_reg_responderSide_lightPain($"disposing new connection because of CFM error");
                 newConnectionToNeighbor.Dispose();
                 HandleExceptionInRegistrationResponder(requesterEndpoint, exc);
             }

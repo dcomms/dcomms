@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -49,11 +50,11 @@ namespace Dcomms.DRP
             return nextHopResponsePacket;
         }
 
-        internal async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner)
+        internal async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, double? expirationTimeoutS = null)
         {
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(responderEndpoint,
-                         responseScanner, DateTimeNowUtc, Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
+                         responseScanner, DateTimeNowUtc, expirationTimeoutS ?? Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
                          requestPacketDataNullable,
                          Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
                      ));
@@ -83,6 +84,7 @@ namespace Dcomms.DRP
         }
         internal async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
         {
+            WriteToLog_udp_detail($"waiting for response to {request}");
             _pendingLowLevelUdpRequests.AddLast(request);
             return await request.TaskCompletionSource.Task;
         }
@@ -107,10 +109,10 @@ namespace Dcomms.DRP
                     continue;
                 }
                 else if (request.RequestPacketDataNullable != null && timeNowUTC > request.NextRetransmissionTimeUTC)
-                {
-                    request.OnRetransmitted();
-                    SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);                   
+                {                 
                     WriteToLog_udp_lightPain($"retransmitting request {request}");
+                    request.OnRetransmitted();
+                    SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);  
                 }
                 item = item.Next;
             }
@@ -129,7 +131,7 @@ namespace Dcomms.DRP
             {
                 var request = item.Value;
 
-                WriteToLog_udp_detail($"matching to pending request... responderEndpoint={responderEndpoint}, udpData={MiscProcedures.ByteArrayToString(udpData)} " +
+                WriteToLog_udp_deepDetail($"matching to pending request... responderEndpoint={responderEndpoint}, udpData={MiscProcedures.ByteArrayToString(udpData)} " +
                     $"request={request}" 
                    // + $" ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}"
                     );
@@ -150,14 +152,10 @@ namespace Dcomms.DRP
                 }
             }
 
-            WriteToLog_udp_detail($"match to pending request was not found for packet from {responderEndpoint}, udpData={MiscProcedures.ByteArrayToString(udpData)}");
+          //  WriteToLog_udp_detail($"match to pending request was not found for packet from {responderEndpoint}, udpData={MiscProcedures.ByteArrayToString(udpData)}");
 
             return false;
         }
-
-
-
-
 
         /// <summary>
         /// accessed by engine thread only 
@@ -240,7 +238,16 @@ namespace Dcomms.DRP
             RequestPacketDataNullable = requestPacketDataNullable;
             _expirationTimeoutS = expirationTimeoutS;
         }
-        public override string ToString() => $"responderEP={ResponderEndpoint}, {(DrpDmpPacketTypes)ResponseScanner.ResponseFirstBytes[0]}, timeout={_expirationTimeoutS}s";
+        public override string ToString()
+        {
+            var r = $"responderEP={ResponderEndpoint}";
+            if (RequestPacketDataNullable != null)
+                r += $", req={(DrpDmpPacketTypes)RequestPacketDataNullable[0]}";
+            if (ResponseScanner != null && ResponseScanner.ResponseFirstBytes != null)
+                r += $", resp={(DrpDmpPacketTypes)ResponseScanner.ResponseFirstBytes[0]}";
+            r += $", timeout={_expirationTimeoutS}s";
+            return r;
+        }
         public void OnRetransmitted()
         {
             if (NextRetransmissionTimeUTC == null) throw new InvalidOperationException();

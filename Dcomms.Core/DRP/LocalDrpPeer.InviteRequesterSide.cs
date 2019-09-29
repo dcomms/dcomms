@@ -14,7 +14,6 @@ namespace Dcomms.DRP
         public void BeginSendShortSingleMessage(UserCertificate requesterUserCertificate, RegistrationId responderRegistrationId, UserId responderUserId,            
             string messageText, Action cb)
         {
-
             Engine.EngineThreadQueue.Enqueue(async () =>
             {
                 try

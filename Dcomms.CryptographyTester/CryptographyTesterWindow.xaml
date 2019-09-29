@@ -63,7 +63,7 @@
                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpTester3.NumberOfLocalPeersToRegisterPerEngine, Mode=TwoWay}" />
 
                 <TextBlock Grid.Row="2" Text="number of neighbors to keep:" />
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DrpTester3.NumberOfNeighborsToKeep, Mode=TwoWay}" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DrpTester3.NumberOfNeighborsToKeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                 <TextBlock Grid.Row="3" Text="local UDP ports range start:" />
                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpTester3.LocalPortNullable, Mode=TwoWay}" />
@@ -91,6 +91,7 @@
 
                             <StackPanel Orientation="Horizontal">
                                 <Button Content="refresh" Command="{Binding RefreshDisplayedLogMessages}" />
+                                <Button Content="clear" Command="{Binding ClearLogMessages}" />
                                 <TextBlock Text="Filter:" />
 
 

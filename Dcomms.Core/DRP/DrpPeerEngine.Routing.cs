@@ -34,17 +34,17 @@ namespace Dcomms.DRP
 
             if (proxyToDestinationPeer != null)
             {
-                WriteToLog_routing_detail($"proxying registration to {proxyToDestinationPeer}");
+                WriteToLog_routing_higherLevelDetail($"proxying registration to {proxyToDestinationPeer}");
                 return true;
             }
             else if (acceptAt != null)
             {
-                WriteToLog_routing_detail($"accepting registration at local DRP peer {acceptAt}");
+                WriteToLog_routing_higherLevelDetail($"accepting registration at local DRP peer {acceptAt}");
                 return true;
             }
             else
             {
-                WriteToLog_routing_detail($"no route found for REGISTER request to {req.RequesterRegistrationId}");
+                WriteToLog_routing_needsAttention($"no route found for REGISTER request to {req.RequesterRegistrationId}");
                 return false;
             }
         }

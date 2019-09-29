@@ -44,7 +44,7 @@ namespace Dcomms
                 {
                     a = _queue.Count != 0 ? _queue.Dequeue() : null;
                 }
-                if (a == null) return;
+                if (a == null) goto _next;
                 if (_isDisposing) return;
 
                 try
@@ -57,6 +57,7 @@ namespace Dcomms
                 }
             }
 
+            _next:
             ExecuteDelayedActions();
         }
 

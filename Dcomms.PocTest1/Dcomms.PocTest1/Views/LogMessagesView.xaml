@@ -7,7 +7,10 @@
              x:Class="Dcomms.PocTest1.Views.LogMessagesView">
     <ContentPage.Content>
         <StackLayout>
-            <Button Text="refresh" Command="{Binding VisionChannel.RefreshDisplayedLogMessages}" />
+            <StackLayout Orientation="Horizontal">
+                <Button Text="refresh" Command="{Binding VisionChannel.RefreshDisplayedLogMessages}" />
+                <Button Text="clear" Command="{Binding VisionChannel.ClearLogMessages}" />
+            </StackLayout>
 
             <ListView ItemsSource="{Binding VisionChannel.DisplayedLogMessages}" SeparatorVisibility="None" 
                       BackgroundColor="Transparent" HasUnevenRows="True" >
@@ -18,13 +21,16 @@
                                 <Grid Margin="0,0,0,3" Padding="0" RowSpacing="1" ColumnSpacing="1">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"></RowDefinition>
+                                        <RowDefinition Height="Auto"></RowDefinition>
                                     </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="30*"></ColumnDefinition>
                                         <ColumnDefinition Width="100*"></ColumnDefinition>
-                                    </Grid.ColumnDefinitions>                                   
-                                    <Label Text="{Binding TimeStr, Mode=OneTime}" ></Label>   
-                                    <Label Grid.Column="1" Text="{Binding Message, Mode=OneTime}"  />
+                                    </Grid.ColumnDefinitions>
+                                    <Label Text="{Binding TimeStr, Mode=OneTime}" BackgroundColor="{Binding AttentionLevelColor, Mode=OneTime}" ></Label>
+                                    <Label Text="{Binding ModuleName, Mode=OneTime}" Grid.Row="1" ></Label>
+                                    <!--<Label Text="{Binding AttentionLevelStr, Mode=OneTime}" Grid.Row="2" ></Label>-->
+                                    <Label Grid.Column="1" Grid.RowSpan="3" Text="{Binding Message, Mode=OneTime}" />
                                 </Grid>
                             </ViewCell.View>
                         </ViewCell>
@@ -42,7 +48,6 @@
                                 <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
-
                     </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
                     <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />

@@ -77,7 +77,7 @@ namespace Dcomms.DRP
         partial void Initialize(DrpPeerEngineConfiguration configuration);
         public void Dispose()
         {
-            if (_disposing) throw new InvalidOperationException();
+            if (_disposing) return;
             _disposing = true;
             EngineThreadQueue.Dispose();
             _engineThread.Join();
@@ -121,16 +121,16 @@ namespace Dcomms.DRP
                 return;
             }
 
+            var receivedAtUtc = DateTimeNowUtc;
             if (packetType == DrpDmpPacketTypes.RegisterReq)
             {
                 if (RegisterRequestPacket.IsAtoEP(udpData))
                 {
-                    ProcessRegisterReqAtoEpPacket(remoteEndpoint, udpData);
+                    ProcessRegisterReqAtoEpPacket(remoteEndpoint, udpData, receivedAtUtc);
                     return;
                 }
             }
 
-            var receivedAtUtc = DateTimeNowUtc;
             EngineThreadQueue.Enqueue(() =>
             {
                 if (RespondersToRetransmittedRequests_ProcessPacket(remoteEndpoint, udpData)) return;
@@ -163,7 +163,7 @@ namespace Dcomms.DRP
                             var neighborToken16 = RegisterRequestPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             if (connectedPeer != null)
-                                _ = connectedPeer.OnReceivedRegisterReq(remoteEndpoint, udpData);
+                                _ = connectedPeer.OnReceivedRegisterReq(remoteEndpoint, udpData, receivedAtUtc);
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }

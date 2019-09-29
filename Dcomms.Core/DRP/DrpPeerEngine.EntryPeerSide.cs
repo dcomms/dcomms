@@ -150,7 +150,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// is executed by receiver thread
         /// </summary>
-        void ProcessRegisterReqAtoEpPacket(IPEndPoint requesterEndpoint, byte[] udpData)
+        void ProcessRegisterReqAtoEpPacket(IPEndPoint requesterEndpoint, byte[] udpData, DateTime reqReceivedAtUtc)
         {  
             var pow2RequestState = _pow2RequestsTable.TryGetPow2RequestState(requesterEndpoint);
             if (pow2RequestState == null)
@@ -171,10 +171,10 @@ namespace Dcomms.DRP
           
             EngineThreadQueue.Enqueue(() =>
             {
-                _ = ProcessRegisterReqAtoEpPacket2Async(requesterEndpoint, req);
+                _ = ProcessRegisterReqAtoEpPacket2Async(requesterEndpoint, req, reqReceivedAtUtc);
             });
         }
-        async Task ProcessRegisterReqAtoEpPacket2Async(IPEndPoint requesterEndpoint, RegisterRequestPacket req)
+        async Task ProcessRegisterReqAtoEpPacket2Async(IPEndPoint requesterEndpoint, RegisterRequestPacket req, DateTime reqReceivedTimeUtc)
         {
             var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
             bool checkRecentUniqueProxiedRegistrationRequests = true;
@@ -183,7 +183,7 @@ namespace Dcomms.DRP
 
             if (proxyToDestinationPeer != null)
             {  // proxy the registration request via the local EP to another peer
-                var needToRerouteToAnotherNeighbor = await ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, null, checkRecentUniqueProxiedRegistrationRequests);
+                var needToRerouteToAnotherNeighbor = await ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, null, checkRecentUniqueProxiedRegistrationRequests, reqReceivedTimeUtc);
                 if (needToRerouteToAnotherNeighbor)
                 {
                     alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
@@ -194,7 +194,7 @@ namespace Dcomms.DRP
             }
             else if (acceptAt != null)
             {   // accept the registration request here, at EP
-                _ = AcceptRegisterRequestAsync(acceptAt, req, requesterEndpoint, null);
+                _ = AcceptRegisterRequestAsync(acceptAt, req, requesterEndpoint, null, reqReceivedTimeUtc);
             }
             else
             {

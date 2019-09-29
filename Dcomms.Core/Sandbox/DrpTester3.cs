@@ -39,11 +39,21 @@ namespace Dcomms.Sandbox
 
         public int? NumberOfEngines  { get; set; }
         public int NumberOfLocalPeersToRegisterPerEngine { get; set; } = 1;
-        public int? NumberOfNeighborsToKeep { get; set; } 
+        int? _numberOfNeighborsToKeep;
+        public int? NumberOfNeighborsToKeep
+        {
+            get => _numberOfNeighborsToKeep;
+            set
+            {
+                _numberOfNeighborsToKeep = value;
+                foreach (var a in _apps)
+                    a.LocalDrpPeer.Configuration.NumberOfNeighborsToKeep = value;
+            }
+        }
         public bool Initialized { get; private set; }
 
         readonly Random _insecureRandom = new Random();
-        readonly List<DrpPeerEngine> _engines = new List<DrpPeerEngine>();
+        readonly List<DrpTesterPeerApp> _apps = new List<DrpTesterPeerApp>();
 
         readonly VisionChannel _visionChannel;
         public DrpTester3(VisionChannel visionChannel)
@@ -68,14 +78,16 @@ namespace Dcomms.Sandbox
             EpEndPoints = new[] { new IPEndPoint(IPAddress.Parse("195.154.173.208"), 12000) };
             RaisePropertyChanged(() => EpEndPointsString);
 
+            if (NumberOfEngines == null)
+            {
+                NumberOfEngines = 1;
+                RaisePropertyChanged(() => NumberOfEngines);
+            }
 
-            NumberOfEngines = 1;
-            RaisePropertyChanged(() => NumberOfEngines);
-
+           
             NumberOfLocalPeersToRegisterPerEngine = 1;
             RaisePropertyChanged(() => NumberOfLocalPeersToRegisterPerEngine);
-
-           // NumberOfNeighborsToKeep = 2;
+            
 
             Initialize.Execute(null);
         });
@@ -111,18 +123,19 @@ namespace Dcomms.Sandbox
                             AttentionLevel.guiActivity, $"registering...");
                         engine.BeginRegister(localDrpPeerConfiguration, app, (localDrpPeer) =>
                         {
+                            app.LocalDrpPeer = localDrpPeer;
                             _visionChannel.Emit(engine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
                         });
                     }
                     else
                     { // EP host mode                   
                         engine.BeginCreateLocalPeer(localDrpPeerConfiguration, app, (localDrpPeer) =>
-                        {                       
+                        {
+                            app.LocalDrpPeer = localDrpPeer;
                         });
                     }
+                    _apps.Add(app);
                 }
-
-                _engines.Add(engine);
             }
 
             Initialized = true;
@@ -131,8 +144,8 @@ namespace Dcomms.Sandbox
 
         public void Dispose()
         {
-            foreach (var engine in _engines)
-                engine.Dispose();
+            foreach (var a in _apps)
+                a.DrpPeerEngine.Dispose();
         }
     }
 }

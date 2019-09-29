@@ -31,17 +31,17 @@ namespace Dcomms.DRP
 
         public TimeSpan PendingRegisterRequestsTimeout = TimeSpan.FromSeconds(20);
 
-        public double UdpLowLevelRequests_ExpirationTimeoutS = 2;
-        public double UdpLowLevelRequests_InitialRetransmissionTimeoutS = 0.2;
+        public double UdpLowLevelRequests_ExpirationTimeoutS = 5;
+        public double UdpLowLevelRequests_InitialRetransmissionTimeoutS = 0.35;
         public double UdpLowLevelRequests_RetransmissionTimeoutIncrement = 1.5;
-        public double RegisterRequestsTimoutS = 10;
+        public double RegisterRequestsTimoutS = 15;
 
         public double InitialPingRequests_ExpirationTimeoutS = 5;
-        public double InitialPingRequests_InitialRetransmissionTimeoutS = 0.1;
+        public double InitialPingRequests_InitialRetransmissionTimeoutS = 0.2;
         public double InitialPingRequests_RetransmissionTimeoutIncrement = 1.05;
         public TimeSpan ResponderToRetransmittedRequestsTimeout = TimeSpan.FromSeconds(30);
 
-        public double InviteRequestsTimoutS = 10;
+        public double InviteRequestsTimoutS = 15;
 
         public VisionChannel VisionChannel;
         public string VisionChannelSourceId;

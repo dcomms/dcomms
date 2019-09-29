@@ -21,7 +21,7 @@ namespace Dcomms.DRP
         /// </returns>
         internal async Task<bool> ProxyRegisterRequestAsync(ConnectionToNeighbor destinationPeer, 
             RegisterRequestPacket req, IPEndPoint requesterEndpoint, 
-            ConnectionToNeighbor sourcePeer, bool checkRecentUniqueProxiedRegistrationRequests
+            ConnectionToNeighbor sourcePeer, bool checkRecentUniqueProxiedRegistrationRequests, DateTime reqReceivedTimeUtc
             ) // engine thread
         {
             if (req.AtoEP ^ (sourcePeer == null))
@@ -58,7 +58,7 @@ namespace Dcomms.DRP
             try
             {
                 // send NPACK to source peer
-                WriteToLog_reg_proxySide_detail($"sending NPACK to REQ source peer");
+                WriteToLog_reg_proxySide_detail($"sending NPACK to REQ source peer (delay={(int)(DateTimeNowUtc - reqReceivedTimeUtc).TotalMilliseconds}ms)");
                 SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.accepted, sourcePeer);
 
                 req.NumberOfHopsRemaining--;
