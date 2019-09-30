@@ -16,5 +16,17 @@ namespace Dcomms.PocTest1.Views
         {
             InitializeComponent();
         }
+
+        private void NumberOfNeighbors_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            ((Poc1Model)this.BindingContext).DrpTester3.NumberOfNeighborsToKeep = e.NewTextValue;
+        }
+
+        private void IncreaseNumberOfNeighbors_Clicked(object sender, EventArgs e)
+        {
+
+            ((Poc1Model)this.BindingContext).DrpTester3.IncreaseNumberOfNeighborsToKeep.Execute(null);
+            numberOfNeighbors.Text = ((Poc1Model)this.BindingContext).DrpTester3.NumberOfNeighborsToKeep;
+        }
     }
 }

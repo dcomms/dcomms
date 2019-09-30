@@ -9,13 +9,13 @@ namespace Dcomms.DRP.Packets
 {              
     public enum DrpResponderStatusCode
     {
-        confirmed,
+        confirmed = 0,
 
-        rejected_badSenderRating,
-        rejected_badtimestamp,
-        rejected_maxhopsReached,
-        rejected_noGoodPeers, // timed out or dead end in IDspace
-        rejected_userBusyForInvite
+     //   rejected_badSenderRating,
+     //   rejected_badtimestamp,
+        rejected_maxhopsReached = 1,
+     //   rejected_noGoodPeers, // timed out or dead end in IDspace
+     //   rejected_userBusyForInvite
     }
 
 }

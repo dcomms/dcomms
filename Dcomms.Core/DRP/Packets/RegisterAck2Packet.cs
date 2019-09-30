@@ -147,8 +147,8 @@ namespace Dcomms.DRP.Packets
         /// verifies RequesterHMAC, decrypts endpoint of A (ToRequesterTxParametersEncrypted), initializes P2P stream
         /// </param>
         public static RegisterAck2Packet Decode_OptionallyVerify_InitializeP2pStreamAtResponder(byte[] registerAckPacketData,
-            RegisterRequestPacket synNullable,
-            RegisterAck1Packet synAckNullable,
+            RegisterRequestPacket reqNullable,
+            RegisterAck1Packet ack1Nullable,
             ConnectionToNeighbor newConnectionAtResponderToRequesterNullable
           )
         {
@@ -162,27 +162,27 @@ namespace Dcomms.DRP.Packets
 
             ack.ReqTimestamp64 = reader.ReadInt64();
             ack.RequesterRegistrationId = RegistrationId.Decode(reader);
-            if (synNullable != null) ack.AssertMatchToSyn(synNullable);
+            if (reqNullable != null) ack.AssertMatchToSyn(reqNullable);
 
             ack.ToRequesterTxParametersEncrypted = reader.ReadBytes(ToRequesterTxParametersEncryptedLength);
             if (newConnectionAtResponderToRequesterNullable != null)
             {
-                newConnectionAtResponderToRequesterNullable.Decrypt_ack2_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(synNullable, synAckNullable, ack);
+                newConnectionAtResponderToRequesterNullable.Decrypt_ack2_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(reqNullable, ack1Nullable, ack);
             }
 
             ack.RequesterSignature = RegistrationSignature.Decode(reader);
             if (newConnectionAtResponderToRequesterNullable != null)
             {
-                if (synNullable == null) throw new ArgumentException();
-                if (synAckNullable == null) throw new ArgumentException();
+                if (reqNullable == null) throw new ArgumentException();
+                if (ack1Nullable == null) throw new ArgumentException();
                 if (!ack.RequesterSignature.Verify(newConnectionAtResponderToRequesterNullable.Engine.CryptoLibrary,
                     w =>
                     {
-                        synNullable.GetSharedSignedFields(w, true);
-                        synAckNullable.GetSharedSignedFields(w, true, true);
+                        reqNullable.GetSharedSignedFields(w, true);
+                        ack1Nullable.GetSharedSignedFields(w, true, true);
                         ack.GetSharedSignedFields(w, false, true);
                     },
-                    synNullable.RequesterRegistrationId))
+                    reqNullable.RequesterRegistrationId))
                     throw new BadSignatureException();
             }
 

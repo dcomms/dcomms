@@ -16,9 +16,10 @@ namespace Dcomms.Vision
         public IEnumerable<AttentionLevel> DisplayFilterMinLevels => Enum.GetValues(typeof(AttentionLevel)).Cast<AttentionLevel>();
 
 
-        public string DisplayFilterSourceId { get; set; }
+        public string DisplayFilterSourceIds { get; set; }
         public string DisplayFilterMessageContainsString { get; set; }
         public string DisplayFilterModuleContainsStrings { get; set; }
+        public string DisplayFilterModuleExcludesStrings { get; set; }
 
         public IEnumerable<LogMessage> DisplayedLogMessages
         {
@@ -27,14 +28,22 @@ namespace Dcomms.Vision
                 lock (_logMessages)
                 {
                     IEnumerable<LogMessage> r = _logMessages;
-                    if (!String.IsNullOrEmpty(DisplayFilterSourceId))
-                        r = r.Where(x => x.SourceId == DisplayFilterSourceId);
+                    if (!String.IsNullOrEmpty(DisplayFilterSourceIds))
+                    {
+                        var displayFilterSourceIds = new HashSet<string>(DisplayFilterSourceIds.Split(',', ';'));
+                        r = r.Where(x => displayFilterSourceIds.Contains(x.SourceId));
+                    }
                     if (!String.IsNullOrEmpty(DisplayFilterMessageContainsString))
                         r = r.Where(x => x.Message.Contains(DisplayFilterMessageContainsString));
                     if (!String.IsNullOrEmpty(DisplayFilterModuleContainsStrings))
                     {
-                        var modules = DisplayFilterModuleContainsStrings.Split(',', ';');
-                        r = r.Where(x => modules.Any(module => x.ModuleName.Contains(module)));
+                        var modules = new HashSet<string>(DisplayFilterModuleContainsStrings.Split(',', ';'));
+                        r = r.Where(x => modules.Contains(x.ModuleName));
+                    }
+                    if (!String.IsNullOrEmpty(DisplayFilterModuleExcludesStrings))
+                    {
+                        var modules = new HashSet<string>(DisplayFilterModuleExcludesStrings.Split(',', ';'));
+                        r = r.Where(x => modules.Contains(x.ModuleName) == false);
                     }
 
 
@@ -78,13 +87,22 @@ namespace Dcomms.Vision
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));
         });
         
-
-        public IEnumerable<VisibleModule> DisplayedVisibleModules =>
-            _visibleModulesByPath.Select(x => new VisibleModule
+        public string VisibleModulePathContainsString { get; set; }
+        public IEnumerable<VisibleModule> DisplayedVisibleModules
+        {
+            get
             {
-                Path = x.Key,
-                Status = x.Value.Status
-            }).OrderBy(x => x.Path);
+                var r = _visibleModulesByPath.Select(x => new VisibleModule
+                {
+                    Path = x.Key,
+                    Status = x.Value.Status
+                });
+                if (!String.IsNullOrEmpty(VisibleModulePathContainsString))
+                    r = r.Where(x => x.Path.Contains(VisibleModulePathContainsString));
+
+                return r.OrderBy(x => x.Path);
+            }
+        }
 
         public ICommand RefreshDisplayedVisibleModules => new DelegateCommand(() =>
         {

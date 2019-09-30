@@ -57,13 +57,19 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Text="number of engines/sockets:" />
-                <TextBox Grid.Column="1" Text="{Binding DrpTester3.NumberOfEngines, Mode=TwoWay}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBox MinWidth="50" Text="{Binding DrpTester3.NumberOfEngines, Mode=TwoWay}" />
+                    <Button Command="{Binding DrpTester3.IncreaseNumberOfEngines}" Content="increase" />
+                </StackPanel>
 
                 <TextBlock Grid.Row="1" Text="number of local peers per engine:" />
                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpTester3.NumberOfLocalPeersToRegisterPerEngine, Mode=TwoWay}" />
 
                 <TextBlock Grid.Row="2" Text="number of neighbors to keep:" />
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DrpTester3.NumberOfNeighborsToKeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                    <TextBox  MinWidth="50" Text="{Binding DrpTester3.NumberOfNeighborsToKeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Command="{Binding DrpTester3.IncreaseNumberOfNeighborsToKeep}" Content="increase" />
+                </StackPanel>
 
                 <TextBlock Grid.Row="3" Text="local UDP ports range start:" />
                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpTester3.LocalPortNullable, Mode=TwoWay}" />
@@ -99,14 +105,15 @@
                                 <ComboBox SelectedItem="{Binding DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding DisplayFilterMinLevels}" VerticalAlignment="Center"/>
 
 
-                                <TextBlock Text="Source:" />
-                                <TextBox Text="{Binding DisplayFilterSourceId, Mode=TwoWay}" Width="100"/>
+                                <TextBlock Text="Sources:" />
+                                <TextBox Text="{Binding DisplayFilterSourceIds, Mode=TwoWay}" Width="100"/>
 
                                 <TextBlock Text="Modules:" />
                                 <TextBox Text="{Binding DisplayFilterModuleContainsStrings, Mode=TwoWay}" Width="100"/>
+                                <TextBlock Text="exclude" />
+                                <TextBox Text="{Binding DisplayFilterModuleExcludesStrings, Mode=TwoWay}" Width="100"/>                                
 
-
-                                <TextBlock Text="Message contains:" />
+                                <TextBlock Text="Msg contains:" />
                                 <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="100" />
                             </StackPanel>
                             <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedLogMessages}" AutoGenerateColumns="False" >
@@ -127,7 +134,6 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Grid>
-
                     </Grid>
                 </TabItem>
                 <TabItem Header="Modules">
@@ -138,7 +144,9 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Orientation="Horizontal">
-                            <Button Content="refresh" Command="{Binding RefreshDisplayedVisibleModules}" />                      
+                            <Button Content="refresh" Command="{Binding RefreshDisplayedVisibleModules}" />
+                            <TextBlock Text="Module contains:" />
+                            <TextBox Text="{Binding VisibleModulePathContainsString, Mode=TwoWay}" Width="100" />
                         </StackPanel>
 
                         <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedVisibleModules}" AutoGenerateColumns="False" >

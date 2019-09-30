@@ -101,8 +101,10 @@ namespace Dcomms.DRP.Packets
         /// requester MAY send the rejected request to another neighbor
         /// </summary>
         rejected_serviceUnavailable = 1,
-    
-        rejected_numberOfHopsRemainingReachedZero = 3
+
+
+        rejected_invite_numberOfHopsRemainingReachedZero = 2
+
     }
 
 
@@ -124,11 +126,12 @@ namespace Dcomms.DRP.Packets
 
         }
     }
-    class NextHopRejectedExceptionServiceUnavailable: NextHopRejectedException
+    class NextHopRejectedExceptionServiceUnavailable : NextHopRejectedException
     {
-        public NextHopRejectedExceptionServiceUnavailable():base (NextHopResponseCode.rejected_serviceUnavailable)
-            { }
+        public NextHopRejectedExceptionServiceUnavailable() : base(NextHopResponseCode.rejected_serviceUnavailable)
+        { }
     }
+  
     class Pow1RejectedException : ApplicationException
     {
         public Pow1RejectedException(RegisterPow1ResponseStatusCode responseCode)
@@ -138,6 +141,15 @@ namespace Dcomms.DRP.Packets
         }
     }
 
+
+    class DrpResponderRejectedException : ApplicationException
+    {
+        public DrpResponderRejectedException(DrpResponderStatusCode responseCode)
+            : base($"Responder rejected request with status = {responseCode}")
+        {
+
+        }
+    }
 
     /// <summary>
     /// gets copied from request/response packets  to "neighborPeerACK" packet

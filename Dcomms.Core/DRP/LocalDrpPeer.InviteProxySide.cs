@@ -27,7 +27,7 @@ namespace Dcomms.DRP
             
             if (req.NumberOfHopsRemaining <= 1)
             {
-                SendNeighborPeerAckResponseToReq(req, sourcePeer, NextHopResponseCode.rejected_numberOfHopsRemainingReachedZero);
+                SendNeighborPeerAckResponseToReq(req, sourcePeer, NextHopResponseCode.rejected_invite_numberOfHopsRemainingReachedZero);
                 return;
             }
 
@@ -39,6 +39,11 @@ namespace Dcomms.DRP
                 SendNeighborPeerAckResponseToReq(req, sourcePeer);
 
                 req.NumberOfHopsRemaining--;
+                //if (req.NumberOfHopsRemaining == 0)       TODO
+                //{
+                //    xx
+                //    return;
+                //}
 
                 // send (proxy) REQ to responder. wait for NPACK, verify NPACK.senderHMAC, retransmit REQ   
                 var reqUdpData = req.Encode_SetP2pFields(destinationPeer);

@@ -10,6 +10,12 @@
             <StackLayout Orientation="Horizontal">
                 <Button Text="refresh" Command="{Binding VisionChannel.RefreshDisplayedLogMessages}" />
                 <Button Text="clear" Command="{Binding VisionChannel.ClearLogMessages}" />
+                <Picker SelectedItem="{Binding VisionChannel.DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding VisionChannel.DisplayFilterMinLevels}" WidthRequest="70" />
+
+
+                <Entry Text="{Binding VisionChannel.DisplayFilterMessageContainsString, Mode=TwoWay}" WidthRequest="50" />
+
+
             </StackLayout>
 
             <ListView ItemsSource="{Binding VisionChannel.DisplayedLogMessages}" SeparatorVisibility="None" 

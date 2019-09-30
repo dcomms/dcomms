@@ -189,6 +189,12 @@ namespace Dcomms.DRP
                     WriteToLog_reg_requesterSide_detail($"verified ACK1. RequesterEndpoint={ack1.RequesterEndpoint}");
                     #endregion
 
+                    if (ack1.ResponderStatusCode != DrpResponderStatusCode.confirmed)
+                    {
+                        WriteToLog_reg_requesterSide_lightPain($"got ACK1 with error={ack1.ResponderStatusCode}");
+                        throw new DrpResponderRejectedException(ack1.ResponderStatusCode);
+                    }
+
                     // check if it matches to previously known local public IP
                     if (ack1.RequesterEndpoint.Address.Equals(localDrpPeer.PublicIpApiProviderResponse) == false)
                     {

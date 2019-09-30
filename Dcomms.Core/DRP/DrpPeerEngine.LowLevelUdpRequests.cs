@@ -24,7 +24,7 @@ namespace Dcomms.DRP
             NeighborPeerAckSequenceNumber16 npaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
             var npaScanner = NeighborPeerAckPacket.GetScanner(npaSeq16, waitNhaFromNeighborNullable, npaRequestFieldsForNeighborHmacNullable);
-            WriteToLog_udp_detail($"waiting for NPACK, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} nhaSeq={npaSeq16}");
+            WriteToLog_udp_detail($"waiting for NPACK, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} npaSeq={npaSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(responderEndpoint,
                          npaScanner, 

@@ -132,7 +132,7 @@ namespace Dcomms.DRP.Packets
             return ms.ToArray();
         }
 
-        public static RegisterConfirmationPacket DecodeAndOptionallyVerify(byte[] regCfmUdpPayload, RegisterRequestPacket synNullable, ConnectionToNeighbor newConnectionToRequesterAtResponderNullable)
+        public static RegisterConfirmationPacket DecodeAndOptionallyVerify(byte[] regCfmUdpPayload, RegisterRequestPacket reqNullable, ConnectionToNeighbor newConnectionToRequesterAtResponderNullable)
         {
             var reader = PacketProcedures.CreateBinaryReader(regCfmUdpPayload, 1);
 
@@ -145,7 +145,7 @@ namespace Dcomms.DRP.Packets
 
             cfm.ReqTimestamp64 = reader.ReadInt64();
             cfm.RequesterRegistrationId = RegistrationId.Decode(reader);
-            if (synNullable != null) cfm.AssertMatchToRegisterReq(synNullable);
+            if (reqNullable != null) cfm.AssertMatchToRegisterReq(reqNullable);
 
             if (newConnectionToRequesterAtResponderNullable != null)
             {

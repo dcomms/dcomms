@@ -62,6 +62,12 @@ namespace Dcomms.DRP
                     _engine.SendNeighborPeerAckResponseToRegisterAck1(ack1, this);
                     #endregion
 
+                    if (ack1.ResponderStatusCode != DrpResponderStatusCode.confirmed)
+                    {
+                        _engine.WriteToLog_reg_requesterSide_lightPain($"got ACK1 with error={ack1.ResponderStatusCode}");
+                        throw new DrpResponderRejectedException(ack1.ResponderStatusCode);
+                    }
+
                     _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
                     newConnectionToNeighbor.LocalEndpoint = this.LocalEndpoint;

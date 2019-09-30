@@ -74,7 +74,7 @@ namespace Dcomms.DRP
                     if (distanceToConnectedPeer.IsLessThan(req.MinimalDistanceToNeighbor))
                     {
                         // skip: this is too close than requested
-                        WriteToLog_routing_detail($"skipping connection to {connectedPeer.RemoteRegistrationId}: is less than requestedd");
+                        WriteToLog_routing_detail($"skipping connection to {connectedPeer.RemoteRegistrationId}: distance={distanceToConnectedPeer} is less than requested={req.MinimalDistanceToNeighbor}");
                         continue;
                     }
                 }

@@ -47,14 +47,21 @@ namespace Dcomms.DRP
         }
         public override string ToString() => $"localDrpPeer{_configuration.LocalPeerRegistrationId}";
 
-        const double ConnectToNeighborPeriodToRetry = 20;
+       
         DateTime? _latestConnectToNewNeighborOperationStartTimeUtc;
         async Task ConnectToNewNeighborIfNeededAsync(DateTime timeNowUtc)
         {
             if (ConnectedNeighbors.Count < _configuration.NumberOfNeighborsToKeep)
             {
-                if (CurrentRegistrationOperationsCount == 0 || timeNowUtc > _latestConnectToNewNeighborOperationStartTimeUtc.Value.AddSeconds(ConnectToNeighborPeriodToRetry))
+                if ((CurrentRegistrationOperationsCount == 0) ||
+                    timeNowUtc > _latestConnectToNewNeighborOperationStartTimeUtc.Value.AddSeconds(Engine.Configuration.NeighborhoodExtensionMaxRetryIntervalS))
                 {
+                    if (_latestConnectToNewNeighborOperationStartTimeUtc.HasValue)
+                    {
+                        if ((timeNowUtc - _latestConnectToNewNeighborOperationStartTimeUtc.Value).TotalSeconds < Engine.Configuration.NeighborhoodExtensionMinIntervalS)
+                            return;
+                    }
+
                     _latestConnectToNewNeighborOperationStartTimeUtc = timeNowUtc;
                    
                     //    extend neighbors via ep (10% probability)  or via existing neighbors --- increase mindistance, from 1

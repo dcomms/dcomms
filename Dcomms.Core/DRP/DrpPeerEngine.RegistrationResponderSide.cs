@@ -189,7 +189,6 @@ namespace Dcomms.DRP
             
             RespondToRequestAndRetransmissions(req.DecodedUdpPayloadData, npAckUdpData, requesterEndpoint);
 
-            //   WriteToLog_reg_responderSide_detail($"sent npAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(npAckUdpData)} nhaSeq={registerSynPacket.NpaSeq16}");
         }
         internal void SendNeighborPeerAckResponseToRegisterAck1(RegisterAck1Packet ack1, ConnectionToNeighbor neighbor)
         {
@@ -204,8 +203,6 @@ namespace Dcomms.DRP
             var npAckUdpData = npAck.Encode(false);
 
             RespondToRequestAndRetransmissions(ack1.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
-
-            //   WriteToLog_reg_responderSide_detail($"sent npAck to {remoteEndpoint}: {MiscProcedures.ByteArrayToString(npAckUdpData)} nhaSeq={registerSynPacket.NpaSeq16}");
         }
         void SendNeighborPeerAckResponseToRegisterAck2(RegisterAck2Packet ack2, IPEndPoint remoteEndpoint, ConnectionToNeighbor neighbor)
         {
