@@ -105,7 +105,7 @@ namespace Dcomms.DRP.Packets
             if (reqNullable != null)
             {
                 ack1.AssertMatchToRegisterReq(reqNullable);
-                if (newConnectionToNeighborAtRequesterNullable != null)
+                if (newConnectionToNeighborAtRequesterNullable != null && ack1.ResponderStatusCode == DrpResponderStatusCode.confirmed)
                 {
                     newConnectionToNeighborAtRequesterNullable.Decrypt_ack1_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(reqNullable, ack1);
                 }

@@ -1,0 +1,176 @@
+﻿<Window x:Class="Dcomms.CryptographyTester.CryptographyTesterMainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Dcomms.CryptographyTester"
+        mc:Ignorable="d"
+        Title="Dcomms Cryptography Tester" Height="450" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="20">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="sha256" Command="{Binding TestSha256}"/>
+                <TextBlock Text="input size:" />
+                <TextBox Text="{Binding TestSha256inputSize}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Button Content="sha512" Command="{Binding TestSha512}"/>
+                <TextBlock Text="input size:" />
+                <TextBox Text="{Binding TestSha512inputSize}" />
+            </StackPanel>
+            <StackPanel Orientation="Vertical">
+                <Button Command="{Binding TestPoW_CCP_hello0}" Content="test CCP hello0 PoW" />
+                <Button Command="{Binding TestEd25519}" Content="TestEd25519" />
+                <Button Command="{Binding TestEcdh25519}" Content="TestEcdh25519" />
+                <Button Command="{Binding TestAes}" Content="TestAes" />
+                <Button Command="{Binding CreateDrpTester1}" Content="CreateDrpTester1" />
+                <Button Command="{Binding CreateDrpTester1_SendInvite}" Content="CreateDrpTester1+send Invite" />
+
+                <Button Command="{Binding CreateDrpTester2}" Content="CreateDrpTester2" />
+                <Button Command="{Binding CreateDrpTester3}" Content="CreateDrpTester3" />
+                
+
+            </StackPanel>
+        </StackPanel>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid Visibility="{Binding DrpTester3Visible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" MinWidth="190"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="number of engines/sockets:" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBox MinWidth="50" Text="{Binding DrpTester3.NumberOfEngines, Mode=TwoWay}" />
+                    <Button Command="{Binding DrpTester3.IncreaseNumberOfEngines}" Content="increase" />
+                    
+                    <CheckBox x:Name="increaseNumberOfEnginesOnTimer" Content="increase on timer" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="1" Text="number of local peers per engine:" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpTester3.NumberOfLocalPeersToRegisterPerEngine, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="2" Text="number of neighbors to keep:" />
+                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                    <TextBox  MinWidth="50" Text="{Binding DrpTester3.NumberOfNeighborsToKeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Command="{Binding DrpTester3.IncreaseNumberOfNeighborsToKeep}" Content="increase" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="3" Text="local UDP ports range start:" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpTester3.LocalPortNullable, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="4" Text="entry peers:" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpTester3.EpEndPointsString, Mode=TwoWay}" />
+
+                <StackPanel Orientation="Horizontal" Grid.Row="5" Visibility="{Binding DrpTester3.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
+
+                    <Button Content="Initialize" Margin="3" Command="{Binding DrpTester3.Initialize}" />
+                    <Button Content="Initialize EP host" Margin="3" Command="{Binding DrpTester3.InitializeEpHost}" />
+                    <Button Content="Initialize user" Margin="3" Command="{Binding DrpTester3.InitializeUser}"   />
+                </StackPanel>
+            </Grid>
+            
+            <TabControl Grid.Row="1" x:Name="visionGui">
+               
+                <TabItem Header="Log">
+                    <Grid>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="refresh" Command="{Binding RefreshDisplayedLogMessages}" />
+
+                                <Button Content="clear" Command="{Binding ClearLogMessages}" />
+
+                                <TextBlock Text="max count: " />
+                                <TextBox MinWidth="50" Text="{Binding LogMessagesMaxCount, Mode=TwoWay}" />
+
+                                
+                                <CheckBox IsChecked="{Binding EnableNewLogMessages, Mode=TwoWay}" Content="enable new" />
+
+
+                                <TextBlock Text="Filter:" />
+
+
+                                <TextBlock Text="Level:" />
+                                <ComboBox SelectedItem="{Binding DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding DisplayFilterMinLevels}" VerticalAlignment="Center"/>
+
+
+                                <TextBlock Text="Sources:" />
+                                <TextBox Text="{Binding DisplayFilterSourceIds, Mode=TwoWay}" Width="100"/>
+
+                                <TextBlock Text="Modules:" />
+                                <TextBox Text="{Binding DisplayFilterModuleContainsStrings, Mode=TwoWay}" Width="100"/>
+                                <TextBlock Text="exclude" />
+                                <TextBox Text="{Binding DisplayFilterModuleExcludesStrings, Mode=TwoWay}" Width="100"/>                                
+
+                                <TextBlock Text="Msg contains:" />
+                                <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="100" />
+                            </StackPanel>
+                            <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedLogMessages}" AutoGenerateColumns="False" >
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="Level" >
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
+                                    <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
+                                    <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
+                                    <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Modules">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="refresh" Command="{Binding RefreshDisplayedVisibleModules}" />
+                            <TextBlock Text="Module contains:" />
+                            <TextBox Text="{Binding VisibleModulePathContainsString, Mode=TwoWay}" Width="100" />
+                        </StackPanel>
+
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedVisibleModules}" AutoGenerateColumns="False" >
+                            <DataGrid.Columns>                          
+                                <DataGridTextColumn Header="Path" Binding="{Binding Path, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status, Mode=OneTime}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Grid>
+
+        
+    </Grid>
+</Window>

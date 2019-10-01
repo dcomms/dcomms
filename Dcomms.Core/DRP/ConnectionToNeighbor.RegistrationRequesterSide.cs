@@ -12,7 +12,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// is used to expand neighborhood
         /// </summary>
-        internal async Task<ConnectionToNeighbor> RegisterAsync(uint minimalDistanceToNeighbor)
+        internal async Task<ConnectionToNeighbor> RegisterAsync(uint minimalDistanceToNeighbor, byte numberofHops = 10)
         {
             _engine.WriteToLog_reg_requesterSide_detail($">> ConnectionToNeighbor.RegisterAsync(minimalDistanceToNeighbor={minimalDistanceToNeighbor}");
             _localDrpPeer.CurrentRegistrationOperationsCount++;
@@ -32,7 +32,7 @@ namespace Dcomms.DRP
                         RequesterRegistrationId = _localDrpPeer.Configuration.LocalPeerRegistrationId,
                         ReqTimestamp64 = _engine.Timestamp64,
                         MinimalDistanceToNeighbor = minimalDistanceToNeighbor,
-                        NumberOfHopsRemaining = 10,
+                        NumberOfHopsRemaining = numberofHops,
                         RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                         NpaSeq16 = GetNewNpaSeq16_P2P(),
                         EpEndpoint = this.RemoteEndpoint
@@ -65,7 +65,7 @@ namespace Dcomms.DRP
                     if (ack1.ResponderStatusCode != DrpResponderStatusCode.confirmed)
                     {
                         _engine.WriteToLog_reg_requesterSide_lightPain($"got ACK1 with error={ack1.ResponderStatusCode}");
-                        throw new DrpResponderRejectedException(ack1.ResponderStatusCode);
+                        throw DrpResponderRejectedException.Create(ack1.ResponderStatusCode);
                     }
 
                     _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);

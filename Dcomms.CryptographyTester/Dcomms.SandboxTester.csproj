@@ -57,7 +57,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Page Include="CryptographyTesterWindow.xaml">
+    <Page Include="SandboxTesterWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -66,8 +66,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Converters.cs" />
-    <Compile Include="CryptographyTesterWindow.xaml.cs">
-      <DependentUpon>CryptographyTesterWindow.xaml</DependentUpon>
+    <Compile Include="SandboxTesterWindow.xaml.cs">
+      <DependentUpon>SandboxTesterWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

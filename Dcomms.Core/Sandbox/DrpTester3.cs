@@ -44,7 +44,6 @@ namespace Dcomms.Sandbox
             AddEngine();
             NumberOfEngines = (NumberOfEngines ?? 0) + 1;
             RaisePropertyChanged(() => NumberOfEngines);
-
         });
 
         public int NumberOfLocalPeersToRegisterPerEngine { get; set; } = 1;
@@ -56,7 +55,8 @@ namespace Dcomms.Sandbox
             {
                 _numberOfNeighborsToKeep = String.IsNullOrEmpty(value) ? (int?)null : int.Parse(value);
                 foreach (var a in _apps)
-                    a.LocalDrpPeer.Configuration.NumberOfNeighborsToKeep = _numberOfNeighborsToKeep;
+                    if (a.LocalDrpPeer != null)
+                        a.LocalDrpPeer.Configuration.NumberOfNeighborsToKeep = _numberOfNeighborsToKeep;
                 RaisePropertyChanged(() => NumberOfNeighborsToKeep);
             }
         }

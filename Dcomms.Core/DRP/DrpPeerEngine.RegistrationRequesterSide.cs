@@ -113,7 +113,7 @@ namespace Dcomms.DRP
 
 
         /// <returns>null if registration failed with timeout or some error code</returns>
-        public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint, uint minimalDistanceToNeighbor = 0) // engine thread
+        public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint, uint minimalDistanceToNeighbor = 0, byte numberofHops = 10) // engine thread
         {
             WriteToLog_reg_requesterSide_detail($"connecting via EntryPeer {epEndpoint}");
             localDrpPeer.CurrentRegistrationOperationsCount++;
@@ -156,7 +156,7 @@ namespace Dcomms.DRP
                         RequesterRegistrationId = localDrpPeer.Configuration.LocalPeerRegistrationId,
                         ReqTimestamp64 = Timestamp64,
                         MinimalDistanceToNeighbor = minimalDistanceToNeighbor,
-                        NumberOfHopsRemaining = 10,
+                        NumberOfHopsRemaining = numberofHops,
                         RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                         NpaSeq16 = GetNewNpaSeq16_AtoEP(),
                         EpEndpoint = epEndpoint
@@ -192,7 +192,7 @@ namespace Dcomms.DRP
                     if (ack1.ResponderStatusCode != DrpResponderStatusCode.confirmed)
                     {
                         WriteToLog_reg_requesterSide_lightPain($"got ACK1 with error={ack1.ResponderStatusCode}");
-                        throw new DrpResponderRejectedException(ack1.ResponderStatusCode);
+                        throw DrpResponderRejectedException.Create(ack1.ResponderStatusCode);
                     }
 
                     // check if it matches to previously known local public IP

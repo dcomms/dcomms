@@ -2,6 +2,7 @@
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -49,6 +50,7 @@ namespace Dcomms.DRP
 
        
         DateTime? _latestConnectToNewNeighborOperationStartTimeUtc;
+        byte _numberOfHopsToExtendNeighbors = 10;
         async Task ConnectToNewNeighborIfNeededAsync(DateTime timeNowUtc)
         {
             if (ConnectedNeighbors.Count < _configuration.NumberOfNeighborsToKeep)
@@ -63,23 +65,45 @@ namespace Dcomms.DRP
                     }
 
                     _latestConnectToNewNeighborOperationStartTimeUtc = timeNowUtc;
-                   
-                    //    extend neighbors via ep (10% probability)  or via existing neighbors --- increase mindistance, from 1
-                    if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.1 || ConnectedNeighbors.Count == 0))
+
+                    try
                     {
-                        var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
-                        Engine.WriteToLog_inv_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({ConnectedNeighbors.Count} connected neighbors now)");
-                        await Engine.RegisterAsync(this, epEndpoint, 1);
-                    }
-                    else
-                    {
-                        if (ConnectedNeighbors.Count != 0)
+                        uint minDistance;
+                        if (ConnectedNeighbors.Count > 5)
+                            minDistance = (UInt32)ConnectedNeighbors.Average(c => c.RemoteRegistrationId.GetDistanceTo(CryptoLibrary, this.Configuration.LocalPeerRegistrationId).ToDouble());                      
+                        else
+                            minDistance = 1;
+
+
+                        //    extend neighbors via ep (10% probability)  or via existing neighbors --- increase mindistance, from 1
+                        if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.1 || ConnectedNeighbors.Count == 0))
                         {
-                            var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
-                            Engine.WriteToLog_inv_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)");
-                            await neighborToSendRegister.RegisterAsync(1);
+                            var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
+                            Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({ConnectedNeighbors.Count} connected neighbors now, minDistance={minDistance})");
+                            await Engine.RegisterAsync(this, epEndpoint, minDistance, _numberOfHopsToExtendNeighbors);
                         }
-                    }                   
+                        else
+                        {
+                            if (ConnectedNeighbors.Count != 0)
+                            {
+                                var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
+                                Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)");
+                                await neighborToSendRegister.RegisterAsync(minDistance, _numberOfHopsToExtendNeighbors);
+                            }
+                        }
+                    }
+                    catch (DrpResponderRejectedMaxHopsReachedException exc)
+                    {
+                        Engine.WriteToLog_reg_requesterSide_lightPain($"failed to extend neighbors for {this}: {exc}.    adjusting  numberOfHops...");
+                       
+                        if (_numberOfHopsToExtendNeighbors < 40)
+                            _numberOfHopsToExtendNeighbors = (byte)(_numberOfHopsToExtendNeighbors + 5);
+                    }
+                    catch (Exception exc)
+                    {
+                        Engine.WriteToLog_reg_requesterSide_mediumPain($"failed to extend neighbors for {this}: {exc}");
+                        _numberOfHopsToExtendNeighbors = 10;
+                    }
                 }
             }
         }

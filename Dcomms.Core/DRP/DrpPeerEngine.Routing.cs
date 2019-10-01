@@ -54,6 +54,7 @@ namespace Dcomms.DRP
             ref RegistrationIdDistance minDistance,
             ref ConnectionToNeighbor proxyToDestinationPeer, ref LocalDrpPeer acceptAt)
         {
+            var connectedNeighborsForRouting = new List<ConnectionToNeighbor>();
             foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors)
             {
                 if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
@@ -67,6 +68,13 @@ namespace Dcomms.DRP
                     continue;
                 }
 
+                connectedNeighborsForRouting.Add(connectedPeer);
+            }
+
+
+            int connectedNeighborsCountThatMatchMinDistance = 0;
+            foreach (var connectedPeer in connectedNeighborsForRouting)
+            {
                 var distanceToConnectedPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId);
                 WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterRegistrationId} to {connectedPeer.RemoteRegistrationId} (req.min={req.MinimalDistanceToNeighbor})");
                 if (req.MinimalDistanceToNeighbor != 0)
@@ -79,11 +87,30 @@ namespace Dcomms.DRP
                     }
                 }
 
+                connectedNeighborsCountThatMatchMinDistance++;
                 if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
                 {
                     minDistance = distanceToConnectedPeer;
                     proxyToDestinationPeer = connectedPeer;
                     acceptAt = null;
+                }
+            }
+
+            if (connectedNeighborsCountThatMatchMinDistance == 0 && connectedNeighborsForRouting.Count != 0)
+            {
+                // special case: we are inside the "minDistance" hypersphere: move away from the requester, proxy to most distant neighbor
+                RegistrationIdDistance maxDistance = null;
+                foreach (var connectedPeer in connectedNeighborsForRouting)
+                {         
+                    var distanceToConnectedPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId);
+                    WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterRegistrationId} to {connectedPeer.RemoteRegistrationId} (req.min={req.MinimalDistanceToNeighbor})");
+                   
+                    if (maxDistance == null || distanceToConnectedPeer.IsGreaterThan(maxDistance))
+                    {
+                        maxDistance = distanceToConnectedPeer;
+                        proxyToDestinationPeer = connectedPeer;
+                        acceptAt = null;
+                    }
                 }
             }
 

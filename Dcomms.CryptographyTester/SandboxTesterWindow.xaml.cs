@@ -1,4 +1,5 @@
-﻿using Dcomms.Vision;
+﻿using Dcomms.Sandbox;
+using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -24,15 +25,35 @@ namespace Dcomms.CryptographyTester
     {
         VisionChannel1 VisionChannel { get; set; } = new VisionChannel1();
 
-        readonly Dcomms.CryptographyTester1 _tester; 
+        readonly SandboxTester1 _tester;
+
+        Timer _timer;
         public CryptographyTesterMainWindow()
         {
-            _tester = new CryptographyTester1(VisionChannel);
+            _tester = new SandboxTester1(VisionChannel);
             InitializeComponent();
             this.DataContext = _tester;
             visionGui.DataContext = VisionChannel;
 
             this.Closed += CryptographyTesterMainWindow_Closed;
+
+
+            _timer = new Timer((o) =>
+            {
+                this.Dispatcher.Invoke(() =>
+                {
+                    if (increaseNumberOfEnginesOnTimer.IsChecked == true)
+                    {
+                        _tester.DrpTester3.IncreaseNumberOfEngines.Execute(null);
+                    }
+                });
+            }, null, 0, 3000);
+            this.Closed += CryptographyTesterMainWindow_Closed1;
+        }
+
+        private void CryptographyTesterMainWindow_Closed1(object sender, EventArgs e)
+        {
+            _timer.Dispose();
         }
 
         private void CryptographyTesterMainWindow_Closed(object sender, EventArgs e)

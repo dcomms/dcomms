@@ -12,12 +12,12 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace Dcomms
+namespace Dcomms.Sandbox
 {
-    public class CryptographyTester1 : BaseNotify, IDisposable
+    public class SandboxTester1 : BaseNotify, IDisposable
     {
         readonly VisionChannel _visionChannel;
-        public CryptographyTester1(VisionChannel visionChannel)
+        public SandboxTester1(VisionChannel visionChannel)
         {
             _visionChannel = visionChannel;
         }

@@ -54,6 +54,9 @@ namespace Dcomms.Vision
         }
 
         public LinkedList<LogMessage> _logMessages = new LinkedList<LogMessage>(); // locked // from oldest to newest
+        public bool EnableNewLogMessages { get; set; } = true;
+        public int LogMessagesMaxCount { get; set; } = 500000;
+
         readonly Stopwatch _sw = Stopwatch.StartNew();
         readonly DateTime _started = DateTime.Now;
 
@@ -61,6 +64,7 @@ namespace Dcomms.Vision
         DateTime TimeNow => _started + _sw.Elapsed;
         public override void Emit(string sourceId, string moduleName, AttentionLevel level, string message)
         {
+            if (!EnableNewLogMessages) return;
             var msg = new LogMessage
             {
                 AttentionLevel = level,
@@ -71,7 +75,11 @@ namespace Dcomms.Vision
                 Message = message
             };
             lock (_logMessages)
+            {
                 _logMessages.AddLast(msg);
+                while (_logMessages.Count > LogMessagesMaxCount)
+                    _logMessages.RemoveFirst();
+            }
         }
         public ICommand RefreshDisplayedLogMessages => new DelegateCommand(() =>
         {

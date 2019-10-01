@@ -109,48 +109,6 @@ namespace Dcomms.DRP.Packets
 
 
 
-    class DrpTimeoutException : ApplicationException // next hop or EP, or whatever responder timed out
-    {
-        public DrpTimeoutException(string message = "Timeout while waiting for response")
-            : base(message)
-        {
-
-        }
-
-    }
-    class NextHopRejectedException : ApplicationException
-    {
-        public NextHopRejectedException(NextHopResponseCode responseCode)
-            : base($"Next hop rejected request with status = {responseCode}")
-        {
-
-        }
-    }
-    class NextHopRejectedExceptionServiceUnavailable : NextHopRejectedException
-    {
-        public NextHopRejectedExceptionServiceUnavailable() : base(NextHopResponseCode.rejected_serviceUnavailable)
-        { }
-    }
-  
-    class Pow1RejectedException : ApplicationException
-    {
-        public Pow1RejectedException(RegisterPow1ResponseStatusCode responseCode)
-            : base($"EP rejected PoW1 request with status = {responseCode}")
-        {
-
-        }
-    }
-
-
-    class DrpResponderRejectedException : ApplicationException
-    {
-        public DrpResponderRejectedException(DrpResponderStatusCode responseCode)
-            : base($"Responder rejected request with status = {responseCode}")
-        {
-
-        }
-    }
-
     /// <summary>
     /// gets copied from request/response packets  to "neighborPeerACK" packet
     /// </summary>

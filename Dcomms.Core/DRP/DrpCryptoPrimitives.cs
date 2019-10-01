@@ -107,6 +107,8 @@ namespace Dcomms.DRP
         }
 
         public override string ToString() => ((float)_distance_sumSqr).ToString("E02");
+        public double ToDouble() => Math.Sqrt(_distance_sumSqr);
+
     }
 
 
