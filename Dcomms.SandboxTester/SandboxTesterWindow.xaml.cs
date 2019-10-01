@@ -19,16 +19,16 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Dcomms.CryptographyTester
+namespace Dcomms.SandboxTester
 {
-    public partial class CryptographyTesterMainWindow : Window
+    public partial class SandboxTesterMainWindow : Window
     {
         VisionChannel1 VisionChannel { get; set; } = new VisionChannel1();
 
         readonly SandboxTester1 _tester;
 
         Timer _timer;
-        public CryptographyTesterMainWindow()
+        public SandboxTesterMainWindow()
         {
             _tester = new SandboxTester1(VisionChannel);
             InitializeComponent();

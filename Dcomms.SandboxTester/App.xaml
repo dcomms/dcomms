@@ -1,7 +1,7 @@
-﻿<Application x:Class="Dcomms.CryptographyTester.App"
+﻿<Application x:Class="Dcomms.SandboxTester.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:Dcomms.CryptographyTester"
+             xmlns:local="clr-namespace:Dcomms.SandboxTester"
              StartupUri="CryptographyTesterWindow.xaml">
     <Application.Resources>
 
