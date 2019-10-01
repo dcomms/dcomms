@@ -198,6 +198,16 @@ namespace Dcomms.Sandbox
             RaisePropertyChanged(() => DrpTester3Visible);
         });
 
+        public DrpDistanceTester DrpDistanceTester { get; private set; }
+        public bool DrpDistanceTesterVisible => DrpDistanceTester != null;
+        public DelegateCommand CreateDrpDistanceTester => new DelegateCommand(() =>
+        {
+            if (DrpDistanceTester != null) throw new InvalidOperationException();
+            DrpDistanceTester = new DrpDistanceTester(_visionChannel);
+            RaisePropertyChanged(() => DrpDistanceTester);
+            RaisePropertyChanged(() => DrpDistanceTesterVisible);
+        });
+
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
         {
            // var t = new UniqueDataTracker();

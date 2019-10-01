@@ -48,3 +48,5 @@
 /Dcomms.PocTest1/Dcomms.PocTest1.iOS/obj
 /Dcomms.PocTest1/Dcomms.PocTest1/bin/Release/netstandard2.0
 /Dcomms.PocTest1/Dcomms.PocTest1.Android/bin/Release
+/Dcomms.SandboxTester/bin
+/Dcomms.SandboxTester/obj

@@ -125,7 +125,7 @@ namespace Dcomms.DRP
         public RegistrationPrivateKey LocalPeerRegistrationPrivateKey { get; private set; }
         public int? NumberOfNeighborsToKeep;
         public static LocalDrpPeerConfiguration CreateWithNewKeypair(ICryptoLibrary cryptoLibrary)
-        {;
+        {
             var privatekey = new RegistrationPrivateKey { ed25519privateKey = cryptoLibrary.GeneratePrivateKeyEd25519() };
             return new LocalDrpPeerConfiguration
             {

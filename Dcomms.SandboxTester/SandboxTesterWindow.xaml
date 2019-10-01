@@ -4,8 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Dcomms.SandboxTester"
+        WindowStartupLocation="CenterScreen"
         mc:Ignorable="d"
-        Title="Dcomms Cryptography Tester" Height="450" Width="800">
+        Title="Dcomms Cryptography Tester" Height="750" Width="1200">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -32,6 +33,7 @@
 
                 <Button Command="{Binding CreateDrpTester2}" Content="CreateDrpTester2" />
                 <Button Command="{Binding CreateDrpTester3}" Content="CreateDrpTester3" />
+                <Button Command="{Binding CreateDrpDistanceTester}" Content="CreateDrpDistanceTester" />
                 
 
             </StackPanel>
@@ -86,7 +88,29 @@
                     <Button Content="Initialize user" Margin="3" Command="{Binding DrpTester3.InitializeUser}"   />
                 </StackPanel>
             </Grid>
-            
+
+            <Grid Visibility="{Binding DrpDistanceTesterVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" MinWidth="190"/>
+                </Grid.ColumnDefinitions>
+
+
+                <TextBlock Grid.Row="0" Text="number of peers:" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfPeers, Mode=TwoWay}" />
+                <TextBlock Grid.Row="1" Text="number of neighbors:" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfNeighbors, Mode=TwoWay}" />
+
+                <StackPanel Orientation="Horizontal" Grid.Row="2" >
+                    <Button Content="Test" Margin="3" Command="{Binding DrpDistanceTester.Test}" />
+                </StackPanel>
+            </Grid>
+
             <TabControl Grid.Row="1" x:Name="visionGui">
                
                 <TabItem Header="Log">
