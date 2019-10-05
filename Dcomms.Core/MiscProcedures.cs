@@ -280,10 +280,11 @@ namespace Dcomms
                 int l = a.Length;
                 int r = 0;
                 for (int i = 0; i < l / 4; i++, x += 4)
-                    r ^= *((int*)x);                
+                    r ^= *((int*)x);
                 return r;
             }
         }
+        public static string GetArrayHashCodeString(byte[] a) => String.Format("{0:X8}", GetArrayHashCode(a));
 
         public static unsafe bool EqualByteArrayHeader(byte[] header, byte[] array, int? ignoreByteAtOffset1)
         {

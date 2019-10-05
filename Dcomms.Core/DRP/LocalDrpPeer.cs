@@ -77,7 +77,7 @@ namespace Dcomms.DRP
                     {
                         uint minDistance;
                         if (ConnectedNeighbors.Count > 5)
-                            minDistance = (UInt32)ConnectedNeighbors.Average(c => c.RemoteRegistrationId.GetDistanceTo(CryptoLibrary, this.Configuration.LocalPeerRegistrationId).ToDouble());                      
+                            minDistance = (UInt32)(ConnectedNeighbors.Average(c => c.RemoteRegistrationId.GetDistanceTo(CryptoLibrary, this.Configuration.LocalPeerRegistrationId).ToDouble()) * 0.4);                      
                         else
                             minDistance = 1;
 

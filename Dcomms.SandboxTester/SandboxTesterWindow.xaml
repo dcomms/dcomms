@@ -150,7 +150,7 @@
                                 <TextBox Text="{Binding DisplayFilterSourceIds, Mode=TwoWay}" Width="100"/>
 
                                 <TextBlock Text="Modules:" />
-                                <TextBox Text="{Binding DisplayFilterModuleContainsStrings, Mode=TwoWay}" Width="100"/>
+                                <TextBox Text="{Binding DisplayFilterModuleContainsStrings, Mode=TwoWay}" Width="200"/>
                                 <TextBlock Text="exclude" />
                                 <TextBox Text="{Binding DisplayFilterModuleExcludesStrings, Mode=TwoWay}" Width="100"/>                                
 
@@ -187,7 +187,7 @@
                         <StackPanel Orientation="Horizontal">
                             <Button Content="refresh" Command="{Binding RefreshDisplayedVisibleModules}" />
                             <TextBlock Text="Module contains:" />
-                            <TextBox Text="{Binding VisibleModulePathContainsString, Mode=TwoWay}" Width="100" />
+                            <TextBox Text="{Binding VisibleModulePathContainsString, Mode=TwoWay}" Width="400" />
                         </StackPanel>
 
                         <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedVisibleModules}" AutoGenerateColumns="False" >

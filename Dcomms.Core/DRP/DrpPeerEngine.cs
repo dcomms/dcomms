@@ -114,7 +114,7 @@ namespace Dcomms.DRP
         void ProcessReceivedUdpPacket(IPEndPoint remoteEndpoint, byte[] udpData) // receiver thread
         {
             var packetType = (DrpDmpPacketTypes)udpData[0];
-            WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint} ({udpData.Length} bytes)");
+            WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint} ({udpData.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpData)})");
             if (packetType == DrpDmpPacketTypes.RegisterPow1Request)
             {
                 ProcessRegisterPow1RequestPacket(remoteEndpoint, udpData);

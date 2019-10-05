@@ -80,7 +80,7 @@ namespace Dcomms.DRP
             if (udpPayload.Length > 548)
                 throw new ArgumentException("Transmitted UDP packet size is too big to bypass internet safely without fragmentation");
             _socket.Send(udpPayload, udpPayload.Length, remoteEndpoint);
-            WriteToLog_udp_detail($"sent packet {(DrpDmpPacketTypes)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes)");
+            WriteToLog_udp_detail($"sent packet {(DrpDmpPacketTypes)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpPayload)})");
         }
         internal async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
         {

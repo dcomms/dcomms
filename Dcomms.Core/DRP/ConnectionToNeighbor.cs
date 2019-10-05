@@ -409,6 +409,7 @@ namespace Dcomms.DRP
         }
         internal void OnReceivedPong(IPEndPoint remoteEndpoint, byte[] udpData, DateTime receivedAtUtc) // engine thread
         {
+            _engine.WriteToLog_p2p_detail(this, "received PONG");
             if (_disposed) return;
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
             {
@@ -435,9 +436,20 @@ namespace Dcomms.DRP
         }
         internal void OnReceivedPing(IPEndPoint remoteEndpoint, byte[] udpData) // engine thread
         {
-            if (_disposed) return;
+            _engine.WriteToLog_p2p_detail(this, "received PING");
+            if (_disposed)
+            {
+                _engine.WriteToLog_p2p_detail(this, "ignoring PING: conenction is disposed");
+                return;
+            }
+            if (this.RemoteEndpoint == null)
+            {
+                _engine.WriteToLog_p2p_detail(this, "ignoring PING: correct remote endpoint is unknown yet");
+                return;
+            }
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
             {
+                _engine.WriteToLog_p2p_lightPain(this, $"ignoring PING: bad source endpoint {remoteEndpoint}, correct is {this.RemoteEndpoint}");
                 _engine.OnReceivedUnauthorizedSourceIpPacket(remoteEndpoint);
                 return;
             }

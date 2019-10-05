@@ -68,6 +68,12 @@ namespace Dcomms.DRP
                     continue;
                 }
 
+                if (req.RequesterRegistrationId.Ed25519publicKey.Equals(connectedPeer.RemoteRegistrationId))
+                {
+                    WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}");
+                    continue;
+                }
+
                 connectedNeighborsForRouting.Add(connectedPeer);
             }
 
@@ -115,7 +121,11 @@ namespace Dcomms.DRP
             }
 
             // dont connect to local peer if already connected
-            if (localDrpPeer.ConnectedNeighbors.Any(x => x.RemoteRegistrationId.Equals(req.RequesterRegistrationId)) == true)
+            if (localDrpPeer.Configuration.LocalPeerRegistrationId.Equals(req.RequesterRegistrationId) == true)
+            {
+                WriteToLog_routing_detail($"not accepting request at local peer: it has same regID {req.RequesterRegistrationId}");
+            }
+            else if (localDrpPeer.ConnectedNeighbors.Any(x => x.RemoteRegistrationId.Equals(req.RequesterRegistrationId)) == true)
             {
                 WriteToLog_routing_detail($"not accepting request at local peer: already connected to {req.RequesterRegistrationId}");
             }
