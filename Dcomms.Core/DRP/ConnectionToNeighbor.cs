@@ -287,7 +287,11 @@ namespace Dcomms.DRP
       //  List<TxInviteRequestState> PendingTxInviteRequests;
 
         DateTime? _lastTimeSentPingRequest;
-        DateTime _lastTimeCreatedOrReceivedVerifiedResponsePacket; // is updated when received "alive" signal from remote peer: ping response or ...
+        DateTime _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket; // is updated when received "alive" signal from remote peer: ping response or ...
+        internal void OnP2pInitialized()
+        {
+            _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket = _engine.DateTimeNowUtc;
+        }
         readonly DrpPeerEngine _engine;
         internal DrpPeerEngine Engine => _engine;
         readonly LocalDrpPeer _localDrpPeer;
@@ -301,7 +305,7 @@ namespace Dcomms.DRP
             _seq16Counter_P2P = (ushort)_insecureRandom.Next(ushort.MaxValue);
             _localDrpPeer = localDrpPeer;
             _engine = engine;
-            _lastTimeCreatedOrReceivedVerifiedResponsePacket = _engine.DateTimeNowUtc;
+            _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket = _engine.DateTimeNowUtc;
             InitiatedBy = initiatedBy;
             NeighborToken32 localRxToken32 = null;
             for (int i = 0; i < 100; i++)
@@ -356,7 +360,7 @@ namespace Dcomms.DRP
             try
             {
                 // remove timed out connected peers (neighbors)
-                if (timeNowUTC > _lastTimeCreatedOrReceivedVerifiedResponsePacket + _engine.Configuration.ConnectedPeersRemovalTimeout)
+                if (timeNowUTC > _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket + _engine.Configuration.ConnectedPeersRemovalTimeout)
                 {
                     _engine.WriteToLog_p2p_lightPain(this, "disposing connection to neighbor: ping response timer has expired");
                     this.Dispose(); // remove dead connected peers (no reply to ping)
@@ -365,7 +369,7 @@ namespace Dcomms.DRP
                 }
 
                 // send ping requests  when idle (no other "alive" signals from remote peer)
-                if (timeNowUTC > _lastTimeCreatedOrReceivedVerifiedResponsePacket + _engine.Configuration.PingRequestsInterval)
+                if (timeNowUTC > _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket + _engine.Configuration.PingRequestsInterval)
                 {
                   //  if (_latestPingPongDelay_RTT == null) throw new InvalidOperationException("_latestPingPongDelay = null");
                    
@@ -391,7 +395,7 @@ namespace Dcomms.DRP
         }
         internal void OnReceivedVerifiedPong(PongPacket pong, DateTime responseReceivedAtUTC, TimeSpan? requestResponseDelay)
         {
-            _lastTimeCreatedOrReceivedVerifiedResponsePacket = responseReceivedAtUTC;
+            _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket = responseReceivedAtUTC;
             _latestReceivedPong = pong;
             _engine.WriteToLog_p2p_detail(this, "verified pong");
           

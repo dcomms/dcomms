@@ -54,7 +54,7 @@ namespace Dcomms.Sandbox
                 //var app = _xList.First(x => x.LocalDrpPeer?.ConnectedNeighbors?.Count < 2);
 
                 _visionChannel.Emit(app.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"extending neighbors...");
-                app.DrpPeerRegistrationConfiguration.NumberOfNeighborsToKeep = 7;
+                app.DrpPeerRegistrationConfiguration.NumberOfNeighborsToKeep = 20;
             }, null, 0, 1000);
         }
         
@@ -74,7 +74,7 @@ namespace Dcomms.Sandbox
            
             _ep.BeginCreateLocalPeer(epLocalDrpPeerConfig, new DrpTesterPeerApp(_ep, epLocalDrpPeerConfig), (rpLocalPeer) =>
             {
-                for (int i = 0; i < 30; i++)
+                for (int i = 0; i < 100; i++)
                 {
                     var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
                     {

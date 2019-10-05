@@ -39,6 +39,13 @@ namespace Dcomms.DRP
             engine.Configuration.VisionChannel?.RegisterVisibleModule(engine.Configuration.VisionChannelSourceId, this.ToString(), this);
         }
         public List<ConnectionToNeighbor> ConnectedNeighbors = new List<ConnectionToNeighbor>();
+        public void AddToConnectedNeighbors(ConnectionToNeighbor newConnectedNeighbor)
+        {
+            newConnectedNeighbor.OnP2pInitialized();
+            ConnectedNeighbors.Add(newConnectedNeighbor);
+
+            Engine.WriteToLog_p2p_higherLevelDetail(newConnectedNeighbor, $"added new connection to list of neighbors: {newConnectedNeighbor.RemoteRegistrationId} to {newConnectedNeighbor.RemoteEndpoint}");
+        }
         public int CurrentRegistrationOperationsCount;
 
 
@@ -50,7 +57,7 @@ namespace Dcomms.DRP
 
        
         DateTime? _latestConnectToNewNeighborOperationStartTimeUtc;
-        byte _numberOfHopsToExtendNeighbors = 10;
+        byte _numberOfHopsToExtendNeighbors = 30;
         async Task ConnectToNewNeighborIfNeededAsync(DateTime timeNowUtc)
         {
             if (ConnectedNeighbors.Count < _configuration.NumberOfNeighborsToKeep)
@@ -96,13 +103,13 @@ namespace Dcomms.DRP
                     {
                         Engine.WriteToLog_reg_requesterSide_lightPain($"failed to extend neighbors for {this}: {exc}.    adjusting  numberOfHops...");
                        
-                        if (_numberOfHopsToExtendNeighbors < 40)
+                        if (_numberOfHopsToExtendNeighbors < 50)
                             _numberOfHopsToExtendNeighbors = (byte)(_numberOfHopsToExtendNeighbors + 5);
                     }
                     catch (Exception exc)
                     {
                         Engine.WriteToLog_reg_requesterSide_mediumPain($"failed to extend neighbors for {this}: {exc}");
-                        _numberOfHopsToExtendNeighbors = 10;
+                        _numberOfHopsToExtendNeighbors = 30;
                     }
                 }
             }

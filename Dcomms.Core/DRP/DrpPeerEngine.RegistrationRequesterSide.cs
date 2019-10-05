@@ -240,8 +240,7 @@ namespace Dcomms.DRP
                         WriteToLog_reg_requesterSide_detail($"... awaiting is complete");
                     }
 
-                    localDrpPeer.ConnectedNeighbors.Add(newConnectionToNeighbor);
-                    WriteToLog_reg_requesterSide_higherLevelDetail($"added new connection to list of neighbors: {ack1.ResponderRegistrationId} to {newConnectionToNeighbor.RemoteEndpoint}");
+                    localDrpPeer.AddToConnectedNeighbors(newConnectionToNeighbor);
 
                     #region send ping request directly to neighbor N, retransmit               
                     var pingRequest = newConnectionToNeighbor.CreatePing(true);

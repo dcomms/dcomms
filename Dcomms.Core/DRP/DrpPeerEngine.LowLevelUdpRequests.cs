@@ -109,8 +109,9 @@ namespace Dcomms.DRP
                     continue;
                 }
                 else if (request.RequestPacketDataNullable != null && timeNowUTC > request.NextRetransmissionTimeUTC)
-                {                 
-                    WriteToLog_udp_lightPain($"retransmitting request {request}");
+                {          
+                    if (request.RetransmissionsCount < 2) WriteToLog_udp_detail($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");
+                    else WriteToLog_udp_lightPain($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");
                     request.OnRetransmitted();
                     SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);  
                 }
@@ -248,11 +249,13 @@ namespace Dcomms.DRP
             r += $", timeout={_expirationTimeoutS}s";
             return r;
         }
+        public int RetransmissionsCount { get; private set; }
         public void OnRetransmitted()
         {
             if (NextRetransmissionTimeUTC == null) throw new InvalidOperationException();
             _currentRetransmissionTimeoutS *= _retransmissionTimeoutIncrement;
             NextRetransmissionTimeUTC = NextRetransmissionTimeUTC.Value.AddSeconds(_currentRetransmissionTimeoutS.Value);
+            RetransmissionsCount++;
         }
         readonly double? _retransmissionTimeoutIncrement;
         public DateTime? InitialTxTimeUTC;

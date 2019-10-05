@@ -53,9 +53,14 @@ namespace Dcomms.DRP
         public RegistrationIdDistance GetDistanceTo(ICryptoLibrary cryptoLibrary, RegistrationId another) => new RegistrationIdDistance(cryptoLibrary, this, another);
        
     }
+
+
     public class RegistrationIdDistance
     {
-        Int64 _distance_sumSqr; // 32 bytes of reg. public key: split into 16 dimensions of 2 bytes //   euclidean distance
+        public static int NumberOfDimensions = 8;
+
+
+        double _distance_sumSqr; // 32 bytes of reg. public key: split into 16 dimensions of 2 bytes //   euclidean distance
         public unsafe RegistrationIdDistance(ICryptoLibrary cryptoLibrary, RegistrationId rpk1, RegistrationId rpk2)
         {
             if (rpk1.CachedEd25519publicKeySha256 == null) rpk1.CachedEd25519publicKeySha256 = cryptoLibrary.GetHashSHA256(rpk1.Ed25519publicKey);
@@ -65,19 +70,36 @@ namespace Dcomms.DRP
 
             if (rpk1_ed25519publicKey_sha256.Length != rpk2_ed25519publicKey_sha256.Length) throw new ArgumentException();
             _distance_sumSqr = 0;
-            fixed (byte* rpk1a = rpk1_ed25519publicKey_sha256, rpk2a = rpk2_ed25519publicKey_sha256)                
+
+            if (NumberOfDimensions == 16)
             {
-                ushort* rpk1aPtr = (ushort*)rpk1a, rpk2aPtr = (ushort*)rpk2a;
-                int l = rpk1_ed25519publicKey_sha256.Length / 2;
-                for (int i = 0; i < l; i++, rpk1aPtr++, rpk2aPtr++)
+                fixed (byte* rpk1a = rpk1_ed25519publicKey_sha256, rpk2a = rpk2_ed25519publicKey_sha256)
                 {
-                    var d_i = VectorComponentRoutine(*rpk1aPtr, *rpk2aPtr);
-                    _distance_sumSqr += d_i * d_i;
-                    
+                    ushort* rpk1aPtr = (ushort*)rpk1a, rpk2aPtr = (ushort*)rpk2a;
+                    int l = rpk1_ed25519publicKey_sha256.Length / 2;
+                    for (int i = 0; i < l; i++, rpk1aPtr++, rpk2aPtr++)
+                    {
+                        var d_i = VectorComponentRoutine(*rpk1aPtr, *rpk2aPtr);
+                        _distance_sumSqr += d_i * d_i;
+                    }
                 }
-            }           
+            }
+            else if (NumberOfDimensions == 8)
+            {
+                fixed (byte* rpk1a = rpk1_ed25519publicKey_sha256, rpk2a = rpk2_ed25519publicKey_sha256)
+                {
+                    uint* rpk1aPtr = (uint*)rpk1a, rpk2aPtr = (uint*)rpk2a;
+                    int l = rpk1_ed25519publicKey_sha256.Length / 4;
+                    for (int i = 0; i < l; i++, rpk1aPtr++, rpk2aPtr++)
+                    {
+                        var d_i = VectorComponentRoutine(*rpk1aPtr, *rpk2aPtr);
+                        _distance_sumSqr += d_i * d_i;
+                    }
+                }
+            }
+            else throw new NotImplementedException();
         }
-        public static int VectorComponentRoutine(ushort vector1_i, ushort vector2_i)
+        public static double VectorComponentRoutine(ushort vector1_i, ushort vector2_i)
         {
             int r;
             if (vector2_i > vector1_i) r = vector2_i - vector1_i;
@@ -92,11 +114,17 @@ namespace Dcomms.DRP
                  -32767   32768     1
                   32767  -32767     2
              */
-
-            // int distance_i = Math.Abs(unchecked(*vector1_i - *vector2_i));
-
-            // return distance_i;
         }
+
+        public static double VectorComponentRoutine(uint vector1_i, uint vector2_i)
+        {
+            double r;
+            if (vector2_i > vector1_i) r = (double)vector2_i - (double)vector1_i;
+            else r = (double)vector1_i - (double)vector2_i;
+            if (r > (double)Int32.MaxValue) r = (double)UInt32.MaxValue - r;
+            return r;
+        }
+
         public bool IsGreaterThan(RegistrationIdDistance another)
         {
             return this._distance_sumSqr > another._distance_sumSqr;

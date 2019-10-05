@@ -34,8 +34,6 @@
                 <Button Command="{Binding CreateDrpTester2}" Content="CreateDrpTester2" />
                 <Button Command="{Binding CreateDrpTester3}" Content="CreateDrpTester3" />
                 <Button Command="{Binding CreateDrpDistanceTester}" Content="CreateDrpDistanceTester" />
-                
-
             </StackPanel>
         </StackPanel>
 
@@ -94,6 +92,8 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -103,10 +103,16 @@
 
                 <TextBlock Grid.Row="0" Text="number of peers:" />
                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfPeers, Mode=TwoWay}" />
-                <TextBlock Grid.Row="1" Text="number of neighbors:" />
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfNeighbors, Mode=TwoWay}" />
-
-                <StackPanel Orientation="Horizontal" Grid.Row="2" >
+                <TextBlock Grid.Row="1" Text="number of entry peers:" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfEntryPeers, Mode=TwoWay}" />
+                
+                
+                <TextBlock Grid.Row="2" Text="number of neighbors:" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfNeighbors, Mode=TwoWay}" />
+                <TextBlock Grid.Row="3" Text="number of dimensions:" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfDimensions, Mode=TwoWay}" />
+                
+                <StackPanel Orientation="Horizontal" Grid.Row="4" >
                     <Button Content="Test" Margin="3" Command="{Binding DrpDistanceTester.Test}" />
                 </StackPanel>
             </Grid>

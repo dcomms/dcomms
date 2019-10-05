@@ -45,11 +45,19 @@ namespace Dcomms.DRP
                 return;
             }
 
-            RecentUniqueAcceptedRegistrationRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
+            if (!RecentUniqueAcceptedRegistrationRequests.Filter(req.GetUniqueRequestIdFields))
+            {
+                WriteToLog_reg_responderSide_needsAttention($"ignoring registration request {req.RequesterRegistrationId} ts={req.ReqTimestamp64} from {requesterEndpoint} with non-unique request ID fields");
+                return;
+            }
 
-            WriteToLog_reg_responderSide_higherLevelDetail($"accepting registration from {requesterEndpoint}: NpaSeq16={req.NpaSeq16}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, epEndpoint={req.EpEndpoint}, sourcePeer={sourcePeer}");
+            WriteToLog_reg_responderSide_higherLevelDetail($"accepting registration from {requesterEndpoint}: NpaSeq16={req.NpaSeq16}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, epEndpoint={req.EpEndpoint}, sourcePeer={sourcePeer}, ts={req.ReqTimestamp64}");
 
-            RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+            if (!RecentUniquePublicEcdhKeys.Filter(req.RequesterEcdhePublicKey.Ecdh25519PublicKey))
+            {
+                WriteToLog_reg_responderSide_needsAttention($"ignoring registration request {req.RequesterRegistrationId} from {requesterEndpoint} with non-unique RequesterEcdhePublicKey");
+                return;
+            }
 
             _pendingRegisterRequests.Add(req.RequesterRegistrationId);
             try
@@ -105,10 +113,9 @@ namespace Dcomms.DRP
 
                     WriteToLog_reg_responderSide_detail($"received ACK2");
                     var ack2 = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(ack2UdpData, req, ack1, newConnectionToNeighbor);
-
                     WriteToLog_reg_responderSide_detail($"verified ACK2");
-                    acceptAt.ConnectedNeighbors.Add(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A    
-                    WriteToLog_reg_responderSide_higherLevelDetail($"added new connection to list of neighbors: {req.RequesterRegistrationId} from {requesterEndpoint}");
+
+                    acceptAt.AddToConnectedNeighbors(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A    
 
                     SendNeighborPeerAckResponseToRegisterAck2(ack2, requesterEndpoint, sourcePeer); // send NPACK to ACK
 

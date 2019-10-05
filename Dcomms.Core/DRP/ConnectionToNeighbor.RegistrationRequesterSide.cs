@@ -104,7 +104,7 @@ namespace Dcomms.DRP
                         await _engine.EngineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(neighborWaitTimeMs)); // wait until the ACK2 reaches neighbor N via peers
                     }
 
-                    _localDrpPeer.ConnectedNeighbors.Add(newConnectionToNeighbor);
+                    _localDrpPeer.AddToConnectedNeighbors(newConnectionToNeighbor);
 
                     #region send ping request directly to neighbor N, retransmit               
                     var pingRequest = newConnectionToNeighbor.CreatePing(true);

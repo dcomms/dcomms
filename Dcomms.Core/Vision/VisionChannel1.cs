@@ -12,7 +12,7 @@ namespace Dcomms.Vision
     public class VisionChannel1 : VisionChannel, INotifyPropertyChanged
     {
 
-        public AttentionLevel DisplayFilterMinLevel { get; set; }
+        public AttentionLevel DisplayFilterMinLevel { get; set; } = AttentionLevel.needsAttention;
         public IEnumerable<AttentionLevel> DisplayFilterMinLevels => Enum.GetValues(typeof(AttentionLevel)).Cast<AttentionLevel>();
 
 
