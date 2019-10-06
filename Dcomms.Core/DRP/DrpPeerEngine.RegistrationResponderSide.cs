@@ -197,6 +197,22 @@ namespace Dcomms.DRP
             RespondToRequestAndRetransmissions(req.DecodedUdpPayloadData, npAckUdpData, requesterEndpoint);
 
         }
+        internal void SendServiceUnavailableResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, 
+            ConnectionToNeighbor neighbor, bool alreadyRepliedWithNPA)
+        {
+            WriteToLog_routing_higherLevelDetail($"routing failed, executing SendServiceUnavailableResponseToRegisterReq()");
+            if (alreadyRepliedWithNPA)
+            {
+                // send ack1
+                _ = RespondToSourcePeerWithAck1_Error(requesterEndpoint, req, neighbor, DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable);
+            }
+            else
+            {
+                // send NPACK
+                SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, neighbor);
+            }
+        }
+
         internal void SendNeighborPeerAckResponseToRegisterAck1(RegisterAck1Packet ack1, ConnectionToNeighbor neighbor)
         {
             var npAck = new NeighborPeerAckPacket

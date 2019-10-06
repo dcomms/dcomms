@@ -30,6 +30,11 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p) <= AttentionLevel.detail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p, AttentionLevel.detail, $"[{connectionToNeighbor}] {message}");
         }
+        internal void WriteToLog_p2p_needsAttention(ConnectionToNeighbor connectionToNeighbor, string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p) <= AttentionLevel.needsAttention)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p, AttentionLevel.needsAttention, $"[{connectionToNeighbor}] {message}");
+        }
         internal void WriteToLog_p2p_higherLevelDetail(ConnectionToNeighbor connectionToNeighbor, string message)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p) <= AttentionLevel.higherLevelDetail)

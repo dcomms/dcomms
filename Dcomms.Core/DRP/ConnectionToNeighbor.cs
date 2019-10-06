@@ -270,7 +270,11 @@ namespace Dcomms.DRP
         /// </summary>
         readonly Random _insecureRandom = new Random();
         ushort _seq16Counter_P2P; // accessed only by engine thread
-        internal NeighborPeerAckSequenceNumber16 GetNewNpaSeq16_P2P() => new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_P2P++ };
+        internal NeighborPeerAckSequenceNumber16 GetNewNpaSeq16_P2P()
+        {
+            AssertIsNotDisposed();
+            return new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_P2P++ };
+        }
 
         // IirFilterCounter RxInviteRateRps;
         IirFilterCounter RxRegisterRateRps;
@@ -497,10 +501,11 @@ namespace Dcomms.DRP
 
                 var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
                 bool checkRecentUniqueProxiedRegistrationRequests = true;
+                bool alreadyRepliedWithNPA = false;
 _retry:
                 if (!_engine.RouteRegistrationRequest(this.LocalDrpPeer, this, alreadyTriedProxyingToDestinationPeers, req, out var proxyToDestinationPeer, out var acceptAt)) // routing
                 { // no route found
-                    _engine.SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, this);
+                    _engine.SendServiceUnavailableResponseToRegisterReq(req, requesterEndpoint, this, alreadyRepliedWithNPA);
                     return;
                 }
 
@@ -516,6 +521,7 @@ _retry:
                         alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
                         _engine.WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}");
                         checkRecentUniqueProxiedRegistrationRequests = false;
+                        alreadyRepliedWithNPA = true;
                         goto _retry;
                     }
                 }

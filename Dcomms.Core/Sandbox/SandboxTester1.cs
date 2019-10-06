@@ -185,8 +185,16 @@ namespace Dcomms.Sandbox
         {
             if (_drpTester2 != null) throw new InvalidOperationException();
             _drpTester2 = new DrpTester2(_visionChannel);
+            RaisePropertyChanged(() => DrpTester2IsCreated);
         });
-
+        public DelegateCommand DestroyDrpTester2 => new DelegateCommand(() =>
+        {
+            if (_drpTester2 == null) throw new InvalidOperationException();
+            _drpTester2.Dispose();
+            _drpTester2 = null;
+            RaisePropertyChanged(() => DrpTester2IsCreated);
+        });
+        public bool DrpTester2IsCreated => _drpTester2 != null;
 
         public DrpTester3 DrpTester3 { get; private set; }
         public bool DrpTester3Visible => DrpTester3 != null;

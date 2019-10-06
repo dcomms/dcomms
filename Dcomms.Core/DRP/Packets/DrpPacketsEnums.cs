@@ -11,11 +11,12 @@ namespace Dcomms.DRP.Packets
     {
         confirmed = 0,
 
-     //   rejected_badSenderRating,
-     //   rejected_badtimestamp,
+        //   rejected_badSenderRating,
+        //   rejected_badtimestamp,
         rejected_maxhopsReached = 1,
-     //   rejected_noGoodPeers, // timed out or dead end in IDspace
-     //   rejected_userBusyForInvite
+        rejected_p2pNetworkServiceUnavailable = 2, // at some peer in proxy chain got NPA error=serviceUnavailable, while already responded with NPA=confirmed
+        //   rejected_noGoodPeers, // timed out or dead end in IDspace
+        //   rejected_userBusyForInvite
     }
 
 }

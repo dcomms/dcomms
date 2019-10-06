@@ -113,6 +113,11 @@ namespace Dcomms.DRP.Packets
 
             r.OptionalFilter = (responseData) =>
             {
+                if (connectionToNeighbor.IsDisposed)
+                {
+                    connectionToNeighbor.Engine.WriteToLog_p2p_needsAttention(connectionToNeighbor, "ignoring CFM: connection is disposed");
+                    return false;
+                }
                 var cfm = Decode(responseData);
                 if (cfm.NeighborHMAC.Equals(connectionToNeighbor.GetNeighborHMAC(cfm.GetSignedFieldsForNeighborHMAC)) == false) return false;
                 return true;

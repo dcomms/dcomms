@@ -102,9 +102,13 @@ namespace Dcomms.DRP
                     catch (DrpResponderRejectedMaxHopsReachedException exc)
                     {
                         Engine.WriteToLog_reg_requesterSide_lightPain($"failed to extend neighbors for {this}: {exc}.    adjusting  numberOfHops...");
-                       
+
                         if (_numberOfHopsToExtendNeighbors < 50)
                             _numberOfHopsToExtendNeighbors = (byte)(_numberOfHopsToExtendNeighbors + 5);
+                    }
+                    catch (DrpResponderRejectedP2pNetworkServiceUnavailableException exc)
+                    {
+                        Engine.WriteToLog_reg_requesterSide_lightPain($"failed to extend neighbors for {this}: {exc}");
                     }
                     catch (Exception exc)
                     {

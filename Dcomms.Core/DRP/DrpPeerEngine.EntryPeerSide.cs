@@ -51,7 +51,7 @@ namespace Dcomms.DRP
         Pow2RequestsTable _pow2RequestsTable;
         partial void Initialize(DrpPeerEngineConfiguration config)
         {
-             if (config.SandboxModeOnly_DisableRecentUniquePow1Data == false)
+             if (config.SandboxModeOnly_DisablePoW == false)
                 _recentUniquePow1Data = new UniqueDataFilter16MbRAM(Timestamp32S, config.RegisterPow1_RecentUniqueDataResetPeriodS);
              _pow2RequestsTable = new Pow2RequestsTable(config);
         }
@@ -151,23 +151,29 @@ namespace Dcomms.DRP
         /// is executed by receiver thread
         /// </summary>
         void ProcessRegisterReqAtoEpPacket(IPEndPoint requesterEndpoint, byte[] udpData, DateTime reqReceivedAtUtc)
-        {  
-            var pow2RequestState = _pow2RequestsTable.TryGetPow2RequestState(requesterEndpoint);
-            if (pow2RequestState == null)
+        {
+            Pow2RequestState pow2RequestState = null;
+            if (!Configuration.SandboxModeOnly_DisablePoW)
             {
-                OnReceivedRegisterReqAtoEpPacketFromUnknownSource(requesterEndpoint);
-                return;
+                pow2RequestState = _pow2RequestsTable.TryGetPow2RequestState(requesterEndpoint);
+                if (pow2RequestState == null)
+                {
+                    OnReceivedRegisterReqAtoEpPacketFromUnknownSource(requesterEndpoint);
+                    return;
+                }
             }
 
             var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpData, null);
 
-            if (!Pow2IsOK(req, pow2RequestState.ProofOfWork2Request))
+            if (!Configuration.SandboxModeOnly_DisablePoW)
             {
-                OnReceivedRegisterReqAtoEpPacketWithBadPow2(requesterEndpoint);
-                // intentionally we dont respond to requester, in case if it is attack
-                return;
+                if (!Pow2IsOK(req, pow2RequestState.ProofOfWork2Request))
+                {
+                    OnReceivedRegisterReqAtoEpPacketWithBadPow2(requesterEndpoint);
+                    // intentionally we dont respond to requester, in case if it is attack
+                    return;
+                }
             }
-
           
             EngineThreadQueue.Enqueue(() =>
             {
@@ -178,6 +184,7 @@ namespace Dcomms.DRP
         {
             var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
             bool checkRecentUniqueProxiedRegistrationRequests = true;
+            bool alreadyRepliedWithNPA = false;
      _retry:
             RouteRegistrationRequest(null, null, alreadyTriedProxyingToDestinationPeers, req, out var proxyToDestinationPeer, out var acceptAt); // routing
 
@@ -189,6 +196,7 @@ namespace Dcomms.DRP
                     alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
                     WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}");
                     checkRecentUniqueProxiedRegistrationRequests = false;
+                    alreadyRepliedWithNPA = true;
                     goto _retry;
                 }
             }
@@ -198,7 +206,7 @@ namespace Dcomms.DRP
             }
             else
             {
-                SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, null);
+                SendServiceUnavailableResponseToRegisterReq(req, requesterEndpoint, null, alreadyRepliedWithNPA);
             }
         }
     }

@@ -46,7 +46,7 @@ namespace Dcomms.DRP
         public VisionChannel VisionChannel;
         public string VisionChannelSourceId;
 
-        public bool SandboxModeOnly_DisableRecentUniquePow1Data; //avoids huge RAM consumption when 100 peers are created in a sandbox
+        public bool SandboxModeOnly_DisablePoW;
 
         public double NeighborhoodExtensionMaxRetryIntervalS = 20;
         public double NeighborhoodExtensionMinIntervalS = 3;

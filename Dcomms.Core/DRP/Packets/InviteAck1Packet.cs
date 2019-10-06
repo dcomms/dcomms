@@ -118,6 +118,11 @@ namespace Dcomms.DRP.Packets
          
             r.OptionalFilter = (responseData) =>
             {
+                if (connectionToNeighbor.IsDisposed)
+                {
+                    connectionToNeighbor.Engine.WriteToLog_p2p_needsAttention(connectionToNeighbor, "ignoring ACK1: connection is disposed");
+                    return false;
+                }
                 var ack1 = Decode(responseData);
                 if (ack1.NeighborHMAC.Equals(connectionToNeighbor.GetNeighborHMAC(ack1.GetSignedFieldsForNeighborHMAC)) == false) return false;
                 return true;

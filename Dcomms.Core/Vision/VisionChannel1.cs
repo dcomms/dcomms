@@ -52,6 +52,22 @@ namespace Dcomms.Vision
                 }
             }
         }
+        public IEnumerable<LogMessage> DisplayedSelectedLogMessages
+        {
+            get
+            {
+                lock (_logMessages)
+                {
+                    return _logMessages.Where(x=>x.Selected).ToList();
+                }
+            }
+        }
+
+        public ICommand RefreshDisplayedSelectedLogMessages => new DelegateCommand(() =>
+        {
+            if (PropertyChanged != null)
+                PropertyChanged(this, new PropertyChangedEventArgs("DisplayedSelectedLogMessages"));
+        });
 
         public LinkedList<LogMessage> _logMessages = new LinkedList<LogMessage>(); // locked // from oldest to newest
         public bool EnableNewLogMessages { get; set; } = true;
@@ -154,6 +170,7 @@ namespace Dcomms.Vision
             public string ModuleName { get; set; }
             public string SourceId { get; set; }
             public string Message { get; set; }
+            public bool Selected { get; set; }
         }
     }
 }

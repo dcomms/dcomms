@@ -130,7 +130,7 @@ namespace Dcomms.Sandbox
                 LocalPort = (ushort?)(LocalPortNullable + _engines.Count),
                 VisionChannel = _visionChannel,
                 VisionChannelSourceId = $"E{_engines.Count}",
-                SandboxModeOnly_DisableRecentUniquePow1Data = true
+                SandboxModeOnly_DisablePoW = true
             });
             _engines.Add(engine);
             for (int localPeerIndex = 0; localPeerIndex < NumberOfLocalPeersToRegisterPerEngine; localPeerIndex++)

@@ -90,6 +90,11 @@ namespace Dcomms.DRP.Packets
             {
                 r.OptionalFilter = (responseData) =>
                 {
+                    if (connectionToNeighborNullable.IsDisposed)
+                    {
+                        connectionToNeighborNullable.Engine.WriteToLog_p2p_needsAttention(connectionToNeighborNullable, "ignoring CFM: connection is disposed");
+                        return false;
+                    }
                     var cfm = DecodeAndOptionallyVerify(responseData, null, null);
                     if (cfm.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(cfm.GetSignedFieldsForNeighborHMAC)) == false) return false;
                     return true;

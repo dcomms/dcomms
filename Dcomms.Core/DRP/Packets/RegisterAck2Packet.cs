@@ -80,7 +80,12 @@ namespace Dcomms.DRP.Packets
             {
                 r.OptionalFilter = (responseData) =>
                 {
-                    var ack2 = Decode_OptionallyVerify_InitializeP2pStreamAtResponder(responseData, null, null, null);
+                    if (connectionToNeighborNullable.IsDisposed)
+                    {
+                        connectionToNeighborNullable.Engine.WriteToLog_p2p_needsAttention(connectionToNeighborNullable, "ignoring ACK2: connection is disposed");
+                        return false;
+                    }
+                    var ack2 = Decode_OptionallyVerify_InitializeP2pStreamAtResponder(responseData, null, null, null);                   
                     if (ack2.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(ack2.GetSignedFieldsForNeighborHMAC)) == false) return false;
                     return true;
                 };

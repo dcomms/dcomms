@@ -120,27 +120,31 @@ namespace Dcomms.DRP
             try
             {
                 #region PoW1
-                WriteToLog_reg_requesterSide_detail($"generating PoW1 request");
-                var pow1SW = Stopwatch.StartNew();
-                var registerPow1RequestPacket = GenerateRegisterPow1RequestPacket(localDrpPeer.PublicIpApiProviderResponse.GetAddressBytes(), Timestamp32S);
+                RegisterPow1ResponsePacket pow1ResponsePacket = null;
+                if (!Configuration.SandboxModeOnly_DisablePoW)
+                {
+                    WriteToLog_reg_requesterSide_detail($"generating PoW1 request");
+                    var pow1SW = Stopwatch.StartNew();
+                    var registerPow1RequestPacket = GenerateRegisterPow1RequestPacket(localDrpPeer.PublicIpApiProviderResponse.GetAddressBytes(), Timestamp32S);
 
-                // send register pow1 request
-                WriteToLog_reg_requesterSide_detail($"PoW1 took {(int)pow1SW.Elapsed.TotalMilliseconds}ms. sending PoW1 request");
-                var rpPow1ResponsePacketData = await SendUdpRequestAsync_Retransmit(
-                            new PendingLowLevelUdpRequest(epEndpoint,
-                                RegisterPow1ResponsePacket.GetScanner(registerPow1RequestPacket.Pow1RequestId),
-                                DateTimeNowUtc,
-                                Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
-                                registerPow1RequestPacket.Encode(),
-                                Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS,
-                                Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
-                            ));
-                //  wait for response, retransmit
-                if (rpPow1ResponsePacketData == null) throw new DrpTimeoutException();
-                var pow1ResponsePacket = new RegisterPow1ResponsePacket(rpPow1ResponsePacketData);
-                WriteToLog_reg_requesterSide_detail($"got PoW1 response with status={pow1ResponsePacket.StatusCode}");
-                if (pow1ResponsePacket.StatusCode != RegisterPow1ResponseStatusCode.succeeded_Pow2Challenge)
-                    throw new Pow1RejectedException(pow1ResponsePacket.StatusCode);
+                    // send register pow1 request
+                    WriteToLog_reg_requesterSide_detail($"PoW1 took {(int)pow1SW.Elapsed.TotalMilliseconds}ms. sending PoW1 request");
+                    var rpPow1ResponsePacketData = await SendUdpRequestAsync_Retransmit(
+                                new PendingLowLevelUdpRequest(epEndpoint,
+                                    RegisterPow1ResponsePacket.GetScanner(registerPow1RequestPacket.Pow1RequestId),
+                                    DateTimeNowUtc,
+                                    Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
+                                    registerPow1RequestPacket.Encode(),
+                                    Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS,
+                                    Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
+                                ));
+                    //  wait for response, retransmit
+                    if (rpPow1ResponsePacketData == null) throw new DrpTimeoutException();
+                    pow1ResponsePacket = new RegisterPow1ResponsePacket(rpPow1ResponsePacketData);
+                    WriteToLog_reg_requesterSide_detail($"got PoW1 response with status={pow1ResponsePacket.StatusCode}");
+                    if (pow1ResponsePacket.StatusCode != RegisterPow1ResponseStatusCode.succeeded_Pow2Challenge)
+                        throw new Pow1RejectedException(pow1ResponsePacket.StatusCode);
+                }
                 #endregion
 
                 var newConnectionToNeighbor = new ConnectionToNeighbor(this, localDrpPeer, ConnectedDrpPeerInitiatedBy.localPeer);
@@ -149,8 +153,7 @@ namespace Dcomms.DRP
                 PendingLowLevelUdpRequest pendingPingRequest;
                 try
                 {
-                    #region register REQ
-                    // calculate PoW2
+                    #region register REQ                   
                     req = new RegisterRequestPacket
                     {
                         RequesterRegistrationId = localDrpPeer.Configuration.LocalPeerRegistrationId,
@@ -162,9 +165,17 @@ namespace Dcomms.DRP
                         EpEndpoint = epEndpoint
                     };
                     RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
-                    WriteToLog_reg_requesterSide_detail($"calculating PoW2");
+
                     var pow2SW = Stopwatch.StartNew();
-                    GenerateRegisterReqPow2(req, pow1ResponsePacket.ProofOfWork2Request);
+                    if (!Configuration.SandboxModeOnly_DisablePoW)
+                    {
+                        WriteToLog_reg_requesterSide_detail($"calculating PoW2");
+                        GenerateRegisterReqPow2(req, pow1ResponsePacket.ProofOfWork2Request);
+                    }
+                    else
+                        req.ProofOfWork2 = new byte[64];
+                    pow2SW.Stop();
+
                     req.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         w => req.GetSharedSignedFields(w, false),
                         localDrpPeer.Configuration.LocalPeerRegistrationPrivateKey

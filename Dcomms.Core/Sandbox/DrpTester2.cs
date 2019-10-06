@@ -49,7 +49,7 @@ namespace Dcomms.Sandbox
                 {
                     neighborsCount++;
 
-                    if (neighborsCount > 20)
+                    if (neighborsCount > 6)
                     {
                         timer.Dispose();
                         return;
@@ -77,6 +77,7 @@ namespace Dcomms.Sandbox
                 VisionChannel = visionChannel,
                 VisionChannelSourceId = "EP",
                 ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
+                SandboxModeOnly_DisablePoW = true
             });
             var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(_ep.CryptoLibrary);
            
@@ -90,7 +91,7 @@ namespace Dcomms.Sandbox
                         VisionChannel = visionChannel,
                         ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
                         VisionChannelSourceId = $"X{i}",
-                        SandboxModeOnly_DisableRecentUniquePow1Data = true
+                        SandboxModeOnly_DisablePoW = true
                     });
                     var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(x.CryptoLibrary);
                     xLocalDrpPeerConfig.EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) };                   

@@ -88,6 +88,7 @@ namespace Dcomms
         internal static DrpResponderRejectedException Create(DrpResponderStatusCode responseCode)
         {
             if (responseCode == DrpResponderStatusCode.rejected_maxhopsReached) return new DrpResponderRejectedMaxHopsReachedException();
+            else if (responseCode == DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable) return new DrpResponderRejectedP2pNetworkServiceUnavailableException();
             else return new DrpResponderRejectedException(responseCode);
         }
         internal DrpResponderRejectedException(DrpResponderStatusCode responseCode)
@@ -97,7 +98,13 @@ namespace Dcomms
     }
     class DrpResponderRejectedMaxHopsReachedException : DrpResponderRejectedException
     {
-        public DrpResponderRejectedMaxHopsReachedException(): base(DrpResponderStatusCode.rejected_maxhopsReached)
+        public DrpResponderRejectedMaxHopsReachedException() : base(DrpResponderStatusCode.rejected_maxhopsReached)
+        {
+        }
+    }
+    class DrpResponderRejectedP2pNetworkServiceUnavailableException : DrpResponderRejectedException
+    {
+        public DrpResponderRejectedP2pNetworkServiceUnavailableException() : base(DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable)
         {
         }
     }

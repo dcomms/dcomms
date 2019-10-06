@@ -31,7 +31,8 @@
                 <Button Command="{Binding CreateDrpTester1}" Content="CreateDrpTester1" />
                 <Button Command="{Binding CreateDrpTester1_SendInvite}" Content="CreateDrpTester1+send Invite" />
 
-                <Button Command="{Binding CreateDrpTester2}" Content="CreateDrpTester2" />
+                <Button Command="{Binding CreateDrpTester2}" Content="CreateDrpTester2" Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
+                <Button Command="{Binding DestroyDrpTester2}" Content="DestroyDrpTester2"  Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityConverter}}" />
                 <Button Command="{Binding CreateDrpTester3}" Content="CreateDrpTester3" />
                 <Button Command="{Binding CreateDrpDistanceTester}" Content="CreateDrpDistanceTester" />
             </StackPanel>
@@ -127,7 +128,7 @@
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
-                            <StackPanel Orientation="Horizontal">
+                            <WrapPanel Orientation="Horizontal">
                                 <Button Content="refresh" Command="{Binding RefreshDisplayedLogMessages}" />
 
                                 <Button Content="clear" Command="{Binding ClearLogMessages}" />
@@ -135,10 +136,8 @@
                                 <TextBlock Text="max count: " />
                                 <TextBox MinWidth="50" Text="{Binding LogMessagesMaxCount, Mode=TwoWay}" />
 
-                                
+
                                 <CheckBox IsChecked="{Binding EnableNewLogMessages, Mode=TwoWay}" Content="enable new" />
-
-
                                 <TextBlock Text="Filter:" />
 
 
@@ -155,10 +154,11 @@
                                 <TextBox Text="{Binding DisplayFilterModuleExcludesStrings, Mode=TwoWay}" Width="100"/>                                
 
                                 <TextBlock Text="Msg contains:" />
-                                <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="100" />
-                            </StackPanel>
+                                <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="200" />
+                            </WrapPanel>
                             <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedLogMessages}" AutoGenerateColumns="False" >
                                 <DataGrid.Columns>
+                                    <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay}" />
                                     <DataGridTemplateColumn Header="Level" >
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
@@ -175,6 +175,35 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Grid>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Sel. log">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="refresh" Command="{Binding RefreshDisplayedSelectedLogMessages}" />
+                        </StackPanel>
+
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedSelectedLogMessages}" AutoGenerateColumns="False" >
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay}" />
+                                <DataGridTemplateColumn Header="Level" >
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </Grid>
                 </TabItem>
                 <TabItem Header="Modules">

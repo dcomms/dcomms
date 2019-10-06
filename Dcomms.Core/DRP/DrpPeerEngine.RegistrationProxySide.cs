@@ -18,7 +18,7 @@ namespace Dcomms.DRP
         /// is null in A-EP mode
         /// </param>
         /// <returns>
-        /// true to retry the request with another eighbor (if the request needs to be "rerouted")
+        /// true to retry the request with another neighbor (if the request needs to be "rerouted")
         /// </returns>
         internal async Task<bool> ProxyRegisterRequestAsync(ConnectionToNeighbor destinationPeer, 
             RegisterRequestPacket req, IPEndPoint requesterEndpoint, 
@@ -60,7 +60,7 @@ namespace Dcomms.DRP
                 if (req.NumberOfHopsRemaining == 0)
                 {
                     WriteToLog_reg_proxySide_needsAttention($"rejecting REGISTER request {req.RequesterRegistrationId}: max hops reached");
-                    await RespondToSourcePeerWithAck1_MaxHopsReached(requesterEndpoint, req, sourcePeer);
+                    await RespondToSourcePeerWithAck1_Error(requesterEndpoint, req, sourcePeer, DrpResponderStatusCode.rejected_maxhopsReached);
                     return false;
                 }
 
@@ -96,10 +96,17 @@ namespace Dcomms.DRP
                 // respond with NPACK
                 SendNeighborPeerAckResponseToRegisterAck1(ack1, destinationPeer);
 
+                if (ack1.ResponderStatusCode == DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable)
+                {
+                    WriteToLog_reg_proxySide_needsAttention($"retrying with other peers on ACK1 with error={ack1.ResponderStatusCode}");
+                    return true;
+                }
+
                 // send ACK1 to source peer 
                 // wait for ACK / NPACK 
                 if (sourcePeer != null)
                 {   // P2P mode
+                    sourcePeer.AssertIsNotDisposed();
                     ack1.NpaSeq16 = sourcePeer.GetNewNpaSeq16_P2P();
                 }
                 else
@@ -180,7 +187,8 @@ namespace Dcomms.DRP
 
             return false;
         }
-        async Task RespondToSourcePeerWithAck1_MaxHopsReached(IPEndPoint requesterEndpoint, RegisterRequestPacket req, ConnectionToNeighbor sourcePeer)
+        async Task RespondToSourcePeerWithAck1_Error(IPEndPoint requesterEndpoint, RegisterRequestPacket req, 
+            ConnectionToNeighbor sourcePeer, DrpResponderStatusCode errorCode)
         {
             var localDrpPeerThatRejectsRequest = sourcePeer?.LocalDrpPeer ?? this.LocalPeers.Values.First();
 
@@ -188,7 +196,7 @@ namespace Dcomms.DRP
             {
                 RequesterRegistrationId = req.RequesterRegistrationId,
                 ReqTimestamp64 = req.ReqTimestamp64,
-                ResponderStatusCode = DrpResponderStatusCode.rejected_maxhopsReached,
+                ResponderStatusCode = errorCode,
                 ResponderRegistrationId = localDrpPeerThatRejectsRequest.Configuration.LocalPeerRegistrationId,
             };
 
