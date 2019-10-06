@@ -130,6 +130,7 @@ namespace Dcomms.DMP
                 if (localDrpPeer.Engine.InviteSessionsByToken16[token16] == null)
                 {
                     localDrpPeer.Engine.InviteSessionsByToken16[token16] = this;
+                    break;
                 }
             }
             if (localDirectChannelToken32 == null) throw new InsufficientResourcesException();

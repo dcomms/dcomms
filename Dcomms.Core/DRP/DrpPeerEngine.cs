@@ -21,7 +21,7 @@ namespace Dcomms.DRP
     /// runs one UDP socket
     /// hosts objects/resources/threads
     /// </summary>
-    public partial class DrpPeerEngine : IDisposable
+    public partial class DrpPeerEngine : IDisposable, IVisibleModule
     {
         readonly ICryptoLibrary _cryptoLibrary = CryptoLibraries.Library;
         internal ICryptoLibrary CryptoLibrary => _cryptoLibrary;
@@ -41,7 +41,9 @@ namespace Dcomms.DRP
         Dictionary<RegistrationId, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationId, LocalDrpPeer>(); // accessed only by engine thread       
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
         internal DMP.InviteSession[] InviteSessionsByToken16 = new DMP.InviteSession[ushort.MaxValue + 1];
-
+               
+        string IVisibleModule.Status => $"socket: {_socket.Client.LocalEndPoint}, local peers: {LocalPeers.Count}, ConnectedPeer tokens: {ConnectedPeersByToken16.Count(x => x != null)}, InviteSession tokens: {InviteSessionsByToken16.Count(x => x != null)}, queue count: {EngineThreadQueue.Count}";
+        
         ushort _seq16Counter_AtoEP; // accessed only by engine thread
         internal NeighborPeerAckSequenceNumber16 GetNewNpaSeq16_AtoEP() => new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
         public DrpPeerEngineConfiguration Configuration { get; private set; }
@@ -58,6 +60,8 @@ namespace Dcomms.DRP
 
         public DrpPeerEngine(DrpPeerEngineConfiguration configuration)
         {
+            configuration.VisionChannel?.RegisterVisibleModule(configuration.VisionChannelSourceId, "DrpPeerEngine", this);
+
             _insecureRandom = configuration.InsecureRandomSeed.HasValue ? new Random(configuration.InsecureRandomSeed.Value) : new Random();
             Configuration = configuration;
             Initialize(configuration);
@@ -142,6 +146,7 @@ namespace Dcomms.DRP
                         {
                             var neighborToken16 = PingPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
+                            WriteToLog_receiver_detail($"got connectedPeer={connectedPeer} by neighborToken16={neighborToken16.ToString("X4")} to process ping udp data {MiscProcedures.ByteArrayToString(udpData)}");
                             if (connectedPeer != null)
                                 connectedPeer.OnReceivedPing(remoteEndpoint, udpData);
                             else

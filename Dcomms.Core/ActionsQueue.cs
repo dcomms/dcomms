@@ -25,6 +25,14 @@ namespace Dcomms
                 _queue.Enqueue(a);
             }
         }
+        public int Count
+        {
+            get
+            {
+                lock (_queue)
+                    return _queue.Count;
+            }
+        }
         public Task<bool> EnqueueAsync()
         {
             var tcs = new TaskCompletionSource<bool>();

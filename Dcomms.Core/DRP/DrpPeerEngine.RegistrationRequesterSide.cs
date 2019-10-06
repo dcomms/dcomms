@@ -147,7 +147,7 @@ namespace Dcomms.DRP
                 }
                 #endregion
 
-                var newConnectionToNeighbor = new ConnectionToNeighbor(this, localDrpPeer, ConnectedDrpPeerInitiatedBy.localPeer);
+                var newConnectionToNeighbor = new ConnectionToNeighbor(this, localDrpPeer, ConnectedDrpPeerInitiatedBy.localPeer, null);
                 RegisterRequestPacket req;
                 PongPacket pong;
                 PendingLowLevelUdpRequest pendingPingRequest;
@@ -264,7 +264,7 @@ namespace Dcomms.DRP
                                     Configuration.InitialPingRequests_RetransmissionTimeoutIncrement
                                 );
 
-                    WriteToLog_reg_requesterSide_detail($"sending PING, waiting for PONG");
+                    WriteToLog_reg_requesterSide_detail($"sending PING neighborToken32={pingRequest.NeighborToken32}, waiting for PONG");
                     var pongPacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest);
                     if (pongPacketData == null) throw new DrpTimeoutException();
                     if (newConnectionToNeighbor.IsDisposed) throw new DrpTimeoutException(); // ping timeout already destroyed the connection, so PONG response here is too late

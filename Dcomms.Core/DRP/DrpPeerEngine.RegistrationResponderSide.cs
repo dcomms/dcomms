@@ -65,10 +65,9 @@ namespace Dcomms.DRP
                 WriteToLog_reg_responderSide_detail($"sending NPACK to REQ to {requesterEndpoint} (delay={(int)(DateTimeNowUtc - reqReceivedTimeUtc).TotalMilliseconds}ms)");
                 SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.accepted, sourcePeer);
 
-                var newConnectionToNeighbor = new ConnectionToNeighbor(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer)
+                var newConnectionToNeighbor = new ConnectionToNeighbor(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer, req.RequesterRegistrationId)
                 {
                     LocalEndpoint = sourcePeer?.LocalEndpoint ?? req.EpEndpoint,
-					RemoteRegistrationId = req.RequesterRegistrationId					
                 };
                 byte[] ack1UdpData;
                 try

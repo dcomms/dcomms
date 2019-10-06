@@ -19,7 +19,7 @@ namespace Dcomms.DRP
 
             try
             {
-                var newConnectionToNeighbor = new ConnectionToNeighbor(_engine, _localDrpPeer, ConnectedDrpPeerInitiatedBy.localPeer);
+                var newConnectionToNeighbor = new ConnectionToNeighbor(_engine, _localDrpPeer, ConnectedDrpPeerInitiatedBy.localPeer, null);
                 RegisterRequestPacket req;
                 PongPacket pong;
                 PendingLowLevelUdpRequest pendingPingRequest;
