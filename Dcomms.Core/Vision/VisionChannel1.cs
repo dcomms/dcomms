@@ -110,8 +110,9 @@ namespace Dcomms.Vision
             if (PropertyChanged != null)
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));
         });
-        
+
         public string VisibleModulePathContainsString { get; set; }
+        public string VisibleModuleStatusContainsString { get; set; }
         public IEnumerable<VisibleModule> DisplayedVisibleModules
         {
             get
@@ -123,8 +124,10 @@ namespace Dcomms.Vision
                 });
                 if (!String.IsNullOrEmpty(VisibleModulePathContainsString))
                     r = r.Where(x => x.Path.Contains(VisibleModulePathContainsString));
+                if (!String.IsNullOrEmpty(VisibleModuleStatusContainsString))
+                    r = r.Where(x => x.Status.Contains(VisibleModuleStatusContainsString));
 
-                return r.OrderBy(x => x.Path);
+                return r.OrderBy(x => x.Path).ToList();
             }
         }
 

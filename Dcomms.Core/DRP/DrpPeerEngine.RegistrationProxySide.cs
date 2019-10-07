@@ -30,7 +30,7 @@ namespace Dcomms.DRP
 
             if (_pendingRegisterRequests.Contains(req.RequesterRegistrationId))
             {
-                WriteToLog_reg_proxySide_needsAttention($"rejecting duplicate REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={requesterEndpoint}");
+                WriteToLog_reg_proxySide_higherLevelDetail($"rejecting duplicate REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={requesterEndpoint}");
                 SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, sourcePeer);
                 return false;
             }
@@ -78,7 +78,7 @@ namespace Dcomms.DRP
                 }               
                 catch (Exception reqExc)
                 {
-                    HandleExceptionWhileProxyingRegister(requesterEndpoint, reqExc);
+                    HandleExceptionWhileProxyingRegister(req, requesterEndpoint, reqExc);
                     return true;
                 }
 
@@ -178,7 +178,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                HandleExceptionWhileProxyingRegister(requesterEndpoint, exc);
+                HandleExceptionWhileProxyingRegister(req, requesterEndpoint, exc);
             }
             finally
             {

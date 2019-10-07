@@ -115,7 +115,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                Engine.HandleExceptionWhileProxyingInvite(exc);
+                Engine.HandleExceptionWhileProxyingInvite(req, exc);
             }
             finally
             {

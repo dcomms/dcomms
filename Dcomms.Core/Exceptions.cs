@@ -9,19 +9,19 @@ namespace Dcomms
     {
 
     }
-    class PossibleMitmException : ApplicationException
+    class PossibleAttackException : ApplicationException
     {
 
     }
-    class BrokenCipherException : PossibleMitmException // todo handle attacks that raise such exceptions
+    class BrokenCipherException : PossibleAttackException // todo handle attacks that raise such exceptions
     {
 
     }
-    class UnmatchedFieldsException : PossibleMitmException 
+    class UnmatchedFieldsException : PossibleAttackException 
     {
 
     }
-    class BadSignatureException : PossibleMitmException 
+    class BadSignatureException : PossibleAttackException 
     {
 
     }
@@ -41,7 +41,7 @@ namespace Dcomms
     {
 
     }
-    class NonUniqueNonceException : PossibleMitmException
+    class NonUniqueNonceException : PossibleAttackException
     {
 
     }

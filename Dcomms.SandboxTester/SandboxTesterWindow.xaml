@@ -213,11 +213,13 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <StackPanel Orientation="Horizontal">
+                        <WrapPanel Orientation="Horizontal">
                             <Button Content="refresh" Command="{Binding RefreshDisplayedVisibleModules}" />
                             <TextBlock Text="Module contains:" />
                             <TextBox Text="{Binding VisibleModulePathContainsString, Mode=TwoWay}" Width="400" />
-                        </StackPanel>
+                            <TextBlock Text="Status contains:" />
+                            <TextBox Text="{Binding VisibleModuleStatusContainsString, Mode=TwoWay}" Width="200" />                            
+                        </WrapPanel>
 
                         <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedVisibleModules}" AutoGenerateColumns="False" >
                             <DataGrid.Columns>                          

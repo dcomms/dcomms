@@ -394,7 +394,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                _engine.HandleGeneralException($"error in ConnectedDrpPeer {this} timer procedure: {exc}");
+                _engine.HandleGeneralException($"error in ConnectedDrpPeer {this} timer procedure", exc);
             }
         }
         void SendPingRequestOnTimer()
@@ -442,7 +442,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                _engine.HandleGeneralException($"Exception while processing PONG in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
+                _engine.HandleGeneralException($"Exception while processing PONG in {this}", exc); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
         internal void OnReceivedPing(IPEndPoint remoteEndpoint, byte[] udpData) // engine thread
@@ -484,7 +484,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                _engine.HandleGeneralException($"Exception while processing PING in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
+                _engine.HandleGeneralException($"Exception while processing PING in {this}", exc); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
         #endregion
@@ -536,7 +536,7 @@ _retry:
             }
             catch (Exception exc)
             {
-                _engine.HandleGeneralException($"Exception while processing REGISTER REQ in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
+                _engine.HandleGeneralException($"Exception while processing REGISTER REQ in {this}", exc); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
 
@@ -569,7 +569,7 @@ _retry:
             }
             catch (Exception exc)
             {
-                _engine.HandleGeneralException($"Exception while processing INVITE REQ in {this}: {exc}"); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
+                _engine.HandleGeneralException($"Exception while processing INVITE REQ in {this}", exc); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
 

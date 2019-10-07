@@ -148,7 +148,7 @@ namespace Dcomms.DMP
         internal void OnReceivedDmpPing(IPEndPoint remoteEndpoint, byte[] udpData) // engine thread
         {
             if (!remoteEndpoint.Equals(RemoteSessionDescription.DirectChannelEndPoint))
-                throw new PossibleMitmException();
+                throw new PossibleAttackException();
 
             var ping = DmpPingPacket.DecodeAndVerify(udpData, this);
 

@@ -175,7 +175,8 @@ namespace Dcomms.DRP.Packets
             }
             else
             {
-                PacketProcedures.EncodeIPEndPoint(writer, RequesterEndpoint);
+                if (ResponderStatusCode == DrpResponderStatusCode.confirmed)
+                    PacketProcedures.EncodeIPEndPoint(writer, RequesterEndpoint);
             }
 
             return ms.ToArray();

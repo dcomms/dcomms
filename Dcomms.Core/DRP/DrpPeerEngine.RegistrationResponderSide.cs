@@ -34,7 +34,7 @@ namespace Dcomms.DRP
                     throw new BadSignatureException();
                 if (req.EpEndpoint.Address.Equals(acceptAt.PublicIpApiProviderResponse) == false)
                 {
-                    throw new PossibleMitmException();
+                    throw new PossibleAttackException();
                 }
             }
 
@@ -150,7 +150,7 @@ namespace Dcomms.DRP
             }
 			catch (Exception exc)
             {
-                HandleExceptionInRegistrationResponder(requesterEndpoint, exc);
+                HandleExceptionInRegistrationResponder(req, requesterEndpoint, exc);
             }
             finally
             {
@@ -175,7 +175,7 @@ namespace Dcomms.DRP
             {
                 WriteToLog_reg_responderSide_lightPain($"disposing new connection because of CFM error");
                 newConnectionToNeighbor.Dispose();
-                HandleExceptionInRegistrationResponder(requesterEndpoint, exc);
+                HandleExceptionInRegistrationResponder(req, requesterEndpoint, exc);
             }
         }
 

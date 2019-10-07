@@ -202,7 +202,16 @@ namespace Dcomms.DRP
 
                     if (ack1.ResponderStatusCode != DrpResponderStatusCode.confirmed)
                     {
-                        WriteToLog_reg_requesterSide_lightPain($"got ACK1 with error={ack1.ResponderStatusCode}");
+                        // respond to ACK1 with NPACK.   the EP needs to get some confirmation to the erroneous ACK1
+                        var npAck = new NeighborPeerAckPacket
+                        {
+                            NpaSeq16 = ack1.NpaSeq16,
+                            StatusCode = NextHopResponseCode.accepted
+                        };
+                        var npAckData = npAck.Encode(true);
+                        RespondToRequestAndRetransmissions(ack1UdpData, npAckData, epEndpoint);
+
+                        WriteToLog_reg_requesterSide_needsAttention($"got ACK1 with error={ack1.ResponderStatusCode}");
                         throw DrpResponderRejectedException.Create(ack1.ResponderStatusCode);
                     }
 
@@ -210,7 +219,7 @@ namespace Dcomms.DRP
                     if (ack1.RequesterEndpoint.Address.Equals(localDrpPeer.PublicIpApiProviderResponse) == false)
                     {
                         // MITM attack / EP sent local (requester) endpoint IP some bad IP address
-                        throw new PossibleMitmException();
+                        throw new PossibleAttackException();
                     }
                     RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
@@ -327,7 +336,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                HandleGeneralException($"public IP address API request to {url} failed: {exc}");
+                HandleGeneralException($"public IP address API request to {url} failed", exc);
                 return null;
             }
         }

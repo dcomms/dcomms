@@ -64,7 +64,7 @@ namespace Dcomms.DRP
 
                     if (ack1.ResponderStatusCode != DrpResponderStatusCode.confirmed)
                     {
-                        _engine.WriteToLog_reg_requesterSide_lightPain($"got ACK1 with error={ack1.ResponderStatusCode}");
+                        _engine.WriteToLog_reg_requesterSide_needsAttention($"got ACK1 with error={ack1.ResponderStatusCode}");
                         throw DrpResponderRejectedException.Create(ack1.ResponderStatusCode);
                     }
 

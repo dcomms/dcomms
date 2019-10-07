@@ -1,4 +1,5 @@
-﻿using Dcomms.Vision;
+﻿using Dcomms.DRP.Packets;
+using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -25,6 +26,7 @@ namespace Dcomms.DRP
         const string VisionChannelModuleName_p2p = "p2p"; // ping, direct p2p communication
         const string VisionChannelModuleName_routing = "routing";
         const string VisionChannelModuleName_udp = "udp";
+        const string VisionChannelModuleName_attacks = "attacks";
         internal void WriteToLog_p2p_detail(ConnectionToNeighbor connectionToNeighbor, string message)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p) <= AttentionLevel.detail)
@@ -107,13 +109,22 @@ namespace Dcomms.DRP
         }
         void HandleExceptionInReceiverThread(Exception exc)
         {
+            if (exc is BadSignatureException) { WriteToLog_attacks_strongPain($"exception: {exc}"); return; }
+
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_receiverThread) <= AttentionLevel.strongPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_receiverThread, AttentionLevel.strongPain, $"exception: {exc}");
         }
         void HandleExceptionInEngineThread(Exception exc)
         {
+            if (exc is BadSignatureException) { WriteToLog_attacks_strongPain($"exception: {exc}"); return; }
+
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_engineThread) <= AttentionLevel.strongPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_engineThread, AttentionLevel.strongPain, $"exception: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_engineThread, AttentionLevel.strongPain, $"exception: {exc}");            
+        }
+        internal void WriteToLog_reg_requesterSide_needsAttention(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.needsAttention)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.needsAttention, message);
         }
         internal void WriteToLog_reg_requesterSide_detail(string message)
         {
@@ -170,17 +181,22 @@ namespace Dcomms.DRP
         }
         void HandleExceptionWhileConnectingToRP(IPEndPoint epEndpoint, Exception exc)
         {
+
+            if (exc is BadSignatureException) { WriteToLog_attacks_strongPain($"exception while connection to EP: {exc}"); return; }
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.mediumPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.detail, $"exception while connecting to EP {epEndpoint}: {exc}");
 
             // todo: analyse if it is malformed packet received from attacker's EP
+            
         }
-        internal void HandleGeneralException(string message)
+        internal void HandleGeneralException(string prefix, Exception exc)
         {
+            if (exc is BadSignatureException) { WriteToLog_attacks_strongPain($"exception: {exc}"); return; }
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, null) <= AttentionLevel.strongPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, null, AttentionLevel.strongPain, $"general exception: {message}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, null, AttentionLevel.strongPain, $"{prefix}: {exc}");
         }
 
+        #region attacks
         internal void OnReceivedUnauthorizedSourceIpPacket(IPEndPoint remoteEndpoint)
         {
         }
@@ -191,24 +207,29 @@ namespace Dcomms.DRP
         { }
         internal void OnReceivedRegisterReqAtoEpPacketWithBadPow2(IPEndPoint remoteEndpoint)
         { }
-        void OnReceivedBadSignature(IPEndPoint remoteEndpoint)
+
+        internal void WriteToLog_attacks_strongPain(string message)
         {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_attacks) <= AttentionLevel.strongPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_attacks, AttentionLevel.strongPain, message);
         }
+        #endregion
+
         void HandleExceptionInRegistrationRequester(Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.mediumPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.mediumPain, $"exception while sending REGISTER request: {exc}");
 
         }
-        void HandleExceptionInRegistrationResponder(IPEndPoint requesterEndpoint, Exception exc)
+        void HandleExceptionInRegistrationResponder(RegisterRequestPacket req, IPEndPoint requesterEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.mediumPain, $"exception while responding to registration from {requesterEndpoint}: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.mediumPain, $"exception while responding to REGISTER REQ {req.RequesterRegistrationId} from {requesterEndpoint}: {exc}");
         }
-        void HandleExceptionWhileProxyingRegister(IPEndPoint requesterEndpoint, Exception exc)
+        void HandleExceptionWhileProxyingRegister(RegisterRequestPacket req, IPEndPoint requesterEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.mediumPain, $"exception while proxying registration from {requesterEndpoint}: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.mediumPain, $"exception while proxying REGISTER REQ {req.RequesterRegistrationId} from {requesterEndpoint}: {exc}");
         }
         internal void WriteToLog_reg_responderSide_detail(string message)
         {
@@ -235,10 +256,10 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_requesterSide) <= AttentionLevel.mediumPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_requesterSide, AttentionLevel.mediumPain, $"exception while sending invite request: {exc}");
         }
-        internal void HandleExceptionWhileProxyingInvite(Exception exc)
+        internal void HandleExceptionWhileProxyingInvite(InviteRequestPacket req, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide, AttentionLevel.mediumPain, $"exception while proxying invite: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide, AttentionLevel.mediumPain, $"exception while proxying invite from {req.RequesterRegistrationId}: {exc}");
         }
         internal void HandleExceptionWhileAcceptingInvite(Exception exc)
         {

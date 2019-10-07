@@ -9,6 +9,7 @@ namespace Dcomms.DRP.Packets
 
     /// <summary>
     /// is sent from next hop to previous hop, when the next hop receives some packet from neighbor, or from registering peer (EP->A).
+    /// is also sent from A to EP in response to erroneous ACK1
     /// stops UDP retransmission of a request packet
     /// </summary>
     class NeighborPeerAckPacket

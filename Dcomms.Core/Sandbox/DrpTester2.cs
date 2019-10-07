@@ -49,7 +49,7 @@ namespace Dcomms.Sandbox
                 {
                     neighborsCount++;
 
-                    if (neighborsCount > 6)
+                    if (neighborsCount > 20)
                     {
                         timer.Dispose();
                         return;
@@ -83,7 +83,7 @@ namespace Dcomms.Sandbox
            
             _ep.BeginCreateLocalPeer(epLocalDrpPeerConfig, new DrpTesterPeerApp(_ep, epLocalDrpPeerConfig), (rpLocalPeer) =>
             {
-                for (int i = 0; i < 50; i++)
+                for (int i = 0; i < 100; i++)
                 {
                     var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
                     {
