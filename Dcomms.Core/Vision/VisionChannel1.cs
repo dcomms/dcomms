@@ -11,10 +11,9 @@ namespace Dcomms.Vision
 {
     public class VisionChannel1 : VisionChannel, INotifyPropertyChanged
     {
-
         public AttentionLevel DisplayFilterMinLevel { get; set; } = AttentionLevel.needsAttention;
         public IEnumerable<AttentionLevel> DisplayFilterMinLevels => Enum.GetValues(typeof(AttentionLevel)).Cast<AttentionLevel>();
-
+        public Action<string,List<IVisiblePeer>> DisplayPeersDelegate;
 
         public string DisplayFilterSourceIds { get; set; }
         public string DisplayFilterMessageContainsString { get; set; }
@@ -81,7 +80,7 @@ namespace Dcomms.Vision
         public override void Emit(string sourceId, string moduleName, AttentionLevel level, string message)
         {
             if (!EnableNewLogMessages) return;
-            var msg = new LogMessage
+            var msg = new LogMessage(this)
             {
                 AttentionLevel = level,
                 ManagedThreadId = Thread.CurrentThread.ManagedThreadId,
@@ -89,6 +88,26 @@ namespace Dcomms.Vision
                 SourceId = sourceId,
                 ModuleName = moduleName,
                 Message = message
+            };
+            lock (_logMessages)
+            {
+                _logMessages.AddLast(msg);
+                while (_logMessages.Count > LogMessagesMaxCount)
+                    _logMessages.RemoveFirst();
+            }
+        }
+        public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> listOfPeers)
+        {
+            if (!EnableNewLogMessages) return;
+            var msg = new LogMessage(this)
+            {
+                AttentionLevel = level,
+                ManagedThreadId = Thread.CurrentThread.ManagedThreadId,
+                Time = TimeNow,
+                SourceId = sourceId,
+                ModuleName = moduleName,
+                Message = message,
+                PeersList = listOfPeers
             };
             lock (_logMessages)
             {
@@ -145,6 +164,12 @@ namespace Dcomms.Vision
 
         public class LogMessage
         {
+            readonly VisionChannel1 _visionChannel;
+            public LogMessage(VisionChannel1 visionChannel)
+            {
+                _visionChannel = visionChannel;
+            }
+
             public AttentionLevel AttentionLevel { get; set; }
             public string AttentionLevelStr => AttentionLevel.ToString();
             public System.Drawing.Color AttentionLevelColor
@@ -174,6 +199,12 @@ namespace Dcomms.Vision
             public string SourceId { get; set; }
             public string Message { get; set; }
             public bool Selected { get; set; }
+            public List<IVisiblePeer> PeersList;
+            public bool DisplayPeersListVisible => (PeersList != null && _visionChannel.DisplayPeersDelegate != null);
+            public ICommand DisplayPeersList => new DelegateCommand(() =>
+            {
+                _visionChannel.DisplayPeersDelegate(Message, PeersList);
+            });
         }
     }
 }

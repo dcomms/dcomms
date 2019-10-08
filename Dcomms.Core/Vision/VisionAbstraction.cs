@@ -89,6 +89,11 @@ namespace Dcomms.Vision
                 _visibleModulesByPath.Remove(visionChannelSourceId + PathSeparator + path);
             }
         }
+
+
+        public virtual void EmitListOfPeers(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> listOfPeers)
+        {
+        }
     }
     public interface IVisibleModule
     {
@@ -107,5 +112,11 @@ namespace Dcomms.Vision
         {
             _wtl($"[{visionChannelSourceId}] {message}");
         }
+    }
+       
+    public interface IVisiblePeer
+    {
+        double[] VectorValues { get; }
+        IEnumerable<IVisiblePeer> NeighborPeers { get; }
     }
 }

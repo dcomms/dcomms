@@ -76,6 +76,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Page Include="PeersDisplayWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="SandboxTesterWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -85,6 +89,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Converters.cs" />
+    <Compile Include="PeersDisplayWindow.xaml.cs">
+      <DependentUpon>PeersDisplayWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="SandboxTesterWindow.xaml.cs">
       <DependentUpon>SandboxTesterWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

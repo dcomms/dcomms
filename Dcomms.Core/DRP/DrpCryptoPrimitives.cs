@@ -99,6 +99,29 @@ namespace Dcomms.DRP
             }
             else throw new NotImplementedException();
         }
+        public static unsafe double[] GetVectorValues(ICryptoLibrary cryptoLibrary, RegistrationId rid)
+        {
+            var r = new double[NumberOfDimensions];
+            
+            if (rid.CachedEd25519publicKeySha256 == null) rid.CachedEd25519publicKeySha256 = cryptoLibrary.GetHashSHA256(rid.Ed25519publicKey);
+            var rid_ed25519publicKey_sha256 = rid.CachedEd25519publicKeySha256;
+
+            if (NumberOfDimensions == 8)
+            {
+                fixed (byte* rpk1a = rid_ed25519publicKey_sha256)
+                {
+                    uint* rpk1aPtr = (uint*)rpk1a;
+                    int l = rid_ed25519publicKey_sha256.Length / 4;
+                    for (int i = 0; i < l; i++, rpk1aPtr++)
+                    {
+                        r[i] = *rpk1aPtr;
+                    }
+                }
+            }
+            else throw new NotImplementedException();
+
+            return r;
+        }
         public static double VectorComponentRoutine(ushort vector1_i, ushort vector2_i)
         {
             int r;

@@ -95,6 +95,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -112,8 +113,14 @@
                 <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfNeighbors, Mode=TwoWay}" />
                 <TextBlock Grid.Row="3" Text="number of dimensions:" />
                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfDimensions, Mode=TwoWay}" />
+                <TextBlock Grid.Row="4" Text="apoptosis it. count:" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpDistanceTester.ApoptosisIterationsCount, Mode=TwoWay}" />
+
+
                 
-                <StackPanel Orientation="Horizontal" Grid.Row="4" >
+
+
+                <StackPanel Orientation="Horizontal" Grid.Row="5" >
                     <Button Content="Test" Margin="3" Command="{Binding DrpDistanceTester.Test}" />
                 </StackPanel>
             </Grid>
@@ -172,6 +179,13 @@
                                     <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
                                     <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
                                     <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" />
+                                    <DataGridTemplateColumn Header="Peers">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="show peers" Command="{Binding DisplayPeersList}" Visibility="{Binding DisplayPeersListVisible, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Grid>
