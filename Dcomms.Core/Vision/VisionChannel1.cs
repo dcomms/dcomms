@@ -11,9 +11,9 @@ namespace Dcomms.Vision
 {
     public class VisionChannel1 : VisionChannel, INotifyPropertyChanged
     {
-        public AttentionLevel DisplayFilterMinLevel { get; set; } = AttentionLevel.needsAttention;
+        public AttentionLevel DisplayFilterMinLevel { get; set; } = AttentionLevel.deepDetail;
         public IEnumerable<AttentionLevel> DisplayFilterMinLevels => Enum.GetValues(typeof(AttentionLevel)).Cast<AttentionLevel>();
-        public Action<string,List<IVisiblePeer>> DisplayPeersDelegate;
+        public Action<string,List<IVisiblePeer>,VisiblePeersDisplayMode> DisplayPeersDelegate;
 
         public string DisplayFilterSourceIds { get; set; }
         public string DisplayFilterMessageContainsString { get; set; }
@@ -96,7 +96,7 @@ namespace Dcomms.Vision
                     _logMessages.RemoveFirst();
             }
         }
-        public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> listOfPeers)
+        public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, VisiblePeersDisplayMode peersListDisplayMode)
         {
             if (!EnableNewLogMessages) return;
             var msg = new LogMessage(this)
@@ -107,7 +107,8 @@ namespace Dcomms.Vision
                 SourceId = sourceId,
                 ModuleName = moduleName,
                 Message = message,
-                PeersList = listOfPeers
+                PeersList = peersListDisplayMode == VisiblePeersDisplayMode.allPeers ? ClonedVisiblePeer.Clone(peersList) : peersList,
+                PeersListDisplayMode = peersListDisplayMode
             };
             lock (_logMessages)
             {
@@ -200,11 +201,50 @@ namespace Dcomms.Vision
             public string Message { get; set; }
             public bool Selected { get; set; }
             public List<IVisiblePeer> PeersList;
+            public VisiblePeersDisplayMode PeersListDisplayMode;
             public bool DisplayPeersListVisible => (PeersList != null && _visionChannel.DisplayPeersDelegate != null);
             public ICommand DisplayPeersList => new DelegateCommand(() =>
             {
-                _visionChannel.DisplayPeersDelegate(Message, PeersList);
+                _visionChannel.DisplayPeersDelegate(Message, PeersList, PeersListDisplayMode);
             });
+        }
+
+
+        class ClonedVisiblePeer: IVisiblePeer
+        {
+            public double[] VectorValues { get; private set; }
+            public List<IVisiblePeer> NeighborPeers { get; private set; }
+            IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => NeighborPeers;
+
+            public static List<IVisiblePeer> Clone(List<IVisiblePeer> sourceList)
+            {
+                var r = new List<ClonedVisiblePeer>(sourceList.Count);
+                var sourcePeersIndexes = new Dictionary<IVisiblePeer, int>();
+                for (int i = 0; i < sourceList.Count; i++)
+                {
+                    var sourcePeer = sourceList[i];
+                    sourcePeersIndexes.Add(sourcePeer, i);
+                    r.Add(new ClonedVisiblePeer
+                    {
+                        VectorValues = sourcePeer.VectorValues.ToArray()
+                    });
+                }
+                
+                for (int i = 0; i < sourceList.Count; i++)
+                {
+                    var sourcePeer = sourceList[i];
+                    var clonedPeer = r[i];
+                    clonedPeer.NeighborPeers = new List<IVisiblePeer>();
+                    foreach (var neighbor in sourcePeer.NeighborPeers)
+                    {
+                        var neighborIndex = sourcePeersIndexes[neighbor];
+                        clonedPeer.NeighborPeers.Add(r[neighborIndex]);
+                    }
+                }
+
+                return r.Cast<IVisiblePeer>().ToList();
+            }
+
         }
     }
 }

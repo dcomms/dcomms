@@ -19,9 +19,11 @@ namespace Dcomms.SandboxTester
     public partial class PeersDisplayWindow : Window
     {
         readonly List<IVisiblePeer> _peers;
-        public PeersDisplayWindow(string text, List<IVisiblePeer> peers)
+        readonly VisiblePeersDisplayMode _displayMode;
+        public PeersDisplayWindow(string text, List<IVisiblePeer> peers, VisiblePeersDisplayMode displayMode)
         {
             _peers = peers;
+            _displayMode = displayMode;
             InitializeComponent();
             this.Title = text;
 
@@ -43,16 +45,17 @@ namespace Dcomms.SandboxTester
         {
             canvas.Children.Clear();
 
-
-
-            foreach (var peer in _peers)
+            if (_displayMode == VisiblePeersDisplayMode.routingPath)
             {
-                foreach (var neighborPeer in peer.NeighborPeers)
+                foreach (var peer in _peers)
                 {
-                    foreach (var neighborPeer2 in neighborPeer.NeighborPeers)
+                    foreach (var neighborPeer in peer.NeighborPeers)
                     {
-                        DisplayConnection(Colors.LightGreen, peer, neighborPeer2, 1);
-                        DisplayPeer(Colors.LightGreen, neighborPeer2, 3);
+                        foreach (var neighborPeer2 in neighborPeer.NeighborPeers)
+                        {
+                            DisplayConnection(Colors.LightGreen, peer, neighborPeer2, 1);
+                            DisplayPeer(Colors.LightGreen, neighborPeer2, 2);
+                        }
                     }
                 }
             }
@@ -61,8 +64,8 @@ namespace Dcomms.SandboxTester
             {
                 foreach (var neighborPeer in peer.NeighborPeers)
                 {                  
-                    DisplayConnection(Colors.Green, peer, neighborPeer, 2);
-                    DisplayPeer(Colors.Green, neighborPeer, 8);
+                    DisplayConnection(Colors.Green, peer, neighborPeer, 1);
+                    if (_displayMode == VisiblePeersDisplayMode.routingPath) DisplayPeer(Colors.Green, neighborPeer, 3);
                 }
             }
 
@@ -70,7 +73,7 @@ namespace Dcomms.SandboxTester
             {
                 var peer = _peers[i];  
 
-                DisplayPeer(Color.FromRgb(255, 50, (byte)(i * 255 / _peers.Count)), peer, 15, i.ToString());
+                DisplayPeer(Color.FromRgb(255, 50, (byte)(i * 255 / _peers.Count)), peer, 4, i.ToString());
             }
 
         //    for (int i = 0; i < _peers.Count-1; i++)
@@ -79,12 +82,60 @@ namespace Dcomms.SandboxTester
        //     }
         }
 
+        const double margin = 20;
         Point GetPosition(IVisiblePeer peer)
         {
             var v = peer.VectorValues;
             var x = v[0];
             var y = v[1];
-            return new Point(x / UInt32.MaxValue * canvas.ActualWidth, y / UInt32.MaxValue * canvas.ActualHeight);
+
+         //   var firstV = _peers[0].VectorValues;
+         //   var lastV = _peers[_peers.Count - 1].VectorValues;
+         
+            return new Point(margin+ x * (canvas.ActualWidth- margin * 2), margin + y * (canvas.ActualHeight - margin * 2));
+        }
+
+
+        void GetPosition(IVisiblePeer peer1, IVisiblePeer peer2, out Point p1, out Point p2)
+        {
+            var v1 = peer1.VectorValues;
+            var x1 = v1[0];
+            var y1 = v1[1];
+            
+            var v2 = peer2.VectorValues;
+            var x2 = v2[0];
+            var y2 = v2[1];
+
+            var d_x21 = x2 - x1;
+            if (d_x21 > 0.5)
+            {
+                x1 += 1.0;
+            }
+            else
+            {
+                var d_x12 = x1 - x2;
+                if (d_x12 > 0.5)
+                {
+                    x1 -= 1.0;
+                }
+            }
+
+            var d_y21 = y2 - y1;
+            if (d_y21 > 0.5)
+            {
+                y1 += 1.0;
+            }
+            else
+            {
+                var d_y12 = y1 - y2;
+                if (d_y12 > 0.5)
+                {
+                    y1 -= 1.0;
+                }
+            }
+
+            p1 = new Point(margin + x1 * (canvas.ActualWidth - margin * 2), margin + y1 * (canvas.ActualHeight - margin * 2));
+            p2 = new Point(margin + x2 * (canvas.ActualWidth - margin * 2), margin + y2 * (canvas.ActualHeight - margin * 2));
         }
 
         void DisplayPeer(Color color, IVisiblePeer peer, double radius, string text=null)
@@ -108,19 +159,18 @@ namespace Dcomms.SandboxTester
                     Text = text,
                     Foreground = new SolidColorBrush(Colors.Black),
                     FontWeight = FontWeights.Bold,
-                    FontSize = 20
+                    FontSize = 12                    
                 };
                 
-                Canvas.SetLeft(textBlock, p.X - 20);
-                Canvas.SetTop(textBlock, p.Y - 10);
+                Canvas.SetLeft(textBlock, p.X);
+                Canvas.SetTop(textBlock, p.Y);
                 canvas.Children.Add(textBlock);
             }
 
         }
         void DisplayConnection(Color color, IVisiblePeer peer1, IVisiblePeer peer2, double thickness)
         {
-            var p1 = GetPosition(peer1);
-            var p2 = GetPosition(peer2);
+            GetPosition(peer1, peer2, out var p1, out var p2);
 
             var line = new Line
             {

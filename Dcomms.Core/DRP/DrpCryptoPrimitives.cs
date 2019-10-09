@@ -50,18 +50,16 @@ namespace Dcomms.DRP
         {
             return MiscProcedures.ByteArrayToString(Ed25519publicKey);
         }
-        public RegistrationIdDistance GetDistanceTo(ICryptoLibrary cryptoLibrary, RegistrationId another) => new RegistrationIdDistance(cryptoLibrary, this, another);
+        public RegistrationIdDistance GetDistanceTo(ICryptoLibrary cryptoLibrary, RegistrationId another, int numberOfDimensions = 8) => new RegistrationIdDistance(cryptoLibrary, this, another, numberOfDimensions);
        
     }
 
 
     public class RegistrationIdDistance
     {
-        public static int NumberOfDimensions = 8;
-
 
         double _distance_sumSqr; // 32 bytes of reg. public key: split into 16 dimensions of 2 bytes //   euclidean distance
-        public unsafe RegistrationIdDistance(ICryptoLibrary cryptoLibrary, RegistrationId rpk1, RegistrationId rpk2)
+        public unsafe RegistrationIdDistance(ICryptoLibrary cryptoLibrary, RegistrationId rpk1, RegistrationId rpk2, int numberOfDimensions = 8)
         {
             if (rpk1.CachedEd25519publicKeySha256 == null) rpk1.CachedEd25519publicKeySha256 = cryptoLibrary.GetHashSHA256(rpk1.Ed25519publicKey);
             var rpk1_ed25519publicKey_sha256 = rpk1.CachedEd25519publicKeySha256;
@@ -71,7 +69,7 @@ namespace Dcomms.DRP
             if (rpk1_ed25519publicKey_sha256.Length != rpk2_ed25519publicKey_sha256.Length) throw new ArgumentException();
             _distance_sumSqr = 0;
 
-            if (NumberOfDimensions == 16)
+            if (numberOfDimensions == 16)
             {
                 fixed (byte* rpk1a = rpk1_ed25519publicKey_sha256, rpk2a = rpk2_ed25519publicKey_sha256)
                 {
@@ -84,7 +82,7 @@ namespace Dcomms.DRP
                     }
                 }
             }
-            else if (NumberOfDimensions == 8)
+            else if (numberOfDimensions == 8)
             {
                 fixed (byte* rpk1a = rpk1_ed25519publicKey_sha256, rpk2a = rpk2_ed25519publicKey_sha256)
                 {
@@ -97,16 +95,65 @@ namespace Dcomms.DRP
                     }
                 }
             }
+            else if (numberOfDimensions == 4)
+            {
+                fixed (byte* rpk1a = rpk1_ed25519publicKey_sha256, rpk2a = rpk2_ed25519publicKey_sha256)
+                {
+                    ulong* rpk1aPtr = (ulong*)rpk1a, rpk2aPtr = (ulong*)rpk2a;
+                    int l = rpk1_ed25519publicKey_sha256.Length / 8;
+                    for (int i = 0; i < l; i++, rpk1aPtr++, rpk2aPtr++)
+                    {
+                        var d_i = VectorComponentRoutine(*rpk1aPtr, *rpk2aPtr);
+                        _distance_sumSqr += d_i * d_i;
+                    }
+                }
+            }
+            else if (numberOfDimensions == 2)
+            {
+                GetVectorValues_2(rpk1_ed25519publicKey_sha256, out var v1_0, out var v1_1);
+                GetVectorValues_2(rpk2_ed25519publicKey_sha256, out var v2_0, out var v2_1);
+
+                var d_0 = VectorComponentRoutine(v1_0, v2_0);
+                var d_1 = VectorComponentRoutine(v1_1, v2_1);
+                _distance_sumSqr += d_0 * d_0;
+                _distance_sumSqr += d_1 * d_1;
+            }
             else throw new NotImplementedException();
         }
-        public static unsafe double[] GetVectorValues(ICryptoLibrary cryptoLibrary, RegistrationId rid)
+        static readonly BigInteger GetVectorValues_2_BigInteger_MaxValue = BigInteger.Pow(2, 16*8-1);
+        static void GetVectorValues_2(byte[] rid_ed25519publicKey_sha256, out double v0, out double v1)
         {
-            var r = new double[NumberOfDimensions];
+            var a0 = new byte[16]; for (int i = 0; i < 16; i++) a0[i] = rid_ed25519publicKey_sha256[i];
+            var a1 = new byte[16]; for (int i = 0; i < 16; i++) a1[i] = rid_ed25519publicKey_sha256[16+i];
+            // 16+16 bytes 
+
+            var bi0 = new BigInteger(a0); if (bi0.Sign < 0) bi0 = -bi0;
+            var bi1 = new BigInteger(a1); if (bi1.Sign < 0) bi1 = -bi1;
+
+
+            v0 = (double)bi0 / (double)GetVectorValues_2_BigInteger_MaxValue;
+            v1 = (double)bi1 / (double)GetVectorValues_2_BigInteger_MaxValue;
+        }
+        public static unsafe double[] GetVectorValues(ICryptoLibrary cryptoLibrary, RegistrationId rid, int numberOfDimensions = 8)
+        {
+            var r = new double[numberOfDimensions];
             
             if (rid.CachedEd25519publicKeySha256 == null) rid.CachedEd25519publicKeySha256 = cryptoLibrary.GetHashSHA256(rid.Ed25519publicKey);
             var rid_ed25519publicKey_sha256 = rid.CachedEd25519publicKeySha256;
 
-            if (NumberOfDimensions == 8)
+            if (numberOfDimensions == 16)
+            {
+                fixed (byte* rpk1a = rid_ed25519publicKey_sha256)
+                {
+                    ushort* rpk1aPtr = (ushort*)rpk1a;
+                    int l = rid_ed25519publicKey_sha256.Length / 2;
+                    for (int i = 0; i < l; i++, rpk1aPtr++)
+                    {
+                        r[i] = (double)(*rpk1aPtr) / UInt16.MaxValue;
+                    }
+                }
+            }
+            else if (numberOfDimensions == 8)
             {
                 fixed (byte* rpk1a = rid_ed25519publicKey_sha256)
                 {
@@ -114,9 +161,27 @@ namespace Dcomms.DRP
                     int l = rid_ed25519publicKey_sha256.Length / 4;
                     for (int i = 0; i < l; i++, rpk1aPtr++)
                     {
-                        r[i] = *rpk1aPtr;
+                        r[i] = (double)(*rpk1aPtr) / UInt32.MaxValue;
                     }
                 }
+            }
+            else if (numberOfDimensions == 4)
+            {
+                fixed (byte* rpk1a = rid_ed25519publicKey_sha256)
+                {
+                    ulong* rpk1aPtr = (ulong*)rpk1a;
+                    int l = rid_ed25519publicKey_sha256.Length / 8;
+                    for (int i = 0; i < l; i++, rpk1aPtr++)
+                    {
+                        r[i] = (double)(*rpk1aPtr) / ulong.MaxValue;
+                    }
+                }
+            }
+            else if (numberOfDimensions == 2)
+            {
+                GetVectorValues_2(rid_ed25519publicKey_sha256, out var v0, out var v1);
+                r[0] = v0;
+                r[1] = v1;
             }
             else throw new NotImplementedException();
 
@@ -138,6 +203,14 @@ namespace Dcomms.DRP
                   32767  -32767     2
              */
         }
+        public static double VectorComponentRoutine(double vector1_i, double vector2_i)
+        {
+            double r;
+            if (vector2_i > vector1_i) r = vector2_i - vector1_i;
+            else r = vector1_i - vector2_i;
+            if (r > 0.5) r = 1.0 - r;
+            return r;
+        }
 
         public static double VectorComponentRoutine(uint vector1_i, uint vector2_i)
         {
@@ -145,6 +218,14 @@ namespace Dcomms.DRP
             if (vector2_i > vector1_i) r = (double)vector2_i - (double)vector1_i;
             else r = (double)vector1_i - (double)vector2_i;
             if (r > (double)Int32.MaxValue) r = (double)UInt32.MaxValue - r;
+            return r;
+        }
+        public static double VectorComponentRoutine(ulong vector1_i, ulong vector2_i)
+        {
+            double r;
+            if (vector2_i > vector1_i) r = (double)vector2_i - (double)vector1_i;
+            else r = (double)vector1_i - (double)vector2_i;
+            if (r > (double)long.MaxValue) r = (double)ulong.MaxValue - r;
             return r;
         }
 

@@ -80,6 +80,7 @@
                 <TextBlock Grid.Row="4" Text="entry peers:" />
                 <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpTester3.EpEndPointsString, Mode=TwoWay}" />
 
+
                 <StackPanel Orientation="Horizontal" Grid.Row="5" Visibility="{Binding DrpTester3.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
 
                     <Button Content="Initialize" Margin="3" Command="{Binding DrpTester3.Initialize}" />
@@ -90,6 +91,7 @@
 
             <Grid Visibility="{Binding DrpDistanceTesterVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -110,18 +112,27 @@
                 
                 
                 <TextBlock Grid.Row="2" Text="number of neighbors:" />
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfNeighbors, Mode=TwoWay}" />
+                <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="1" >
+                    <TextBlock Text="from (90%)" />
+                    <TextBox Text="{Binding DrpDistanceTester.MinNumberOfNeighbors_90, Mode=TwoWay}" />
+                    <TextBlock Text="..." />
+                    <TextBox Text="{Binding DrpDistanceTester.MinNumberOfNeighbors_10, Mode=TwoWay}" />
+                    <TextBlock Text="(10%)" />
+                    <TextBlock Text="; max" />
+                    <TextBox Text="{Binding DrpDistanceTester.MaxNumberOfNeighbors, Mode=TwoWay}" />
+                </StackPanel>
                 <TextBlock Grid.Row="3" Text="number of dimensions:" />
                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfDimensions, Mode=TwoWay}" />
                 <TextBlock Grid.Row="4" Text="apoptosis it. count:" />
                 <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpDistanceTester.ApoptosisIterationsCount, Mode=TwoWay}" />
-
-
-                
-
-
-                <StackPanel Orientation="Horizontal" Grid.Row="5" >
+          
+              
+                <StackPanel Orientation="Horizontal" Grid.Row="6" >
                     <Button Content="Test" Margin="3" Command="{Binding DrpDistanceTester.Test}" />
+
+                    <CheckBox  IsChecked="{Binding DrpDistanceTester.EnableDetailedLogs, Mode=TwoWay}" Content="detailed logs" />
+                    <CheckBox  IsChecked="{Binding DrpDistanceTester.UseGlobalSearchForRegistration, Mode=TwoWay}" Content="global reg search" />
+
                 </StackPanel>
             </Grid>
 

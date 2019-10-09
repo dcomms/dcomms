@@ -50,9 +50,9 @@ namespace Dcomms.SandboxTester
             }, null, 0, 3000);
             this.Closed += CryptographyTesterMainWindow_Closed1;
 
-            VisionChannel.DisplayPeersDelegate = (text,peersList) =>
+            VisionChannel.DisplayPeersDelegate = (text,peersList,mode) =>
             {
-                var wnd = new PeersDisplayWindow(text,peersList);
+                var wnd = new PeersDisplayWindow(text,peersList,mode);
                 wnd.Show();
             };
         }

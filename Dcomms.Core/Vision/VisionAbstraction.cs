@@ -91,7 +91,7 @@ namespace Dcomms.Vision
         }
 
 
-        public virtual void EmitListOfPeers(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> listOfPeers)
+        public virtual void EmitListOfPeers(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, VisiblePeersDisplayMode peersListDisplayMode)
         {
         }
     }
@@ -118,5 +118,10 @@ namespace Dcomms.Vision
     {
         double[] VectorValues { get; }
         IEnumerable<IVisiblePeer> NeighborPeers { get; }
+    }
+    public enum VisiblePeersDisplayMode
+    {
+        routingPath,
+        allPeers
     }
 }
