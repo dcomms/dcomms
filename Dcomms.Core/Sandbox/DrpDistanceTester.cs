@@ -16,13 +16,14 @@ namespace Dcomms.Sandbox
         const string VisionChannelSourceId = "test";
         public int NumberOfPeers { get; set; } = 1000;
         public int NumberOfEntryPeers { get; set; } = 7;
-        public int MinNumberOfNeighbors_90 { get; set; } = 5;
-        public int MinNumberOfNeighbors_10 { get; set; } = 20;
+        public int MinNumberOfNeighbors_90 { get; set; } = 8;
+        public int MinNumberOfNeighbors_10 { get; set; } = 8;
         public int MaxNumberOfNeighbors { get; set; } = 25;
         public int NumberOfDimensions { get; set; } = 2;//8;
         public int ApoptosisIterationsCount { get; set; } = 10;
         public bool EnableDetailedLogs { get; set; }
         public bool UseGlobalSearchForRegistration { get; set; }
+        public bool ConsiderNeighborsOfNeighborsForInviteRouting { get; set; }
 
         readonly VisionChannel _visionChannel;
         public DrpDistanceTester(VisionChannel visionChannel)
@@ -35,21 +36,25 @@ namespace Dcomms.Sandbox
         {
             readonly string _name;
             public override string ToString() => _name;
+            ICryptoLibrary _cryptoLibrary;
+            int _numberOfDimensions;
             public Peer(ICryptoLibrary cryptoLibrary, RegistrationId registrationId, string name, int numberOfDimensions)
             {
+                _numberOfDimensions = numberOfDimensions;
+                _cryptoLibrary = cryptoLibrary;
                 _name = name;
                 RegistrationId = registrationId;
                 VectorValues = RegistrationIdDistance.GetVectorValues(cryptoLibrary, registrationId, numberOfDimensions);
             }
             public RegistrationId RegistrationId;
             public readonly Dictionary<RegistrationId, Peer> Neighbors = new Dictionary<RegistrationId, Peer>();
-            public Peer GetMostFarNeighbor(ICryptoLibrary cryptoLibrary, int numberOfDimensions)
+            public Peer GetMostFarNeighbor()
             {
                 RegistrationIdDistance maxDistance = null;
                 Peer mostFarNeighbor = null;
                 foreach (var neighbor in Neighbors.Values)
                 {
-                    var d = neighbor.RegistrationId.GetDistanceTo(cryptoLibrary, this.RegistrationId, numberOfDimensions);
+                    var d = neighbor.RegistrationId.GetDistanceTo(_cryptoLibrary, this.RegistrationId, _numberOfDimensions);
                     if (maxDistance == null || d.IsGreaterThan(maxDistance))
                     {
                         maxDistance = d;
@@ -65,7 +70,7 @@ namespace Dcomms.Sandbox
              
 
             IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => Neighbors.Values;
-
+            
             public void AddNeighbor(Peer anotherPeer)
             {
                 Neighbors.Add(anotherPeer.RegistrationId, anotherPeer);
@@ -74,13 +79,13 @@ namespace Dcomms.Sandbox
 
 
 
-            public RegistrationIdDistance GetMinimalDistanceOfThisAndNeighborsToTarget(ICryptoLibrary cryptoLibrary, Peer target, int numberOfDimensions)
+            public RegistrationIdDistance GetMinimalDistanceOfThisAndNeighborsToTarget(Peer target)
             {
-                RegistrationIdDistance minDistance = RegistrationId.GetDistanceTo(cryptoLibrary, target.RegistrationId, numberOfDimensions);
+                RegistrationIdDistance minDistance = RegistrationId.GetDistanceTo(_cryptoLibrary, target.RegistrationId, _numberOfDimensions);
 
                 foreach (var neighbor in Neighbors.Values)
                 {
-                    var d = neighbor.RegistrationId.GetDistanceTo(cryptoLibrary, target.RegistrationId, numberOfDimensions);
+                    var d = neighbor.RegistrationId.GetDistanceTo(_cryptoLibrary, target.RegistrationId, _numberOfDimensions);
                     if (minDistance.IsGreaterThan(d))
                     {
                         minDistance = d;
@@ -89,6 +94,8 @@ namespace Dcomms.Sandbox
 
                 return minDistance;
             }
+
+            string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer) => this.RegistrationId.GetDistanceTo(_cryptoLibrary, ((Peer)toThisPeer).RegistrationId, _numberOfDimensions).ToString();
         }
 
         public ICommand Test => new DelegateCommand(() =>
@@ -346,7 +353,7 @@ namespace Dcomms.Sandbox
                 }
                 else
                 {
-                    var neighbor = peer.GetMostFarNeighbor(cryptoLibrary, numberOfDimensions);
+                    var neighbor = peer.GetMostFarNeighbor();
                         
                         //peer.Neighbors.Values.ToList()[rnd.Next(peer.Neighbors.Count)];
 
@@ -376,7 +383,7 @@ namespace Dcomms.Sandbox
             var avoidedPeers = new HashSet<Peer>();
             while (currentPeer != toPeer)
             {
-                RoutingIterationProcedure(cryptoLibrary, currentPeer, toPeer, avoidedPeers, numberOfDimensions, true, out var bestNextPeer, out var currentPeerIsBetterThanAnyNeighbor);
+                RoutingIterationProcedure(cryptoLibrary, currentPeer, toPeer, avoidedPeers, numberOfDimensions, ConsiderNeighborsOfNeighborsForInviteRouting, out var bestNextPeer, out var currentPeerIsBetterThanAnyNeighbor);
                
                 numberOfHops++;
                 hopsRemaining--;
@@ -459,7 +466,7 @@ namespace Dcomms.Sandbox
                 $">> RoutingIterationProcedure() currentPeer={currentPeer} destinationPeer={destinationPeer}");
 
             bestNextPeer = null;
-            RegistrationIdDistance minDistanceOfNeighbors = null;
+            RegistrationIdDistance minDistance = null;
             currentPeerIsBetterThanAnyNeighbor = false;
 
           
@@ -472,22 +479,22 @@ namespace Dcomms.Sandbox
 
                 RegistrationIdDistance d;
                 
-                if (considerNeighborsOfNeighbors) d = nextPeer.GetMinimalDistanceOfThisAndNeighborsToTarget(cryptoLibrary, destinationPeer, numberOfDimensions);
+                if (considerNeighborsOfNeighbors) d = nextPeer.GetMinimalDistanceOfThisAndNeighborsToTarget(destinationPeer);
                 else d = nextPeer.RegistrationId.GetDistanceTo(cryptoLibrary, destinationPeer.RegistrationId, numberOfDimensions);
 
-                if (minDistanceOfNeighbors == null || minDistanceOfNeighbors.IsGreaterThan(d))
+                if (minDistance == null || minDistance.IsGreaterThan(d))
                 {
                     bestNextPeer = nextPeer;
-                    minDistanceOfNeighbors = d;
+                    minDistance = d;
                     currentPeerIsBetterThanAnyNeighbor = false;
-                    if (EnableDetailedLogs) _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
-                        $"@ RoutingIterationProcedure() peer={nextPeer} d={d}");
+                //    if (EnableDetailedLogs) _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
+                //        $"@ RoutingIterationProcedure() peer={nextPeer} d={d}");
                 }
             }
 
             {
                 var d = currentPeer.RegistrationId.GetDistanceTo(cryptoLibrary, destinationPeer.RegistrationId, numberOfDimensions);
-                if (minDistanceOfNeighbors == null || minDistanceOfNeighbors.IsGreaterThan(d))
+                if (minDistance == null || minDistance.IsGreaterThan(d))
                 {
                     currentPeerIsBetterThanAnyNeighbor = true;
                 }
@@ -498,7 +505,7 @@ namespace Dcomms.Sandbox
 
 
             if (EnableDetailedLogs) _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
-                $"<< RoutingIterationProcedure() returns bestNextPeer={bestNextPeer} distanceToBestNextPeer={minDistanceOfNeighbors}   currentPeerIsBetterThanAnyNeighbor={currentPeerIsBetterThanAnyNeighbor}");
+                $"<< RoutingIterationProcedure() returns bestNextPeer={bestNextPeer} minDistance={minDistance}   currentPeerIsBetterThanAnyNeighbor={currentPeerIsBetterThanAnyNeighbor}");
          
         }
                

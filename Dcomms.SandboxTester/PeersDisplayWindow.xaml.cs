@@ -29,6 +29,20 @@ namespace Dcomms.SandboxTester
 
             this.Initialized += PeersDisplayWindow_Initialized;
             this.SizeChanged += PeersDisplayWindow_SizeChanged;
+
+            if (displayMode == VisiblePeersDisplayMode.routingPath)
+            {
+                text1.Visibility = Visibility.Visible;
+
+                var sb = new StringBuilder();
+                sb.Append("distances to target: ");
+                for (int i = 0; i < peers.Count; i++)
+                {
+                    sb.Append($"hop{i}:{peers[peers.Count-1].GetDistanceString(peers[i])};  ");
+                }
+
+                text1.Text = sb.ToString();
+            }
         }
 
         private void PeersDisplayWindow_SizeChanged(object sender, SizeChangedEventArgs e)

@@ -118,6 +118,7 @@ namespace Dcomms.Vision
     {
         double[] VectorValues { get; }
         IEnumerable<IVisiblePeer> NeighborPeers { get; }
+        string GetDistanceString(IVisiblePeer toThisPeer);
     }
     public enum VisiblePeersDisplayMode
     {

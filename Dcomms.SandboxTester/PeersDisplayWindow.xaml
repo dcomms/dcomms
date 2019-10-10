@@ -6,7 +6,12 @@
         xmlns:local="clr-namespace:Dcomms.SandboxTester"
         mc:Ignorable="d"
         Title="PeersDisplayWindow" Height="700" Width="700">
-    <Grid>
-        <Canvas x:Name="canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+    <Grid >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="text1" Visibility="Collapsed" TextWrapping="Wrap" Background="#99FFFFFF"  FontWeight="Bold"/>
+        <Canvas Grid.Row="1" x:Name="canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
     </Grid>
 </Window>

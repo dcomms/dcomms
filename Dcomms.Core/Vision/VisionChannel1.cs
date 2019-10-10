@@ -215,7 +215,7 @@ namespace Dcomms.Vision
             public double[] VectorValues { get; private set; }
             public List<IVisiblePeer> NeighborPeers { get; private set; }
             IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => NeighborPeers;
-
+            
             public static List<IVisiblePeer> Clone(List<IVisiblePeer> sourceList)
             {
                 var r = new List<ClonedVisiblePeer>(sourceList.Count);
@@ -245,6 +245,10 @@ namespace Dcomms.Vision
                 return r.Cast<IVisiblePeer>().ToList();
             }
 
+            string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }
