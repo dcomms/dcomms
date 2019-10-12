@@ -113,12 +113,9 @@
                 
                 <TextBlock Grid.Row="2" Text="number of neighbors:" />
                 <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="1" >
-                    <TextBlock Text="from (90%)" />
-                    <TextBox Text="{Binding DrpDistanceTester.MinNumberOfNeighbors_90, Mode=TwoWay}" />
-                    <TextBlock Text="..." />
-                    <TextBox Text="{Binding DrpDistanceTester.MinNumberOfNeighbors_10, Mode=TwoWay}" />
-                    <TextBlock Text="(10%)" />
-                    <TextBlock Text="; max" />
+                    <TextBlock Text="from " />
+                    <TextBox Text="{Binding DrpDistanceTester.MinNumberOfNeighbors, Mode=TwoWay}" />
+                    <TextBlock Text=" max" />
                     <TextBox Text="{Binding DrpDistanceTester.MaxNumberOfNeighbors, Mode=TwoWay}" />
                 </StackPanel>
                 <TextBlock Grid.Row="3" Text="number of dimensions:" />

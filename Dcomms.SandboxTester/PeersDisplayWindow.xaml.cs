@@ -1,4 +1,5 @@
-﻿using Dcomms.Vision;
+﻿using Dcomms.DRP;
+using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -120,33 +121,8 @@ namespace Dcomms.SandboxTester
             var x2 = v2[0];
             var y2 = v2[1];
 
-            var d_x21 = x2 - x1;
-            if (d_x21 > 0.5)
-            {
-                x1 += 1.0;
-            }
-            else
-            {
-                var d_x12 = x1 - x2;
-                if (d_x12 > 0.5)
-                {
-                    x1 -= 1.0;
-                }
-            }
-
-            var d_y21 = y2 - y1;
-            if (d_y21 > 0.5)
-            {
-                y1 += 1.0;
-            }
-            else
-            {
-                var d_y12 = y1 - y2;
-                if (d_y12 > 0.5)
-                {
-                    y1 -= 1.0;
-                }
-            }
+            RegistrationIdDistance.ProcessVectorInLoopedRegistrationIdSpace(x1, ref x2);
+            RegistrationIdDistance.ProcessVectorInLoopedRegistrationIdSpace(y1, ref y2);
 
             p1 = new Point(margin + x1 * (canvas.ActualWidth - margin * 2), margin + y1 * (canvas.ActualHeight - margin * 2));
             p2 = new Point(margin + x2 * (canvas.ActualWidth - margin * 2), margin + y2 * (canvas.ActualHeight - margin * 2));

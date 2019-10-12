@@ -51,7 +51,7 @@ namespace Dcomms.DRP
             return MiscProcedures.ByteArrayToString(Ed25519publicKey);
         }
         public RegistrationIdDistance GetDistanceTo(ICryptoLibrary cryptoLibrary, RegistrationId another, int numberOfDimensions = 8) => new RegistrationIdDistance(cryptoLibrary, this, another, numberOfDimensions);
-       
+              
     }
 
 
@@ -240,7 +240,146 @@ namespace Dcomms.DRP
 
         public override string ToString() => ((float)_distance_sumSqr).ToString("E02");
         public double ToDouble() => Math.Sqrt(_distance_sumSqr);
+         
+        public static void ProcessVectorInLoopedRegistrationIdSpace(double from, ref double to)
+        {
+            if (to - from > 0.5)
+            { // case 1
+                to -= 1.0;
+            }
+            else
+            {
+                if (from - to > 0.5)
+                { // case 2
+                    to += 1.0;
+                }
+            }
+        }
 
+    }
+
+    public class P2pConnectionValueCalculator
+    {
+        ICryptoLibrary _cryptoLibrary;
+        int _numberOfDimensions;
+        double[] _localPeerVector;
+      //  double[] _vectorFromLocalPeerToAverageNeighborNormalized; // null if no neighbors
+        internal string Description
+        {
+            get
+            {
+                var sb = new StringBuilder("{");
+             //   foreach (var d in _vectorFromLocalPeerToAverageNeighborNormalized)
+            //        sb.AppendFormat("{0:0.00};", d);
+                sb.Append("}");
+                return sb.ToString();
+            }
+        }
+
+        int[] _currentNeighborsCountPerSectors = new int[4];
+        int GetSectorIndex(double[] vectorFromLocalPeerToNeighbor)
+        {
+            if (_numberOfDimensions == 2)
+            {
+                if (vectorFromLocalPeerToNeighbor[0] > 0)
+                {
+                    if (vectorFromLocalPeerToNeighbor[1] > 0) return 0;
+                    else return 1;
+                }
+                else
+                {
+                    if (vectorFromLocalPeerToNeighbor[1] > 0) return 2;
+                    else return 3;
+                }
+            }
+            else throw new NotImplementedException();
+        }
+
+        public P2pConnectionValueCalculator(RegistrationId localPeer, ICryptoLibrary cryptoLibrary, int numberOfDimensions, IEnumerable<RegistrationId> currentNeighbors)
+        {
+            _numberOfDimensions = numberOfDimensions;
+            if (_numberOfDimensions == 2)
+            {
+                _currentNeighborsCountPerSectors = new int[4];
+            }
+            else throw new NotImplementedException();
+
+            _cryptoLibrary = cryptoLibrary;
+
+            _localPeerVector = RegistrationIdDistance.GetVectorValues(_cryptoLibrary, localPeer, _numberOfDimensions);
+                      
+            foreach (var neighborVector in currentNeighbors.Select(x => RegistrationIdDistance.GetVectorValues(cryptoLibrary, x, numberOfDimensions)))
+            {
+                var vectorFromLocalPeerToNeighbor = new double[numberOfDimensions];                  
+                for (int i = 0; i < numberOfDimensions; i++)
+                {
+                    var from = _localPeerVector[i];
+                    var to = neighborVector[i];
+                    RegistrationIdDistance.ProcessVectorInLoopedRegistrationIdSpace(from, ref to);
+                    vectorFromLocalPeerToNeighbor[i] += to - from;
+                }
+                _currentNeighborsCountPerSectors[GetSectorIndex(vectorFromLocalPeerToNeighbor)]++;
+            }            
+           
+
+            //if (currentNeighbors.Any())
+            //{
+            //    var neighborsVectors = currentNeighbors.Select(x => RegistrationIdDistance.GetVectorValues(cryptoLibrary, x, numberOfDimensions)).ToList();
+
+            //    var intermediate1 = new double[numberOfDimensions];
+            //    foreach (var neighborVector in neighborsVectors)
+            //        for (int i = 0; i < numberOfDimensions; i++)
+            //        {
+            //            var from = _localPeerVector[i];
+            //            var to = neighborVector[i];
+            //            RegistrationIdDistance.ProcessVectorInLoopedRegistrationIdSpace(from, ref to);
+            //            intermediate1[i] += to - from;
+            //        }
+            //    double intermediate1L = 0;
+            //    for (int i = 0; i < numberOfDimensions; i++)
+            //        intermediate1L += intermediate1[i] * intermediate1[i];
+            //    intermediate1L = Math.Sqrt(intermediate1L);
+
+            //    _vectorFromLocalPeerToAverageNeighborNormalized = new double[numberOfDimensions];
+            //    for (int i = 0; i < numberOfDimensions; i++)
+            //        _vectorFromLocalPeerToAverageNeighborNormalized[i] = intermediate1[i] / intermediate1L;
+            //}
+        }
+        public double GetValue(RegistrationId neighbor)
+        {
+            var neighborVector = RegistrationIdDistance.GetVectorValues(_cryptoLibrary, neighbor, _numberOfDimensions);
+                      
+
+            double distanceFromLocalPeerToNeighbor = 0;
+            var vectorFromLocalPeerToNeighbor = new double[_numberOfDimensions];
+          //  double cosAngle = 0; // scalar multiplication   of (vector from local peer to the neighbor) by (vector from local peer to average neighbor  (normalized))
+            for (int i = 0; i < neighborVector.Length; i++)
+            {
+                var from = _localPeerVector[i];
+                var to = neighborVector[i];
+                RegistrationIdDistance.ProcessVectorInLoopedRegistrationIdSpace(from, ref to);
+                var vectorFromLocalPeerToNeighbor_i = to - from;
+                vectorFromLocalPeerToNeighbor[i] = vectorFromLocalPeerToNeighbor_i;
+                distanceFromLocalPeerToNeighbor += vectorFromLocalPeerToNeighbor_i * vectorFromLocalPeerToNeighbor_i;
+
+              //  if (_vectorFromLocalPeerToAverageNeighborNormalized != null)
+             //   {
+             //       cosAngle += vectorFromLocalPeerToNeighbor_i * (- _vectorFromLocalPeerToAverageNeighborNormalized[i]);
+            //    }
+            }
+            distanceFromLocalPeerToNeighbor = Math.Sqrt(distanceFromLocalPeerToNeighbor);
+
+            double r = -distanceFromLocalPeerToNeighbor;
+
+            var sectorIndex = GetSectorIndex(vectorFromLocalPeerToNeighbor);
+            if (_currentNeighborsCountPerSectors[sectorIndex] == 0) r += 10.0;
+            else if (_currentNeighborsCountPerSectors[sectorIndex] == 1) r += 1.0;
+
+            //  if (cosAngle < 0)
+            //      return -1 - distanceFromLocalPeerToNeighbor;
+
+            return r;
+        }
     }
 
 
