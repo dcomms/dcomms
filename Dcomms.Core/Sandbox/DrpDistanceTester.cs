@@ -23,6 +23,8 @@ namespace Dcomms.Sandbox
         public bool EnableDetailedLogs { get; set; }
         public bool UseGlobalSearchForRegistration { get; set; }
         public bool ConsiderNeighborsOfNeighborsForInviteRouting { get; set; }
+        int TotalMaxHopsCountToExtendNeighbors { get; set; } = 40;
+        int RandomHopsCountToExtendNeighbors { get; set; } = 15;
 
         readonly VisionChannel _visionChannel;
         public DrpDistanceTester(VisionChannel visionChannel)
@@ -343,7 +345,7 @@ namespace Dcomms.Sandbox
                     )
                 {
                     var entryPeer = allPeers[rnd.Next(numberOfEntryPeers)];                    
-                    RegisterRoutingProcedure(cryptoLibrary, peer, entryPeer, numberOfDimensions, p2pcvc, out Peer newNeighbor);
+                    RegisterRoutingProcedure(cryptoLibrary, peer, entryPeer, numberOfDimensions, p2pcvc, RandomHopsCountToExtendNeighbors, rnd, out Peer newNeighbor);
                     if (newNeighbor != null)
                     {
                         peer.AddNeighbor(newNeighbor);
@@ -355,7 +357,7 @@ namespace Dcomms.Sandbox
                     var entryNeighbor =// peer.GetMostFarNeighbor();                        
                         peer.Neighbors.Values.ToList()[rnd.Next(peer.Neighbors.Count)];
 
-                    RegisterRoutingProcedure(cryptoLibrary, peer, entryNeighbor, numberOfDimensions, p2pcvc, out var newNeighbor);
+                    RegisterRoutingProcedure(cryptoLibrary, peer, entryNeighbor, numberOfDimensions, p2pcvc, RandomHopsCountToExtendNeighbors, rnd, out var newNeighbor);
 
                     if (newNeighbor != null)
                     {
@@ -381,7 +383,7 @@ namespace Dcomms.Sandbox
             var avoidedPeers = new HashSet<Peer>();
             while (currentPeer != toPeer)
             {
-                RoutingIterationProcedure(cryptoLibrary, currentPeer, toPeer, avoidedPeers, numberOfDimensions, ConsiderNeighborsOfNeighborsForInviteRouting, null, out var bestNextPeer, out var currentPeerIsBetterThanAnyNeighbor);
+                RoutingIterationProcedure(cryptoLibrary, currentPeer, toPeer, avoidedPeers, numberOfDimensions, ConsiderNeighborsOfNeighborsForInviteRouting, null, false, null, out var bestNextPeer, out var currentPeerIsBetterThanAnyNeighbor);
                
                 numberOfHops++;
                 hopsRemaining--;
@@ -413,29 +415,31 @@ namespace Dcomms.Sandbox
 
             return success;
         }                
-        void RegisterRoutingProcedure(ICryptoLibrary cryptoLibrary, Peer registerForMainPeer, Peer currentPeer, int numberOfDimensions, P2pConnectionValueCalculator p2pcvc, out Peer closestNewNeighbor)
+        void RegisterRoutingProcedure(ICryptoLibrary cryptoLibrary, Peer registerForMainPeer, Peer currentPeer, int numberOfDimensions, P2pConnectionValueCalculator p2pcvc, int randomHopsCount, Random rnd, out Peer closestNewNeighbor)
         {
             if (EnableDetailedLogs) _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
                 $">> RegisterRoutingProcedure() registerForMainPeer={registerForMainPeer}, currentPeer={currentPeer}");
             closestNewNeighbor = null;
 
-            int hopsRemaining = 30;
+            int hopsRemaining = TotalMaxHopsCountToExtendNeighbors;
 
             HashSet<Peer> avoidedPeers = new HashSet<Peer>();
             avoidedPeers.Add(registerForMainPeer);
             foreach (var neighb in registerForMainPeer.Neighbors.Values) avoidedPeers.Add(neighb);
 
+            int randomHopsCountRemaining = randomHopsCount;
             while (hopsRemaining > 0)
             {
                 RoutingIterationProcedure(cryptoLibrary, currentPeer, registerForMainPeer, 
                     avoidedPeers, numberOfDimensions, false,
-                    p2pcvc,
+                    p2pcvc, randomHopsCountRemaining > 0, rnd,
                     out var bestNextPeer, out var currentPeerIsBetterThanAnyNeighbor);
                 if (EnableDetailedLogs) _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
                     $"@RegisterRoutingProcedure() hopsRemaining={hopsRemaining} bestNextPeer={bestNextPeer} currentPeerIsBetterThanAnyNeighbor={currentPeerIsBetterThanAnyNeighbor}");
 
                 
                 hopsRemaining--;
+                randomHopsCountRemaining--;
                 if (bestNextPeer == null) break;
                 else
                 {
@@ -457,19 +461,58 @@ namespace Dcomms.Sandbox
                 $"<< RegisterRoutingProcedure() closestNewNeighbor={closestNewNeighbor}");
         }
         void RoutingIterationProcedure(ICryptoLibrary cryptoLibrary, Peer currentPeer, Peer destinationMainPeer, HashSet<Peer> avoidedPeers, int numberOfDimensions,
-            bool considerNeighborsOfNeighbors, P2pConnectionValueCalculator p2pcvc,
+            bool considerNeighborsOfNeighbors, P2pConnectionValueCalculator p2pcvc, bool randomHop, Random rnd,
             out Peer bestNextPeer, out bool currentPeerIsBetterThanAnyNeighbor)
         {
             if (EnableDetailedLogs) _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
-                $">> RoutingIterationProcedure() currentPeer={currentPeer} destinationPeer={destinationMainPeer} considerNeighborsOfNeighbors={considerNeighborsOfNeighbors}");
+                $">> RoutingIterationProcedure() currentPeer={currentPeer} destinationPeer={destinationMainPeer} considerNeighborsOfNeighbors={considerNeighborsOfNeighbors} randomHop={randomHop}");
 
             bestNextPeer = null;
             currentPeerIsBetterThanAnyNeighbor = false;
 
-            if (p2pcvc == null)
+            if (randomHop)
+            {
+                var peersToSelectRandomly = new List<Peer>();
+                RegistrationIdDistance minDistance = null;
+                foreach (var nextPeer in currentPeer.Neighbors.Values)
+                {
+                    // dont go back to source peer
+                    if (avoidedPeers.Contains(nextPeer)) continue;
+
+                    RegistrationIdDistance d;
+                    if (considerNeighborsOfNeighbors) d = nextPeer.GetMinimalDistanceOfThisAndNeighborsToTarget(destinationMainPeer);
+                    else d = nextPeer.RegistrationId.GetDistanceTo(cryptoLibrary, destinationMainPeer.RegistrationId, numberOfDimensions);
+
+                    peersToSelectRandomly.Add(nextPeer);
+                    if (minDistance == null || minDistance.IsGreaterThan(d))
+                    {
+                        minDistance = d;
+                        currentPeerIsBetterThanAnyNeighbor = false;
+                    }
+                }
+
+                if (peersToSelectRandomly.Count != 0)
+                {
+                    bestNextPeer = peersToSelectRandomly[rnd.Next(peersToSelectRandomly.Count)];
+                }
+
+
+                {
+                    var d = currentPeer.RegistrationId.GetDistanceTo(cryptoLibrary, destinationMainPeer.RegistrationId, numberOfDimensions);
+                    if (minDistance == null || minDistance.IsGreaterThan(d))
+                    {
+                        currentPeerIsBetterThanAnyNeighbor = true;
+                    }
+
+                    if (EnableDetailedLogs) _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
+                        $"@ RoutingIterationProcedure() currentPeer={currentPeer} d={d}");
+                }
+                if (EnableDetailedLogs) _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
+                    $"<< RoutingIterationProcedure() returns bestNextPeer={bestNextPeer} minDistance={minDistance} currentPeerIsBetterThanAnyNeighbor={currentPeerIsBetterThanAnyNeighbor}");
+            }
+            else if (p2pcvc == null)
             {
                 RegistrationIdDistance minDistance = null;
-
                 foreach (var nextPeer in currentPeer.Neighbors.Values)
                 {
                     // dont go back to source peer
@@ -484,8 +527,6 @@ namespace Dcomms.Sandbox
                         bestNextPeer = nextPeer;
                         minDistance = d;
                         currentPeerIsBetterThanAnyNeighbor = false;
-                        //    if (EnableDetailedLogs) _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
-                        //        $"@ RoutingIterationProcedure() peer={nextPeer} d={d}");
                     }
                 }
 
@@ -537,10 +578,7 @@ namespace Dcomms.Sandbox
                 }
                 if (EnableDetailedLogs) _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
                     $"<< RoutingIterationProcedure() returns bestNextPeer={bestNextPeer} maxValue={maxValue} currentPeerIsBetterThanAnyNeighbor={currentPeerIsBetterThanAnyNeighbor}");
-            }
-
-
-         
+            }         
         }               
         public void Dispose()
         {

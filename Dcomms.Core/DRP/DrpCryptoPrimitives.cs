@@ -255,7 +255,71 @@ namespace Dcomms.DRP
                 }
             }
         }
+    }
 
+    public class VectorSectorIndexCalculator
+    {
+        readonly List<double[]> _simplexVertices;
+        public int IndexesCount => _simplexVertices.Count;
+        public VectorSectorIndexCalculator(int numberOfDimensions)
+        {
+            if (numberOfDimensions == 2)
+            {
+                _simplexVertices = new List<double[]>();
+                _simplexVertices.Add(new double[] { 0, 0 });
+                _simplexVertices.Add(new double[] { 1, 0 });
+                _simplexVertices.Add(new double[] { 0.5, Math.Sqrt(3) * 0.5 });
+            }
+            else if (numberOfDimensions == 4)
+            { // https://en.wikipedia.org/wiki/5-cell
+                _simplexVertices = new List<double[]>();
+                _simplexVertices.Add(new double[] { 1, 1, 1, -1 / Math.Sqrt(5) });
+                _simplexVertices.Add(new double[] { 1, -1, -1, -1 / Math.Sqrt(5) });
+                _simplexVertices.Add(new double[] { -1, 1, -1, -1 / Math.Sqrt(5) });
+                _simplexVertices.Add(new double[] { -1, -1, 1, -1 / Math.Sqrt(5) });
+                _simplexVertices.Add(new double[] { 0, 0, 0, Math.Sqrt(5) - 1 / Math.Sqrt(5) });
+            }
+            else if (numberOfDimensions == 8)
+            { // https://en.wikipedia.org/wiki/8-simplex
+                _simplexVertices = new List<double[]>();
+                _simplexVertices.Add(new double[] { 1.0 / 6, Math.Sqrt(1.0 / 28), Math.Sqrt(1.0 / 21), Math.Sqrt(1.0 / 15), Math.Sqrt(1.0 / 10), Math.Sqrt(1.0 / 6), Math.Sqrt(1.0 / 3), 1 });
+                _simplexVertices.Add(new double[] { 1.0 / 6, Math.Sqrt(1.0 / 28), Math.Sqrt(1.0 / 21), Math.Sqrt(1.0 / 15), Math.Sqrt(1.0 / 10), Math.Sqrt(1.0 / 6), -2.0 * Math.Sqrt(1.0 / 3), 0 });
+                _simplexVertices.Add(new double[] { 1.0 / 6, Math.Sqrt(1.0 / 28), Math.Sqrt(1.0 / 21), Math.Sqrt(1.0 / 15), Math.Sqrt(1.0 / 10), -Math.Sqrt(3.0 / 2), 0, 0 });
+                _simplexVertices.Add(new double[] { 1.0 / 6, Math.Sqrt(1.0 / 28), Math.Sqrt(1.0 / 21), Math.Sqrt(1.0 / 15), -2.0 * Math.Sqrt(2.0 / 5), 0, 0, 0 });
+                _simplexVertices.Add(new double[] { 1.0 / 6, Math.Sqrt(1.0 / 28), Math.Sqrt(1.0 / 21), -Math.Sqrt(5.0 / 3), 0, 0, 0, 0 });
+                _simplexVertices.Add(new double[] { 1.0 / 6, Math.Sqrt(1.0 / 28), -Math.Sqrt(12.0 / 7), 0, 0, 0, 0, 0 });
+                _simplexVertices.Add(new double[] { 1.0 / 6, -Math.Sqrt(7.0 / 4), 0, 0, 0, 0, 0, 0 });
+                _simplexVertices.Add(new double[] { -4.0 / 3, 0, 0, 0, 0, 0, 0, 0 });
+            }
+            else throw new NotImplementedException();
+            
+            for (int i = 0; i < numberOfDimensions; i++)
+            {
+                double avg = 0;
+                foreach (var simplexVertex in _simplexVertices) avg += simplexVertex[i];
+                avg /= _simplexVertices.Count;
+                foreach (var simplexVertex in _simplexVertices) simplexVertex[i] -= avg;
+            }
+        }
+        public int GetSectorIndex(double[] vectorFromLocalPeerToNeighbor)
+        {
+            double? maxMultResult = null;
+            int? bextVertexIndex = null;
+            for (int simplexVertexIndex = 0; simplexVertexIndex < _simplexVertices.Count; simplexVertexIndex++)
+            {
+                var simplexVertex = _simplexVertices[simplexVertexIndex];
+
+                    double multResult = 0;
+                for (int i = 0; i < vectorFromLocalPeerToNeighbor.Length; i++)
+                    multResult += simplexVertex[i] * vectorFromLocalPeerToNeighbor[i];
+                if (maxMultResult == null || multResult > maxMultResult.Value)
+                {
+                    bextVertexIndex = simplexVertexIndex;
+                    maxMultResult = multResult;
+                }
+            }
+            return bextVertexIndex.Value;
+        }
     }
 
     public class P2pConnectionValueCalculator
@@ -276,36 +340,33 @@ namespace Dcomms.DRP
             }
         }
 
-        int[] _currentNeighborsCountPerSectors = new int[4];
-        int GetSectorIndex(double[] vectorFromLocalPeerToNeighbor)
-        {
-            if (_numberOfDimensions == 2)
-            {
-                if (vectorFromLocalPeerToNeighbor[0] > 0)
-                {
-                    if (vectorFromLocalPeerToNeighbor[1] > 0) return 0;
-                    else return 1;
-                }
-                else
-                {
-                    if (vectorFromLocalPeerToNeighbor[1] > 0) return 2;
-                    else return 3;
-                }
-            }
-            else throw new NotImplementedException();
-        }
+        int[] _currentNeighborsCountPerSectors; 
+        //int GetSectorIndex(double[] vectorFromLocalPeerToNeighbor)
+        //{
+
+        //    if (_numberOfDimensions == 2)
+        //    {
+        //        if (vectorFromLocalPeerToNeighbor[0] > 0)
+        //        {
+        //            if (vectorFromLocalPeerToNeighbor[1] > 0) return 0;
+        //            else return 1;
+        //        }
+        //        else
+        //        {
+        //            if (vectorFromLocalPeerToNeighbor[1] > 0) return 2;
+        //            else return 3;
+        //        }
+        //    }
+        //    else throw new NotImplementedException();
+        //}
+        readonly VectorSectorIndexCalculator _vsic;
 
         public P2pConnectionValueCalculator(RegistrationId localPeer, ICryptoLibrary cryptoLibrary, int numberOfDimensions, IEnumerable<RegistrationId> currentNeighbors)
         {
-            _numberOfDimensions = numberOfDimensions;
-            if (_numberOfDimensions == 2)
-            {
-                _currentNeighborsCountPerSectors = new int[4];
-            }
-            else throw new NotImplementedException();
-
             _cryptoLibrary = cryptoLibrary;
-
+            _numberOfDimensions = numberOfDimensions;
+            _vsic = new VectorSectorIndexCalculator(_numberOfDimensions);
+            _currentNeighborsCountPerSectors = new int[_vsic.IndexesCount];            
             _localPeerVector = RegistrationIdDistance.GetVectorValues(_cryptoLibrary, localPeer, _numberOfDimensions);
                       
             foreach (var neighborVector in currentNeighbors.Select(x => RegistrationIdDistance.GetVectorValues(cryptoLibrary, x, numberOfDimensions)))
@@ -316,9 +377,9 @@ namespace Dcomms.DRP
                     var from = _localPeerVector[i];
                     var to = neighborVector[i];
                     RegistrationIdDistance.ProcessVectorInLoopedRegistrationIdSpace(from, ref to);
-                    vectorFromLocalPeerToNeighbor[i] += to - from;
+                    vectorFromLocalPeerToNeighbor[i] = to - from;
                 }
-                _currentNeighborsCountPerSectors[GetSectorIndex(vectorFromLocalPeerToNeighbor)]++;
+                _currentNeighborsCountPerSectors[_vsic.GetSectorIndex(vectorFromLocalPeerToNeighbor)]++;
             }            
            
 
@@ -349,7 +410,6 @@ namespace Dcomms.DRP
         {
             var neighborVector = RegistrationIdDistance.GetVectorValues(_cryptoLibrary, neighbor, _numberOfDimensions);
                       
-
             double distanceFromLocalPeerToNeighbor = 0;
             var vectorFromLocalPeerToNeighbor = new double[_numberOfDimensions];
           //  double cosAngle = 0; // scalar multiplication   of (vector from local peer to the neighbor) by (vector from local peer to average neighbor  (normalized))
@@ -371,7 +431,7 @@ namespace Dcomms.DRP
 
             double r = -distanceFromLocalPeerToNeighbor;
 
-            var sectorIndex = GetSectorIndex(vectorFromLocalPeerToNeighbor);
+            var sectorIndex = _vsic.GetSectorIndex(vectorFromLocalPeerToNeighbor);
             if (_currentNeighborsCountPerSectors[sectorIndex] == 0) r += 10.0;
             else if (_currentNeighborsCountPerSectors[sectorIndex] == 1) r += 1.0;
 
