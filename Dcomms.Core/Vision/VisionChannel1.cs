@@ -212,7 +212,7 @@ namespace Dcomms.Vision
 
         class ClonedVisiblePeer: IVisiblePeer
         {
-            public double[] VectorValues { get; private set; }
+            public float[] VectorValues { get; private set; }
             public List<IVisiblePeer> NeighborPeers { get; private set; }
             IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => NeighborPeers;
             

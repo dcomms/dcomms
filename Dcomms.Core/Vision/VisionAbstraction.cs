@@ -116,7 +116,7 @@ namespace Dcomms.Vision
        
     public interface IVisiblePeer
     {
-        double[] VectorValues { get; }
+        float[] VectorValues { get; }
         IEnumerable<IVisiblePeer> NeighborPeers { get; }
         string GetDistanceString(IVisiblePeer toThisPeer);
     }

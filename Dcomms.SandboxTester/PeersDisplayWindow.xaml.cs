@@ -39,7 +39,7 @@ namespace Dcomms.SandboxTester
                 sb.Append("distances to target: ");
                 for (int i = 0; i < peers.Count; i++)
                 {
-                    sb.Append($"hop{i}:{peers[peers.Count-1].GetDistanceString(peers[i])};  ");
+                    sb.Append($"hop{i}({peers[i]}):{peers[peers.Count-1].GetDistanceString(peers[i])};  ");
                 }
 
                 text1.Text = sb.ToString();

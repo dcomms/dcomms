@@ -102,6 +102,8 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" MinWidth="190"/>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" MinWidth="190"/>
                 </Grid.ColumnDefinitions>
 
 
@@ -114,16 +116,26 @@
                 <TextBlock Grid.Row="2" Text="number of neighbors:" />
                 <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="1" >
                     <TextBlock Text="from " />
-                    <TextBox Text="{Binding DrpDistanceTester.MinNumberOfNeighbors, Mode=TwoWay}" />
+                    <TextBox Text="{Binding DrpDistanceTester.MinNumberOfNeighbors, Mode=TwoWay}" MinWidth="50" />
                     <TextBlock Text=" max" />
-                    <TextBox Text="{Binding DrpDistanceTester.MaxNumberOfNeighbors, Mode=TwoWay}" />
+                    <TextBox Text="{Binding DrpDistanceTester.MaxNumberOfNeighbors, Mode=TwoWay}" MinWidth="50" />
                 </StackPanel>
                 <TextBlock Grid.Row="3" Text="number of dimensions:" />
                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfDimensions, Mode=TwoWay}" />
-                <TextBlock Grid.Row="4" Text="apoptosis it. count:" />
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpDistanceTester.ApoptosisIterationsCount, Mode=TwoWay}" />
-          
-              
+                <TextBlock Grid.Row="4" Text="optimization it. count:" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpDistanceTester.OptimizationIterationsCount, Mode=TwoWay}" />
+
+
+                <TextBlock Grid.Row="0" Grid.Column="2"  Text="Consider2ndOrderNeighborsForInviteRouting" />
+                <CheckBox Grid.Row="0" Grid.Column="3"  IsChecked="{Binding DrpDistanceTester.Consider2ndOrderNeighborsForInviteRouting, Mode=TwoWay}" />
+                <TextBlock Grid.Row="2" Grid.Column="2"  Text="TotalMaxHopsCountToExtendNeighbors" />
+                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpDistanceTester.TotalMaxHopsCountToExtendNeighbors, Mode=TwoWay}" />
+                <TextBlock Grid.Row="3" Grid.Column="2"  Text="RandomHopsCountToExtendNeighbors" />
+                <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding DrpDistanceTester.RandomHopsCountToExtendNeighbors, Mode=TwoWay}" />
+                    
+                    
+
+
                 <StackPanel Orientation="Horizontal" Grid.Row="6" >
                     <Button Content="Test" Margin="3" Command="{Binding DrpDistanceTester.Test}" />
 
