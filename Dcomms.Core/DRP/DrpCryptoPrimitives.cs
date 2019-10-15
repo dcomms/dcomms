@@ -352,7 +352,7 @@ namespace Dcomms.DRP
             }
         }
 
-        int[] _currentNeighborsCountPerSectors; 
+        readonly int[] _currentNeighborsCountPerSectors; 
 
         readonly VectorSectorIndexCalculator _vsic;
         static readonly Dictionary<int, VectorSectorIndexCalculator> _vsics = new Dictionary<int, VectorSectorIndexCalculator>();
@@ -394,10 +394,8 @@ namespace Dcomms.DRP
                 var vectorFromLocalPeerToNeighbor_i = to - from;
                 vectorFromLocalPeerToNeighbor[i] = vectorFromLocalPeerToNeighbor_i;
                 distanceFromLocalPeerToNeighbor += vectorFromLocalPeerToNeighbor_i * vectorFromLocalPeerToNeighbor_i;
-
             }
             distanceFromLocalPeerToNeighbor = (float)Math.Sqrt(distanceFromLocalPeerToNeighbor);
-
             float r = -distanceFromLocalPeerToNeighbor;
 
             if (considerValueOfUniqueSectors)
@@ -415,8 +413,21 @@ namespace Dcomms.DRP
                   //  else if (neighborsCountInSector == 1) r += 1.0f; // TODO questionable heuristics really 1 or another value?
                 }
             }
-
             return r;
+        }
+
+        public string P2pConnectionsQosVisionProcedure()
+        {
+            var r = new StringBuilder();
+            for (int sectorIndex = 0; sectorIndex < _currentNeighborsCountPerSectors.Length; sectorIndex++)
+            {
+                if (_currentNeighborsCountPerSectors[sectorIndex] == 0)
+                {
+                    r.Append($"sector{sectorIndex}:zero;");
+                }
+            }
+            if (r.Length != 0) return r.ToString();
+            else return null;
         }
     }
 

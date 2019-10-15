@@ -108,40 +108,37 @@
 
 
                 <TextBlock Grid.Row="0" Text="number of peers:" />
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfPeers, Mode=TwoWay}" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DrpDistanceTester.Config.NumberOfPeers, Mode=TwoWay}" />
                 <TextBlock Grid.Row="1" Text="number of entry peers:" />
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfEntryPeers, Mode=TwoWay}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpDistanceTester.Config.NumberOfEntryPeers, Mode=TwoWay}" />
                 
                 
                 <TextBlock Grid.Row="2" Text="number of neighbors:" />
                 <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="1" >
-                    <TextBlock Text="from " />
-                    <TextBox Text="{Binding DrpDistanceTester.MinNumberOfNeighbors, Mode=TwoWay}" MinWidth="50" />
-                    <TextBlock Text=" max" />
-                    <TextBox Text="{Binding DrpDistanceTester.MaxNumberOfNeighbors, Mode=TwoWay}" MinWidth="50" />
+                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors1, Mode=TwoWay}" MinWidth="50" />
+                    <TextBlock Text="..." />
+                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors2, Mode=TwoWay}" MinWidth="50" />
+                    <TextBlock Text="..." />
+                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors3, Mode=TwoWay}" MinWidth="50" />
                 </StackPanel>
                 <TextBlock Grid.Row="3" Text="number of dimensions:" />
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpDistanceTester.NumberOfDimensions, Mode=TwoWay}" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpDistanceTester.Config.NumberOfDimensions, Mode=TwoWay}" />
                 <TextBlock Grid.Row="4" Text="optimization it. count:" />
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpDistanceTester.OptimizationIterationsCount, Mode=TwoWay}" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpDistanceTester.Config.OptimizationIterationsCount, Mode=TwoWay}" />
 
 
-                <TextBlock Grid.Row="0" Grid.Column="2"  Text="Consider2ndOrderNeighborsForInviteRouting" />
-                <CheckBox Grid.Row="0" Grid.Column="3"  IsChecked="{Binding DrpDistanceTester.Consider2ndOrderNeighborsForInviteRouting, Mode=TwoWay}" />
+                <CheckBox Grid.Row="0" Grid.Column="2"  IsChecked="{Binding DrpDistanceTester.Config.Consider2ndOrderNeighborsForInviteRouting, Mode=TwoWay}" Content="2ndOrderNeighborsForInviteRouting" />
+                <CheckBox Grid.Row="1" Grid.Column="2"  IsChecked="{Binding DrpDistanceTester.Config.UseGlobalSearchForRegistration, Mode=TwoWay}" Content="global reg search" />
+                
                 <TextBlock Grid.Row="2" Grid.Column="2"  Text="TotalMaxHopsCountToExtendNeighbors" />
-                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpDistanceTester.TotalMaxHopsCountToExtendNeighbors, Mode=TwoWay}" />
+                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.TotalMaxHopsCountToExtendNeighbors, Mode=TwoWay}" />
                 <TextBlock Grid.Row="3" Grid.Column="2"  Text="RandomHopsCountToExtendNeighbors" />
-                <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding DrpDistanceTester.RandomHopsCountToExtendNeighbors, Mode=TwoWay}" />
+                <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.RandomHopsCountToExtendNeighbors, Mode=TwoWay}" />
                     
-                    
-
 
                 <StackPanel Orientation="Horizontal" Grid.Row="6" >
                     <Button Content="Test" Margin="3" Command="{Binding DrpDistanceTester.Test}" />
-
                     <CheckBox  IsChecked="{Binding DrpDistanceTester.EnableDetailedLogs, Mode=TwoWay}" Content="detailed logs" />
-                    <CheckBox  IsChecked="{Binding DrpDistanceTester.UseGlobalSearchForRegistration, Mode=TwoWay}" Content="global reg search" />
-
                 </StackPanel>
             </Grid>
 

@@ -91,7 +91,8 @@ namespace Dcomms.Vision
         }
 
 
-        public virtual void EmitListOfPeers(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, VisiblePeersDisplayMode peersListDisplayMode)
+        public virtual void EmitListOfPeers(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, 
+            VisiblePeersDisplayMode peersListDisplayMode, List<IVisiblePeer> highlightedPeers = null)
         {
         }
     }
@@ -117,6 +118,7 @@ namespace Dcomms.Vision
     public interface IVisiblePeer
     {
         float[] VectorValues { get; }
+        bool Highlighted { get; }
         IEnumerable<IVisiblePeer> NeighborPeers { get; }
         string GetDistanceString(IVisiblePeer toThisPeer);
     }

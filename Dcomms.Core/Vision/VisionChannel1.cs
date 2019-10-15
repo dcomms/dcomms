@@ -96,7 +96,7 @@ namespace Dcomms.Vision
                     _logMessages.RemoveFirst();
             }
         }
-        public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, VisiblePeersDisplayMode peersListDisplayMode)
+        public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, VisiblePeersDisplayMode peersListDisplayMode, List<IVisiblePeer> highlightedPeers)
         {
             if (!EnableNewLogMessages) return;
             var msg = new LogMessage(this)
@@ -108,7 +108,8 @@ namespace Dcomms.Vision
                 ModuleName = moduleName,
                 Message = message,
                 PeersList = peersListDisplayMode == VisiblePeersDisplayMode.allPeers ? ClonedVisiblePeer.Clone(peersList) : peersList,
-                PeersListDisplayMode = peersListDisplayMode
+                PeersListDisplayMode = peersListDisplayMode,
+
             };
             lock (_logMessages)
             {
@@ -213,6 +214,7 @@ namespace Dcomms.Vision
         class ClonedVisiblePeer: IVisiblePeer
         {
             public float[] VectorValues { get; private set; }
+            public bool Highlighted { get; private set; }
             public List<IVisiblePeer> NeighborPeers { get; private set; }
             IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => NeighborPeers;
             
@@ -226,7 +228,8 @@ namespace Dcomms.Vision
                     sourcePeersIndexes.Add(sourcePeer, i);
                     r.Add(new ClonedVisiblePeer
                     {
-                        VectorValues = sourcePeer.VectorValues.ToArray()
+                        VectorValues = sourcePeer.VectorValues.ToArray(),
+                        Highlighted = sourcePeer.Highlighted
                     });
                 }
                 
