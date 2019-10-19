@@ -23,14 +23,15 @@ namespace Dcomms.Vision
         public string DisplayFilterMessageContainsString { get; set; }
         public string DisplayFilterModuleContainsStrings { get; set; }
         public string DisplayFilterModuleExcludesStrings { get; set; }
+        public int DisplayedLogMessagesMaxCount { get; set; } = 200;
 
         public IEnumerable<LogMessage> DisplayedLogMessages
         {
             get
             {
-                lock (_logMessages)
+                lock (_logMessagesNewestFirst)
                 {
-                    IEnumerable<LogMessage> r = _logMessages;
+                    IEnumerable<LogMessage> r = _logMessagesNewestFirst;
                     if (!String.IsNullOrEmpty(DisplayFilterSourceIds))
                     {
                         var displayFilterSourceIds = new HashSet<string>(DisplayFilterSourceIds.Split(',', ';'));
@@ -51,7 +52,7 @@ namespace Dcomms.Vision
 
 
                     r = r.Where(x => x.AttentionLevel >= DisplayFilterMinLevel);
-                    return r.ToList();
+                    return r.Take(DisplayedLogMessagesMaxCount).ToList();
                 }
             }
         }
@@ -59,9 +60,9 @@ namespace Dcomms.Vision
         {
             get
             {
-                lock (_logMessages)
+                lock (_logMessagesNewestFirst)
                 {
-                    return _logMessages.Where(x=>x.Selected).ToList();
+                    return _logMessagesNewestFirst.Where(x=>x.Selected).ToList();
                 }
             }
         }
@@ -72,7 +73,7 @@ namespace Dcomms.Vision
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedSelectedLogMessages"));
         });
 
-        public LinkedList<LogMessage> _logMessages = new LinkedList<LogMessage>(); // locked // from oldest to newest
+        public LinkedList<LogMessage> _logMessagesNewestFirst = new LinkedList<LogMessage>(); // locked
         public bool EnableNewLogMessages { get; set; } = true;
         public int LogMessagesMaxCount { get; set; } = 500000;
 
@@ -93,11 +94,11 @@ namespace Dcomms.Vision
                 ModuleName = moduleName,
                 Message = message
             };
-            lock (_logMessages)
+            lock (_logMessagesNewestFirst)
             {
-                _logMessages.AddLast(msg);
-                while (_logMessages.Count > LogMessagesMaxCount)
-                    _logMessages.RemoveFirst();
+                _logMessagesNewestFirst.AddFirst(msg);
+                while (_logMessagesNewestFirst.Count > LogMessagesMaxCount)
+                    _logMessagesNewestFirst.RemoveLast();
             }
         }
         public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, VisiblePeersDisplayMode peersListDisplayMode, List<IVisiblePeer> highlightedPeers)
@@ -115,11 +116,11 @@ namespace Dcomms.Vision
                 PeersListDisplayMode = peersListDisplayMode,
 
             };
-            lock (_logMessages)
+            lock (_logMessagesNewestFirst)
             {
-                _logMessages.AddLast(msg);
-                while (_logMessages.Count > LogMessagesMaxCount)
-                    _logMessages.RemoveFirst();
+                _logMessagesNewestFirst.AddFirst(msg);
+                while (_logMessagesNewestFirst.Count > LogMessagesMaxCount)
+                    _logMessagesNewestFirst.RemoveLast();
             }
         }
         public ICommand RefreshDisplayedLogMessages => new DelegateCommand(() =>
@@ -129,8 +130,8 @@ namespace Dcomms.Vision
         });
         public ICommand ClearLogMessages => new DelegateCommand(() =>
         {
-            lock (_logMessages)
-                _logMessages.Clear();
+            lock (_logMessagesNewestFirst)
+                _logMessagesNewestFirst.Clear();
 
             if (PropertyChanged != null)
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));

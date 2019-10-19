@@ -168,7 +168,9 @@
 
                                 <TextBlock Text="max count: " />
                                 <TextBox MinWidth="50" Text="{Binding LogMessagesMaxCount, Mode=TwoWay}" />
-
+                                <TextBlock Text="display: " />
+                                <TextBox MinWidth="35" Text="{Binding DisplayedLogMessagesMaxCount, Mode=TwoWay}" />
+                                
 
                                 <CheckBox IsChecked="{Binding EnableNewLogMessages, Mode=TwoWay}" Content="enable new" />
                                 <TextBlock Text="Filter:" />
@@ -198,7 +200,6 @@
                                                 <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-
                                     </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
                                     <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />

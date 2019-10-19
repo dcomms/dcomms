@@ -40,7 +40,6 @@ namespace Dcomms.Sandbox
         }
         void xList_BeginExtendNeighbors()
         {
-            return;////////////////////////////////////
             int xIndex = 0;
             int neighborsCount = 2;
             Timer timer = null;
@@ -49,13 +48,11 @@ namespace Dcomms.Sandbox
                 if (xIndex >= _xList.Count)
                 {
                     neighborsCount++;
-
-                    if (neighborsCount > 10)
+                    if (neighborsCount > 4)
                     {
                         timer.Dispose();
                         return;
                     }
-
                     xIndex = 0;
                 }                
 
