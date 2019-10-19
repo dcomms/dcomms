@@ -57,7 +57,6 @@ namespace Dcomms.DRP
 
     public class RegistrationIdDistance
     {
-
         double _distance_sumSqr; // 32 bytes of reg. public key: split into 16 dimensions of 2 bytes //   euclidean distance
         public unsafe RegistrationIdDistance(ICryptoLibrary cryptoLibrary, RegistrationId rpk1, RegistrationId rpk2, int numberOfDimensions = 8)
         {
@@ -315,6 +314,7 @@ namespace Dcomms.DRP
                 foreach (var simplexVertex in _simplexVertices) simplexVertex[i] -= avg;
             }
         }
+        public float[] GetSimplexVector(int sectorIndex) => _simplexVertices[sectorIndex];
         public int GetSectorIndex(float[] vectorFromLocalPeerToNeighbor)
         {
             float? maxMultResult = null;
@@ -323,7 +323,7 @@ namespace Dcomms.DRP
             {
                 var simplexVertex = _simplexVertices[simplexVertexIndex];
 
-                    float multResult = 0;
+                float multResult = 0;
                 for (int i = 0; i < vectorFromLocalPeerToNeighbor.Length; i++)
                     multResult += simplexVertex[i] * vectorFromLocalPeerToNeighbor[i];
                 if (maxMultResult == null || multResult > maxMultResult.Value)
@@ -352,35 +352,177 @@ namespace Dcomms.DRP
             }
         }
 
-        readonly int[] _currentNeighborsCountPerSectors; 
+        readonly int[] _currentNeighborsCountPerSectors;
+        readonly float[] _emptyDirectionVector; // null if not found
+        readonly bool _thereIsNeighborAlongEmptyDirectionVector;
 
         readonly VectorSectorIndexCalculator _vsic;
         static readonly Dictionary<int, VectorSectorIndexCalculator> _vsics = new Dictionary<int, VectorSectorIndexCalculator>();
 
-        public P2pConnectionValueCalculator(float[] localPeerVector, IEnumerable<float[]> currentNeighborsVectors)
-        {       
+        static IEnumerable<byte[]> GetGroupsOfSimplexVertices(int simplexesCountInGroup, int verticesCount)
+        {
+            var r = new byte[simplexesCountInGroup];
+            // enumerate all combinations/groups of vertex indexes
+            //  for (byte x = 0; x < )
+            if (verticesCount == 3)
+            {
+                if (simplexesCountInGroup == 1)
+                {
+                    r[0] = 0; yield return r;
+                    r[0] = 1; yield return r;
+                    r[0] = 2; yield return r;
+                }
+                else if (simplexesCountInGroup == 2)
+                {
+                    r[0] = 0; r[1] = 1; yield return r;
+                    r[0] = 0; r[1] = 2; yield return r;
+                    r[0] = 1; r[1] = 2; yield return r;
+                }
+                else throw new NotImplementedException();
+
+            }
+            else throw new NotImplementedException();
+
+        }
+        static float[] FindEmptyDirection(int numberOfDimensions, VectorSectorIndexCalculator vsic, List<float[]> unitVectorsFromLocalPeerToNeighbors) // solves a linear inequation
+        {
+            for (int simplexesCountInGroup = 1; simplexesCountInGroup <= numberOfDimensions; simplexesCountInGroup++)
+            {
+                // find all groups of simplex vertices
+                foreach (var groupOfSimplexes in GetGroupsOfSimplexVertices(simplexesCountInGroup, vsic.IndexesCount))
+                {
+                    var groupAverageVector = new float[numberOfDimensions];
+                    for (int simplexIndexInGroup = 0; simplexIndexInGroup < groupOfSimplexes.Length; simplexIndexInGroup++)
+                    {
+                        var simplexVertex = vsic.GetSimplexVector(simplexIndexInGroup);
+                        for (int dimensionI = 0; dimensionI < numberOfDimensions; dimensionI++)
+                            groupAverageVector[dimensionI] += simplexVertex[dimensionI];
+                    }
+
+                    // are all vectors along groupAverageVector?
+                    bool neighbor_along_groupAverageVector_exists = false;
+                    foreach (var unitVectorFromLocalPeerToNeighbor in unitVectorsFromLocalPeerToNeighbors)
+                    {
+                        float multProduct = 0;
+                        for (int dimensionI = 0; dimensionI < numberOfDimensions; dimensionI++)
+                            multProduct += unitVectorFromLocalPeerToNeighbor[dimensionI] * groupAverageVector[dimensionI];
+                        if (multProduct > 0)
+                        {
+                            neighbor_along_groupAverageVector_exists = true;
+                            break;
+                        }
+                    }
+                    if (neighbor_along_groupAverageVector_exists == false)
+                        return groupAverageVector;
+                }
+            }
+            return null;
+        }
+
+        public P2pConnectionValueCalculator(float[] localPeerVector, IEnumerable<float[]> currentNeighborsVectors, Action<string> wtl)
+        { 
             _localPeerVector = localPeerVector;
             if (!_vsics.TryGetValue(NumberOfDimensions, out _vsic))
             {
                 _vsic = new VectorSectorIndexCalculator(NumberOfDimensions);
                 _vsics.Add(NumberOfDimensions, _vsic);
             }
-            _currentNeighborsCountPerSectors = new int[_vsic.IndexesCount];     
-                      
+            _currentNeighborsCountPerSectors = new int[_vsic.IndexesCount];
+
+            int neighborIndex = 0;
+            var vectorsFromLocalPeerToNeighbors = new List<float[]>();
             foreach (var neighborVector in currentNeighborsVectors)
             {
-                var vectorFromLocalPeerToNeighbor = new float[NumberOfDimensions];                  
+                var vectorFromLocalPeerToNeighbor = new float[NumberOfDimensions];
+                float vectorFromLocalPeerToNeighbor_length = 0;
                 for (int i = 0; i < NumberOfDimensions; i++)
                 {
                     var from = _localPeerVector[i];
                     var to = neighborVector[i];
                     RegistrationIdDistance.ProcessVectorInLoopedRegistrationIdSpace(from, ref to);
-                    vectorFromLocalPeerToNeighbor[i] = to - from;
+                    var vectorFromLocalPeerToNeighbor_i = to - from;
+                    vectorFromLocalPeerToNeighbor[i] = vectorFromLocalPeerToNeighbor_i;
+                    vectorFromLocalPeerToNeighbor_length += vectorFromLocalPeerToNeighbor_i * vectorFromLocalPeerToNeighbor_i;
                 }
-                _currentNeighborsCountPerSectors[_vsic.GetSectorIndex(vectorFromLocalPeerToNeighbor)]++;
-            }    
+                vectorFromLocalPeerToNeighbor_length = (float)Math.Sqrt(vectorFromLocalPeerToNeighbor_length);
+                var sectorIndex = _vsic.GetSectorIndex(vectorFromLocalPeerToNeighbor);
+                _currentNeighborsCountPerSectors[sectorIndex]++;
+
+
+                for (int i = 0; i < NumberOfDimensions; i++)
+                {
+                    vectorFromLocalPeerToNeighbor[i] /= vectorFromLocalPeerToNeighbor_length;
+                }
+                wtl?.Invoke($"neighbor#{neighborIndex} localToNeighbor=[{String.Join(";", vectorFromLocalPeerToNeighbor.Select(x => x.ToString()))}] sectorIndex={sectorIndex}");
+
+                vectorsFromLocalPeerToNeighbors.Add(vectorFromLocalPeerToNeighbor);
+
+                neighborIndex++;
+            }
+
+            _emptyDirectionVector = null;
+
+            //_emptyDirectionVector = FindEmptyDirection(NumberOfDimensions, _vsic, vectorsFromLocalPeerToNeighbors);
+            //if (_emptyDirectionVector != null)
+            //{
+            //    _thereIsNeighborAlongEmptyDirectionVector = false;
+            //    neighborIndex = 0;
+            //    foreach (var vectorFromLocalPeerToNeighbor in vectorsFromLocalPeerToNeighbors)
+            //    {
+            //        float mulResult = 0;
+            //        for (int i = 0; i < NumberOfDimensions; i++)
+            //            mulResult += vectorFromLocalPeerToNeighbor[i] * _emptyDirectionVector[i];
+            //        wtl?.Invoke($"neighbor#{neighborIndex}=[{String.Join(";", vectorFromLocalPeerToNeighbor.Select(x => x.ToString()))}]:mulResult={mulResult};");
+            //        if (mulResult > 0)
+            //        {
+            //            _thereIsNeighborAlongEmptyDirectionVector = true;
+            //            break;
+            //        }
+            //        neighborIndex++;
+            //    }
+            //}
+            
+            if (wtl != null)
+            {
+                for (int sectorIndex = 0; sectorIndex < _vsic.IndexesCount; sectorIndex++)
+                    wtl.Invoke($"sector{sectorIndex} simplexVector=[{String.Join(";", _vsic.GetSimplexVector(sectorIndex).Select(x => x.ToString()))}]");
+                if (_emptyDirectionVector != null) wtl.Invoke($"emptyDirectionVector=[{String.Join(";", _emptyDirectionVector.Select(x => x.ToString()))}]");             
+                else wtl.Invoke($"emptyDirectionVector=null");
+            }
         }
 
+        const float EmptySectorOccupationValue = 10;
+
+
+
+        public static double GetMutualP2pConnectionValue(ICryptoLibrary cryptoLibrary, RegistrationId registrationId1, ushort neighborsBusySectorIds1, RegistrationId registrationId2, ushort neighborsBusySectorIds2)
+        {
+            double r = 0;
+            var distance = registrationId1.GetDistanceTo(cryptoLibrary, registrationId2).ToDouble();
+            r -= distance;
+
+            var vector1 = RegistrationIdDistance.GetVectorValues(cryptoLibrary, registrationId1);
+            var vector2 = RegistrationIdDistance.GetVectorValues(cryptoLibrary, registrationId1);
+
+            var vsic = new VectorSectorIndexCalculator(vector1.Length);
+            var vector1to2 = new float[vector1.Length];
+            for (int i = 0; i < vector1.Length; i++) vector1to2[i] = (float)(vector2[i] - vector1[i]);
+            var vector1to2SectorIndex = vsic.GetSectorIndex(vector1to2);
+            var vector1to2IsInVacantSector = ((neighborsBusySectorIds1 >> vector1to2SectorIndex) & 0x0001) == 0;
+            if (vector1to2IsInVacantSector) r += EmptySectorOccupationValue;
+
+            var vector2to1 = new float[vector1.Length];
+            for (int i = 0; i < vector1.Length; i++) vector2to1[i] = -vector1to2[i];
+            var vector2to1SectorIndex = vsic.GetSectorIndex(vector2to1);
+
+            var vector2to1IsInVacantSector = ((neighborsBusySectorIds2 >> vector2to1SectorIndex) & 0x0001) == 0;
+            if (vector2to1IsInVacantSector) r += EmptySectorOccupationValue;
+
+            return r;
+        }
+
+
+        ///<param name="considerValueOfUniqueSectors">false when registering via EP</param>
         /// <returns>component of mutual value</returns>
         public float GetValue(float[] neighborVector, bool neighborIsAlreadyConnected, bool considerValueOfUniqueSectors)
         {                      
@@ -404,28 +546,37 @@ namespace Dcomms.DRP
                 var neighborsCountInSector = _currentNeighborsCountPerSectors[sectorIndex];
                 if (neighborIsAlreadyConnected)
                 {
-                    if (neighborsCountInSector == 1) r += 10.0f; // this neighbor is the only one in the sector
+                    if (neighborsCountInSector == 1) r += EmptySectorOccupationValue; // this neighbor is the only one in the sector
                  //   else if (neighborsCountInSector == 2) r += 1.0f; // TODO questionable heuristics really 1 or another value?
                 }
                 else
                 {
-                    if (neighborsCountInSector == 0) r += 10.0f;
+                    if (neighborsCountInSector == 0) r += EmptySectorOccupationValue;
                   //  else if (neighborsCountInSector == 1) r += 1.0f; // TODO questionable heuristics really 1 or another value?
                 }
             }
             return r;
         }
+        internal static float ValueToKeepConnectionAlive_SoftLimitNeighborsCountCases = 5.0f;
 
-        public string P2pConnectionsQosVisionProcedure()
+        public string GetP2pConnectionsPainSignal(bool returnDetailsIfAllGood)
         {
             var r = new StringBuilder();
             for (int sectorIndex = 0; sectorIndex < _currentNeighborsCountPerSectors.Length; sectorIndex++)
             {
                 if (_currentNeighborsCountPerSectors[sectorIndex] == 0)
-                {
                     r.Append($"sector{sectorIndex}:zero;");
-                }
+                else if (returnDetailsIfAllGood)
+                    r.Append($"sector{sectorIndex}:{_currentNeighborsCountPerSectors[sectorIndex]};");
             }
+
+         
+            if (_emptyDirectionVector != null && !_thereIsNeighborAlongEmptyDirectionVector)
+            {
+                r.Append($"noNeighbAlongEmptyDirection;");
+            }
+
+
             if (r.Length != 0) return r.ToString();
             else return null;
         }

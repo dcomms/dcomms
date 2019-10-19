@@ -16,9 +16,12 @@ namespace Dcomms.DRP.Packets
         public byte Flags; // is signed by HMAC
         const byte FlagsMask_MustBeZero = 0b11110000;
         public const byte Flags_RegistrationConfirmationSignatureRequested = 0x01;
+
+        public ushort RequesterNeighborsBusySectorIds; // flags, 1 is set if there is a connected neighbor in specific sector of the 8D regID space // only 9 LSB bits are used now
+
         public float? MaxRxInviteRateRps;   // zero means NULL // signal from sender "how much I can receive via this p2p connection"
         public float? MaxRxRegisterRateRps; // zero means NULL // signal from sender "how much I can receive via this p2p connection"
-        public HMAC NeighborHMAC; // signs fields { DrpDmpPacketTypes.PingRequestPacket,NeighborToken32,Flags,PingRequestId32,MaxRxInviteRateRps,MaxRxRegisterRateRps  }, to authenticate the request
+        public HMAC NeighborHMAC; // signs fields { DrpDmpPacketTypes.PingRequestPacket,NeighborToken32,Flags,PingRequestId32,RequesterNeighborsBusySectorIds,MaxRxInviteRateRps,MaxRxRegisterRateRps  }, to authenticate the request
 
         static ushort RpsToUint16(float? rps) // resolution=0.01 RPS    max value=0.65K RPS
         {
@@ -34,6 +37,7 @@ namespace Dcomms.DRP.Packets
             NeighborToken32.Encode(writer);
             writer.Write(PingRequestId32);
             writer.Write(Flags);
+            writer.Write(RequesterNeighborsBusySectorIds);
             writer.Write(RpsToUint16(MaxRxInviteRateRps));
             writer.Write(RpsToUint16(MaxRxRegisterRateRps));
         }
@@ -59,6 +63,7 @@ namespace Dcomms.DRP.Packets
             r.PingRequestId32 = reader.ReadUInt32();
             r.Flags = reader.ReadByte();
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
+            r.RequesterNeighborsBusySectorIds = reader.ReadUInt16();
             r.MaxRxInviteRateRps = RpsFromUint16(reader.ReadUInt16());
             r.MaxRxRegisterRateRps = RpsFromUint16(reader.ReadUInt16());
             r.NeighborHMAC = HMAC.Decode(reader);

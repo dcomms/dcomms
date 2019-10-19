@@ -90,7 +90,7 @@ namespace Dcomms.DRP
                   //  {
                         try
                         {
-                            if (await RegisterAsync(localDrpPeer, epEndpoint) == null)
+                            if (await RegisterAsync(localDrpPeer, epEndpoint, 0, 20) == null)
                                 continue;
 
                             //  on error or timeout try next entry server
@@ -113,7 +113,7 @@ namespace Dcomms.DRP
 
 
         /// <returns>null if registration failed with timeout or some error code</returns>
-        public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint, uint minimalDistanceToNeighbor = 0, byte numberofHops = 10) // engine thread
+        public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint, uint minimalDistanceToNeighbor, byte numberofHops) // engine thread
         {
             WriteToLog_reg_requesterSide_detail($"connecting via EntryPeer {epEndpoint}");
             localDrpPeer.CurrentRegistrationOperationsCount++;
@@ -263,7 +263,7 @@ namespace Dcomms.DRP
                     localDrpPeer.AddToConnectedNeighbors(newConnectionToNeighbor);
 
                     #region send ping request directly to neighbor N, retransmit               
-                    var pingRequest = newConnectionToNeighbor.CreatePing(true);
+                    var pingRequest = newConnectionToNeighbor.CreatePing(true, localDrpPeer.ConnectedNeighborsBusySectorIds);
                     pendingPingRequest = new PendingLowLevelUdpRequest(newConnectionToNeighbor.RemoteEndpoint,
                                     PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, pingRequest.PingRequestId32),
                                     DateTimeNowUtc,

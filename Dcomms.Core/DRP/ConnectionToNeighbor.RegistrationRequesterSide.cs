@@ -12,7 +12,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// is used to expand neighborhood
         /// </summary>
-        internal async Task<ConnectionToNeighbor> RegisterAsync(uint minimalDistanceToNeighbor, byte numberofHops = 10)
+        internal async Task<ConnectionToNeighbor> RegisterAsync(uint minimalDistanceToNeighbor, ushort busySectorIds, byte numberOfHopsRemaining, byte numberOfRandomHopsRemaining)
         {
             _engine.WriteToLog_reg_requesterSide_detail($">> ConnectionToNeighbor.RegisterAsync(minimalDistanceToNeighbor={minimalDistanceToNeighbor}");
             _localDrpPeer.CurrentRegistrationOperationsCount++;
@@ -32,7 +32,9 @@ namespace Dcomms.DRP
                         RequesterRegistrationId = _localDrpPeer.Configuration.LocalPeerRegistrationId,
                         ReqTimestamp64 = _engine.Timestamp64,
                         MinimalDistanceToNeighbor = minimalDistanceToNeighbor,
-                        NumberOfHopsRemaining = numberofHops,
+                        RequesterNeighborsBusySectorIds = busySectorIds, 
+                        NumberOfHopsRemaining = numberOfHopsRemaining,
+                        NumberOfRandomHopsRemaining = numberOfRandomHopsRemaining,
                         RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                         NpaSeq16 = GetNewNpaSeq16_P2P(),
                         EpEndpoint = this.RemoteEndpoint
@@ -107,7 +109,7 @@ namespace Dcomms.DRP
                     _localDrpPeer.AddToConnectedNeighbors(newConnectionToNeighbor);
 
                     #region send ping request directly to neighbor N, retransmit               
-                    var pingRequest = newConnectionToNeighbor.CreatePing(true);
+                    var pingRequest = newConnectionToNeighbor.CreatePing(true, _localDrpPeer.ConnectedNeighborsBusySectorIds);
                     pendingPingRequest = new PendingLowLevelUdpRequest(newConnectionToNeighbor.RemoteEndpoint,
                                     PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, pingRequest.PingRequestId32),
                                     _engine.DateTimeNowUtc,

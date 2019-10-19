@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Dcomms.SandboxTester"
         WindowStartupLocation="CenterScreen"
         mc:Ignorable="d"
-        Title="Dcomms Cryptography Tester" Height="750" Width="1200">
+        Title="Dcomms Sandbox Tester" Height="750" Width="1200">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -34,7 +34,7 @@
                 <Button Command="{Binding CreateDrpTester2}" Content="CreateDrpTester2" Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
                 <Button Command="{Binding DestroyDrpTester2}" Content="DestroyDrpTester2"  Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityConverter}}" />
                 <Button Command="{Binding CreateDrpTester3}" Content="CreateDrpTester3" />
-                <Button Command="{Binding CreateDrpDistanceTester}" Content="CreateDrpDistanceTester" />
+                <Button Command="{Binding CreateDrpDistanceTester}" Content="CreateDrpDistanceTester(4)" />
             </StackPanel>
         </StackPanel>
 
@@ -98,6 +98,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -115,11 +116,11 @@
                 
                 <TextBlock Grid.Row="2" Text="number of neighbors:" />
                 <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="1" >
-                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors1, Mode=TwoWay}" MinWidth="50" />
-                    <TextBlock Text="..." />
-                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors2, Mode=TwoWay}" MinWidth="50" />
-                    <TextBlock Text="..." />
-                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors3, Mode=TwoWay}" MinWidth="50" />
+                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors_Min, Mode=TwoWay}" MinWidth="50" />
+                    <TextBlock Text="...soft max: " />
+                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors_SoftMax, Mode=TwoWay}" MinWidth="50" />
+                    <TextBlock Text=" hw max:" />
+                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors_HardwareMax, Mode=TwoWay}" MinWidth="50" />
                 </StackPanel>
                 <TextBlock Grid.Row="3" Text="number of dimensions:" />
                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpDistanceTester.Config.NumberOfDimensions, Mode=TwoWay}" />
@@ -134,9 +135,17 @@
                 <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.TotalMaxHopsCountToExtendNeighbors, Mode=TwoWay}" />
                 <TextBlock Grid.Row="3" Grid.Column="2"  Text="RandomHopsCountToExtendNeighbors" />
                 <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.RandomHopsCountToExtendNeighbors, Mode=TwoWay}" />
-                    
 
-                <StackPanel Orientation="Horizontal" Grid.Row="6" >
+
+                <TextBlock Grid.Row="4" Grid.Column="2"  Text="NewTestedPeersCount" />
+                <TextBox Grid.Row="4" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.NewTestedPeersCount, Mode=TwoWay}" />
+                <TextBlock Grid.Row="5" Grid.Column="2"  Text="TestedDestinationsCount" />
+                <TextBox Grid.Row="5" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.TestedDestinationsCount, Mode=TwoWay}" />
+                <TextBlock Grid.Row="6" Grid.Column="2"  Text="TestedMaxHopsCount" />
+                <TextBox Grid.Row="6" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.TestedMaxHopsCount, Mode=TwoWay}" />
+                                
+
+                <StackPanel Orientation="Horizontal" Grid.Row="7" >
                     <Button Content="Test" Margin="3" Command="{Binding DrpDistanceTester.Test}" />
                     <CheckBox  IsChecked="{Binding DrpDistanceTester.EnableDetailedLogs, Mode=TwoWay}" Content="detailed logs" />
                 </StackPanel>

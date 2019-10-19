@@ -18,22 +18,27 @@ namespace Dcomms.Sandbox
         {
             public int NumberOfPeers { get; set; } = 200;
             public int NumberOfEntryPeers { get; set; } = 5;
-            public int NumberOfNeighbors1 { get; set; } = 4; // min
-            public int NumberOfNeighbors2 { get; set; } = 5; // target of apoptosis, if not painful
-            public int NumberOfNeighbors3 { get; set; } = 8; // absolute max, even if painful  (HW limit)
+            public int NumberOfNeighbors_Min { get; set; } = 5; // min
+            public int NumberOfNeighbors_SoftMax { get; set; } = 6; // target of apoptosis, if not painful
+            public int NumberOfNeighbors_HardwareMax { get; set; } = 8; // absolute max, even if painful  (HW limit)
             public int NumberOfDimensions { get; set; } = 2; //8;
             public int OptimizationIterationsCount { get; set; } = 10;
             public bool UseGlobalSearchForRegistration { get; set; }
             public bool Consider2ndOrderNeighborsForInviteRouting { get; set; } = false;
             public int TotalMaxHopsCountToExtendNeighbors { get; set; } = 40;
-            public int RandomHopsCountToExtendNeighbors { get; set; } = 15;
+            public int RandomHopsCountToExtendNeighbors { get; set; } = 10;
+            public int NewTestedPeersCount { get; set; } = 100;
+            public int TestedDestinationsCount { get; set; } = 10;
+            public int TestedMaxHopsCount { get; set; } = 20;
 
             static int _testIdCounter = 0;
             public readonly int TestID = _testIdCounter++;
             public string VisionChannelSourceId => TestID.ToString();
             public string State { get; set; } = "created";
 
-            public string Status => $"state:{State}- {NumberOfPeers}P, {NumberOfEntryPeers}EP, {NumberOfNeighbors1}..{NumberOfNeighbors2}..{NumberOfNeighbors3}N, {NumberOfDimensions}D, {OptimizationIterationsCount}OI";
+            public string Description => $"{NumberOfPeers}P, {NumberOfEntryPeers}EP, {NumberOfNeighbors_Min}..{NumberOfNeighbors_SoftMax}..{NumberOfNeighbors_HardwareMax}N," +
+                $" {NumberOfDimensions}D, {OptimizationIterationsCount}OI, 2oN4IR={Consider2ndOrderNeighborsForInviteRouting}, RHCEN={RandomHopsCountToExtendNeighbors}, THCEN={TotalMaxHopsCountToExtendNeighbors}";
+            public string Status => $"state:{State}- {Description}";
             public override string ToString() => Status;
             public readonly ICryptoLibrary CryptoLibrary = CryptoLibraries.Library;
             public readonly Random Rnd = new Random();
@@ -82,19 +87,20 @@ namespace Dcomms.Sandbox
                 VectorValues = RegistrationIdDistance.GetVectorValues(_tc.CryptoLibrary, registrationId, _tc.NumberOfDimensions).Select(x => (float)x).ToArray();                
             }
             P2pConnectionValueCalculator _p2pcvc;
-            P2pConnectionValueCalculator P2PVC
+            P2pConnectionValueCalculator P2PCVC
             {
                 get
                 {
                     if (_p2pcvc == null)
-                        _p2pcvc = new P2pConnectionValueCalculator(this.VectorValues, Neighbors.Values.Select(x => x.VectorValues));                   
+                        _p2pcvc = new P2pConnectionValueCalculator(this.VectorValues, Neighbors.Values.Select(x => x.VectorValues), null);                   
                     return _p2pcvc;
                 }
             }
-            public double GetMutualValue(Peer neighbor, bool neighborIsAlreadyConnected, bool considerValueOfUniqueSectors)
+            public float GetMutualValue(Peer neighbor, bool neighborIsAlreadyConnected, bool considerValueOfUniqueSectors)
             {
-                return P2PVC.GetValue(neighbor.VectorValues, neighborIsAlreadyConnected, considerValueOfUniqueSectors) + neighbor.P2PVC.GetValue(this.VectorValues, neighborIsAlreadyConnected, considerValueOfUniqueSectors);
+                return P2PCVC.GetValue(neighbor.VectorValues, neighborIsAlreadyConnected, considerValueOfUniqueSectors) + neighbor.P2PCVC.GetValue(this.VectorValues, neighborIsAlreadyConnected, considerValueOfUniqueSectors);
             }
+            public static float MutualValueToKeepConnectionAlive_SoftLimitNeighborsCountCases => P2pConnectionValueCalculator.ValueToKeepConnectionAlive_SoftLimitNeighborsCountCases * 2;
 
             void OnNeighborsChanged()
             {
@@ -154,10 +160,13 @@ namespace Dcomms.Sandbox
             }          
             string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer) => this.RegistrationId.GetDistanceTo(_tc.CryptoLibrary, ((Peer)toThisPeer).RegistrationId, _tc.NumberOfDimensions).ToString();
 
-            public string P2pConnectionsQosVisionProcedure()
+            public string GetP2pConnectionsPainSignal(Peer considerThisNeighborAsRemoved, Action<string> needMoreDetailsIfAllGood)
             {
-                return P2PVC.P2pConnectionsQosVisionProcedure();
+                var p2pcvc = new P2pConnectionValueCalculator(this.VectorValues, Neighbors.Values.Where(x => x != considerThisNeighborAsRemoved).Select(x => x.VectorValues), needMoreDetailsIfAllGood);
+               
+                return p2pcvc.GetP2pConnectionsPainSignal(needMoreDetailsIfAllGood != null);
             }
+            
             public bool Highlighted { get; set; }
         }
         public ICommand Test => new DelegateCommand(() =>
@@ -193,8 +202,8 @@ namespace Dcomms.Sandbox
                     var peerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(tc.CryptoLibrary);
                     var peer = new Peer(tc, peerConfig.LocalPeerRegistrationId, i.ToString());
                     allPeers.Add(peer);
-                    ConnectToNeighbors_AllPeers(tc, allPeers);
-                    tc.State = $"creating and connecting peers... {i}/{tc.NumberOfPeers}";
+                    tc.State = $"creating and connecting peers... peer {i}/{tc.NumberOfPeers}";
+                    ConnectToNeighbors_Apoptosis_SelfHealing_AllPeers(tc, allPeers);
 
                 }
                 _visionChannel.EmitListOfPeers(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail, $"created and connected neighbors", 
@@ -204,45 +213,31 @@ namespace Dcomms.Sandbox
                 #region optimize connections
                 for (int i = 0; i < tc.OptimizationIterationsCount; i++)
                 {
-                    tc.State = $"optimizing connections... {i}/{tc.OptimizationIterationsCount}";
-                    for (int j = tc.NumberOfEntryPeers; j < allPeers.Count; j++)
-                    {
-                        var peer = allPeers[j];
-                        LetOneWorstP2pConnectionDie(tc, peer);
-                        // if (n % 159 == 0)  _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, $"connecting neighbors {i}/{allPeers.Count} ...");
-                        ConnectToNeighbors(tc, peer, allPeers, tc.NumberOfNeighbors1);
-                        if (j % 79 == 0)
-                        {
-                           // NeighborsApoptosisProcedure_AllPeers(cryptoLibrary, allPeers, maxNumberOfNeighbors, numberOfDimensions);
-                            ConnectToNeighbors_AllPeers(tc, allPeers);
-                        }
-                    }
-                    NeighborsApoptosisProcedure_AllPeers(tc, allPeers);
-
+                    tc.State = $"optimizing connections... iteration {i}/{tc.OptimizationIterationsCount}";
+                    OptimizeConnections_AllPeers(tc, allPeers);
                     if (EnableDetailedLogs || tc.NumberOfPeers <= 10000)
                         _visionChannel.EmitListOfPeers(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail,
                                            $"optimized connections, iteration {i}/{tc.OptimizationIterationsCount}:", allPeers.Cast<IVisiblePeer>().ToList(), VisiblePeersDisplayMode.allPeers);
                     else
                         _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail,
                                            $"optimized connections, iteration {i}/{tc.OptimizationIterationsCount}");
+
                     P2pConnectionsQosVisionProcedure(tc, allPeers);
                 }
+
 
                 _visionChannel.EmitListOfPeers(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail,
                                    $"optimized connections:", allPeers.Cast<IVisiblePeer>().ToList(), VisiblePeersDisplayMode.allPeers);
                 #endregion
 
-                _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, $"testing INVITE routing");
-                var rnd = new Random();
-                const int maxNumberOfHopsM = 50;
-                for (int maxNumberOfHops = 10; maxNumberOfHops < maxNumberOfHopsM; maxNumberOfHops += 10)
+                _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, $"testing INVITE routing - existing peers");
+                var rnd = new Random();    
                 {
                     var numbersOfHops = new List<int>();
                     var successRates = new List<int>();
-                    const int iterationsCount = 200;
-                    for (int i = 0; i < 200; i++)
+                    for (int i = 0; i < tc.TestedDestinationsCount; i++)
                     {
-                        tc.State = $"testing INVITE routing... maxNumberOfHops={maxNumberOfHops}/{maxNumberOfHopsM}, iteration{i}/{iterationsCount}";
+                        tc.State = $"testing INVITE... maxNumberOfHops={tc.TestedMaxHopsCount}, iteration{i}/{tc.TestedDestinationsCount}";
 
                         var sourcePeer = allPeers[rnd.Next(allPeers.Count)];
                     _retry:
@@ -250,23 +245,119 @@ namespace Dcomms.Sandbox
                         if (destinationPeer == sourcePeer) goto _retry;
 
                         var routingSuccess = InviteRoutingProcedure(tc, 
-                            sourcePeer, destinationPeer, maxNumberOfHops, out var numberOfHops);
+                            sourcePeer, destinationPeer, tc.TestedMaxHopsCount, out var numberOfHops);
                         if (routingSuccess) numbersOfHops.Add(numberOfHops);
                         successRates.Add(routingSuccess ? 100 : 0);
                     }
                     _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail,
-                        $"successRate = {successRates.Average()}%  avgHops={(numbersOfHops.Count != 0 ? numbersOfHops.Average() : -1)}, maxNumberOfHops={maxNumberOfHops}");
+                        $"{tc.Description} existing peers: successRate = {successRates.Average()}%  avgHops={(numbersOfHops.Count != 0 ? numbersOfHops.Average() : -1)}, maxNumberOfHops={tc.TestedMaxHopsCount}");
                 }
-                tc.State = $"ready";
+
+
+                {
+                    var numbersOfHops = new List<int>();
+                    var successRates = new List<int>();
+                    for (int newTestedPeerI = 0; newTestedPeerI < tc.NewTestedPeersCount; newTestedPeerI++)
+                    {
+                        var newTestPeer = new Peer(tc,
+                            LocalDrpPeerConfiguration.CreateWithNewKeypair(tc.CryptoLibrary).LocalPeerRegistrationId,
+                            "test" + newTestedPeerI.ToString());
+                        allPeers.Add(newTestPeer);
+                        tc.State = $"creating and connecting test peer {newTestedPeerI}/{tc.NewTestedPeersCount}";
+                        ConnectToNeighbors_Apoptosis_SelfHealing_AllPeers(tc, allPeers);
+                        P2pConnectionsQosVisionProcedure(tc, allPeers);
+
+                        for (int i = 0; i < tc.TestedDestinationsCount; i++)
+                        {
+                           
+                            var destinationPeer = allPeers[rnd.Next(allPeers.Count-1)];
+                            var routingSuccess = InviteRoutingProcedure(tc,
+                                newTestPeer, destinationPeer, tc.TestedMaxHopsCount, out var numberOfHops);
+                            if (routingSuccess) numbersOfHops.Add(numberOfHops);
+                            successRates.Add(routingSuccess ? 100 : 0);
+                            if (!routingSuccess)
+                            {
+                                _visionChannel.EmitListOfPeers(tc.VisionChannelSourceId, VisionChannelModuleName,
+                                    AttentionLevel.mediumPain,
+                                    $"state of network when routing failed from {newTestPeer} to {destinationPeer}:", allPeers.Cast<IVisiblePeer>().ToList(), VisiblePeersDisplayMode.allPeers);
+                            }
+
+                            var sourcePeer = allPeers[rnd.Next(allPeers.Count - 1)];
+                            routingSuccess = InviteRoutingProcedure(tc,
+                                sourcePeer, newTestPeer, tc.TestedMaxHopsCount, out numberOfHops);
+                            if (routingSuccess) numbersOfHops.Add(numberOfHops);
+                            successRates.Add(routingSuccess ? 100 : 0);
+                            if (!routingSuccess)
+                            {                              
+                                _visionChannel.EmitListOfPeers(tc.VisionChannelSourceId, VisionChannelModuleName,
+                                    AttentionLevel.mediumPain,
+                                    $"state of network when routing failed from {sourcePeer} to {newTestPeer}:", allPeers.Cast<IVisiblePeer>().ToList(), VisiblePeersDisplayMode.allPeers);                               
+                            }
+
+                            tc.State = $"tested INVITE... test peer {newTestedPeerI}/{tc.NewTestedPeersCount}, maxNumberOfHops={tc.TestedMaxHopsCount}, iteration{i}/{tc.TestedDestinationsCount} ...successRate={successRates.Average()}%";
+                            
+                        }
+
+
+                        var neighborsBeforeDisconnection = newTestPeer.Neighbors.Values.ToList();
+                        ConnectToNeighbors_Apoptosis_SelfHealing_AllPeers(tc, allPeers);
+
+                        var neighborsAfterRepair = newTestPeer.Neighbors.Values.ToList();
+                        var staticNeighborsPercent = 100.0f * neighborsAfterRepair.Count(x => neighborsBeforeDisconnection.Contains(x)) / neighborsAfterRepair.Count;
+
+                        _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, staticNeighborsPercent > 70 ? AttentionLevel.deepDetail : AttentionLevel.lightPain,
+                                 $"{tc.Description} staticNeighborsPercent={staticNeighborsPercent}");
+
+
+                    }
+                    _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.needsAttention,
+                        $"{tc.Description} new peers: successRate={successRates.Average()}%  avgHops={(numbersOfHops.Count != 0 ? numbersOfHops.Average() : -1)}, maxNumberOfHops={tc.TestedMaxHopsCount}");
+                }
+
+
+              //  tc.State = $"ready";
             });
             a.BeginInvoke((ar) => a.EndInvoke(ar), null);
         });
-        void ConnectToNeighbors_AllPeers(TestRunWithConfiguration tc, List<Peer> allPeers)
+
+        void OptimizeConnections_AllPeers(TestRunWithConfiguration tc, List<Peer> allPeers)
         {
-            for (int minNumberOfNeighbors_i = 1; minNumberOfNeighbors_i < tc.NumberOfNeighbors1; minNumberOfNeighbors_i++)
+            int ConnectToNeighbors_Apoptosis_SelfHealing_AllPeers_N = Math.Max(79, allPeers.Count / 10);
+            for (int j = tc.NumberOfEntryPeers; j < allPeers.Count; j++)
+            {
+                var peer = allPeers[j];
+                               
+                if (LetOneWorstP2pConnectionDie(tc, peer, false)) // destroy 1 worst connection
+                {
+                    // if (n % 159 == 0)  _visionChannel.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, $"connecting neighbors {i}/{allPeers.Count} ...");
+                    ConnectToNeighborsIfNotEnough_OnePeer(tc, peer, allPeers, tc.NumberOfNeighbors_Min); // add new connection
+                }
+                if (j % ConnectToNeighbors_Apoptosis_SelfHealing_AllPeers_N == 0)
+                    ConnectToNeighbors_Apoptosis_SelfHealing_AllPeers(tc, allPeers);               
+            }
+            ConnectToNeighbors_Apoptosis_SelfHealing_AllPeers(tc, allPeers);
+                                   
+        }
+
+        void ConnectToNeighbors_Apoptosis_SelfHealing_AllPeers(TestRunWithConfiguration tc, List<Peer> allPeers)
+        {
+            for (int minNumberOfNeighbors_i = 1; minNumberOfNeighbors_i < tc.NumberOfNeighbors_Min; minNumberOfNeighbors_i++)
             {
                 foreach (var peer in allPeers)
-                    ConnectToNeighbors(tc, peer, allPeers, minNumberOfNeighbors_i); 
+                {
+                    ConnectToNeighborsIfNotEnough_OnePeer(tc, peer, allPeers, minNumberOfNeighbors_i);
+                    for (int x = 0; x < 10; x++)
+                    {
+                        var painSignal = peer.GetP2pConnectionsPainSignal(null, null);
+                        if (painSignal != null)
+                        {
+                            if (EnableDetailedLogs) _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
+                                               $"@ConnectToNeighbors_AllPeers healing connections of peer {peer}: {painSignal}  (iteration {x})");
+                            ConnectToNeighborsIfNotEnough_OnePeer(tc, peer, allPeers, peer.Neighbors.Count + 1); // heal by making 1 more connection
+                        }
+                        else break;
+                    }
+                }
               
                 NeighborsApoptosisProcedure_AllPeers(tc, allPeers);
                 if (EnableDetailedLogs)
@@ -274,7 +365,7 @@ namespace Dcomms.Sandbox
                                        $"@ConnectToNeighbors_AllPeers after apoptosis:", allPeers.Cast<IVisiblePeer>().ToList(), VisiblePeersDisplayMode.allPeers);
             }
         }
-        bool ConnectToNeighbors(TestRunWithConfiguration tc, Peer peer, List<Peer> allPeers, int minNumberOfNeighbors_i)
+        bool ConnectToNeighborsIfNotEnough_OnePeer(TestRunWithConfiguration tc, Peer peer, List<Peer> allPeers, int minNumberOfNeighbors_i)
         {
             while (peer.Neighbors.Count < minNumberOfNeighbors_i)
             {
@@ -293,19 +384,38 @@ namespace Dcomms.Sandbox
             }
             return true;
         }
-        void LetOneWorstP2pConnectionDie(TestRunWithConfiguration tc, Peer peer)
+
+
+        #region apoptosis
+        void NeighborsApoptosisProcedure_AllPeers(TestRunWithConfiguration tc, List<Peer> allPeers)
+        {
+            foreach (var peer in allPeers)
+                NeighborsApoptosisProcedure(tc, peer);
+        }
+        void NeighborsApoptosisProcedure(TestRunWithConfiguration tc, Peer peer)
+        {
+            while (peer.Neighbors.Count > tc.NumberOfNeighbors_HardwareMax)
+                LetOneWorstP2pConnectionDie(tc, peer, true);
+
+            int c = peer.Neighbors.Count - tc.NumberOfNeighbors_SoftMax;
+            for (int i = 0; i < c; i++)
+                if (!LetOneWorstP2pConnectionDie(tc, peer, false))
+                    break;
+        }
+        bool LetOneWorstP2pConnectionDie(TestRunWithConfiguration tc, Peer peer, bool hardMaxNeighborsLimit)
         {
             if (peer.Neighbors.Count > 1)
             {
-                double? leastMutualValue = null;
+                float? leastMutualValue = null;
                 Peer worstP2pConnectionToNeighbor = null;
                 foreach (var neighbor in peer.Neighbors.Values)
                 {
-                    var mutualValue = peer.GetMutualValue(neighbor, true, true);
-                    
+                    var painSignal = peer.GetP2pConnectionsPainSignal(neighbor, null);
+                    if (painSignal != null && hardMaxNeighborsLimit == false) continue; // painful to delete this connection
+
+                    var mutualValue = peer.GetMutualValue(neighbor, true, true);                    
                     if (EnableDetailedLogs)
-                        _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
-                             $"peer {peer}, neighbor={neighbor}, mutualValue={mutualValue}");
+                        _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, $"peer {peer}, neighbor={neighbor}, mutualValue={mutualValue}");
                     if (leastMutualValue == null || mutualValue < leastMutualValue)
                     {
                         worstP2pConnectionToNeighbor = neighbor;
@@ -315,30 +425,31 @@ namespace Dcomms.Sandbox
 
                 if (worstP2pConnectionToNeighbor != null)
                 {
+                    if (hardMaxNeighborsLimit == false)
+                    {
+                        // soft limit: dont destroy connection if it is too valuable
+                        if (leastMutualValue > Peer.MutualValueToKeepConnectionAlive_SoftLimitNeighborsCountCases)
+                        {
+                            return false;
+                        }
+                    }
+
+
                     if (EnableDetailedLogs)
-                        _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
-                                       $"P2P connection apoptosis: peer {peer}, worstP2pConnectionToNeighbor={worstP2pConnectionToNeighbor}");
+                        _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, $"P2P connection apoptosis: peer {peer}, worstP2pConnectionToNeighbor={worstP2pConnectionToNeighbor}");
                     peer.RemoveP2pConnectionToNeighbor(worstP2pConnectionToNeighbor);
+                    return true;
                 }
             }
+            return false;
         }
-        void NeighborsApoptosisProcedure_AllPeers(TestRunWithConfiguration tc, List<Peer> allPeers)
-        {
-            foreach (var peer in allPeers)
-                NeighborsApoptosisProcedure(tc, peer);
-        }
-        void NeighborsApoptosisProcedure(TestRunWithConfiguration tc, Peer peer)
-        {
-            while (peer.Neighbors.Count > tc.NumberOfNeighbors3)
-            {
-                LetOneWorstP2pConnectionDie(tc, peer);
-            }
-        }
+        #endregion
+        
         Peer ConnectToNewNeighbor(TestRunWithConfiguration tc, Peer peer, List<Peer> allPeers) // = registration procedure in DRP
         {
             if (tc.UseGlobalSearchForRegistration)
             {
-                double? maxMutualValue = null;
+                float? maxMutualValue = null;
                 Peer bestNeighbor = null;
                 
                 foreach (var potentialNeighbor in allPeers)
@@ -434,8 +545,10 @@ namespace Dcomms.Sandbox
             if (!success)
                 visiblePeers.Add(toPeer);
 
-            _visionChannel.EmitListOfPeers(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail,
+            _visionChannel.EmitListOfPeers(tc.VisionChannelSourceId, VisionChannelModuleName,
+                success ? AttentionLevel.deepDetail : AttentionLevel.mediumPain,
                 $"success={success}, numberOfHops={numberOfHops} of maxNumberOfHops={maxNumberOfHops}", visiblePeers, VisiblePeersDisplayMode.routingPath);
+           
 
             return success;
         }                
@@ -510,7 +623,7 @@ namespace Dcomms.Sandbox
             }
             else
             {
-                double? maxMutualValue = null;
+                float? maxMutualValue = null;
                 foreach (var nextPeer in currentPeer.Neighbors.Values)
                 {
                     if (avoidedPeers.Contains(nextPeer)) continue;
@@ -568,7 +681,7 @@ namespace Dcomms.Sandbox
             int painfulCount = 0;
             foreach (var peer in allPeers)
             {
-                var painSignal = peer.P2pConnectionsQosVisionProcedure();
+                var painSignal = peer.GetP2pConnectionsPainSignal(null, null);
                 if (painSignal != null)
                 {
                     _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.mediumPain,
@@ -578,11 +691,27 @@ namespace Dcomms.Sandbox
                 }
                 else
                     peer.Highlighted = false;
+
+                if (EnableDetailedLogs)
+                {
+                    var wtl = new Action<string>((msg) =>
+                    {
+                        _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.detail, $"vision: peer{peer}: {msg}");
+                    });
+                    _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.detail,
+                         $"vision: peer {peer}: {peer.GetP2pConnectionsPainSignal(null, wtl)}");
+                    _visionChannel.Emit(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.detail,
+                         $"vision: peer {peer}: neighbors: {String.Join(";", peer.Neighbors.Values.Select(x => x.ToString()))}");
+                }
             }
 
+            var avgNeighborsCount = allPeers.Average(x => x.Neighbors.Count);
+            var maxNeighborsCount = allPeers.Max(x => x.Neighbors.Count);
+
+
             // percent of peers with bad connections
-            _visionChannel.EmitListOfPeers(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.needsAttention,
-                 $"bad connections peers percentage: {100.0 * painfulCount / allPeers.Count}%", allPeers.Cast<IVisiblePeer>().ToList(), VisiblePeersDisplayMode.allPeers);
+            _visionChannel.EmitListOfPeers(tc.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail,
+                 $"bad connections peers percentage: {100.0 * painfulCount / allPeers.Count}%. avgNeighborsCount={avgNeighborsCount}, maxNeighborsCount={maxNeighborsCount}", allPeers.Cast<IVisiblePeer>().ToList(), VisiblePeersDisplayMode.allPeers);
         }
 
         public void Dispose()

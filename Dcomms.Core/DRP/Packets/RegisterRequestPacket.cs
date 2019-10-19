@@ -31,6 +31,7 @@ namespace Dcomms.DRP.Packets
         public NeighborToken32 NeighborToken32;
 
         public RegistrationId RequesterRegistrationId; // used to verify signature // used also as request ID
+        public ushort RequesterNeighborsBusySectorIds; // flags, 1 is set if there is a connected neighbor in specific sector of the 8D regID space // only 9 LSB bits are used now
         public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new P2P connection
                      
         /// <summary>
@@ -42,7 +43,7 @@ namespace Dcomms.DRP.Packets
         public IPEndPoint EpEndpoint; // is not null only in A-EP mode // unencrypted  // makes sense when EP is behind NAT (e.g amazon) and does not know its public IP
 
         /// <summary>
-        /// signs fields: {RequesterRegistrationId,RequesterEcdhePublicKey,Timestamp32S,MinimalDistanceToNeighbor,EpEndpoint}
+        /// signs fields: {RequesterRegistrationId,BusySectorIds,RequesterEcdhePublicKey,Timestamp32S,MinimalDistanceToNeighbor,EpEndpoint}
         /// the signature is needed: 
         /// 1 to authorize sender of the request when intermediate peers build RDRs and rating of sender
         /// 2 to authorize sender at neighbor, to reject blacklisted requesters and prioritize previously known good requester neighbors
@@ -61,7 +62,8 @@ namespace Dcomms.DRP.Packets
         /// EP limits this field by "average number of hops"
         /// is decremented by peers
         /// </summary>
-        public byte NumberOfHopsRemaining;
+        public byte NumberOfHopsRemaining;    
+        public byte NumberOfRandomHopsRemaining;
 
         public NeighborPeerAckSequenceNumber16 NpaSeq16;
         /// <summary>
@@ -100,6 +102,7 @@ namespace Dcomms.DRP.Packets
                 writer.Write(ProofOfWork2);
             }
             writer.Write(NumberOfHopsRemaining);
+            writer.Write(NumberOfRandomHopsRemaining);
             NpaSeq16.Encode(writer);
             if (connectionToNeighborNullable != null)
             {
@@ -115,6 +118,7 @@ namespace Dcomms.DRP.Packets
         public void GetSharedSignedFields(BinaryWriter writer, bool includeRequesterSignature)
         {
             RequesterRegistrationId.Encode(writer);
+            writer.Write(RequesterNeighborsBusySectorIds);
             RequesterEcdhePublicKey.Encode(writer);
             writer.Write(ReqTimestamp64);
             writer.Write(MinimalDistanceToNeighbor);
@@ -126,6 +130,7 @@ namespace Dcomms.DRP.Packets
             NeighborToken32.Encode(writer);
             GetSharedSignedFields(writer, true);
             writer.Write(NumberOfHopsRemaining);
+            writer.Write(NumberOfRandomHopsRemaining);
             NpaSeq16.Encode(writer);
         }
         public byte[] DecodedUdpPayloadData;
@@ -156,6 +161,7 @@ namespace Dcomms.DRP.Packets
             }
 
             r.RequesterRegistrationId = RegistrationId.Decode(reader);
+            r.RequesterNeighborsBusySectorIds = reader.ReadUInt16();
             r.RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
             r.ReqTimestamp64 = reader.ReadInt64();
             r.MinimalDistanceToNeighbor = reader.ReadUInt32();
@@ -164,6 +170,7 @@ namespace Dcomms.DRP.Packets
             
             if ((flags & Flag_AtoEP) != 0) r.ProofOfWork2 = reader.ReadBytes(64);
             r.NumberOfHopsRemaining = reader.ReadByte();
+            r.NumberOfRandomHopsRemaining = reader.ReadByte();
             r.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);
             if ((flags & Flag_AtoEP) == 0)
             {

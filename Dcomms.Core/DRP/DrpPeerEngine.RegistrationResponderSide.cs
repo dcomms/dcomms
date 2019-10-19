@@ -121,7 +121,7 @@ namespace Dcomms.DRP
                     _ = WaitForRegistrationConfirmationRequestAsync(requesterEndpoint, req, newConnectionToNeighbor, sourcePeer);
 
                     #region send ping, verify pong
-                    var ping = newConnectionToNeighbor.CreatePing(true);
+                    var ping = newConnectionToNeighbor.CreatePing(true, acceptAt.ConnectedNeighborsBusySectorIds);
                     
                     var pendingPingRequest = new PendingLowLevelUdpRequest(newConnectionToNeighbor.RemoteEndpoint,
                                     PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, ping.PingRequestId32), DateTimeNowUtc,

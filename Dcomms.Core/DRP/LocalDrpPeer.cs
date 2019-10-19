@@ -25,6 +25,20 @@ namespace Dcomms.DRP
 
         readonly LocalDrpPeerConfiguration _configuration;
         public LocalDrpPeerConfiguration Configuration => _configuration;
+
+        double[] _cachedLocalPeerRegistrationIdVectorValues;
+        public double[] LocalPeerRegistrationIdVectorValues
+        {
+            get
+            {
+                if (_cachedLocalPeerRegistrationIdVectorValues == null)
+                {
+                    _cachedLocalPeerRegistrationIdVectorValues = RegistrationIdDistance.GetVectorValues(CryptoLibrary, Configuration.LocalPeerRegistrationId);
+                }
+                return _cachedLocalPeerRegistrationIdVectorValues;
+            }
+        }
+
         readonly IDrpRegisteredPeerApp _drpPeerApp;
         internal readonly DrpPeerEngine Engine;
         internal ICryptoLibrary CryptoLibrary => Engine.CryptoLibrary;
@@ -39,6 +53,17 @@ namespace Dcomms.DRP
             engine.Configuration.VisionChannel?.RegisterVisibleModule(engine.Configuration.VisionChannelSourceId, this.ToString(), this);
         }
         public List<ConnectionToNeighbor> ConnectedNeighbors = new List<ConnectionToNeighbor>();
+        public ushort ConnectedNeighborsBusySectorIds
+        {
+            get
+            {
+                ushort r = 0;
+                foreach (var n in ConnectedNeighbors)
+                    r |= n.SectorIndexFlagsMask;
+                return r;
+            }
+        }
+     
         public void AddToConnectedNeighbors(ConnectionToNeighbor newConnectedNeighbor)
         {
             newConnectedNeighbor.OnP2pInitialized();
@@ -47,17 +72,15 @@ namespace Dcomms.DRP
             Engine.WriteToLog_p2p_higherLevelDetail(newConnectedNeighbor, $"added new connection to list of neighbors: {newConnectedNeighbor.RemoteRegistrationId} to {newConnectedNeighbor.RemoteEndpoint}");
         }
         public int CurrentRegistrationOperationsCount;
-
-
+        
         public void Dispose() // unregisters
         {
 
         }
         public override string ToString() => $"localDrpPeer{_configuration.LocalPeerRegistrationId}";
-
-       
+               
         DateTime? _latestConnectToNewNeighborOperationStartTimeUtc;
-        byte _numberOfHopsToExtendNeighbors = 30;
+
         async Task ConnectToNewNeighborIfNeededAsync(DateTime timeNowUtc)
         {
             if (ConnectedNeighbors.Count < _configuration.NumberOfNeighborsToKeep)
@@ -74,20 +97,13 @@ namespace Dcomms.DRP
                     _latestConnectToNewNeighborOperationStartTimeUtc = timeNowUtc;
 
                     try
-                    {
-                        uint minDistance;
-                        if (ConnectedNeighbors.Count > 5)
-                            minDistance = (UInt32)(ConnectedNeighbors.Average(c => c.RemoteRegistrationId.GetDistanceTo(CryptoLibrary, this.Configuration.LocalPeerRegistrationId).ToDouble()) * 0.4);                      
-                        else
-                            minDistance = 1;
-
-
-                        //    extend neighbors via ep (10% probability)  or via existing neighbors --- increase mindistance, from 1
-                        if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.1 || ConnectedNeighbors.Count == 0))
+                    {  
+                        //    extend neighbors via ep (3% probability)  or via existing neighbors --- increase mindistance, from 1
+                        if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.03 || ConnectedNeighbors.Count == 0))
                         {
                             var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
-                            Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({ConnectedNeighbors.Count} connected neighbors now, minDistance={minDistance})");
-                            await Engine.RegisterAsync(this, epEndpoint, minDistance, _numberOfHopsToExtendNeighbors);
+                            Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({ConnectedNeighbors.Count} connected neighbors now)");
+                            await Engine.RegisterAsync(this, epEndpoint, 0, 20);
                         }
                         else
                         {
@@ -95,17 +111,17 @@ namespace Dcomms.DRP
                             {
                                 var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
                                 Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)");
-                                await neighborToSendRegister.RegisterAsync(minDistance, _numberOfHopsToExtendNeighbors);
+                                await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, 20, 10);
                             }
                         }
                     }
-                    catch (DrpResponderRejectedMaxHopsReachedException exc)
-                    {
-                        Engine.WriteToLog_reg_requesterSide_lightPain($"failed to extend neighbors for {this}: {exc}.    adjusting  numberOfHops...");
+                    //catch (DrpResponderRejectedMaxHopsReachedException exc)
+                    //{
+                    //    Engine.WriteToLog_reg_requesterSide_lightPain($"failed to extend neighbors for {this}: {exc}.    adjusting  numberOfHops...");
 
-                        if (_numberOfHopsToExtendNeighbors < 50)
-                            _numberOfHopsToExtendNeighbors = (byte)(_numberOfHopsToExtendNeighbors + 5);
-                    }
+                    //    if (_numberOfHopsToExtendNeighbors < 50)
+                    //        _numberOfHopsToExtendNeighbors = (byte)(_numberOfHopsToExtendNeighbors + 5);
+                    //}
                     catch (DrpResponderRejectedP2pNetworkServiceUnavailableException exc)
                     {
                         Engine.WriteToLog_reg_requesterSide_lightPain($"failed to extend neighbors for {this}: {exc}");
@@ -113,7 +129,6 @@ namespace Dcomms.DRP
                     catch (Exception exc)
                     {
                         Engine.WriteToLog_reg_requesterSide_mediumPain($"failed to extend neighbors for {this}: {exc}");
-                        _numberOfHopsToExtendNeighbors = 30;
                     }
                 }
             }

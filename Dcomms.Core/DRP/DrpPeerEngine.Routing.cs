@@ -21,15 +21,15 @@ namespace Dcomms.DRP
         {
             proxyToDestinationPeer = null;
             acceptAt = null;
-            RegistrationIdDistance minDistance = null;
+            double? maxP2pConnectionValue = null;
             if (receivedAtLocalDrpPeerNullable != null)
             {
-                RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
+                RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req, ref maxP2pConnectionValue, ref proxyToDestinationPeer, ref acceptAt);
             }
             else
             {
                 foreach (var localDrpPeer in LocalPeers.Values)
-                    RouteRegistrationRequest_LocalDrpPeerIteration(localDrpPeer, sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req, ref minDistance, ref proxyToDestinationPeer, ref acceptAt);
+                    RouteRegistrationRequest_LocalDrpPeerIteration(localDrpPeer, sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req, ref maxP2pConnectionValue, ref proxyToDestinationPeer, ref acceptAt);
             }
 
             if (proxyToDestinationPeer != null)
@@ -48,10 +48,14 @@ namespace Dcomms.DRP
                 return false;
             }
         }
+
+
+
+
         void RouteRegistrationRequest_LocalDrpPeerIteration(LocalDrpPeer localDrpPeer, ConnectionToNeighbor sourceNeighborNullable,
             HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
             RegisterRequestPacket req,
-            ref RegistrationIdDistance minDistance,
+            ref double? maxP2pConnectionValue,
             ref ConnectionToNeighbor proxyToDestinationPeer, ref LocalDrpPeer acceptAt)
         {
             var connectedNeighborsForRouting = new List<ConnectionToNeighbor>();
@@ -79,25 +83,26 @@ namespace Dcomms.DRP
 
 
             int connectedNeighborsCountThatMatchMinDistance = 0;
-            foreach (var connectedPeer in connectedNeighborsForRouting)
+            foreach (var neighbor in connectedNeighborsForRouting)
             {
-                var distanceToConnectedPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId);
-                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterRegistrationId} to {connectedPeer.RemoteRegistrationId} (req.min={req.MinimalDistanceToNeighbor})");
+                var distanceToNeighbor = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, neighbor.RemoteRegistrationId);
+                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor.RemoteRegistrationId} (req.min={req.MinimalDistanceToNeighbor})");
                 if (req.MinimalDistanceToNeighbor != 0)
                 {
-                    if (distanceToConnectedPeer.IsLessThan(req.MinimalDistanceToNeighbor))
+                    if (distanceToNeighbor.IsLessThan(req.MinimalDistanceToNeighbor))
                     {
                         // skip: this is too close than requested
-                        WriteToLog_routing_detail($"skipping connection to {connectedPeer.RemoteRegistrationId}: distance={distanceToConnectedPeer} is less than requested={req.MinimalDistanceToNeighbor}");
+                        WriteToLog_routing_detail($"skipping connection to {neighbor.RemoteRegistrationId}: distance={distanceToNeighbor} is less than requested={req.MinimalDistanceToNeighbor}");
                         continue;
                     }
                 }
-
+                var p2pConnectionValue_withNeighbor = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds, neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds);
+                               
                 connectedNeighborsCountThatMatchMinDistance++;
-                if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
+                if (maxP2pConnectionValue == null || maxP2pConnectionValue < p2pConnectionValue_withNeighbor)
                 {
-                    minDistance = distanceToConnectedPeer;
-                    proxyToDestinationPeer = connectedPeer;
+                    maxP2pConnectionValue = p2pConnectionValue_withNeighbor;
+                    proxyToDestinationPeer = neighbor;
                     acceptAt = null;
                 }
             }
@@ -131,16 +136,15 @@ namespace Dcomms.DRP
             }
             else
             {
-                var distanceToLocalPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, localDrpPeer.Configuration.LocalPeerRegistrationId);
-                WriteToLog_routing_detail($"distanceToLocalPeer={distanceToLocalPeer} from REGISTER REQ {req.RequesterRegistrationId} to {localDrpPeer.Configuration.LocalPeerRegistrationId}");
-                if (minDistance == null || minDistance.IsGreaterThan(distanceToLocalPeer))
+                var p2pConnectionValue_withLocalPeer = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds, localDrpPeer.Configuration.LocalPeerRegistrationId, localDrpPeer.ConnectedNeighborsBusySectorIds);
+                WriteToLog_routing_detail($"valueOfLocalPeer={p2pConnectionValue_withLocalPeer} from REGISTER REQ {req.RequesterRegistrationId} to {localDrpPeer.Configuration.LocalPeerRegistrationId}");
+                if (maxP2pConnectionValue == null || p2pConnectionValue_withLocalPeer > maxP2pConnectionValue)
                 {
-                    minDistance = distanceToLocalPeer;
+                    maxP2pConnectionValue = p2pConnectionValue_withLocalPeer;
                     proxyToDestinationPeer = null;
                     acceptAt = localDrpPeer;
                 }
-            }
-            
+            }            
         }
 
         public ConnectionToNeighbor RouteInviteRequest(LocalDrpPeer localDrpPeer, InviteRequestPacket req)

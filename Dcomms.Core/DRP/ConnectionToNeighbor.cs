@@ -257,7 +257,27 @@ namespace Dcomms.DRP
                
         public ConnectedDrpPeerInitiatedBy InitiatedBy;
 
-        public RegistrationId RemoteRegistrationId { get; set; }
+        RegistrationId _remoteRegistrationId;
+        public RegistrationId RemoteRegistrationId
+        {
+            get => _remoteRegistrationId;
+            set
+            {
+                _remoteRegistrationId = value;
+                if (_remoteRegistrationId != null)
+                {
+                    var localPeerVector = _localDrpPeer.LocalPeerRegistrationIdVectorValues;
+                    var neighborPeerVector = RegistrationIdDistance.GetVectorValues(_engine.CryptoLibrary, _remoteRegistrationId);
+                    var vectorFromLocalToNeighbor = new float[localPeerVector.Length];
+                    for (int i = 0; i < neighborPeerVector.Length; i++)
+                        vectorFromLocalToNeighbor[i] = (float)(neighborPeerVector[i] - localPeerVector[i]);
+
+                    var sectorIndex = _vcis.GetSectorIndex(vectorFromLocalToNeighbor);
+                    SectorIndexFlagsMask = (ushort)(1 << sectorIndex);
+                }
+            }
+        }
+        public ushort SectorIndexFlagsMask { get; private set; }
 
         public override string ToString() => $"connTo{RemoteEndpoint}-{RemoteRegistrationId}";
         
@@ -286,7 +306,8 @@ namespace Dcomms.DRP
         PingPacket _latestPingSent;
         DateTime? _latestPingSentTime;
         PingPacket _latestPingReceived;// float MaxTxInviteRateRps, MaxTxRegiserRateRps; // sent by remote peer via ping
-        
+        public ushort RemoteNeighborsBusySectorIds => _latestPingReceived.RequesterNeighborsBusySectorIds;
+
         PongPacket _latestReceivedPong;
         TimeSpan? _latestPingPongDelay_RTT;
 
@@ -308,6 +329,7 @@ namespace Dcomms.DRP
         public readonly byte[] LocalEcdhe25519PublicKey;
         bool _disposed;
         internal bool IsDisposed => _disposed;
+        static VectorSectorIndexCalculator _vcis = new VectorSectorIndexCalculator(8);
         public ConnectionToNeighbor(DrpPeerEngine engine, LocalDrpPeer localDrpPeer, ConnectedDrpPeerInitiatedBy initiatedBy, RegistrationId remoteRegistrationId)
         {
             _seq16Counter_P2P = (ushort)_insecureRandom.Next(ushort.MaxValue);
@@ -315,6 +337,7 @@ namespace Dcomms.DRP
             _engine = engine;
             _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket = _engine.DateTimeNowUtc;
             RemoteRegistrationId = remoteRegistrationId;
+                       
             InitiatedBy = initiatedBy;
             NeighborToken32 localNeighborToken32 = null;
             for (int i = 0; i < 100; i++)
@@ -349,12 +372,13 @@ namespace Dcomms.DRP
         }
 
         #region ping pong
-        public PingPacket CreatePing(bool requestRegistrationConfirmationSignature)
+        public PingPacket CreatePing(bool requestRegistrationConfirmationSignature, ushort requesterNeighborsBusySectorIds)
         {
             if (_disposed) throw new ObjectDisposedException(ToString());
             var r = new PingPacket
             {
                 NeighborToken32 = RemoteNeighborToken32,
+                RequesterNeighborsBusySectorIds = requesterNeighborsBusySectorIds,
                 MaxRxInviteRateRps = 10, //todo get from some local capabilities   like number of neighbors
                 MaxRxRegisterRateRps = 10, //todo get from some local capabilities   like number of neighbors
                 PingRequestId32 = (uint)_insecureRandom.Next(),
@@ -399,7 +423,7 @@ namespace Dcomms.DRP
         }
         void SendPingRequestOnTimer()
         {
-            var pingRequestPacket = CreatePing(false);
+            var pingRequestPacket = CreatePing(false, _localDrpPeer.ConnectedNeighborsBusySectorIds);
             SendPacket(pingRequestPacket.Encode());
             _latestPingSent = pingRequestPacket;
             _latestPingSentTime = _engine.DateTimeNowUtc;
