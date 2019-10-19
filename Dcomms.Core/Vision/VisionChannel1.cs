@@ -138,17 +138,20 @@ namespace Dcomms.Vision
         {
             get
             {
-                var r = _visibleModulesByPath.Select(x => new VisibleModule
+                lock (_visibleModulesByPath)
                 {
-                    Path = x.Key,
-                    Status = x.Value.Status
-                });
-                if (!String.IsNullOrEmpty(VisibleModulePathContainsString))
-                    r = r.Where(x => x.Path.Contains(VisibleModulePathContainsString));
-                if (!String.IsNullOrEmpty(VisibleModuleStatusContainsString))
-                    r = r.Where(x => x.Status.Contains(VisibleModuleStatusContainsString));
+                    var r = _visibleModulesByPath.Select(x => new VisibleModule
+                    {
+                        Path = x.Key,
+                        Status = x.Value.Status
+                    });
+                    if (!String.IsNullOrEmpty(VisibleModulePathContainsString))
+                        r = r.Where(x => x.Path.Contains(VisibleModulePathContainsString));
+                    if (!String.IsNullOrEmpty(VisibleModuleStatusContainsString))
+                        r = r.Where(x => x.Status.Contains(VisibleModuleStatusContainsString));
 
-                return r.OrderBy(x => x.Path).ToList();
+                    return r.OrderBy(x => x.Path).ToList();
+                }
             }
         }
 

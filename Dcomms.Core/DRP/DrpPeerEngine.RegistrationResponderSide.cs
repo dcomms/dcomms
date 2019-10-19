@@ -181,6 +181,7 @@ namespace Dcomms.DRP
 
         internal void SendNeighborPeerAckResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, NextHopResponseCode statusCode, ConnectionToNeighbor neighbor)
         {
+            neighbor?.AssertIsNotDisposed();
             var npAck = new NeighborPeerAckPacket
             {
                 NpaSeq16 = req.NpaSeq16,

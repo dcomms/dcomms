@@ -1,4 +1,5 @@
 ﻿using Dcomms.Cryptography;
+using Dcomms.DRP.Packets;
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
@@ -63,7 +64,34 @@ namespace Dcomms.DRP
                 return r;
             }
         }
-     
+        public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(ConnectionToNeighbor sourceNeighborNullable,
+            HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
+            RegisterRequestPacket req)
+        {
+            foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.PingReceived == true))
+            {
+                if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
+                {
+                    Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}");
+                    continue;
+                }
+                if (alreadyTriedProxyingToDestinationPeersNullable != null && alreadyTriedProxyingToDestinationPeersNullable.Contains(connectedPeer))
+                {
+                    Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}");
+                    continue;
+                }
+
+                if (req.RequesterRegistrationId.Ed25519publicKey.Equals(connectedPeer.RemoteRegistrationId))
+                {
+                    Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}");
+                    continue;
+                }
+
+                yield return connectedPeer;
+            }
+        }
+
+
         public void AddToConnectedNeighbors(ConnectionToNeighbor newConnectedNeighbor)
         {
             newConnectedNeighbor.OnP2pInitialized();

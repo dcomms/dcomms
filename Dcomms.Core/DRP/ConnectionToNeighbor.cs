@@ -307,6 +307,7 @@ namespace Dcomms.DRP
         DateTime? _latestPingSentTime;
         PingPacket _latestPingReceived;// float MaxTxInviteRateRps, MaxTxRegiserRateRps; // sent by remote peer via ping
         public ushort RemoteNeighborsBusySectorIds => _latestPingReceived.RequesterNeighborsBusySectorIds;
+        public bool PingReceived => _latestPingReceived != null;
 
         PongPacket _latestReceivedPong;
         TimeSpan? _latestPingPongDelay_RTT;
@@ -534,25 +535,30 @@ namespace Dcomms.DRP
                 bool checkRecentUniqueProxiedRegistrationRequests = true;
                 bool alreadyRepliedWithNPA = false;
 _retry:
+                this.AssertIsNotDisposed();
                 if (!_engine.RouteRegistrationRequest(this.LocalDrpPeer, this, alreadyTriedProxyingToDestinationPeers, req, out var proxyToDestinationPeer, out var acceptAt)) // routing
                 { // no route found
-                    _engine.SendServiceUnavailableResponseToRegisterReq(req, requesterEndpoint, this, alreadyRepliedWithNPA);
+                    if (!this.IsDisposed) _engine.SendServiceUnavailableResponseToRegisterReq(req, requesterEndpoint, this, alreadyRepliedWithNPA);
                     return;
                 }
 
                 if (acceptAt != null)
-                {   // accept the registration request here at this.LocalDrpPeer                                       
+                {   // accept the registration request here at this.LocalDrpPeer     
+                    this.AssertIsNotDisposed();
                     _ = _engine.AcceptRegisterRequestAsync(acceptAt, req, requesterEndpoint, this, reqReceivedTimeUtc);
                 }
                 else if (proxyToDestinationPeer != null)
                 {  // proxy the registration request to another peer
+                    this.AssertIsNotDisposed();
                     var needToRerouteToAnotherNeighbor = await _engine.ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, this, checkRecentUniqueProxiedRegistrationRequests, reqReceivedTimeUtc);
-                    if (needToRerouteToAnotherNeighbor)
+                    if (needToRerouteToAnotherNeighbor && !this.IsDisposed)
                     {
                         alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
                         _engine.WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}");
                         checkRecentUniqueProxiedRegistrationRequests = false;
                         alreadyRepliedWithNPA = true;
+
+                        this.AssertIsNotDisposed();
                         goto _retry;
                     }
                 }

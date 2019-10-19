@@ -28,13 +28,13 @@
                 <Button Command="{Binding TestEd25519}" Content="TestEd25519" />
                 <Button Command="{Binding TestEcdh25519}" Content="TestEcdh25519" />
                 <Button Command="{Binding TestAes}" Content="TestAes" />
-                <Button Command="{Binding CreateDrpTester1}" Content="CreateDrpTester1" />
+                <Button Command="{Binding CreateDrpTester1}" Content="CreateDrpTester1(localhost A,EP,X,N)" />
                 <Button Command="{Binding CreateDrpTester1_SendInvite}" Content="CreateDrpTester1+send Invite" />
 
-                <Button Command="{Binding CreateDrpTester2}" Content="CreateDrpTester2" Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
+                <Button Command="{Binding CreateDrpTester2}" Content="CreateDrpTester2(localhost)" Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
                 <Button Command="{Binding DestroyDrpTester2}" Content="DestroyDrpTester2"  Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityConverter}}" />
                 <Button Command="{Binding CreateDrpTester3}" Content="CreateDrpTester3" />
-                <Button Command="{Binding CreateDrpDistanceTester}" Content="CreateDrpDistanceTester(4)" />
+                <Button Command="{Binding CreateDrpDistanceTester}" Content="CreateDrpTester4(distance)" />
             </StackPanel>
         </StackPanel>
 

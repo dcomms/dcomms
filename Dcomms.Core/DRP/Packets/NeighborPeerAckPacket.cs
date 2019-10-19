@@ -47,6 +47,7 @@ namespace Dcomms.DRP.Packets
                 if (npaRequestFieldsForNeighborHmacNullable == null) throw new ArgumentNullException();
                 r.OptionalFilter = (responseData) =>
                 {
+                    if (waitNhaFromNeighborNullable.IsDisposed) return false;
                     var npack = new NeighborPeerAckPacket(responseData);
                     if (npack.NeighborHMAC == null) return false;
                     if (!npack.NeighborHMAC.Equals(waitNhaFromNeighborNullable.GetNeighborHMAC(w2 => npack.GetSignedFieldsForNeighborHMAC(w2, npaRequestFieldsForNeighborHmacNullable)))) return false;

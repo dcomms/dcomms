@@ -21,15 +21,37 @@ namespace Dcomms.DRP
         {
             proxyToDestinationPeer = null;
             acceptAt = null;
-            double? maxP2pConnectionValue = null;
-            if (receivedAtLocalDrpPeerNullable != null)
-            {
-                RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req, ref maxP2pConnectionValue, ref proxyToDestinationPeer, ref acceptAt);
+
+
+            if (req.NumberOfRandomHopsRemaining > 0)
+            { // random mode
+                var connectedNeighborsForRouting = new List<ConnectionToNeighbor>();
+                if (sourceNeighborNullable == null)
+                {
+                    foreach (var localDrpPeer in LocalPeers.Values)
+                        connectedNeighborsForRouting.AddRange(localDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req));
+                }
+                else
+                    connectedNeighborsForRouting.AddRange(sourceNeighborNullable.LocalDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req));
+
+                if (connectedNeighborsForRouting.Count != 0)
+                {
+                    proxyToDestinationPeer = connectedNeighborsForRouting[_insecureRandom.Next(connectedNeighborsForRouting.Count - 1)];
+                }
             }
             else
             {
-                foreach (var localDrpPeer in LocalPeers.Values)
-                    RouteRegistrationRequest_LocalDrpPeerIteration(localDrpPeer, sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req, ref maxP2pConnectionValue, ref proxyToDestinationPeer, ref acceptAt);
+
+                double? maxP2pConnectionValue = null;
+                if (receivedAtLocalDrpPeerNullable != null)
+                {
+                    RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req, ref maxP2pConnectionValue, ref proxyToDestinationPeer, ref acceptAt);
+                }
+                else
+                {
+                    foreach (var localDrpPeer in LocalPeers.Values)
+                        RouteRegistrationRequest_LocalDrpPeerIteration(localDrpPeer, sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req, ref maxP2pConnectionValue, ref proxyToDestinationPeer, ref acceptAt);
+                }
             }
 
             if (proxyToDestinationPeer != null)
@@ -58,29 +80,7 @@ namespace Dcomms.DRP
             ref double? maxP2pConnectionValue,
             ref ConnectionToNeighbor proxyToDestinationPeer, ref LocalDrpPeer acceptAt)
         {
-            var connectedNeighborsForRouting = new List<ConnectionToNeighbor>();
-            foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors)
-            {
-                if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
-                {
-                    WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}");
-                    continue;
-                }
-                if (alreadyTriedProxyingToDestinationPeersNullable != null && alreadyTriedProxyingToDestinationPeersNullable.Contains(connectedPeer))
-                {
-                    WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}");
-                    continue;
-                }
-
-                if (req.RequesterRegistrationId.Ed25519publicKey.Equals(connectedPeer.RemoteRegistrationId))
-                {
-                    WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}");
-                    continue;
-                }
-
-                connectedNeighborsForRouting.Add(connectedPeer);
-            }
-
+            var connectedNeighborsForRouting = localDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req).ToList();
 
             int connectedNeighborsCountThatMatchMinDistance = 0;
             foreach (var neighbor in connectedNeighborsForRouting)
