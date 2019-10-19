@@ -24,7 +24,7 @@ namespace Dcomms.DRP
             NeighborPeerAckSequenceNumber16 npaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
             var npaScanner = NeighborPeerAckPacket.GetScanner(npaSeq16, waitNhaFromNeighborNullable, npaRequestFieldsForNeighborHmacNullable);
-            WriteToLog_udp_detail($"waiting for NPACK, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} npaSeq={npaSeq16}");
+            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"waiting for NPACK, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} npaSeq={npaSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(responderEndpoint,
                          npaScanner, 
@@ -79,13 +79,15 @@ namespace Dcomms.DRP
         {
             if (udpPayload.Length > 548)
                 throw new ArgumentException("Transmitted UDP packet size is too big to bypass internet safely without fragmentation");
-            WriteToLog_udp_detail($"sending packet {(DrpDmpPacketTypes)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpPayload)})");
+            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"sending packet {(DrpDmpPacketTypes)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpPayload)})");
             _socket.Send(udpPayload, udpPayload.Length, remoteEndpoint);
         }
         internal async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
         {
-            WriteToLog_udp_detail($"waiting for response to {request}");
+            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"waiting for response to {request}");
             _pendingLowLevelUdpRequests.AddLast(request);
+            if (_pendingLowLevelUdpRequests.Count > 20)
+                WriteToLog_udp_lightPain($"_pendingLowLevelUdpRequests.Count={_pendingLowLevelUdpRequests.Count}");
             return await request.TaskCompletionSource.Task;
         }
 
@@ -132,10 +134,11 @@ namespace Dcomms.DRP
             {
                 var request = item.Value;
 
-                WriteToLog_udp_deepDetail($"matching to pending request... responderEndpoint={responderEndpoint}, udpData={MiscProcedures.ByteArrayToString(udpData)} " +
-                    $"request={request}" 
-                   // + $" ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}"
-                    );
+                if (WriteToLog_udp_deepDetail_enabled)
+                    WriteToLog_udp_deepDetail($"matching to pending request... responderEndpoint={responderEndpoint}, udpData={MiscProcedures.ByteArrayToString(udpData)} " +
+                        $"request={request}" 
+                       // + $" ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}"
+                        );
 
                 try
                 {
@@ -158,11 +161,16 @@ namespace Dcomms.DRP
             return false;
         }
 
+        #region responders to retransmitted requests
         /// <summary>
         /// accessed by engine thread only 
-        /// todo optimize by having a dictionary based on sorted packet data
         /// </summary>
-        LinkedList<ResponderToRetransmittedRequests> _respondersToRetransmittedRequests = new LinkedList<ResponderToRetransmittedRequests>();
+        Dictionary<RequestKey, ResponderToRetransmittedRequests> _respondersToRetransmittedRequests = new Dictionary<RequestKey, ResponderToRetransmittedRequests>();
+        /// <summary>
+        /// accessed by engine thread only 
+        /// </summary>
+        LinkedList<ResponderToRetransmittedRequests> _respondersToRetransmittedRequestsOldestFirst = new LinkedList<ResponderToRetransmittedRequests>();
+
         /// <summary>
         /// sends response to requests
         /// creates an object "ResponderToRetransmittedRequests" which handles further restransmitted requests (in case if the sent response gets lost)
@@ -170,45 +178,52 @@ namespace Dcomms.DRP
         internal void RespondToRequestAndRetransmissions(byte[] requestUdpPayloadData, byte[] responseUdpPayloadData, IPEndPoint requesterEndpoint)
         {
             SendPacket(responseUdpPayloadData, requesterEndpoint);
-            _respondersToRetransmittedRequests.AddLast(new ResponderToRetransmittedRequests
+
+            var key = new RequestKey(requestUdpPayloadData, requesterEndpoint);
+            var responder = new ResponderToRetransmittedRequests
             {
-                RequestUdpPayloadData = requestUdpPayloadData,
-                ResponseUdpPayloadData = responseUdpPayloadData,
-                RequesterEndpoint = requesterEndpoint,
-                ExpirationTimeUTC = DateTimeNowUtc + Configuration.ResponderToRetransmittedRequestsTimeout
-            });
+                RequestKey = key,
+                ExpirationTimeUTC = DateTimeNowUtc + Configuration.ResponderToRetransmittedRequestsTimeout,
+                ResponseUdpPayloadData = responseUdpPayloadData
+            };
+
+            _respondersToRetransmittedRequests.Remove(key); // remove in case if responder s=to same request is already added
+            _respondersToRetransmittedRequests.Add(key, responder);
+            _respondersToRetransmittedRequestsOldestFirst.AddLast(responder);
+
+            if (_respondersToRetransmittedRequests.Count > 200)
+                WriteToLog_udp_lightPain($"_respondersToRetransmittedRequests.Count={_respondersToRetransmittedRequests.Count}");
         }
 
 
         bool RespondersToRetransmittedRequests_ProcessPacket(IPEndPoint requesterEndpoint, byte[] udpData)
         {
-            for (var item = _respondersToRetransmittedRequests.First; item != null; item = item.Next)
+            var key = new RequestKey(udpData, requesterEndpoint);
+            if (_respondersToRetransmittedRequests.TryGetValue(key, out var responder))
             {
-                var responder = item.Value;
-                if (responder.RequesterEndpoint.Equals(requesterEndpoint) && MiscProcedures.EqualByteArrays(responder.RequestUdpPayloadData, udpData))
-                {
-                    SendPacket(responder.ResponseUdpPayloadData, requesterEndpoint);
-                    return true;
-                }
+                SendPacket(responder.ResponseUdpPayloadData, requesterEndpoint);
+                return true;
             }
-            return false;
+            else return false;
         }
 
         void RespondersToRetransmittedRequests_OnTimer100ms(DateTime timeNowUTC)
         {
-            for (var item = _respondersToRetransmittedRequests.First; item != null;)
+            for (var item = _respondersToRetransmittedRequestsOldestFirst.First; item != null;)
             {
                 var request = item.Value;
                 if (timeNowUTC > request.ExpirationTimeUTC)
                 {
                     var nextItem = item.Next;
-                    _respondersToRetransmittedRequests.Remove(item);
+                    _respondersToRetransmittedRequestsOldestFirst.Remove(item);
+                    _respondersToRetransmittedRequests.Remove(request.RequestKey);
                     item = nextItem;
                     continue;
-                }                
-                item = item.Next;
+                }
+                break; // all other items in list are newer, so we can break the enumeration
             }
         }
+        #endregion
     }
 
     /// <summary>
@@ -279,9 +294,31 @@ namespace Dcomms.DRP
 
     class ResponderToRetransmittedRequests
     {
-        public byte[] RequestUdpPayloadData;
+        public RequestKey RequestKey;
         public byte[] ResponseUdpPayloadData;
-        public IPEndPoint RequesterEndpoint;
         public DateTime ExpirationTimeUTC;
+        public override string ToString() => $"key={RequestKey}: {MiscProcedures.ByteArrayToString(ResponseUdpPayloadData)}";
+    }
+    class RequestKey
+    {
+        public readonly byte[] RequestData;
+        public readonly IPEndPoint RequesterEndpoint;
+        readonly int _hashCode;
+        public RequestKey(byte[] requestData, IPEndPoint requesterEndpoint)
+        {
+            RequestData = requestData;
+            RequesterEndpoint = requesterEndpoint;
+            _hashCode = MiscProcedures.GetArrayHashCode(requestData) ^ requesterEndpoint.GetHashCode();
+        }
+        public override int GetHashCode()
+        {
+            return _hashCode;
+        }
+        public override bool Equals(object obj)
+        {
+            var obj2 = (RequestKey)obj;
+            return obj2.RequesterEndpoint.Equals(this.RequesterEndpoint) && MiscProcedures.EqualByteArrays(obj2.RequestData, this.RequestData);
+        }
+        public override string ToString() => $"{RequesterEndpoint}-{MiscProcedures.ByteArrayToString(RequestData)}";
     }
 }

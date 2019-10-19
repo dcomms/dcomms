@@ -40,6 +40,7 @@ namespace Dcomms.Sandbox
         }
         void xList_BeginExtendNeighbors()
         {
+            return;////////////////////////////////////
             int xIndex = 0;
             int neighborsCount = 2;
             Timer timer = null;
@@ -83,7 +84,7 @@ namespace Dcomms.Sandbox
            
             _ep.BeginCreateLocalPeer(epLocalDrpPeerConfig, new DrpTesterPeerApp(_ep, epLocalDrpPeerConfig), (rpLocalPeer) =>
             {
-                for (int i = 0; i < 50; i++)
+                for (int i = 0; i < 30; i++)
                 {
                     var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
                     {

@@ -14,9 +14,9 @@ namespace Dcomms.DRP
         /// is used instead of public IP API provider response; in case of localhost-localhost tests 
         /// </summary>
         public IPAddress ForcedPublicIpApiProviderResponse;
-        public TimeSpan PingRequestsInterval = TimeSpan.FromSeconds(2);
+        public TimeSpan PingRequestsInterval = TimeSpan.FromSeconds(5);
         public double PingRetransmissionInterval_RttRatio = 2.0; // "how much time to wait until sending another ping request?" - coefficient, relative to previously measured RTT
-        public TimeSpan ConnectedPeersRemovalTimeout => PingRequestsInterval + TimeSpan.FromSeconds(2);
+        public TimeSpan ConnectedPeersRemovalTimeout => PingRequestsInterval + TimeSpan.FromSeconds(7);
 
         public uint RegisterPow1_RecentUniqueDataResetPeriodS = 10 * 60;
         public int RegisterPow1_MaxTimeDifferenceS = 20 * 60;
@@ -39,7 +39,7 @@ namespace Dcomms.DRP
         public double InitialPingRequests_ExpirationTimeoutS = 5;
         public double InitialPingRequests_InitialRetransmissionTimeoutS = 0.2;
         public double InitialPingRequests_RetransmissionTimeoutIncrement = 1.05;
-        public TimeSpan ResponderToRetransmittedRequestsTimeout = TimeSpan.FromSeconds(30);
+        public TimeSpan ResponderToRetransmittedRequestsTimeout = TimeSpan.FromSeconds(15);
 
         public double InviteRequestsTimoutS = 15;
 
