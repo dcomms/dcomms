@@ -49,7 +49,7 @@ namespace Dcomms.Sandbox
                 {
                     neighborsCount++;
 
-                    if (neighborsCount > 20)
+                    if (neighborsCount > 10)
                     {
                         timer.Dispose();
                         return;
@@ -63,7 +63,7 @@ namespace Dcomms.Sandbox
                 app.DrpPeerRegistrationConfiguration.NumberOfNeighborsToKeep = neighborsCount;
 
                 xIndex++;
-            }, null, 0, 300);
+            }, null, 0, 500);
         }
         
         readonly VisionChannel _visionChannel;
@@ -83,7 +83,7 @@ namespace Dcomms.Sandbox
            
             _ep.BeginCreateLocalPeer(epLocalDrpPeerConfig, new DrpTesterPeerApp(_ep, epLocalDrpPeerConfig), (rpLocalPeer) =>
             {
-                for (int i = 0; i < 100; i++)
+                for (int i = 0; i < 50; i++)
                 {
                     var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
                     {

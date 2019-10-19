@@ -195,6 +195,11 @@ namespace Dcomms.DRP
                         RegisterConfirmationPacket.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp64)
                         );
                     var cfm = RegisterConfirmationPacket.DecodeAndOptionallyVerify(cfmUdpData, null, null);
+                    if (sourcePeer?.IsDisposed == true)
+                    {
+                        WriteToLog_reg_proxySide_detail($"sourcePeer={sourcePeer} is disposed during proxying");
+                        return false;
+                    }
 
                     // TODO verify signatures and update QoS
 
