@@ -14,7 +14,7 @@ namespace Dcomms.DRP
     /// "contact point" of local user in the regID space
     /// can be "registered" or "registering"
     /// </summary>
-    public partial class LocalDrpPeer: IDisposable, IVisibleModule
+    public partial class LocalDrpPeer: IDisposable, IVisibleModule, IVisiblePeer
     {
         /// <summary>
         /// is used for:
@@ -64,6 +64,11 @@ namespace Dcomms.DRP
                 return r;
             }
         }
+
+        float[] IVisiblePeer.VectorValues => RegistrationIdDistance.GetVectorValues(CryptoLibrary, _configuration.LocalPeerRegistrationId).Select(x => (float)x).ToArray();
+        bool IVisiblePeer.Highlighted => false;
+        IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => ConnectedNeighbors;
+
         public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(ConnectionToNeighbor sourceNeighborNullable,
             HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
             RegisterRequestPacket req)
@@ -165,6 +170,11 @@ namespace Dcomms.DRP
         internal void EngineThreadOnTimer100ms(DateTime timeNowUtc)
         {
             _ = ConnectToNewNeighborIfNeededAsync(timeNowUtc);            
+        }
+
+        string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer)
+        {
+            throw new NotImplementedException();
         }
     }
 

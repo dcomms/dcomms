@@ -180,21 +180,23 @@ namespace Dcomms.Sandbox
         });
 
 
-        DrpTester2 _drpTester2;
+        public DrpTester2 DrpTester2 { get; private set; }
         public DelegateCommand CreateDrpTester2 => new DelegateCommand(() =>
         {
-            if (_drpTester2 != null) throw new InvalidOperationException();
-            _drpTester2 = new DrpTester2(_visionChannel);
+            if (DrpTester2 != null) throw new InvalidOperationException();
+            DrpTester2 = new DrpTester2(_visionChannel);
+            RaisePropertyChanged(() => DrpTester2);
             RaisePropertyChanged(() => DrpTester2IsCreated);
         });
         public DelegateCommand DestroyDrpTester2 => new DelegateCommand(() =>
         {
-            if (_drpTester2 == null) throw new InvalidOperationException();
-            _drpTester2.Dispose();
-            _drpTester2 = null;
+            if (DrpTester2 == null) throw new InvalidOperationException();
+            DrpTester2.Dispose();
+            DrpTester2 = null;
+            RaisePropertyChanged(() => DrpTester2);
             RaisePropertyChanged(() => DrpTester2IsCreated);
         });
-        public bool DrpTester2IsCreated => _drpTester2 != null;
+        public bool DrpTester2IsCreated => DrpTester2 != null;
 
         public DrpTester3 DrpTester3 { get; private set; }
         public bool DrpTester3Visible => DrpTester3 != null;
@@ -225,7 +227,7 @@ namespace Dcomms.Sandbox
         public void Dispose()
         {
             if (_drpTester1 != null) _drpTester1.Dispose();
-            if (_drpTester2 != null) _drpTester2.Dispose();
+            if (DrpTester2 != null) DrpTester2.Dispose();
             if (DrpTester3 != null) DrpTester3.Dispose();
         }
     }

@@ -11,7 +11,7 @@ namespace Dcomms.Vision
 {
     public class VisionChannel1 : VisionChannel, INotifyPropertyChanged
     {
-        public AttentionLevel DisplayFilterMinLevel { get; set; } = AttentionLevel.guiActivity;
+        public AttentionLevel DisplayFilterMinLevel { get; set; } = AttentionLevel.needsAttention;
         public override AttentionLevel GetAttentionTo(string visionChannelSourceId, string moduleName)
         {
             return DisplayFilterMinLevel;
@@ -101,7 +101,8 @@ namespace Dcomms.Vision
                     _logMessagesNewestFirst.RemoveLast();
             }
         }
-        public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, VisiblePeersDisplayMode peersListDisplayMode, List<IVisiblePeer> highlightedPeers)
+        public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, VisiblePeersDisplayMode peersListDisplayMode
+           )
         {
             if (!EnableNewLogMessages) return;
             var msg = new LogMessage(this)
@@ -217,15 +218,13 @@ namespace Dcomms.Vision
                 _visionChannel.DisplayPeersDelegate(Message, PeersList, PeersListDisplayMode);
             });
         }
-
-
+        
         class ClonedVisiblePeer: IVisiblePeer
         {
             public float[] VectorValues { get; private set; }
             public bool Highlighted { get; private set; }
             public List<IVisiblePeer> NeighborPeers { get; private set; }
-            IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => NeighborPeers;
-            
+            IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => NeighborPeers;            
             public static List<IVisiblePeer> Clone(List<IVisiblePeer> sourceList)
             {
                 var r = new List<ClonedVisiblePeer>(sourceList.Count);
@@ -248,14 +247,22 @@ namespace Dcomms.Vision
                     clonedPeer.NeighborPeers = new List<IVisiblePeer>();
                     foreach (var neighbor in sourcePeer.NeighborPeers)
                     {
-                        var neighborIndex = sourcePeersIndexes[neighbor];
-                        clonedPeer.NeighborPeers.Add(r[neighborIndex]);
+                        if (sourcePeersIndexes.TryGetValue(neighbor, out var neighborIndex))
+                        {                        
+                            clonedPeer.NeighborPeers.Add(r[neighborIndex]);
+                        }
+                        else
+                        {
+                            clonedPeer.NeighborPeers.Add(new ClonedVisiblePeer
+                            {
+                                VectorValues = neighbor.VectorValues.ToArray()
+                            });
+                        }
                     }
                 }
 
                 return r.Cast<IVisiblePeer>().ToList();
             }
-
             string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer)
             {
                 throw new NotImplementedException();

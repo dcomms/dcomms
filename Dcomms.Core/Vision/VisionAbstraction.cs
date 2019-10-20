@@ -92,7 +92,7 @@ namespace Dcomms.Vision
 
 
         public virtual void EmitListOfPeers(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, 
-            VisiblePeersDisplayMode peersListDisplayMode, List<IVisiblePeer> highlightedPeers = null)
+            VisiblePeersDisplayMode peersListDisplayMode)
         {
         }
     }

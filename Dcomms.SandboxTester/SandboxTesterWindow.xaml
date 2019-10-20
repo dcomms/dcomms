@@ -88,7 +88,6 @@
                     <Button Content="Initialize user" Margin="3" Command="{Binding DrpTester3.InitializeUser}"   />
                 </StackPanel>
             </Grid>
-
             <Grid Visibility="{Binding DrpDistanceTesterVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -151,8 +150,21 @@
                 </StackPanel>
             </Grid>
 
-            <TabControl Grid.Row="1" x:Name="visionGui">
-               
+            <Grid Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" >
+                    <Button Content="ShowPeers" Margin="3" Command="{Binding DrpTester2.ShowPeers}" />
+                </StackPanel>
+            </Grid>
+            
+
+            <TabControl Grid.Row="1" x:Name="visionGui">               
                 <TabItem Header="Log">
                     <Grid>
                         <Grid>
@@ -271,8 +283,6 @@
                     </Grid>
                 </TabItem>
             </TabControl>
-        </Grid>
-
-        
+        </Grid>        
     </Grid>
 </Window>

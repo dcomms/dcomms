@@ -7,10 +7,11 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using System.Windows.Input;
 
 namespace Dcomms.Sandbox
 {
-    class DrpTester2 : IDisposable
+    public class DrpTester2 : IDisposable
     {
         const int EpLocalPort = 6789;
         readonly Random _insecureRandom = new Random();
@@ -18,6 +19,24 @@ namespace Dcomms.Sandbox
         
         DrpPeerEngine _ep;
         readonly List<DrpTesterPeerApp> _xList = new List<DrpTesterPeerApp>();
+        IEnumerable<IVisiblePeer> VisiblePeers
+        {
+            get
+            {
+                foreach (var p in _ep.VisibleLocalPeers)
+                    yield return p;
+                foreach (var x in _xList)
+                    foreach (var p in x.DrpPeerEngine.VisibleLocalPeers)
+                        yield return p;
+            }
+        }
+        public ICommand ShowPeers => new DelegateCommand(() =>
+        {
+            var list = VisiblePeers.ToList();
+            _visionChannel.EmitListOfPeers("allPeers", DrpTesterVisionChannelModuleName, AttentionLevel.needsAttention, "all peers", list, VisiblePeersDisplayMode.allPeers);
+
+
+        });
 
         void xList_BeginRegistrations(int index)
         {
@@ -40,6 +59,7 @@ namespace Dcomms.Sandbox
         }
         void xList_BeginExtendNeighbors()
         {
+            return;////////////
             int xIndex = 0;
             int neighborsCount = 2;
             Timer timer = null;
@@ -48,7 +68,7 @@ namespace Dcomms.Sandbox
                 if (xIndex >= _xList.Count)
                 {
                     neighborsCount++;
-                    if (neighborsCount > 4)
+                    if (neighborsCount > 5)
                     {
                         timer.Dispose();
                         return;
@@ -61,7 +81,7 @@ namespace Dcomms.Sandbox
                 app.DrpPeerRegistrationConfiguration.NumberOfNeighborsToKeep = neighborsCount;
 
                 xIndex++;
-            }, null, 0, 500);
+            }, null, 0, 1000);
         }
         
         readonly VisionChannel _visionChannel;

@@ -38,7 +38,8 @@ namespace Dcomms.DRP
         internal ActionsQueue EngineThreadQueue;
         readonly Random _insecureRandom;
         internal Random InsecureRandom => _insecureRandom;
-        Dictionary<RegistrationId, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationId, LocalDrpPeer>(); // accessed only by engine thread       
+        Dictionary<RegistrationId, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationId, LocalDrpPeer>(); // accessed only by engine thread     
+        internal IEnumerable<IVisiblePeer> VisibleLocalPeers => LocalPeers.Values;
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
         internal DMP.InviteSession[] InviteSessionsByToken16 = new DMP.InviteSession[ushort.MaxValue + 1];
                
