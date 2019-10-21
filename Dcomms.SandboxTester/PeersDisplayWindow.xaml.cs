@@ -37,7 +37,7 @@ namespace Dcomms.SandboxTester
                 var sb = new StringBuilder();
                 sb.Append("distances to target: ");
                 for (int i = 0; i < peers.Count; i++)
-                    sb.Append($"hop{i}({peers[i]}):{peers[peers.Count-1].GetDistanceString(peers[i])};  ");
+                    sb.Append($"hop{i}({peers[i].Name}):{peers[peers.Count-1].GetDistanceString(peers[i])};  ");
                
                 text1.Text = sb.ToString();
             }
@@ -79,7 +79,7 @@ namespace Dcomms.SandboxTester
                 var peer = _peers[i];
                 DisplayPeer(
                     peer.Highlighted ? Colors.Red : Color.FromRgb(100, 50, (byte)(i * 255 / _peers.Count)),
-                    peer, 4, i.ToString());
+                    peer, 4, peer.Name);
             }
 
         }

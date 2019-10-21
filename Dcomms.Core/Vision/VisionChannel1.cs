@@ -223,6 +223,7 @@ namespace Dcomms.Vision
         {
             public float[] VectorValues { get; private set; }
             public bool Highlighted { get; private set; }
+            public string Name { get; private set; }
             public List<IVisiblePeer> NeighborPeers { get; private set; }
             IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => NeighborPeers;            
             public static List<IVisiblePeer> Clone(List<IVisiblePeer> sourceList)
@@ -236,7 +237,8 @@ namespace Dcomms.Vision
                     r.Add(new ClonedVisiblePeer
                     {
                         VectorValues = sourcePeer.VectorValues.ToArray(),
-                        Highlighted = sourcePeer.Highlighted
+                        Highlighted = sourcePeer.Highlighted,
+                        Name = sourcePeer.Name
                     });
                 }
                 

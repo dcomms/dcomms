@@ -44,7 +44,7 @@ namespace Dcomms.DRP
         internal readonly DrpPeerEngine Engine;
         internal ICryptoLibrary CryptoLibrary => Engine.CryptoLibrary;
 
-        string IVisibleModule.Status => $"connected neighbors: {ConnectedNeighbors.Count}/{_configuration.NumberOfNeighborsToKeep}. {CurrentRegistrationOperationsCount} pending reg.";
+        string IVisibleModule.Status => $"connected neighbors: {ConnectedNeighbors.Count}/{_configuration.MinDesiredNumberOfNeighbors}. {CurrentRegistrationOperationsCount} pending reg.";
 
         public LocalDrpPeer(DrpPeerEngine engine, LocalDrpPeerConfiguration configuration, IDrpRegisteredPeerApp drpPeerApp)
         {
@@ -67,6 +67,7 @@ namespace Dcomms.DRP
 
         float[] IVisiblePeer.VectorValues => RegistrationIdDistance.GetVectorValues(CryptoLibrary, _configuration.LocalPeerRegistrationId).Select(x => (float)x).ToArray();
         bool IVisiblePeer.Highlighted => false;
+        string IVisiblePeer.Name => Engine.Configuration.VisionChannelSourceId;
         IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => ConnectedNeighbors;
 
         public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(ConnectionToNeighbor sourceNeighborNullable,
@@ -116,7 +117,7 @@ namespace Dcomms.DRP
 
         async Task ConnectToNewNeighborIfNeededAsync(DateTime timeNowUtc)
         {
-            if (ConnectedNeighbors.Count < _configuration.NumberOfNeighborsToKeep)
+            if (ConnectedNeighbors.Count < _configuration.MinDesiredNumberOfNeighbors)
             {
                 if ((CurrentRegistrationOperationsCount == 0) ||
                     timeNowUtc > _latestConnectToNewNeighborOperationStartTimeUtc + TimeSpan.FromSeconds(Engine.Configuration.NeighborhoodExtensionMaxRetryIntervalS))
@@ -187,7 +188,10 @@ namespace Dcomms.DRP
         public IPEndPoint[] EntryPeerEndpoints; // in case when local peer IP = entry peer IP, it is skipped
         public RegistrationId LocalPeerRegistrationId { get; private set; }
         public RegistrationPrivateKey LocalPeerRegistrationPrivateKey { get; private set; }
-        public int? NumberOfNeighborsToKeep;
+        public int? MinDesiredNumberOfNeighbors;
+        public int? AbsoluteMaxDesiredNumberOfNeighbors;
+        public double? WorstNeighborApoptosisTimeM;
+
         public static LocalDrpPeerConfiguration CreateWithNewKeypair(ICryptoLibrary cryptoLibrary)
         {
             var privatekey = new RegistrationPrivateKey { ed25519privateKey = cryptoLibrary.GeneratePrivateKeyEd25519() };

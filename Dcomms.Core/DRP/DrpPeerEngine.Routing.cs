@@ -25,23 +25,34 @@ namespace Dcomms.DRP
 
             if (req.NumberOfRandomHopsRemaining > 0)
             { // random mode
-                var connectedNeighborsForRouting = new List<ConnectionToNeighbor>();
+                var itemsForRouting = new List<object>();
                 if (sourceNeighborNullable == null)
                 {
                     foreach (var localDrpPeer in LocalPeers.Values)
-                        connectedNeighborsForRouting.AddRange(localDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req));
+                    {
+                        itemsForRouting.AddRange(localDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req));
+                        if (!localDrpPeer.Configuration.LocalPeerRegistrationId.Equals(req.RequesterRegistrationId))
+                            itemsForRouting.Add(localDrpPeer);
+                    }
                 }
                 else
-                    connectedNeighborsForRouting.AddRange(sourceNeighborNullable.LocalDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req));
-
-                if (connectedNeighborsForRouting.Count != 0)
                 {
-                    proxyToDestinationPeer = connectedNeighborsForRouting[_insecureRandom.Next(connectedNeighborsForRouting.Count - 1)];
+                    itemsForRouting.AddRange(sourceNeighborNullable.LocalDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req));
+                    if (!sourceNeighborNullable.LocalDrpPeer.Configuration.LocalPeerRegistrationId.Equals(req.RequesterRegistrationId))
+                        itemsForRouting.Add(sourceNeighborNullable.LocalDrpPeer);
                 }
+
+                if (itemsForRouting.Count != 0)
+                {
+                    var itemForRouting = itemsForRouting[_insecureRandom.Next(itemsForRouting.Count - 1)];
+                    WriteToLog_routing_higherLevelDetail($"routing registration in random mode to one of {itemsForRouting.Count} destinations: {proxyToDestinationPeer}");
+                    if (itemForRouting is ConnectionToNeighbor) proxyToDestinationPeer = (ConnectionToNeighbor)itemForRouting;
+                    else acceptAt = (LocalDrpPeer)itemForRouting;
+                }
+                else WriteToLog_routing_needsAttention($"can not route registration in random mode: no destinations available including local peers");
             }
             else
             {
-
                 double? maxP2pConnectionValue = null;
                 if (receivedAtLocalDrpPeerNullable != null)
                 {
@@ -86,13 +97,13 @@ namespace Dcomms.DRP
             foreach (var neighbor in connectedNeighborsForRouting)
             {
                 var distanceToNeighbor = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, neighbor.RemoteRegistrationId);
-                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor.RemoteRegistrationId} (req.min={req.MinimalDistanceToNeighbor})");
+                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor} (req.min={req.MinimalDistanceToNeighbor})");
                 if (req.MinimalDistanceToNeighbor != 0)
                 {
                     if (distanceToNeighbor.IsLessThan(req.MinimalDistanceToNeighbor))
                     {
                         // skip: this is too close than requested
-                        WriteToLog_routing_detail($"skipping connection to {neighbor.RemoteRegistrationId}: distance={distanceToNeighbor} is less than requested={req.MinimalDistanceToNeighbor}");
+                        WriteToLog_routing_detail($"skipping connection to {neighbor}: distance={distanceToNeighbor} is less than requested={req.MinimalDistanceToNeighbor}");
                         continue;
                     }
                 }

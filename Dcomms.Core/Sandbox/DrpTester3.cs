@@ -56,7 +56,7 @@ namespace Dcomms.Sandbox
                 _numberOfNeighborsToKeep = String.IsNullOrEmpty(value) ? (int?)null : int.Parse(value);
                 foreach (var a in _apps)
                     if (a.LocalDrpPeer != null)
-                        a.LocalDrpPeer.Configuration.NumberOfNeighborsToKeep = _numberOfNeighborsToKeep;
+                        a.LocalDrpPeer.Configuration.MinDesiredNumberOfNeighbors = _numberOfNeighborsToKeep;
                 RaisePropertyChanged(() => NumberOfNeighborsToKeep);
             }
         }
@@ -136,7 +136,7 @@ namespace Dcomms.Sandbox
             for (int localPeerIndex = 0; localPeerIndex < NumberOfLocalPeersToRegisterPerEngine; localPeerIndex++)
             {
                 var localDrpPeerConfiguration = LocalDrpPeerConfiguration.CreateWithNewKeypair(engine.CryptoLibrary); 
-                localDrpPeerConfiguration.NumberOfNeighborsToKeep = _numberOfNeighborsToKeep;
+                localDrpPeerConfiguration.MinDesiredNumberOfNeighbors = _numberOfNeighborsToKeep;
                 localDrpPeerConfiguration.EntryPeerEndpoints = EpEndPoints;
                    
                 var app = new DrpTesterPeerApp(engine, localDrpPeerConfiguration);

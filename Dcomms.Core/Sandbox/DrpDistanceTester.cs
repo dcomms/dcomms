@@ -77,6 +77,7 @@ namespace Dcomms.Sandbox
         {
             readonly string _name;
             public override string ToString() => _name;
+            public string Name => _name;
             readonly TestRunWithConfiguration _tc;
             public readonly float[] VectorValues;
             public Peer(TestRunWithConfiguration tc, RegistrationId registrationId, string name)

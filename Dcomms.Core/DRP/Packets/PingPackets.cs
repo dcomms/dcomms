@@ -16,6 +16,7 @@ namespace Dcomms.DRP.Packets
         public byte Flags; // is signed by HMAC
         const byte FlagsMask_MustBeZero = 0b11110000;
         public const byte Flags_RegistrationConfirmationSignatureRequested = 0x01;
+        public string VisionName { get; set; }
 
         public ushort RequesterNeighborsBusySectorIds; // flags, 1 is set if there is a connected neighbor in specific sector of the 8D regID space // only 9 LSB bits are used now
 
@@ -37,6 +38,7 @@ namespace Dcomms.DRP.Packets
             NeighborToken32.Encode(writer);
             writer.Write(PingRequestId32);
             writer.Write(Flags);
+            PacketProcedures.EncodeString1ASCII(writer, VisionName);
             writer.Write(RequesterNeighborsBusySectorIds);
             writer.Write(RpsToUint16(MaxRxInviteRateRps));
             writer.Write(RpsToUint16(MaxRxRegisterRateRps));
@@ -63,6 +65,7 @@ namespace Dcomms.DRP.Packets
             r.PingRequestId32 = reader.ReadUInt32();
             r.Flags = reader.ReadByte();
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
+            r.VisionName = PacketProcedures.DecodeString1ASCII(reader);
             r.RequesterNeighborsBusySectorIds = reader.ReadUInt16();
             r.MaxRxInviteRateRps = RpsFromUint16(reader.ReadUInt16());
             r.MaxRxRegisterRateRps = RpsFromUint16(reader.ReadUInt16());
