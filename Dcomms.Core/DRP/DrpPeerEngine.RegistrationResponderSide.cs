@@ -18,8 +18,6 @@ namespace Dcomms.DRP
         /// </param>
         internal async Task AcceptRegisterRequestAsync(LocalDrpPeer acceptAt, RegisterRequestPacket req, IPEndPoint requesterEndpoint, ConnectionToNeighbor sourcePeer, DateTime reqReceivedTimeUtc) // engine thread
         {            
-            if (req.AtoEP ^ (sourcePeer == null))
-                throw new InvalidOperationException();
             if (req.RequesterRegistrationId.Equals(acceptAt.Configuration.LocalPeerRegistrationId)) throw new InvalidOperationException();
 
             if (sourcePeer == null)

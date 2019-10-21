@@ -25,8 +25,6 @@ namespace Dcomms.DRP
             ConnectionToNeighbor sourcePeer, bool checkRecentUniqueProxiedRegistrationRequests, DateTime reqReceivedTimeUtc
             ) // engine thread
         {
-            if (req.AtoEP ^ (sourcePeer == null))
-                throw new InvalidOperationException();
             sourcePeer?.AssertIsNotDisposed();
 
             if (_pendingRegisterRequests.Contains(req.RequesterRegistrationId))

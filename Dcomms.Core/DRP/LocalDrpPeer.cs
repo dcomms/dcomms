@@ -119,7 +119,7 @@ namespace Dcomms.DRP
             if (ConnectedNeighbors.Count < _configuration.NumberOfNeighborsToKeep)
             {
                 if ((CurrentRegistrationOperationsCount == 0) ||
-                    timeNowUtc > _latestConnectToNewNeighborOperationStartTimeUtc.Value.AddSeconds(Engine.Configuration.NeighborhoodExtensionMaxRetryIntervalS))
+                    timeNowUtc > _latestConnectToNewNeighborOperationStartTimeUtc + TimeSpan.FromSeconds(Engine.Configuration.NeighborhoodExtensionMaxRetryIntervalS))
                 {
                     if (_latestConnectToNewNeighborOperationStartTimeUtc.HasValue)
                     {

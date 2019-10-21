@@ -49,7 +49,7 @@ namespace Dcomms.DRP.Packets
         ///   ResponderPublicKey 
         /// }
         /// </summary>
-        public RegistrationSignature ResponderSignature; 
+        public RegistrationSignature ResponderSignature;
 
         HMAC NeighborHMAC; // is not sent from EP to A
 
@@ -58,7 +58,13 @@ namespace Dcomms.DRP.Packets
         /// </summary>       
         public IPEndPoint RequesterEndpoint; // public IP:port of A, for UDP hole punching  // not encrypted.  IP address is validated at requester side       
 
-        public NeighborPeerAckSequenceNumber16 NpaSeq16; // is not sent from EP to A (because response to the ACK1 is ACK2, not NPACK) // goes into NPACK packet at peer that responds to this packet
+        /// <summary>
+        /// is not sent from EP to A (because response to the ACK1 is ACK2, not NPACK) 
+        /// is always sent when ResponderStatusCode != confirmed
+        /// goes into NPACK packet at peer that responds to this packet
+        /// </summary>
+        public NeighborPeerAckSequenceNumber16 NpaSeq16;
+
         public byte[] DecodedUdpPayloadData;
 
         /// <summary>
@@ -73,7 +79,7 @@ namespace Dcomms.DRP.Packets
             var ack1 = new RegisterAck1Packet();
             ack1.DecodedUdpPayloadData = ack1UdpData;
             ack1.Flags = reader.ReadByte();
-            if ((ack1.Flags & Flag_EPtoA) == 0) ack1.NeighborToken32 = NeighborToken32.Decode(reader);           
+            if ((ack1.Flags & Flag_EPtoA) == 0) ack1.NeighborToken32 = NeighborToken32.Decode(reader);
             if ((ack1.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             ack1.RequesterRegistrationId = RegistrationId.Decode(reader);
             ack1.ReqTimestamp64 = reader.ReadInt64();
@@ -112,11 +118,11 @@ namespace Dcomms.DRP.Packets
             }
             if ((ack1.Flags & Flag_EPtoA) != 0 && ack1.ResponderStatusCode == DrpResponderStatusCode.confirmed)
                 ack1.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+            if ((ack1.Flags & Flag_EPtoA) == 0 || ack1.ResponderStatusCode != DrpResponderStatusCode.confirmed)
+                ack1.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);            
             if ((ack1.Flags & Flag_EPtoA) == 0)
-            {
-                ack1.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);
                 ack1.NeighborHMAC = HMAC.Decode(reader);
-            }
+
             return ack1;
         }
 
@@ -167,9 +173,12 @@ namespace Dcomms.DRP.Packets
 
             GetSharedSignedFields(writer, true, true);
 
+
+            if (reqReceivedFromInP2pMode != null || ResponderStatusCode != DrpResponderStatusCode.confirmed)
+                NpaSeq16.Encode(writer);
+            
             if (reqReceivedFromInP2pMode != null)
             {
-                NpaSeq16.Encode(writer);
                 this.NeighborHMAC = reqReceivedFromInP2pMode.GetNeighborHMAC(this.GetSignedFieldsForNeighborHMAC);
                 this.NeighborHMAC.Encode(writer);
             }
