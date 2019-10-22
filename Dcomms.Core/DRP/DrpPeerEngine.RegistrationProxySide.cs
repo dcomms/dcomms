@@ -80,7 +80,7 @@ namespace Dcomms.DRP
                 }
                 catch (NextHopRejectedExceptionServiceUnavailable)
                 {
-                    WriteToLog_reg_proxySide_needsAttention($"got response=serviceUnavailable from destination {destinationPeer}");
+                    WriteToLog_reg_proxySide_higherLevelDetail($"got response=serviceUnavailable from destination {destinationPeer}. will try another neighbor..");
                     if (sourcePeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_detail($"sourcePeer={sourcePeer} is disposed during proxying");
@@ -178,6 +178,11 @@ namespace Dcomms.DRP
                     // send ACK2 to destination peer
                     // put ACK2.NpaSeq16, sendertoken32, senderHMAC  
                     // wait for NPACK
+                    if (destinationPeer.IsDisposed == true)
+                    {
+                        WriteToLog_reg_proxySide_detail($"destinationPeer={destinationPeer} is disposed during proxying");
+                        return false;
+                    }
                     ack2.NpaSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
                     await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2.Encode_OptionallySignNeighborHMAC(destinationPeer),
                         ack2.NpaSeq16, ack2.GetSignedFieldsForNeighborHMAC);
@@ -206,6 +211,11 @@ namespace Dcomms.DRP
 
                     // send CFM to responder
                     // wait for NPACK from destination peer, retransmit
+                    if (destinationPeer.IsDisposed == true)
+                    {
+                        WriteToLog_reg_proxySide_detail($"destinationPeer={destinationPeer} is disposed during proxying");
+                        return false;
+                    }
                     cfm.NpaSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
                     await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(cfm.Encode_OptionallySignNeighborHMAC(destinationPeer),
                         cfm.NpaSeq16, cfm.GetSignedFieldsForNeighborHMAC);

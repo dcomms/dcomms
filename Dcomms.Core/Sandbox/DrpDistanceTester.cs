@@ -101,7 +101,6 @@ namespace Dcomms.Sandbox
             {
                 return P2PCVC.GetValue(neighbor.VectorValues, neighborIsAlreadyConnected, considerValueOfUniqueSectors) + neighbor.P2PCVC.GetValue(this.VectorValues, neighborIsAlreadyConnected, considerValueOfUniqueSectors);
             }
-            public static float MutualValueToKeepConnectionAlive_SoftLimitNeighborsCountCases => P2pConnectionValueCalculator.ValueToKeepConnectionAlive_SoftLimitNeighborsCountCases * 2;
 
             void OnNeighborsChanged()
             {
@@ -429,7 +428,7 @@ namespace Dcomms.Sandbox
                     if (hardMaxNeighborsLimit == false)
                     {
                         // soft limit: dont destroy connection if it is too valuable
-                        if (leastMutualValue > Peer.MutualValueToKeepConnectionAlive_SoftLimitNeighborsCountCases)
+                        if (leastMutualValue > P2pConnectionValueCalculator.MutualValueToKeepConnectionAlive_SoftLimitNeighborsCountCases)
                         {
                             return false;
                         }

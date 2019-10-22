@@ -12,7 +12,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// is used to expand neighborhood
         /// </summary>
-        internal async Task<ConnectionToNeighbor> RegisterAsync(uint minimalDistanceToNeighbor, ushort busySectorIds, byte numberOfHopsRemaining, byte numberOfRandomHopsRemaining)
+        internal async Task RegisterAsync(uint minimalDistanceToNeighbor, ushort busySectorIds, byte numberOfHopsRemaining, byte numberOfRandomHopsRemaining)
         {
             _engine.WriteToLog_reg_requesterSide_detail($">> ConnectionToNeighbor.RegisterAsync(minimalDistanceToNeighbor={minimalDistanceToNeighbor}");
             _localDrpPeer.CurrentRegistrationOperationsCount++;
@@ -109,7 +109,7 @@ namespace Dcomms.DRP
                     _localDrpPeer.AddToConnectedNeighbors(newConnectionToNeighbor);
 
                     #region send ping request directly to neighbor N, retransmit               
-                    var pingRequest = newConnectionToNeighbor.CreatePing(true, _localDrpPeer.ConnectedNeighborsBusySectorIds);
+                    var pingRequest = newConnectionToNeighbor.CreatePing(true, false, _localDrpPeer.ConnectedNeighborsBusySectorIds);
                     pendingPingRequest = new PendingLowLevelUdpRequest(newConnectionToNeighbor.RemoteEndpoint,
                                     PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, pingRequest.PingRequestId32),
                                     _engine.DateTimeNowUtc,
@@ -122,6 +122,12 @@ namespace Dcomms.DRP
                     _engine.WriteToLog_reg_requesterSide_detail($"sending PING, waiting for PONG");
                     var pongPacketData = await _engine.SendUdpRequestAsync_Retransmit(pendingPingRequest);
                     if (pongPacketData == null) throw new DrpTimeoutException();
+                    if (IsDisposed || newConnectionToNeighbor.IsDisposed)
+                    {
+                        _engine.WriteToLog_reg_requesterSide_detail($"a connection is disposed during reg. request");
+                        return;
+                    }
+
                     pong = PongPacket.DecodeAndVerify(_engine.CryptoLibrary,
                         pongPacketData, pingRequest, newConnectionToNeighbor,
                         true);
@@ -140,6 +146,11 @@ namespace Dcomms.DRP
                 #region send registration confirmation packet to X->N
                 try
                 {
+                    if (IsDisposed || newConnectionToNeighbor.IsDisposed)
+                    {
+                        _engine.WriteToLog_reg_requesterSide_detail($"a connection is disposed during reg. request");
+                        return;
+                    }
                     var cfm = new RegisterConfirmationPacket
                     {
                         ReqTimestamp64 = req.ReqTimestamp64,
@@ -160,7 +171,7 @@ namespace Dcomms.DRP
                 }
                 #endregion
 
-                return newConnectionToNeighbor;
+                return;// newConnectionToNeighbor;
             }
             finally
             {

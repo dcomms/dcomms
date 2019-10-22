@@ -65,10 +65,16 @@ namespace Dcomms.DRP
             }
         }
 
+        #region IVisiblePeer implementation
         float[] IVisiblePeer.VectorValues => RegistrationIdDistance.GetVectorValues(CryptoLibrary, _configuration.LocalPeerRegistrationId).Select(x => (float)x).ToArray();
         bool IVisiblePeer.Highlighted => false;
         string IVisiblePeer.Name => Engine.Configuration.VisionChannelSourceId;
         IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => ConnectedNeighbors;
+        string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer)
+        {
+            throw new NotImplementedException();
+        }
+        #endregion
 
         public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(ConnectionToNeighbor sourceNeighborNullable,
             HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
@@ -96,8 +102,7 @@ namespace Dcomms.DRP
                 yield return connectedPeer;
             }
         }
-
-
+        
         public void AddToConnectedNeighbors(ConnectionToNeighbor newConnectedNeighbor)
         {
             newConnectedNeighbor.OnP2pInitialized();
@@ -112,9 +117,9 @@ namespace Dcomms.DRP
 
         }
         public override string ToString() => $"localDrpPeer{_configuration.LocalPeerRegistrationId}";
-               
+        
+        #region on timer 
         DateTime? _latestConnectToNewNeighborOperationStartTimeUtc;
-
         async Task ConnectToNewNeighborIfNeededAsync(DateTime timeNowUtc)
         {
             if (ConnectedNeighbors.Count < _configuration.MinDesiredNumberOfNeighbors)
@@ -145,7 +150,11 @@ namespace Dcomms.DRP
                             {
                                 var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
                                 Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)");
-                                await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, 20, 10);
+                                await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, 20, 
+                                    0//////////////////////////////////todo when need random hops??????????????? 2
+                                    
+                                    
+                                    );
                             }
                         }
                     }
@@ -167,16 +176,73 @@ namespace Dcomms.DRP
                 }
             }
         }
-        
-        internal void EngineThreadOnTimer100ms(DateTime timeNowUtc)
+
+        DateTime? _lastTimeDetroyedWorstNeighborUtc;
+        /// <summary>
+        /// when needed (too many neighbors / too old p2p connections / etc)
+        /// destroys worst P2P connection: sends PING with connection teardown flag set, and destroys the connection
+        /// </summary>
+        void NeighborsApoptosisProcedure(DateTime timeNowUtc)
         {
-            _ = ConnectToNewNeighborIfNeededAsync(timeNowUtc);            
+            if (ConnectedNeighbors.Count > Configuration.AbsoluteMaxDesiredNumberOfNeighbors)
+            {
+                DestroyWorstNeighbor(null, timeNowUtc);
+            }
+            else if (ConnectedNeighbors.Count > Configuration.SoftMaxDesiredNumberOfNeighbors)
+            {
+                DestroyWorstNeighbor(P2pConnectionValueCalculator.MutualValueToKeepConnectionAlive_SoftLimitNeighborsCountCases, timeNowUtc);
+            }
+            else if (ConnectedNeighbors.Count >= Configuration.MinDesiredNumberOfNeighbors2)
+            {
+                if (_lastTimeDetroyedWorstNeighborUtc == null || (timeNowUtc - _lastTimeDetroyedWorstNeighborUtc.Value).TotalSeconds > Configuration.MinDesiredNumberOfNeighbors2Satisfied_WorstNeighborDestroyIntervalS)
+                    DestroyWorstNeighbor(null, timeNowUtc);
+            }
+        }
+        void DestroyWorstNeighbor(double? mutualValueLowLimit, DateTime timeNowUtc)
+        {
+            double? worstValue = mutualValueLowLimit;
+            ConnectionToNeighbor worstNeighbor = null;
+            foreach (var neighbor in  ConnectedNeighbors)
+            {
+                var p2pConnectionValue_withNeighbor =
+                    P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, 
+                        this.Configuration.LocalPeerRegistrationId, this.ConnectedNeighborsBusySectorIds,
+                        neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0);
+                if (worstValue == null || p2pConnectionValue_withNeighbor < worstValue)
+                {
+                    worstValue = p2pConnectionValue_withNeighbor;
+                    worstNeighbor = neighbor;
+                }
+            }
+
+            if (worstNeighbor != null)
+            {
+                _lastTimeDetroyedWorstNeighborUtc = timeNowUtc;
+
+                Engine.WriteToLog_p2p_higherLevelDetail(worstNeighbor, $"destroying worst P2P connection with neighbor. neighbors count = {ConnectedNeighbors.Count}");
+                var ping = worstNeighbor.CreatePing(false, true, 0);
+                
+                var pendingPingRequest = new PendingLowLevelUdpRequest(worstNeighbor.RemoteEndpoint,
+                                PongPacket.GetScanner(worstNeighbor.LocalNeighborToken32, ping.PingRequestId32), Engine.DateTimeNowUtc,
+                                Engine.Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
+                                ping.Encode(),
+                                Engine.Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS,
+                                Engine.Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
+                            );
+
+                worstNeighbor.Dispose();              
+                _ = Engine.SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pong              
+               
+
+            }
         }
 
-        string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer)
+        internal void EngineThreadOnTimer100ms(DateTime timeNowUtc)
         {
-            throw new NotImplementedException();
+            _ = ConnectToNewNeighborIfNeededAsync(timeNowUtc);
+            NeighborsApoptosisProcedure(timeNowUtc);
         }
+        #endregion
     }
 
     /// <summary>
@@ -189,8 +255,10 @@ namespace Dcomms.DRP
         public RegistrationId LocalPeerRegistrationId { get; private set; }
         public RegistrationPrivateKey LocalPeerRegistrationPrivateKey { get; private set; }
         public int? MinDesiredNumberOfNeighbors;
-        public int? AbsoluteMaxDesiredNumberOfNeighbors;
-        public double? WorstNeighborApoptosisTimeM;
+        public int? MinDesiredNumberOfNeighbors2 = 12;
+        public int? SoftMaxDesiredNumberOfNeighbors = 13; 
+        public int? AbsoluteMaxDesiredNumberOfNeighbors = 20;
+        public double? MinDesiredNumberOfNeighbors2Satisfied_WorstNeighborDestroyIntervalS = 30;
 
         public static LocalDrpPeerConfiguration CreateWithNewKeypair(ICryptoLibrary cryptoLibrary)
         {

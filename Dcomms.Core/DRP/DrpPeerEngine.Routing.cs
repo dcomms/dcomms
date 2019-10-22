@@ -107,7 +107,8 @@ namespace Dcomms.DRP
                         continue;
                     }
                 }
-                var p2pConnectionValue_withNeighbor = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds, neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds);
+                var p2pConnectionValue_withNeighbor = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds,
+                    neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0);
                                
                 connectedNeighborsCountThatMatchMinDistance++;
                 if (maxP2pConnectionValue == null || maxP2pConnectionValue < p2pConnectionValue_withNeighbor)

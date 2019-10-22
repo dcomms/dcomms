@@ -47,6 +47,7 @@ namespace Dcomms.Sandbox
             var sw = Stopwatch.StartNew();
             _visionChannel.Emit(x.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                 AttentionLevel.guiActivity, $"registering...");
+            ShowPeers.Execute(null);
             x.DrpPeerEngine.BeginRegister(x.DrpPeerRegistrationConfiguration, x, (localDrpPeer) =>
             {
                 x.LocalDrpPeer = localDrpPeer;
@@ -116,9 +117,6 @@ namespace Dcomms.Sandbox
                     var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(x.CryptoLibrary);
                     xLocalDrpPeerConfig.EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) };
                     xLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = 3;
-                    xLocalDrpPeerConfig.AbsoluteMaxDesiredNumberOfNeighbors = 20;
-                    xLocalDrpPeerConfig.WorstNeighborApoptosisTimeM = 3;
-
                     _xList.Add(new DrpTesterPeerApp(x, xLocalDrpPeerConfig));
                 }
                 xList_BeginRegistrations(0);

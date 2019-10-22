@@ -15,7 +15,9 @@ namespace Dcomms.DRP.Packets
         public uint PingRequestId32; // is used to avoid mismatch between delayed responses and requests // is used as salt also
         public byte Flags; // is signed by HMAC
         const byte FlagsMask_MustBeZero = 0b11110000;
-        public const byte Flags_RegistrationConfirmationSignatureRequested = 0x01;
+        public const byte Flags_RegistrationConfirmationSignatureRequested = 0b00000001;
+        public const byte Flags_ConnectionTeardown = 0b00000010;
+        
         public string VisionName { get; set; }
 
         public ushort RequesterNeighborsBusySectorIds; // flags, 1 is set if there is a connected neighbor in specific sector of the 8D regID space // only 9 LSB bits are used now

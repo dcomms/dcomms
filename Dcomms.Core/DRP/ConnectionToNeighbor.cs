@@ -310,7 +310,7 @@ namespace Dcomms.DRP
         PingPacket _latestPingSent;
         DateTime? _latestPingSentTime;
         PingPacket _latestPingReceived;// float MaxTxInviteRateRps, MaxTxRegiserRateRps; // sent by remote peer via ping
-        public ushort RemoteNeighborsBusySectorIds => _latestPingReceived.RequesterNeighborsBusySectorIds;
+        public ushort? RemoteNeighborsBusySectorIds => _latestPingReceived?.RequesterNeighborsBusySectorIds;
         public bool PingReceived => _latestPingReceived != null;
 
         PongPacket _latestReceivedPong;
@@ -384,7 +384,7 @@ namespace Dcomms.DRP
         }
 
         #region ping pong
-        public PingPacket CreatePing(bool requestRegistrationConfirmationSignature, ushort requesterNeighborsBusySectorIds)
+        public PingPacket CreatePing(bool requestRegistrationConfirmationSignature, bool connectionTeardownFlag, ushort requesterNeighborsBusySectorIds)
         {
             if (_disposed) throw new ObjectDisposedException(ToString());
             var r = new PingPacket
@@ -398,6 +398,8 @@ namespace Dcomms.DRP
             };
             if (requestRegistrationConfirmationSignature)
                 r.Flags |= PingPacket.Flags_RegistrationConfirmationSignatureRequested;
+            if (connectionTeardownFlag)
+                r.Flags |= PingPacket.Flags_ConnectionTeardown;
             r.NeighborHMAC = GetNeighborHMAC(r.GetSignedFieldsForNeighborHMAC);
             return r;
         }
@@ -436,7 +438,7 @@ namespace Dcomms.DRP
         }
         void SendPingRequestOnTimer()
         {
-            var pingRequestPacket = CreatePing(false, _localDrpPeer.ConnectedNeighborsBusySectorIds);
+            var pingRequestPacket = CreatePing(false, false, _localDrpPeer.ConnectedNeighborsBusySectorIds);
             SendPacket(pingRequestPacket.Encode());
             _latestPingSent = pingRequestPacket;
             _latestPingSentTime = _engine.DateTimeNowUtc;
@@ -519,6 +521,12 @@ namespace Dcomms.DRP
                 pong.NeighborHMAC = GetNeighborHMAC(pong.GetSignedFieldsForNeighborHMAC);
               //  _engine.WriteToLog_ping_detail($" sending ping response with senderHMAC={pong.NeighborHMAC}");
                 SendPacket(pong.Encode());
+
+                if ((pingRequestPacket.Flags & PingPacket.Flags_ConnectionTeardown) != 0)
+                {
+                    _engine.WriteToLog_p2p_higherLevelDetail(this, "received PING with connection teardown flag set");
+                    this.Dispose();
+                }
             }
             catch (Exception exc)
             {

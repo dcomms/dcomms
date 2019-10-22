@@ -492,7 +492,9 @@ namespace Dcomms.DRP
         }
 
         const float EmptySectorOccupationValue = 10;
+        internal static float ValueToKeepConnectionAlive_SoftLimitNeighborsCountCases = 5.0f;
 
+        public static float MutualValueToKeepConnectionAlive_SoftLimitNeighborsCountCases => ValueToKeepConnectionAlive_SoftLimitNeighborsCountCases * 2;
 
 
         public static double GetMutualP2pConnectionValue(ICryptoLibrary cryptoLibrary, RegistrationId registrationId1, ushort neighborsBusySectorIds1, RegistrationId registrationId2, ushort neighborsBusySectorIds2)
@@ -557,7 +559,6 @@ namespace Dcomms.DRP
             }
             return r;
         }
-        internal static float ValueToKeepConnectionAlive_SoftLimitNeighborsCountCases = 5.0f;
 
         public string GetP2pConnectionsPainSignal(bool returnDetailsIfAllGood)
         {
