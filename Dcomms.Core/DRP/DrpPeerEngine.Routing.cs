@@ -22,6 +22,26 @@ namespace Dcomms.DRP
             proxyToDestinationPeer = null;
             acceptAt = null;
 
+            if (req.NumberOfHopsRemaining <= 1)
+            {
+                var possibleAcceptAt = receivedAtLocalDrpPeerNullable ?? sourceNeighborNullable?.LocalDrpPeer;
+                if (possibleAcceptAt == null)
+                    possibleAcceptAt = LocalPeers.Values.FirstOrDefault();
+
+                if (possibleAcceptAt != null)
+                {
+                    if (!possibleAcceptAt.ConnectedNeighbors.Any(x => x.RemoteRegistrationId.Equals(req.RequesterRegistrationId)))
+                    {
+                        WriteToLog_routing_higherLevelDetail($"accepting registration at local DRP peer {acceptAt}: low number of hops remaining");
+                        acceptAt = possibleAcceptAt;
+                        return true;
+                    }
+                    else
+                        WriteToLog_routing_higherLevelDetail($"not accepting registration at local DRP peer" +
+                            $" {acceptAt} when low number of hops remaining: already connected");
+
+                }
+            }
 
             if (req.NumberOfRandomHopsRemaining > 0)
             { // random mode

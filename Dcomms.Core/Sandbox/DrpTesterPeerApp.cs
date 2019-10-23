@@ -13,6 +13,7 @@ namespace Dcomms.Sandbox
         public readonly UserRootPrivateKeys UserRootPrivateKeys;
         public readonly UserId UserId;
 
+        public override string ToString() => DrpPeerEngine.Configuration.VisionChannelSourceId;
         public readonly UserCertificate UserCertificateWithPrivateKey;
         public readonly DrpPeerEngine DrpPeerEngine;
         public readonly LocalDrpPeerConfiguration DrpPeerRegistrationConfiguration;

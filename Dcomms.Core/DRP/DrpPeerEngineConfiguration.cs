@@ -49,6 +49,6 @@ namespace Dcomms.DRP
         public bool SandboxModeOnly_DisablePoW;
 
         public double NeighborhoodExtensionMaxRetryIntervalS = 20;
-        public double NeighborhoodExtensionMinIntervalS = 3;
+        public double NeighborhoodExtensionMinIntervalS = 1;
     }
 }
