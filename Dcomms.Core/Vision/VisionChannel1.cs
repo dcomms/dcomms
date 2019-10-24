@@ -11,10 +11,11 @@ namespace Dcomms.Vision
 {
     public class VisionChannel1 : VisionChannel, INotifyPropertyChanged
     {
-        public AttentionLevel DisplayFilterMinLevel { get; set; } = AttentionLevel.needsAttention;
+        public AttentionLevel AttentionLevel { get; set; } = AttentionLevel.deepDetail;
+        public AttentionLevel DisplayFilterMinLevel { get; set; } = AttentionLevel.guiActivity;
         public override AttentionLevel GetAttentionTo(string visionChannelSourceId, string moduleName)
         {
-            return DisplayFilterMinLevel;
+            return AttentionLevel;
         }
         public IEnumerable<AttentionLevel> DisplayFilterMinLevels => Enum.GetValues(typeof(AttentionLevel)).Cast<AttentionLevel>();
         public Action<string,List<IVisiblePeer>,VisiblePeersDisplayMode> DisplayPeersDelegate;

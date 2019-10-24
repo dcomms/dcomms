@@ -454,7 +454,7 @@ namespace Dcomms.DRP
         }
         void OnMeasuredRequestResponseDelay(TimeSpan requestResponseDelay)
         {
-            _engine.WriteToLog_p2p_higherLevelDetail(this, $"measured RTT: {(int)requestResponseDelay.TotalMilliseconds}ms");
+            _engine.WriteToLog_p2p_detail(this, $"measured RTT: {(int)requestResponseDelay.TotalMilliseconds}ms");
             _latestPingPongDelay_RTT = requestResponseDelay;
         }
         internal void OnReceivedPong(IPEndPoint remoteEndpoint, byte[] udpData, DateTime receivedAtUtc) // engine thread
@@ -551,6 +551,11 @@ namespace Dcomms.DRP
                 
                 if (!_engine.ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
                     throw new BadSignatureException();
+
+                _engine.WriteToLog_p2p_higherLevelDetail(this, $"received reg. request {req.RequesterRegistrationId} via P2P connection");
+                if (req.RequesterRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
+                    _engine.WriteToLog_routing_lightPain($"received reg. request to same reg. ID {req.RequesterRegistrationId}");
+
 
                 var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
                 bool checkRecentUniqueProxiedRegistrationRequests = true;

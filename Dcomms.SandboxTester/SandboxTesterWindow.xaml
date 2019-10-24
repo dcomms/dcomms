@@ -4,8 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Dcomms.SandboxTester"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="CenterScreen" WindowState="Maximized"
         mc:Ignorable="d"
+        
         Title="Dcomms Sandbox Tester" Height="750" Width="1200">
     <Grid>
         <Grid.ColumnDefinitions>
@@ -188,8 +189,10 @@
                                 <TextBlock Text="Filter:" />
 
 
-                                <TextBlock Text="Level:" />
+                                <TextBlock Text="Display level:" />
                                 <ComboBox SelectedItem="{Binding DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding DisplayFilterMinLevels}" VerticalAlignment="Center"/>
+                                <TextBlock Text="attention:" />
+                                <ComboBox SelectedItem="{Binding AttentionLevel, Mode=TwoWay}" ItemsSource="{Binding DisplayFilterMinLevels}" VerticalAlignment="Center"/>
 
 
                                 <TextBlock Text="Sources:" />
@@ -217,7 +220,13 @@
                                     <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
                                     <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
                                     <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
-                                    <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" />
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" MaxWidth="800" >
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style>
+                                                <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
                                     <DataGridTemplateColumn Header="Peers">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>

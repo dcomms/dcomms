@@ -93,7 +93,7 @@ namespace Dcomms.DRP
                     continue;
                 }
 
-                if (req.RequesterRegistrationId.Ed25519publicKey.Equals(connectedPeer.RemoteRegistrationId))
+                if (req.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
                 {
                     Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}");
                     continue;
@@ -194,8 +194,11 @@ namespace Dcomms.DRP
             }
             else if (ConnectedNeighbors.Count >= Configuration.MinDesiredNumberOfNeighbors)
             {
-                if (_lastTimeDetroyedWorstNeighborUtc == null || (timeNowUtc - _lastTimeDetroyedWorstNeighborUtc.Value).TotalSeconds > Configuration.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS)
-                    DestroyWorstNeighbor(null, timeNowUtc);
+                if (Configuration.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS.HasValue)
+                {
+                    if (_lastTimeDetroyedWorstNeighborUtc == null || (timeNowUtc - _lastTimeDetroyedWorstNeighborUtc.Value).TotalSeconds > Configuration.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS)
+                        DestroyWorstNeighbor(null, timeNowUtc);
+                }
             }
         }
         void DestroyWorstNeighbor(double? mutualValueLowLimit, DateTime timeNowUtc)
@@ -247,7 +250,18 @@ namespace Dcomms.DRP
         async Task BeginConnectToEPsAsync(IPEndPoint[] endpoints)// engine thread
         {
             foreach (var endpoint in endpoints)
-                await Engine.RegisterAsync(this, endpoint, 0, 1); // engine thread
+            {
+                try
+                {
+                    var conn = await Engine.RegisterAsync(this, endpoint, 0, 1); // engine thread
+                    Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"@BeginConnectToEPsAsync connected to {endpoint}. {ConnectedNeighbors.Count} connected neighbors");
+                }
+                catch (Exception exc)
+                {
+                    Engine.HandleGeneralException($"connecting to another EP {endpoint} failed", exc);
+
+                }
+            }
         }
         public void BeginConnectToEPs(IPEndPoint[] endpoints, Action cb)
         {
@@ -277,7 +291,6 @@ namespace Dcomms.DRP
         public RegistrationId LocalPeerRegistrationId { get; private set; }
         public RegistrationPrivateKey LocalPeerRegistrationPrivateKey { get; private set; }
         public int? MinDesiredNumberOfNeighbors = 12;
-     //   public int? MinDesiredNumberOfNeighbors2 = 12;
         public int? SoftMaxDesiredNumberOfNeighbors = 13; 
         public int? AbsoluteMaxDesiredNumberOfNeighbors = 20;
         public double? MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 30;

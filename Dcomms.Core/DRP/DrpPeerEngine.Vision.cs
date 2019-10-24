@@ -57,6 +57,11 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_routing) <= AttentionLevel.higherLevelDetail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_routing, AttentionLevel.higherLevelDetail, message);
         }
+        internal void WriteToLog_routing_lightPain(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_routing) <= AttentionLevel.lightPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_routing, AttentionLevel.lightPain, message);
+        }
         internal void WriteToLog_routing_needsAttention(string message)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_routing) <= AttentionLevel.needsAttention)
