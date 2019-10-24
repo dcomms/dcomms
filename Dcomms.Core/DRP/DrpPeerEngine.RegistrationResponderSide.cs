@@ -36,7 +36,7 @@ namespace Dcomms.DRP
                 }
             }
 
-            if (_pendingRegisterRequests.Contains(req.RequesterRegistrationId))
+            if (_pendingRegisterRequests_Responder.Contains(req.RequesterRegistrationId))
             {
                 // received duplicate REGISTER REQ packet
                 WriteToLog_reg_responderSide_needsAttention($"ignoring duplicate registration request {req.RequesterRegistrationId} from {requesterEndpoint}");
@@ -57,7 +57,7 @@ namespace Dcomms.DRP
                 return;
             }
 
-            _pendingRegisterRequests.Add(req.RequesterRegistrationId);
+            _pendingRegisterRequests_Responder.Add(req.RequesterRegistrationId);
             try
             {
                 WriteToLog_reg_responderSide_detail($"sending NPACK to REQ to {requesterEndpoint} (delay={(int)(DateTimeNowUtc - reqReceivedTimeUtc).TotalMilliseconds}ms)");
@@ -152,7 +152,7 @@ namespace Dcomms.DRP
             }
             finally
             {
-                _pendingRegisterRequests.Remove(req.RequesterRegistrationId);
+                _pendingRegisterRequests_Responder.Remove(req.RequesterRegistrationId);
             }
         }
         async Task WaitForRegistrationConfirmationRequestAsync(IPEndPoint requesterEndpoint, RegisterRequestPacket req, ConnectionToNeighbor newConnectionToNeighbor, ConnectionToNeighbor sourcePeer)
@@ -261,7 +261,9 @@ namespace Dcomms.DRP
         /// protects local per from processing same (retransmitted) REQ packet
         /// protects the P2P network against looped REQ requests
         /// </summary>
-        HashSet<RegistrationId> _pendingRegisterRequests = new HashSet<RegistrationId>();
+        HashSet<RegistrationId> _pendingRegisterRequests_ProxyRandomMode = new HashSet<RegistrationId>();
+        HashSet<RegistrationId> _pendingRegisterRequests_Proxy = new HashSet<RegistrationId>();
+        HashSet<RegistrationId> _pendingRegisterRequests_Responder = new HashSet<RegistrationId>();
 
     }
 }

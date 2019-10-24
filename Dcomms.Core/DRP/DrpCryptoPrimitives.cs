@@ -50,7 +50,7 @@ namespace Dcomms.DRP
         {
             return MiscProcedures.ByteArrayToString(Ed25519publicKey);
         }
-        public RegistrationIdDistance GetDistanceTo(ICryptoLibrary cryptoLibrary, RegistrationId another, int numberOfDimensions = 8) => new RegistrationIdDistance(cryptoLibrary, this, another, numberOfDimensions);
+        public RegistrationIdDistance GetDistanceTo(ICryptoLibrary cryptoLibrary, RegistrationId another, int numberOfDimensions) => new RegistrationIdDistance(cryptoLibrary, this, another, numberOfDimensions);
               
     }
 
@@ -58,7 +58,7 @@ namespace Dcomms.DRP
     public class RegistrationIdDistance
     {
         double _distance_sumSqr; // 32 bytes of reg. public key: split into 16 dimensions of 2 bytes //   euclidean distance
-        public unsafe RegistrationIdDistance(ICryptoLibrary cryptoLibrary, RegistrationId rpk1, RegistrationId rpk2, int numberOfDimensions = 8)
+        public unsafe RegistrationIdDistance(ICryptoLibrary cryptoLibrary, RegistrationId rpk1, RegistrationId rpk2, int numberOfDimensions)
         {
             if (rpk1.CachedEd25519publicKeySha256 == null) rpk1.CachedEd25519publicKeySha256 = cryptoLibrary.GetHashSHA256(rpk1.Ed25519publicKey);
             var rpk1_ed25519publicKey_sha256 = rpk1.CachedEd25519publicKeySha256;
@@ -133,7 +133,7 @@ namespace Dcomms.DRP
             v0 = (float)bi0 / (float)GetVectorValues_2_BigInteger_MaxValue;
             v1 = (float)bi1 / (float)GetVectorValues_2_BigInteger_MaxValue;
         }
-        public static unsafe double[] GetVectorValues(ICryptoLibrary cryptoLibrary, RegistrationId rid, int numberOfDimensions = 8)
+        public static unsafe double[] GetVectorValues(ICryptoLibrary cryptoLibrary, RegistrationId rid, int numberOfDimensions)
         {
             var r = new double[numberOfDimensions];
             
@@ -497,14 +497,14 @@ namespace Dcomms.DRP
         public static float MutualValueToKeepConnectionAlive_SoftLimitNeighborsCountCases => ValueToKeepConnectionAlive_SoftLimitNeighborsCountCases * 2;
 
 
-        public static double GetMutualP2pConnectionValue(ICryptoLibrary cryptoLibrary, RegistrationId registrationId1, ushort neighborsBusySectorIds1, RegistrationId registrationId2, ushort neighborsBusySectorIds2)
+        public static double GetMutualP2pConnectionValue(ICryptoLibrary cryptoLibrary, RegistrationId registrationId1, ushort neighborsBusySectorIds1, RegistrationId registrationId2, ushort neighborsBusySectorIds2, int numberOfDimensions)
         {
             double r = 0;
-            var distance = registrationId1.GetDistanceTo(cryptoLibrary, registrationId2).ToDouble();
+            var distance = registrationId1.GetDistanceTo(cryptoLibrary, registrationId2, numberOfDimensions).ToDouble();
             r -= distance;
 
-            var vector1 = RegistrationIdDistance.GetVectorValues(cryptoLibrary, registrationId1);
-            var vector2 = RegistrationIdDistance.GetVectorValues(cryptoLibrary, registrationId1);
+            var vector1 = RegistrationIdDistance.GetVectorValues(cryptoLibrary, registrationId1, numberOfDimensions);
+            var vector2 = RegistrationIdDistance.GetVectorValues(cryptoLibrary, registrationId1, numberOfDimensions);
 
             var vsic = new VectorSectorIndexCalculator(vector1.Length);
             var vector1to2 = new float[vector1.Length];

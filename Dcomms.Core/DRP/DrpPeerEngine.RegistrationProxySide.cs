@@ -27,7 +27,8 @@ namespace Dcomms.DRP
         {
             sourcePeer?.AssertIsNotDisposed();
 
-            if (_pendingRegisterRequests.Contains(req.RequesterRegistrationId))
+            var pendingRequests = req.RandomModeAtThisHop ? _pendingRegisterRequests_ProxyRandomMode : _pendingRegisterRequests_Proxy;
+            if (pendingRequests.Contains(req.RequesterRegistrationId))
             {
                 WriteToLog_reg_proxySide_higherLevelDetail($"rejecting duplicate REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={requesterEndpoint}");
                 SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, sourcePeer);
@@ -35,7 +36,8 @@ namespace Dcomms.DRP
             }
             if (checkRecentUniqueProxiedRegistrationRequests)
             {
-                if (!RecentUniqueProxiedRegistrationRequests.Filter(req.GetUniqueRequestIdFields))
+                var recentUniqueProxiedRegistrationRequests = req.RandomModeAtThisHop ? RecentUniqueProxiedRegistrationRequests_RandomHop : RecentUniqueProxiedRegistrationRequests_NonRandomHop;
+                if (!recentUniqueProxiedRegistrationRequests.Filter(req.GetUniqueRequestIdFields))
                 {
                     WriteToLog_reg_proxySide_lightPain($"rejecting non-unique REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={requesterEndpoint}");
                     SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, sourcePeer);
@@ -47,8 +49,8 @@ namespace Dcomms.DRP
             
             if (!ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
                 throw new BadSignatureException();
-            
-            _pendingRegisterRequests.Add(req.RequesterRegistrationId);
+
+            pendingRequests.Add(req.RequesterRegistrationId);
             try
             {
                 // send NPACK to source peer
@@ -64,8 +66,9 @@ namespace Dcomms.DRP
                     return false;
                 }
                                 
-                if (req.NumberOfRandomHopsRemaining > 1) req.NumberOfRandomHopsRemaining--;                
-                
+                if (req.NumberOfRandomHopsRemaining >= 1) req.NumberOfRandomHopsRemaining--;
+                WriteToLog_reg_proxySide_detail($"decremented number of hops for reg. req {req.RequesterRegistrationId}: NumberOfHopsRemaining={req.NumberOfHopsRemaining}, NumberOfRandomHopsRemaining={req.NumberOfRandomHopsRemaining}");
+
                 // send (proxy) REQ to responder. wait for NPACK, verify NPACK.senderHMAC, retransmit REQ
                 req.NpaSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
                 try
@@ -229,7 +232,7 @@ namespace Dcomms.DRP
             }
             finally
             {
-                _pendingRegisterRequests.Remove(req.RequesterRegistrationId);
+                pendingRequests.Remove(req.RequesterRegistrationId);
             }
 
             return false;

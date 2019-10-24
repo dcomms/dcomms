@@ -54,17 +54,21 @@ namespace Dcomms.DRP
         /// is used to make sure that processed ECDH keys are unique
         /// </summary>
         internal readonly UniqueDataFilter RecentUniquePublicEcdhKeys = new UniqueDataFilter(10000);
-        internal readonly UniqueDataFilter RecentUniqueProxiedRegistrationRequests = new UniqueDataFilter(1000);
+        internal readonly UniqueDataFilter RecentUniqueProxiedRegistrationRequests_NonRandomHop = new UniqueDataFilter(1000);
+        internal readonly UniqueDataFilter RecentUniqueProxiedRegistrationRequests_RandomHop = new UniqueDataFilter(1000);
         internal readonly UniqueDataFilter RecentUniqueAcceptedRegistrationRequests = new UniqueDataFilter(1000);
         internal readonly UniqueDataFilter RecentUniqueInviteRequests = new UniqueDataFilter(1000);
         #endregion
 
+        public readonly VectorSectorIndexCalculator VSIC;
+        public int NumberOfDimensions => Configuration.SandboxModeOnly_NumberOfDimensions ?? 8;
         public DrpPeerEngine(DrpPeerEngineConfiguration configuration)
         {
             configuration.VisionChannel?.RegisterVisibleModule(configuration.VisionChannelSourceId, "DrpPeerEngine", this);
 
             _insecureRandom = configuration.InsecureRandomSeed.HasValue ? new Random(configuration.InsecureRandomSeed.Value) : new Random();
             Configuration = configuration;
+            VSIC = new VectorSectorIndexCalculator(NumberOfDimensions);
             Initialize(configuration);
             _seq16Counter_AtoEP = (ushort)_insecureRandom.Next(ushort.MaxValue);
             EngineThreadQueue = new ActionsQueue(exc => HandleExceptionInEngineThread(exc));

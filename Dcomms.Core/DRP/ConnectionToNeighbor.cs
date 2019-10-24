@@ -267,7 +267,7 @@ namespace Dcomms.DRP
                 if (_remoteRegistrationId != null)
                 {
                     var localPeerVector = _localDrpPeer.LocalPeerRegistrationIdVectorValues;
-                    var neighborPeerVector = RegistrationIdDistance.GetVectorValues(_engine.CryptoLibrary, _remoteRegistrationId);
+                    var neighborPeerVector = RegistrationIdDistance.GetVectorValues(_engine.CryptoLibrary, _remoteRegistrationId, _engine.NumberOfDimensions);
                     var vectorFromLocalToNeighbor = new float[localPeerVector.Length];
                     for (int i = 0; i < neighborPeerVector.Length; i++)
                     {
@@ -277,7 +277,7 @@ namespace Dcomms.DRP
                         vectorFromLocalToNeighbor[i] = (float)(to - from);
                     }
 
-                    var sectorIndex = _vcis.GetSectorIndex(vectorFromLocalToNeighbor);
+                    var sectorIndex = Engine.VSIC.GetSectorIndex(vectorFromLocalToNeighbor);
                     SectorIndexFlagsMask = (ushort)(1 << sectorIndex);
                 }
             }
@@ -334,7 +334,7 @@ namespace Dcomms.DRP
         public readonly byte[] LocalEcdhe25519PublicKey;
         bool _disposed;
         internal bool IsDisposed => _disposed;
-        static VectorSectorIndexCalculator _vcis = new VectorSectorIndexCalculator(8);
+        
         public ConnectionToNeighbor(DrpPeerEngine engine, LocalDrpPeer localDrpPeer, ConnectedDrpPeerInitiatedBy initiatedBy, RegistrationId remoteRegistrationId)
         {
             _seq16Counter_P2P = (ushort)_insecureRandom.Next(ushort.MaxValue);
@@ -368,7 +368,7 @@ namespace Dcomms.DRP
         }
         string VisibleModulePath => $"{_localDrpPeer}{Vision.VisionChannel.PathSeparator}{this.LocalNeighborToken32}";
 
-        float[] IVisiblePeer.VectorValues => RegistrationIdDistance.GetVectorValues(_localDrpPeer.CryptoLibrary, _remoteRegistrationId).Select(x => (float)x).ToArray();
+        float[] IVisiblePeer.VectorValues => RegistrationIdDistance.GetVectorValues(_localDrpPeer.CryptoLibrary, _remoteRegistrationId, _engine.NumberOfDimensions).Select(x => (float)x).ToArray();
         bool IVisiblePeer.Highlighted => false;
         string IVisiblePeer.Name => null;
         IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => null;
@@ -552,7 +552,7 @@ namespace Dcomms.DRP
                 if (!_engine.ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
                     throw new BadSignatureException();
 
-                _engine.WriteToLog_p2p_higherLevelDetail(this, $"received reg. request {req.RequesterRegistrationId} via P2P connection");
+                _engine.WriteToLog_p2p_higherLevelDetail(this, $"received reg. request {req.RequesterRegistrationId} ({req.NumberOfHopsRemaining} hops remaining) via P2P connection");
                 if (req.RequesterRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
                     _engine.WriteToLog_routing_lightPain($"received reg. request to same reg. ID {req.RequesterRegistrationId}");
 

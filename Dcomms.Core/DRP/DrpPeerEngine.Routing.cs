@@ -43,7 +43,7 @@ namespace Dcomms.DRP
                 }
             }
 
-            if (req.NumberOfRandomHopsRemaining > 0)
+            if (req.RandomModeAtThisHop)
             { // random mode
                 var itemsForRouting = new List<object>();
                 if (sourceNeighborNullable == null)
@@ -116,8 +116,8 @@ namespace Dcomms.DRP
             int connectedNeighborsCountThatMatchMinDistance = 0;
             foreach (var neighbor in connectedNeighborsForRouting)
             {
-                var distanceToNeighbor = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, neighbor.RemoteRegistrationId);
-                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor} (req.min={req.MinimalDistanceToNeighbor})");
+                var distanceToNeighbor = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, neighbor.RemoteRegistrationId, NumberOfDimensions);
+                WriteToLog_routing_detail($"distanceToNeighbor={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor} (req.min={req.MinimalDistanceToNeighbor})");
                 if (req.MinimalDistanceToNeighbor != 0)
                 {
                     if (distanceToNeighbor.IsLessThan(req.MinimalDistanceToNeighbor))
@@ -128,8 +128,10 @@ namespace Dcomms.DRP
                     }
                 }
                 var p2pConnectionValue_withNeighbor = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds,
-                    neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0);
-                               
+                    neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0, NumberOfDimensions);
+
+                WriteToLog_routing_detail($"p2pConnectionValue_withNeighbor={p2pConnectionValue_withNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor}");
+
                 connectedNeighborsCountThatMatchMinDistance++;
                 if (maxP2pConnectionValue == null || maxP2pConnectionValue < p2pConnectionValue_withNeighbor)
                 {
@@ -142,10 +144,12 @@ namespace Dcomms.DRP
             if (connectedNeighborsCountThatMatchMinDistance == 0 && connectedNeighborsForRouting.Count != 0)
             {
                 // special case: we are inside the "minDistance" hypersphere: move away from the requester, proxy to most distant neighbor
+                WriteToLog_routing_detail($"special case: move away from the requester, proxy to most distant neighbor");
+
                 RegistrationIdDistance maxDistance = null;
                 foreach (var connectedPeer in connectedNeighborsForRouting)
                 {         
-                    var distanceToConnectedPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId);
+                    var distanceToConnectedPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId, NumberOfDimensions);
                     WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterRegistrationId} to {connectedPeer.RemoteRegistrationId} (req.min={req.MinimalDistanceToNeighbor})");
                    
                     if (maxDistance == null || distanceToConnectedPeer.IsGreaterThan(maxDistance))
@@ -168,8 +172,8 @@ namespace Dcomms.DRP
             }
             else
             {
-                var p2pConnectionValue_withLocalPeer = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds, localDrpPeer.Configuration.LocalPeerRegistrationId, localDrpPeer.ConnectedNeighborsBusySectorIds);
-                WriteToLog_routing_detail($"valueOfLocalPeer={p2pConnectionValue_withLocalPeer} from REGISTER REQ {req.RequesterRegistrationId} to {localDrpPeer.Configuration.LocalPeerRegistrationId}");
+                var p2pConnectionValue_withLocalPeer = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds, localDrpPeer.Configuration.LocalPeerRegistrationId, localDrpPeer.ConnectedNeighborsBusySectorIds, NumberOfDimensions);
+                WriteToLog_routing_detail($"p2pConnectionValue_withLocalPeer={p2pConnectionValue_withLocalPeer} from REGISTER REQ {req.RequesterRegistrationId} to {localDrpPeer.Configuration.LocalPeerRegistrationId}");
                 if (maxP2pConnectionValue == null || p2pConnectionValue_withLocalPeer > maxP2pConnectionValue)
                 {
                     maxP2pConnectionValue = p2pConnectionValue_withLocalPeer;
@@ -185,7 +189,7 @@ namespace Dcomms.DRP
             RegistrationIdDistance minDistance = null;
             foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors)
             {
-                var distanceToConnectedPeer = req.ResponderRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId);
+                var distanceToConnectedPeer = req.ResponderRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId, NumberOfDimensions);
                 WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from INVITE REQ {req.ResponderRegistrationId} to {connectedPeer.RemoteRegistrationId}");
                 if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
                 {

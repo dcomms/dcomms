@@ -47,6 +47,7 @@ namespace Dcomms.DRP
         public string VisionChannelSourceId;
 
         public bool SandboxModeOnly_DisablePoW;
+        public int? SandboxModeOnly_NumberOfDimensions;        
 
         public double NeighborhoodExtensionMaxRetryIntervalS = 20;
         public double NeighborhoodExtensionMinIntervalS = 1;

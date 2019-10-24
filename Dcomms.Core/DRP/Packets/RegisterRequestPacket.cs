@@ -62,8 +62,9 @@ namespace Dcomms.DRP.Packets
         /// EP limits this field by "average number of hops"
         /// is decremented by peers
         /// </summary>
-        public byte NumberOfHopsRemaining;    
+        public byte NumberOfHopsRemaining;
         public byte NumberOfRandomHopsRemaining;
+        public bool RandomModeAtThisHop => NumberOfRandomHopsRemaining > 0;
 
         public NeighborPeerAckSequenceNumber16 NpaSeq16;
         /// <summary>

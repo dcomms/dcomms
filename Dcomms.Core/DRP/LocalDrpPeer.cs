@@ -34,7 +34,7 @@ namespace Dcomms.DRP
             {
                 if (_cachedLocalPeerRegistrationIdVectorValues == null)
                 {
-                    _cachedLocalPeerRegistrationIdVectorValues = RegistrationIdDistance.GetVectorValues(CryptoLibrary, Configuration.LocalPeerRegistrationId);
+                    _cachedLocalPeerRegistrationIdVectorValues = RegistrationIdDistance.GetVectorValues(CryptoLibrary, Configuration.LocalPeerRegistrationId, Engine.NumberOfDimensions);
                 }
                 return _cachedLocalPeerRegistrationIdVectorValues;
             }
@@ -66,7 +66,7 @@ namespace Dcomms.DRP
         }
 
         #region IVisiblePeer implementation
-        float[] IVisiblePeer.VectorValues => RegistrationIdDistance.GetVectorValues(CryptoLibrary, _configuration.LocalPeerRegistrationId).Select(x => (float)x).ToArray();
+        float[] IVisiblePeer.VectorValues => RegistrationIdDistance.GetVectorValues(CryptoLibrary, _configuration.LocalPeerRegistrationId, Engine.NumberOfDimensions).Select(x => (float)x).ToArray();
         bool IVisiblePeer.Highlighted => false;
         string IVisiblePeer.Name => Engine.Configuration.VisionChannelSourceId;
         IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => ConnectedNeighbors;
@@ -151,7 +151,7 @@ namespace Dcomms.DRP
                                 var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
                                 Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)");
                                 await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, 20,
-                                    0//////////////////////////////////todo when need random hops??????????????? 2
+                                    2//////////////////////////////////todo when need random hops??????????????? 2
 
 
                                     );
@@ -210,7 +210,7 @@ namespace Dcomms.DRP
                 var p2pConnectionValue_withNeighbor =
                     P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary,
                         this.Configuration.LocalPeerRegistrationId, this.ConnectedNeighborsBusySectorIds,
-                        neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0);
+                        neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0, Engine.NumberOfDimensions);
                 if (worstValue == null || p2pConnectionValue_withNeighbor < worstValue)
                 {
                     worstValue = p2pConnectionValue_withNeighbor;
@@ -290,10 +290,10 @@ namespace Dcomms.DRP
         public IPEndPoint[] EntryPeerEndpoints; // in case when local peer IP = entry peer IP, it is skipped
         public RegistrationId LocalPeerRegistrationId { get; private set; }
         public RegistrationPrivateKey LocalPeerRegistrationPrivateKey { get; private set; }
-        public int? MinDesiredNumberOfNeighbors = 12;
-        public int? SoftMaxDesiredNumberOfNeighbors = 13; 
-        public int? AbsoluteMaxDesiredNumberOfNeighbors = 20;
-        public double? MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 30;
+        public int? MinDesiredNumberOfNeighbors;// = 12;
+        public int? SoftMaxDesiredNumberOfNeighbors;// = 13; 
+        public int? AbsoluteMaxDesiredNumberOfNeighbors;// = 20;
+        public double? MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS;// = 30;
 
         public static LocalDrpPeerConfiguration CreateWithNewKeypair(ICryptoLibrary cryptoLibrary)
         {
