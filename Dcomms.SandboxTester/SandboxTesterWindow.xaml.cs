@@ -57,14 +57,14 @@ namespace Dcomms.SandboxTester
             };
             VisionChannel.DisplayRoutingPathDelegate = (req) =>
             {
-                var logMessages = VisionChannel.GetLogMessages(req);
-                var peers = logMessages.Select(x => x.RoutedPathPeer).Distinct().ToList();
+                var logMessages_newestFirst = VisionChannel.GetLogMessages_newestFirst(req);
 
-                var peersWnd = new PeersDisplayWindow($"routing for {req}", peers, VisiblePeersDisplayMode.routingPath);
+                var peers = logMessages_newestFirst.Select(x => x.RoutedPathPeer).ToList();                
+                peers.Reverse();
+                var peersWnd = new PeersDisplayWindow($"routing for {req}", peers.Distinct().ToList(), VisiblePeersDisplayMode.routingPath);
                 peersWnd.Show();
-
-
-                var logWnd = new FilteredLogMessagesWindow(logMessages) { Title = $"routing for {req}" };
+                
+                var logWnd = new FilteredLogMessagesWindow(logMessages_newestFirst) { Title = $"routing for {req}" };
                 logWnd.Show();
 
             };

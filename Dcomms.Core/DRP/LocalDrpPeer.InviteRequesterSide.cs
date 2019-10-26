@@ -185,7 +185,7 @@ namespace Dcomms.DRP
             }
         }
 
-        void SendNeighborPeerAckResponseToReq(InviteRequestPacket req, ConnectionToNeighbor neighbor, NextHopResponseCode statusCode = NextHopResponseCode.accepted)
+        internal void SendNeighborPeerAckResponseToReq(InviteRequestPacket req, ConnectionToNeighbor neighbor, NextHopResponseCode statusCode = NextHopResponseCode.accepted)
         {
             var npAck = new NeighborPeerAckPacket
             {

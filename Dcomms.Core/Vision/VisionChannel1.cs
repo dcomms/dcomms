@@ -69,14 +69,14 @@ namespace Dcomms.Vision
                 }
             }
         }
-        public List<LogMessage> GetLogMessages(object routingPathReq)
+        public List<LogMessage> GetLogMessages_newestFirst(object routingPathReq)
         {          
             lock (_logMessagesNewestFirst)
             {
                 IEnumerable<LogMessage> r = _logMessagesNewestFirst;
                 r = r.Where(x => routingPathReq.Equals(x.RoutedPathReq));
               //  r = r.Where(x => x.AttentionLevel >= DisplayFilterMinLevel);
-                return r.Take(DisplayedLogMessagesMaxCount).ToList();
+                return r.ToList();
             }            
         }
 
@@ -259,7 +259,7 @@ namespace Dcomms.Vision
             });
 
 
-            public bool DisplayRoutingPathVisible => (RoutedPathReq != null && _visionChannel.DisplayRoutingPathDelegate != null);
+            public bool DisplayRoutingPathVisible => (RoutedPathReq != null && RoutedPathPeer != null && _visionChannel.DisplayRoutingPathDelegate != null);
             public ICommand DisplayRoutingPath => new DelegateCommand(() =>
             {
                 _visionChannel.DisplayRoutingPathDelegate(RoutedPathReq);

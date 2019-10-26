@@ -36,7 +36,7 @@ namespace Dcomms.DRP
                 }
             }
 
-            if (_pendingRegisterRequests_Responder.Contains(req.RequesterRegistrationId))
+            if (PendingRegisterRequestExists(req.RequesterRegistrationId))
             {
                 // received duplicate REGISTER REQ packet
                 WriteToLog_reg_responderSide_needsAttention($"ignoring duplicate registration request {req.RequesterRegistrationId} from {requesterEndpoint}", req, acceptAt);
@@ -57,7 +57,7 @@ namespace Dcomms.DRP
                 return;
             }
 
-            _pendingRegisterRequests_Responder.Add(req.RequesterRegistrationId);
+            _pendingRegisterRequests.Add(req.RequesterRegistrationId);
             try
             {
                 WriteToLog_reg_responderSide_detail($"sending NPACK to REQ to {requesterEndpoint} (delay={(int)(DateTimeNowUtc - reqReceivedTimeUtc).TotalMilliseconds}ms)", req, acceptAt);
@@ -91,7 +91,7 @@ namespace Dcomms.DRP
                     if (sourcePeer == null) ack1.RequesterEndpoint = requesterEndpoint;                    
                     ack1UdpData = ack1.Encode_OpionallySignNeighborHMAC(sourcePeer);
                     
-                    var ack2Scanner = RegisterAck2Packet.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp64);
+                    var ack2Scanner = RegisterAck2Packet.GetScanner(sourcePeer, req);
                     byte[] ack2UdpData;
                     if (sourcePeer == null)
                     {   // wait for ACK2, retransmitting ACK1
@@ -112,7 +112,7 @@ namespace Dcomms.DRP
                     var ack2 = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(ack2UdpData, req, ack1, newConnectionToNeighbor);
                     WriteToLog_reg_responderSide_detail($"verified ACK2", req, acceptAt);
 
-                    acceptAt.AddToConnectedNeighbors(newConnectionToNeighbor); // added to list here in order to respond to ping requests from A    
+                    acceptAt.AddToConnectedNeighbors(newConnectionToNeighbor, req); // added to list here in order to respond to ping requests from A    
 
                     SendNeighborPeerAckResponseToRegisterAck2(ack2, requesterEndpoint, sourcePeer); // send NPACK to ACK
 
@@ -152,14 +152,14 @@ namespace Dcomms.DRP
             }
             finally
             {
-                _pendingRegisterRequests_Responder.Remove(req.RequesterRegistrationId);
+                _pendingRegisterRequests.Remove(req.RequesterRegistrationId);
             }
         }
         async Task WaitForRegistrationConfirmationRequestAsync(IPEndPoint requesterEndpoint, RegisterRequestPacket req, ConnectionToNeighbor newConnectionToNeighbor, ConnectionToNeighbor sourcePeer)
         {
             try
             {
-                var regCfmScanner = RegisterConfirmationPacket.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp64);
+                var regCfmScanner = RegisterConfirmationPacket.GetScanner(sourcePeer, req);
                 WriteToLog_reg_responderSide_detail($"waiting for CFM", req, newConnectionToNeighbor.LocalDrpPeer);
                 var regCfmUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requesterEndpoint, regCfmScanner, Configuration.RegisterRequestsTimoutS);
                 WriteToLog_reg_responderSide_detail($"received CFM", req, newConnectionToNeighbor.LocalDrpPeer);
@@ -198,7 +198,7 @@ namespace Dcomms.DRP
         internal void SendServiceUnavailableResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, 
             ConnectionToNeighbor neighbor, bool alreadyRepliedWithNPA)
         {
-            WriteToLog_routing_higherLevelDetail($"routing failed, executing SendServiceUnavailableResponseToRegisterReq()");
+            WriteToLog_routing_higherLevelDetail($"routing failed, executing SendServiceUnavailableResponseToRegisterReq()", req, neighbor.LocalDrpPeer);
             if (alreadyRepliedWithNPA)
             {
                 // send ack1
@@ -260,10 +260,10 @@ namespace Dcomms.DRP
         /// <summary>
         /// protects local per from processing same (retransmitted) REQ packet
         /// protects the P2P network against looped REQ requests
+        /// avoids conflicts in response scanners (e.g ACK1, ACK2 scanners)
         /// </summary>
-        HashSet<RegistrationId> _pendingRegisterRequests_ProxyRandomMode = new HashSet<RegistrationId>();
-        HashSet<RegistrationId> _pendingRegisterRequests_Proxy = new HashSet<RegistrationId>();
-        HashSet<RegistrationId> _pendingRegisterRequests_Responder = new HashSet<RegistrationId>();
+        HashSet<RegistrationId> _pendingRegisterRequests = new HashSet<RegistrationId>();
+        internal bool PendingRegisterRequestExists(RegistrationId regId) => _pendingRegisterRequests.Contains(regId);
 
     }
 }

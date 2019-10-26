@@ -154,7 +154,7 @@ namespace Dcomms.DRP.Packets
             var expectedHMAC = connectedPeerWhoSentTheResponse.GetNeighborHMAC(r.GetSignedFieldsForNeighborHMAC);
             if (r.NeighborHMAC.Equals(expectedHMAC) == false)
             {
-                connectedPeerWhoSentTheResponse.Engine.WriteToLog_p2p_detail(connectedPeerWhoSentTheResponse, $"incorrect sender HMAC in ping response: {r.NeighborHMAC}. expected: {expectedHMAC}");
+                connectedPeerWhoSentTheResponse.Engine.WriteToLog_p2p_detail(connectedPeerWhoSentTheResponse, $"incorrect sender HMAC in ping response: {r.NeighborHMAC}. expected: {expectedHMAC}", null);
                 throw new BadSignatureException();
             }
           

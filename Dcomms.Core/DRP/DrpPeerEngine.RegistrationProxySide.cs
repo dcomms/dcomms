@@ -27,8 +27,7 @@ namespace Dcomms.DRP
         {
             sourcePeer?.AssertIsNotDisposed();
 
-            var pendingRequests = req.RandomModeAtThisHop ? _pendingRegisterRequests_ProxyRandomMode : _pendingRegisterRequests_Proxy;
-            if (pendingRequests.Contains(req.RequesterRegistrationId))
+            if (PendingRegisterRequestExists(req.RequesterRegistrationId))
             {
                 WriteToLog_reg_proxySide_higherLevelDetail($"rejecting duplicate REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={requesterEndpoint}", req, destinationPeer.LocalDrpPeer);
                 SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, sourcePeer);
@@ -50,7 +49,7 @@ namespace Dcomms.DRP
             if (!ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
                 throw new BadSignatureException();
 
-            pendingRequests.Add(req.RequesterRegistrationId);
+            _pendingRegisterRequests.Add(req.RequesterRegistrationId);
             try
             {
                 // send NPACK to source peer
@@ -106,7 +105,7 @@ namespace Dcomms.DRP
                 // verify NeighborHMAC
                 WriteToLog_reg_proxySide_detail($"waiting for ACK1 from destination peer", req, destinationPeer.LocalDrpPeer);
                 var ack1UdpData = await WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
-                                RegisterAck1Packet.GetScanner(req.RequesterRegistrationId, req.ReqTimestamp64, destinationPeer),
+                                RegisterAck1Packet.GetScanner(req, destinationPeer),
                                     DateTimeNowUtc, Configuration.RegisterRequestsTimoutS
                                 ));
                 if (sourcePeer?.IsDisposed == true)
@@ -149,7 +148,7 @@ namespace Dcomms.DRP
                 }
                 else
                 {
-                    var ack2Scanner = RegisterAck2Packet.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp64);
+                    var ack2Scanner = RegisterAck2Packet.GetScanner(sourcePeer, req);
                     byte[] ack2UdpData;
                     if (sourcePeer == null)
                     {   // A-EP mode: wait for ACK2, retransmitting ACK1
@@ -198,7 +197,7 @@ namespace Dcomms.DRP
                     // wait for CFM from source peer
                     var cfmUdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null,
                         requesterEndpoint,
-                        RegisterConfirmationPacket.GetScanner(sourcePeer, req.RequesterRegistrationId, req.ReqTimestamp64)
+                        RegisterConfirmationPacket.GetScanner(sourcePeer, req)
                         );
                     var cfm = RegisterConfirmationPacket.DecodeAndOptionallyVerify(cfmUdpData, null, null);
                     if (sourcePeer?.IsDisposed == true)
@@ -232,7 +231,7 @@ namespace Dcomms.DRP
             }
             finally
             {
-                pendingRequests.Remove(req.RequesterRegistrationId);
+                _pendingRegisterRequests.Remove(req.RequesterRegistrationId);
             }
 
             return false;

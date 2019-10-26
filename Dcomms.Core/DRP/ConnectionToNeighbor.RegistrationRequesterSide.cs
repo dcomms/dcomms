@@ -54,7 +54,7 @@ namespace Dcomms.DRP
                     #region wait for ACK1, respond with NPACK
                     _engine.WriteToLog_reg_requesterSide_detail($"waiting for ACK1", req, _localDrpPeer);
                     var ack1UdpData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(this.RemoteEndpoint,
-                                    RegisterAck1Packet.GetScanner(req.RequesterRegistrationId, req.ReqTimestamp64, this),
+                                    RegisterAck1Packet.GetScanner(req, this),
                                     _engine.DateTimeNowUtc, _engine.Configuration.RegisterRequestsTimoutS
                                 ));
                     if (ack1UdpData == null) throw new DrpTimeoutException();
@@ -106,7 +106,7 @@ namespace Dcomms.DRP
                         await _engine.EngineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(neighborWaitTimeMs)); // wait until the ACK2 reaches neighbor N via peers
                     }
 
-                    _localDrpPeer.AddToConnectedNeighbors(newConnectionToNeighbor);
+                    _localDrpPeer.AddToConnectedNeighbors(newConnectionToNeighbor, req);
 
                     #region send ping request directly to neighbor N, retransmit               
                     var pingRequest = newConnectionToNeighbor.CreatePing(true, false, _localDrpPeer.ConnectedNeighborsBusySectorIds);

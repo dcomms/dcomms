@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Dcomms.SandboxTester"
         mc:Ignorable="d"
-        Title="FilteredLogMessagesWindow" Height="450" Width="800">
+        Title="FilteredLogMessagesWindow" Height="700" Width="1100">
     <Grid>
         <DataGrid x:Name="logMessagesDataGrid" AutoGenerateColumns="False" >
             <DataGrid.Columns>
@@ -20,7 +20,7 @@
                 <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
                 <!--<DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />-->
                 <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
-                <!--<DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />-->
+                <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
                 <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" MaxWidth="1200" >
                     <DataGridTextColumn.ElementStyle>
                         <Style>

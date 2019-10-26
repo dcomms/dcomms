@@ -55,7 +55,7 @@ namespace Dcomms.DRP.Packets
         /// peer that sends ACK2
         /// if not null - the scanner will verify ACK2.NeighborHMAC
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegistrationId requesterPublicKey_RequestID, Int64 registerReqTimestamp64)
+        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegisterRequestPacket req)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
@@ -68,8 +68,8 @@ namespace Dcomms.DRP.Packets
                 connectionToNeighborNullable.LocalNeighborToken32.Encode(writer);
             }
 
-            writer.Write(registerReqTimestamp64);
-            requesterPublicKey_RequestID.Encode(writer);
+            writer.Write(req.ReqTimestamp64);
+            req.RequesterRegistrationId.Encode(writer);
 
             var r = new LowLevelUdpResponseScanner
             {
@@ -82,7 +82,7 @@ namespace Dcomms.DRP.Packets
                 {
                     if (connectionToNeighborNullable.IsDisposed)
                     {
-                        connectionToNeighborNullable.Engine.WriteToLog_p2p_needsAttention(connectionToNeighborNullable, "ignoring ACK2: connection is disposed");
+                        connectionToNeighborNullable.Engine.WriteToLog_p2p_needsAttention(connectionToNeighborNullable, "ignoring ACK2: connection is disposed", req);
                         return false;
                     }
                     var ack2 = Decode_OptionallyVerify_InitializeP2pStreamAtResponder(responseData, null, null, null);                   

@@ -211,6 +211,6 @@ namespace Dcomms.DRP.Packets
         {
             return ReqTimestamp64.GetHashCode() ^ RequesterRegistrationId.GetHashCode();
         }
-        public override string ToString() => $"regReg[{RequesterRegistrationId}-{ReqTimestamp64}]";
+        public override string ToString() => $"regReq[{RequesterRegistrationId}-{ReqTimestamp64}]";
     }
 }

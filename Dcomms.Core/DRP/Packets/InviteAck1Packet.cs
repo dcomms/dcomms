@@ -120,7 +120,7 @@ namespace Dcomms.DRP.Packets
             {
                 if (connectionToNeighbor.IsDisposed)
                 {
-                    connectionToNeighbor.Engine.WriteToLog_p2p_needsAttention(connectionToNeighbor, "ignoring ACK1: connection is disposed");
+                    connectionToNeighbor.Engine.WriteToLog_p2p_needsAttention(connectionToNeighbor, "ignoring ACK1: connection is disposed", req);
                     return false;
                 }
                 var ack1 = Decode(responseData);

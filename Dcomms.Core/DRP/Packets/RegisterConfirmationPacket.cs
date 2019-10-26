@@ -68,7 +68,7 @@ namespace Dcomms.DRP.Packets
         /// peer that sends CFM
         /// if not null - the scanner will verify CFM.NeighborHMAC
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegistrationId requesterPublicKey_RequestID, Int64 registerReqTimestamp64)
+        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegisterRequestPacket req)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)DrpDmpPacketTypes.RegisterConfirmation);
@@ -78,8 +78,8 @@ namespace Dcomms.DRP.Packets
             if (connectionToNeighborNullable != null)
                 connectionToNeighborNullable.LocalNeighborToken32.Encode(w);
 
-            w.Write(registerReqTimestamp64);        
-            requesterPublicKey_RequestID.Encode(w);
+            w.Write(req.ReqTimestamp64);        
+            req.RequesterRegistrationId.Encode(w);
             var r = new LowLevelUdpResponseScanner
             {
                 IgnoredByteAtOffset1 = 1,
@@ -92,7 +92,7 @@ namespace Dcomms.DRP.Packets
                 {
                     if (connectionToNeighborNullable.IsDisposed)
                     {
-                        connectionToNeighborNullable.Engine.WriteToLog_p2p_needsAttention(connectionToNeighborNullable, "ignoring CFM: connection is disposed");
+                        connectionToNeighborNullable.Engine.WriteToLog_p2p_needsAttention(connectionToNeighborNullable, "ignoring CFM: connection is disposed", req);
                         return false;
                     }
                     var cfm = DecodeAndOptionallyVerify(responseData, null, null);

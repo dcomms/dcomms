@@ -11,7 +11,9 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TextBlock x:Name="text1" Visibility="Collapsed" TextWrapping="Wrap" Background="#99FFFFFF"  FontWeight="Bold"/>
+        <Grid Background="#CCFFFFFF">
+            <TextBlock x:Name="text1" Visibility="Collapsed" TextWrapping="Wrap"  Margin="0,15,0,0" />            
+        </Grid>
         <Canvas Grid.Row="1" x:Name="canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
     </Grid>
 </Window>

@@ -192,7 +192,7 @@ namespace Dcomms.DRP
                     #region wait for ACK1
                     WriteToLog_reg_requesterSide_detail($"waiting for ACK1", req, localDrpPeer);
                     var ack1UdpData = await WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(epEndpoint,
-                                    RegisterAck1Packet.GetScanner(req.RequesterRegistrationId, req.ReqTimestamp64),
+                                    RegisterAck1Packet.GetScanner(req),
                                     DateTimeNowUtc, Configuration.RegisterRequestsTimoutS
                                 ));
                     if (ack1UdpData == null) throw new DrpTimeoutException();
@@ -260,7 +260,7 @@ namespace Dcomms.DRP
                         WriteToLog_reg_requesterSide_detail($"... awaiting is complete", req, localDrpPeer);
                     }
 
-                    localDrpPeer.AddToConnectedNeighbors(newConnectionToNeighbor);
+                    localDrpPeer.AddToConnectedNeighbors(newConnectionToNeighbor, req);
 
                     #region send ping request directly to neighbor N, retransmit               
                     var pingRequest = newConnectionToNeighbor.CreatePing(true, false, localDrpPeer.ConnectedNeighborsBusySectorIds);

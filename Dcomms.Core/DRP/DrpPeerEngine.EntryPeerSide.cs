@@ -194,7 +194,7 @@ namespace Dcomms.DRP
                 if (needToRerouteToAnotherNeighbor)
                 {
                     alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
-                    WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}");
+                    WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}", req, proxyToDestinationPeer.LocalDrpPeer);
                     checkRecentUniqueProxiedRegistrationRequests = false;
                     alreadyRepliedWithNPA = true;
                     goto _retry;

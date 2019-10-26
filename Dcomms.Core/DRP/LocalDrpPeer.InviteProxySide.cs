@@ -14,13 +14,14 @@ namespace Dcomms.DRP
         /// protects the P2P network against looped REQ requests
         /// </summary>
         HashSet<RegistrationId> _pendingInviteRequests = new HashSet<RegistrationId>();
+        public bool PendingInviteRequestExists(RegistrationId requesterRegId) => _pendingInviteRequests.Contains(requesterRegId);
 
         /// <summary>
         /// Timestamp32S, NeighborToken32 and NeighborHMAC are verified at this time
         /// </summary>
         internal async Task ProxyInviteRequestAsync(InviteRequestPacket req, ConnectionToNeighbor sourcePeer, ConnectionToNeighbor destinationPeer)
         {
-            Engine.WriteToLog_inv_proxySide_detail($"proxying invite");
+            Engine.WriteToLog_inv_proxySide_detail($"proxying {req}");
 
             Engine.RecentUniqueInviteRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
             Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);

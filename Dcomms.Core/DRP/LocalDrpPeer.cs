@@ -84,18 +84,18 @@ namespace Dcomms.DRP
             {
                 if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}");
+                    Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}", req, this);
                     continue;
                 }
                 if (alreadyTriedProxyingToDestinationPeersNullable != null && alreadyTriedProxyingToDestinationPeersNullable.Contains(connectedPeer))
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}");
+                    Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}", req, this);
                     continue;
                 }
 
                 if (req.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}");
+                    Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}", req, this);
                     continue;
                 }
 
@@ -103,12 +103,12 @@ namespace Dcomms.DRP
             }
         }
 
-        public void AddToConnectedNeighbors(ConnectionToNeighbor newConnectedNeighbor)
+        public void AddToConnectedNeighbors(ConnectionToNeighbor newConnectedNeighbor, RegisterRequestPacket req)
         {
             newConnectedNeighbor.OnP2pInitialized();
             ConnectedNeighbors.Add(newConnectedNeighbor);
 
-            Engine.WriteToLog_p2p_higherLevelDetail(newConnectedNeighbor, $"added new connection to list of neighbors: {newConnectedNeighbor.RemoteRegistrationId} to {newConnectedNeighbor.RemoteEndpoint}");
+            Engine.WriteToLog_p2p_higherLevelDetail(newConnectedNeighbor, $"added new connection to list of neighbors: {newConnectedNeighbor.RemoteRegistrationId} to {newConnectedNeighbor.RemoteEndpoint}", req);
         }
         public int CurrentRegistrationOperationsCount;
 
@@ -222,7 +222,7 @@ namespace Dcomms.DRP
             {
                 _lastTimeDetroyedWorstNeighborUtc = timeNowUtc;
 
-                Engine.WriteToLog_p2p_higherLevelDetail(worstNeighbor, $"destroying worst P2P connection with neighbor. neighbors count = {ConnectedNeighbors.Count}");
+                Engine.WriteToLog_p2p_higherLevelDetail(worstNeighbor, $"destroying worst P2P connection with neighbor. neighbors count = {ConnectedNeighbors.Count}", null);
                 var ping = worstNeighbor.CreatePing(false, true, 0);
 
                 var pendingPingRequest = new PendingLowLevelUdpRequest(worstNeighbor.RemoteEndpoint,

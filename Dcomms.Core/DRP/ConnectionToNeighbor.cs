@@ -226,7 +226,7 @@ namespace Dcomms.DRP
 
                 SharedAuthKeyForNeighborHMAC = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
 
-                _engine.WriteToLog_p2p_detail(this, $"initialized P2P stream: SharedAuthKeyForHMAC={MiscProcedures.ByteArrayToString(SharedAuthKeyForNeighborHMAC)}");
+                _engine.WriteToLog_p2p_detail(this, $"initialized P2P stream: SharedAuthKeyForHMAC={MiscProcedures.ByteArrayToString(SharedAuthKeyForNeighborHMAC)}", req);
                 //Encryptor = cryptoLibrary.CreateAesEncyptor(iv, aesKey);
                 //Decryptor = cryptoLibrary.CreateAesDecyptor(iv, aesKey);
             }
@@ -363,7 +363,7 @@ namespace Dcomms.DRP
             
             engine.Configuration.VisionChannel?.RegisterVisibleModule(engine.Configuration.VisionChannelSourceId, VisibleModulePath, this);
 
-            engine.WriteToLog_p2p_detail(this, $"created p2p connection: remoteRegistrationId={remoteRegistrationId}, LocalNeighborToken32={LocalNeighborToken32}, LocalNeighborToken16={LocalNeighborToken32.Token16.ToString("X4")}");
+            engine.WriteToLog_p2p_detail(this, $"created p2p connection: remoteRegistrationId={remoteRegistrationId}, LocalNeighborToken32={LocalNeighborToken32}, LocalNeighborToken16={LocalNeighborToken32.Token16.ToString("X4")}", null);
 
         }
         string VisibleModulePath => $"{_localDrpPeer}{Vision.VisionChannel.PathSeparator}{this.LocalNeighborToken32}";
@@ -412,7 +412,7 @@ namespace Dcomms.DRP
                 // remove timed out connected peers (neighbors)
                 if (timeNowUTC > _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket + _engine.Configuration.ConnectedPeersRemovalTimeout)
                 {
-                    _engine.WriteToLog_p2p_lightPain(this, "disposing connection to neighbor: ping response timer has expired");
+                    _engine.WriteToLog_p2p_lightPain(this, "disposing connection to neighbor: ping response timer has expired", null);
                     this.Dispose(); // remove dead connected peers (no reply to ping)
                     needToRestartLoop = true;
                     return;
@@ -447,19 +447,19 @@ namespace Dcomms.DRP
         {
             _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket = responseReceivedAtUTC;
             _latestReceivedPong = pong;
-            _engine.WriteToLog_p2p_detail(this, "verified pong");
+            _engine.WriteToLog_p2p_detail(this, "verified pong", null);
           
             if (requestResponseDelay.HasValue)
                 OnMeasuredRequestResponseDelay(requestResponseDelay.Value);
         }
         void OnMeasuredRequestResponseDelay(TimeSpan requestResponseDelay)
         {
-            _engine.WriteToLog_p2p_detail(this, $"measured RTT: {(int)requestResponseDelay.TotalMilliseconds}ms");
+            _engine.WriteToLog_p2p_detail(this, $"measured RTT: {(int)requestResponseDelay.TotalMilliseconds}ms", null);
             _latestPingPongDelay_RTT = requestResponseDelay;
         }
         internal void OnReceivedPong(IPEndPoint remoteEndpoint, byte[] udpData, DateTime receivedAtUtc) // engine thread
         {
-            _engine.WriteToLog_p2p_detail(this, "received PONG");
+            _engine.WriteToLog_p2p_detail(this, "received PONG", null);
             if (_disposed) return;
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
             {
@@ -486,20 +486,20 @@ namespace Dcomms.DRP
         }
         internal void OnReceivedPing(IPEndPoint remoteEndpoint, byte[] udpData) // engine thread
         {
-            _engine.WriteToLog_p2p_detail(this, "received PING");
+            _engine.WriteToLog_p2p_detail(this, "received PING", null);
             if (_disposed)
             {
-                _engine.WriteToLog_p2p_detail(this, "ignoring PING: conenction is disposed");
+                _engine.WriteToLog_p2p_detail(this, "ignoring PING: conenction is disposed", null);
                 return;
             }
             if (this.RemoteEndpoint == null)
             {
-                _engine.WriteToLog_p2p_detail(this, "ignoring PING: correct remote endpoint is unknown yet");
+                _engine.WriteToLog_p2p_detail(this, "ignoring PING: correct remote endpoint is unknown yet", null);
                 return;
             }
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
             {
-                _engine.WriteToLog_p2p_lightPain(this, $"ignoring PING: bad source endpoint {remoteEndpoint}, correct is {this.RemoteEndpoint}");
+                _engine.WriteToLog_p2p_lightPain(this, $"ignoring PING: bad source endpoint {remoteEndpoint}, correct is {this.RemoteEndpoint}", null);
                 _engine.OnReceivedUnauthorizedSourceIpPacket(remoteEndpoint);
                 return;
             }
@@ -524,7 +524,7 @@ namespace Dcomms.DRP
 
                 if ((pingRequestPacket.Flags & PingPacket.Flags_ConnectionTeardown) != 0)
                 {
-                    _engine.WriteToLog_p2p_higherLevelDetail(this, "received PING with connection teardown flag set");
+                    _engine.WriteToLog_p2p_higherLevelDetail(this, "received PING with connection teardown flag set", null);
                     this.Dispose();
                 }
             }
@@ -552,9 +552,16 @@ namespace Dcomms.DRP
                 if (!_engine.ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
                     throw new BadSignatureException();
 
-                _engine.WriteToLog_p2p_higherLevelDetail(this, $"received reg. request {req.RequesterRegistrationId} ({req.NumberOfHopsRemaining} hops remaining) via P2P connection");
+                _engine.WriteToLog_p2p_higherLevelDetail(this, $"received {req} ({req.NumberOfHopsRemaining} hops remaining) via P2P connection", req);
                 if (req.RequesterRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
-                    _engine.WriteToLog_routing_lightPain($"received reg. request to same reg. ID {req.RequesterRegistrationId}");
+                    _engine.WriteToLog_routing_lightPain($"received {req} to same reg. ID", req, LocalDrpPeer);
+
+                if (_engine.PendingRegisterRequestExists(req.RequesterRegistrationId))
+                {
+                    _engine.WriteToLog_routing_higherLevelDetail($"rejecting {req}: another request is already pending", req, LocalDrpPeer);
+                    _engine.SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, this);
+                    return;
+                }
 
 
                 var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
@@ -580,7 +587,7 @@ _retry:
                     if (needToRerouteToAnotherNeighbor && !this.IsDisposed)
                     {
                         alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
-                        _engine.WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}");
+                        _engine.WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}", req, LocalDrpPeer);
                         checkRecentUniqueProxiedRegistrationRequests = false;
                         alreadyRepliedWithNPA = true;
 
@@ -612,6 +619,13 @@ _retry:
 
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
                     throw new BadSignatureException();
+
+                if (LocalDrpPeer.PendingInviteRequestExists(req.RequesterRegistrationId))
+                {
+                    Engine.WriteToLog_inv_proxySide_detail($"rejecting {req}: another request is already being proxied");
+                    LocalDrpPeer.SendNeighborPeerAckResponseToReq(req, this, NextHopResponseCode.rejected_serviceUnavailable);
+                    return;
+                }
 
                 if (req.ResponderRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
                 {

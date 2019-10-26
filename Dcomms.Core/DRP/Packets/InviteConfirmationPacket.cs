@@ -115,7 +115,7 @@ namespace Dcomms.DRP.Packets
             {
                 if (connectionToNeighbor.IsDisposed)
                 {
-                    connectionToNeighbor.Engine.WriteToLog_p2p_needsAttention(connectionToNeighbor, "ignoring CFM: connection is disposed");
+                    connectionToNeighbor.Engine.WriteToLog_p2p_needsAttention(connectionToNeighbor, "ignoring CFM: connection is disposed", req);
                     return false;
                 }
                 var cfm = Decode(responseData);

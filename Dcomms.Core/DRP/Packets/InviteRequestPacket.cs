@@ -109,5 +109,16 @@ namespace Dcomms.DRP.Packets
             writer.Write(ReqTimestamp32S);
         }
 
+        public override bool Equals(object obj)
+        {
+            var obj2 = (InviteRequestPacket)obj;
+            if (obj2 == null) return false;
+            return obj2.ReqTimestamp32S == this.ReqTimestamp32S && obj2.RequesterRegistrationId.Equals(this.RequesterRegistrationId);
+        }
+        public override int GetHashCode()
+        {
+            return ReqTimestamp32S.GetHashCode() ^ RequesterRegistrationId.GetHashCode();
+        }
+        public override string ToString() => $"invReq[{RequesterRegistrationId}-{ReqTimestamp32S}]";
     }
 }
