@@ -80,7 +80,7 @@ namespace Dcomms.DRP
             HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
             RegisterRequestPacket req)
         {
-            foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.PingReceived == true))
+            foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.CanBeUsedForRouting))
             {
                 if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
                 {
@@ -205,9 +205,14 @@ namespace Dcomms.DRP
         }
         void DestroyWorstNeighbor(double? mutualValueLowLimit, DateTime timeNowUtc)
         {
+            if (ConnectedNeighbors.Any(x => x.IsInTeardownState))
+            {
+                return;
+            }
+
             double? worstValue = mutualValueLowLimit;
             ConnectionToNeighbor worstNeighbor = null;
-            foreach (var neighbor in ConnectedNeighbors)
+            foreach (var neighbor in ConnectedNeighbors.Where(x => x.CanBeUsedForRouting))
             {
                 var p2pConnectionValue_withNeighbor =
                     P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary,
@@ -236,8 +241,16 @@ namespace Dcomms.DRP
                                 Engine.Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
                             );
 
-                worstNeighbor.Dispose();
-                _ = Engine.SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pong    
+                _ = Engine.SendUdpRequestAsync_Retransmit(pendingPingRequest); // retransmit until PONG    
+                worstNeighbor.IsInTeardownState = true;
+                Engine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(PingPacket.ConnectionTeardownStateDurationS), () =>
+                {
+                    if (!worstNeighbor.IsDisposed)
+                    {
+                        Engine.WriteToLog_p2p_higherLevelDetail(worstNeighbor, $"destroying worst P2P connection after teardown state timeout", null);
+                        worstNeighbor.Dispose();
+                    }
+                });
             }
         }
 

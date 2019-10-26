@@ -312,6 +312,7 @@ namespace Dcomms.DRP
         PingPacket _latestPingReceived;// float MaxTxInviteRateRps, MaxTxRegiserRateRps; // sent by remote peer via ping
         public ushort? RemoteNeighborsBusySectorIds => _latestPingReceived?.RequesterNeighborsBusySectorIds;
         public bool PingReceived => _latestPingReceived != null;
+        public bool CanBeUsedForRouting => PingReceived == true && IsInTeardownState == false;
 
         PongPacket _latestReceivedPong;
         TimeSpan? _latestPingPongDelay_RTT;
@@ -334,7 +335,8 @@ namespace Dcomms.DRP
         public readonly byte[] LocalEcdhe25519PublicKey;
         bool _disposed;
         internal bool IsDisposed => _disposed;
-        
+        internal bool IsInTeardownState { get; set; }
+
         public ConnectionToNeighbor(DrpPeerEngine engine, LocalDrpPeer localDrpPeer, ConnectedDrpPeerInitiatedBy initiatedBy, RegistrationId remoteRegistrationId)
         {
             _seq16Counter_P2P = (ushort)_insecureRandom.Next(ushort.MaxValue);
@@ -489,7 +491,7 @@ namespace Dcomms.DRP
             _engine.WriteToLog_p2p_detail(this, "received PING", null);
             if (_disposed)
             {
-                _engine.WriteToLog_p2p_detail(this, "ignoring PING: conenction is disposed", null);
+                _engine.WriteToLog_p2p_detail(this, "ignoring PING: connection is disposed", null);
                 return;
             }
             if (this.RemoteEndpoint == null)
@@ -522,10 +524,18 @@ namespace Dcomms.DRP
               //  _engine.WriteToLog_ping_detail($" sending ping response with senderHMAC={pong.NeighborHMAC}");
                 SendPacket(pong.Encode());
 
-                if ((pingRequestPacket.Flags & PingPacket.Flags_ConnectionTeardown) != 0)
+                if ((pingRequestPacket.Flags & PingPacket.Flags_ConnectionTeardown) != 0 && !IsInTeardownState)
                 {
-                    _engine.WriteToLog_p2p_higherLevelDetail(this, "received PING with connection teardown flag set: destroying p2p connection", null);
-                    this.Dispose();
+                    IsInTeardownState = true;
+                    _engine.WriteToLog_p2p_higherLevelDetail(this, "received PING with connection teardown flag set: destroying P2P connection", null);
+                    Engine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(PingPacket.ConnectionTeardownStateDurationS), () =>
+                    {
+                        if (!IsDisposed)
+                        {
+                            _engine.WriteToLog_p2p_higherLevelDetail(this, "destroying P2P connection after teardown state timeout", null);
+                            this.Dispose();
+                        }
+                    });
                 }
             }
             catch (Exception exc)

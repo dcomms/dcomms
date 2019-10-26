@@ -189,7 +189,7 @@ namespace Dcomms.DRP
         {
             ConnectionToNeighbor r = null;
             RegistrationIdDistance minDistance = null;
-            foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors)
+            foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors.Where(x => x.CanBeUsedForRouting))
             {
                 var distanceToConnectedPeer = req.ResponderRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId, NumberOfDimensions);
                 WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from INVITE REQ {req.ResponderRegistrationId} to {connectedPeer.RemoteRegistrationId}", req, localDrpPeer);

@@ -16,7 +16,11 @@ namespace Dcomms.DRP.Packets
         public byte Flags; // is signed by HMAC
         const byte FlagsMask_MustBeZero = 0b11110000;
         public const byte Flags_RegistrationConfirmationSignatureRequested = 0b00000001;
+        /// <summary>
+        /// initiates "connection teardown" state which lasts 10 seconds before destroying P2P connection, at both sides - "requester, responder"
+        /// </summary>
         public const byte Flags_ConnectionTeardown = 0b00000010;
+        public const double ConnectionTeardownStateDurationS = 15;
         
         public string VisionName { get; set; }
 
