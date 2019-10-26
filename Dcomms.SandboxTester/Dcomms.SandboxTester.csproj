@@ -76,6 +76,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Page Include="FilteredLogMessagesWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="PeersDisplayWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -89,6 +93,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Converters.cs" />
+    <Compile Include="FilteredLogMessagesWindow.xaml.cs">
+      <DependentUpon>FilteredLogMessagesWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="PeersDisplayWindow.xaml.cs">
       <DependentUpon>PeersDisplayWindow.xaml</DependentUpon>
     </Compile>

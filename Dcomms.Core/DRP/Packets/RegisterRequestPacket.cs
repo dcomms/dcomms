@@ -199,5 +199,18 @@ namespace Dcomms.DRP.Packets
             RequesterRegistrationId.Encode(writer);
             writer.Write(ReqTimestamp64);
         }
+
+
+        public override bool Equals(object obj)
+        {
+            var obj2 = (RegisterRequestPacket)obj;
+            if (obj2 == null) return false;
+            return obj2.ReqTimestamp64 == this.ReqTimestamp64 && obj2.RequesterRegistrationId.Equals(this.RequesterRegistrationId);
+        }
+        public override int GetHashCode()
+        {
+            return ReqTimestamp64.GetHashCode() ^ RequesterRegistrationId.GetHashCode();
+        }
+        public override string ToString() => $"regReg[{RequesterRegistrationId}-{ReqTimestamp64}]";
     }
 }

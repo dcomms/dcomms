@@ -230,7 +230,10 @@
                                     <DataGridTemplateColumn Header="Peers">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <Button Content="show peers" Command="{Binding DisplayPeersList}" Visibility="{Binding DisplayPeersListVisible, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Content="show peers" Command="{Binding DisplayPeersList}" Visibility="{Binding DisplayPeersListVisible, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                    <Button Content="show path" Command="{Binding DisplayRoutingPath}" Visibility="{Binding DisplayRoutingPathVisible, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                </StackPanel>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>

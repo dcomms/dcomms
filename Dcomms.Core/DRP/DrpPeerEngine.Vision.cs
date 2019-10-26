@@ -83,22 +83,22 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_udp) <= AttentionLevel.lightPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_udp, AttentionLevel.lightPain, message);
         }
-        internal void WriteToLog_reg_proxySide_detail(string message)
+        internal void WriteToLog_reg_proxySide_detail(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.detail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.detail, message);
         }
-        internal void WriteToLog_reg_proxySide_higherLevelDetail(string message)
+        internal void WriteToLog_reg_proxySide_higherLevelDetail(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.higherLevelDetail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.higherLevelDetail, message);
         }
-        internal void WriteToLog_reg_proxySide_needsAttention(string message)
+        internal void WriteToLog_reg_proxySide_needsAttention(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.needsAttention)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.needsAttention, message);
         }
-        internal void WriteToLog_reg_proxySide_lightPain(string message)
+        internal void WriteToLog_reg_proxySide_lightPain(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.lightPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.lightPain, message);
@@ -127,35 +127,39 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_engineThread) <= AttentionLevel.strongPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_engineThread, AttentionLevel.strongPain, $"exception: {exc}");            
         }
-        internal void WriteToLog_reg_requesterSide_needsAttention(string message)
+        internal void WriteToLog_reg_requesterSide_needsAttention(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.needsAttention)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.needsAttention, message);
+            {
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.needsAttention, message, req, localPeer);
+            }
         }
-        internal void WriteToLog_reg_requesterSide_detail(string message)
+        internal void WriteToLog_reg_requesterSide_detail(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.detail)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.detail, message);
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.detail, message, req, localPeer);
         }
-        internal void WriteToLog_reg_requesterSide_higherLevelDetail(string message)
+        internal void WriteToLog_reg_requesterSide_higherLevelDetail(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.higherLevelDetail)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.higherLevelDetail, message);
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.higherLevelDetail, message, req, localPeer);
         }
         internal void WriteToLog_drpGeneral_detail(string message)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general) <= AttentionLevel.detail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general, AttentionLevel.detail, message);
         }
-        internal void WriteToLog_reg_requesterSide_mediumPain(string message)
+        internal void WriteToLog_reg_requesterSide_mediumPain(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.mediumPain, message);
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.mediumPain, message, req, localPeer);
         }
-        internal void WriteToLog_reg_requesterSide_lightPain(string message)
+        internal void WriteToLog_reg_requesterSide_lightPain(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.lightPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.lightPain, message);
+            {
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.lightPain, message, req, localPeer);
+            }
         }
         internal void WriteToLog_inv_requesterSide_detail(string message)
         {
@@ -232,30 +236,31 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.mediumPain, $"exception while responding to REGISTER REQ {req.RequesterRegistrationId} from {requesterEndpoint}: {exc}");
         }
-        void HandleExceptionWhileProxyingRegister(RegisterRequestPacket req, IPEndPoint requesterEndpoint, Exception exc)
+        void HandleExceptionWhileProxyingRegister(RegisterRequestPacket req, IVisiblePeer localPeer, IPEndPoint requesterEndpoint, Exception exc)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.mediumPain, $"exception while proxying REGISTER REQ {req.RequesterRegistrationId} from {requesterEndpoint}: {exc}");
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.mediumPain,
+                    $"exception while proxying {req} from {requesterEndpoint}: {exc}", req, localPeer);
         }
-        internal void WriteToLog_reg_responderSide_detail(string message)
+        internal void WriteToLog_reg_responderSide_detail(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.detail)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, message);
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.detail, message, req, localPeer);
         }
-        internal void WriteToLog_reg_responderSide_higherLevelDetail(string message)
+        internal void WriteToLog_reg_responderSide_higherLevelDetail(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.higherLevelDetail)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.higherLevelDetail, message);
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.higherLevelDetail, message, req, localPeer);
         }
-        internal void WriteToLog_reg_responderSide_lightPain(string message)
+        internal void WriteToLog_reg_responderSide_lightPain(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.lightPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.lightPain, message);
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.lightPain, message, req, localPeer);
         }
-        internal void WriteToLog_reg_responderSide_needsAttention(string message)
+        internal void WriteToLog_reg_responderSide_needsAttention(string message, object req, IVisiblePeer localPeer)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.needsAttention)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.needsAttention, message);
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.needsAttention, message, req, localPeer);
         }
         internal void HandleExceptionInInviteRequester(Exception exc)
         {

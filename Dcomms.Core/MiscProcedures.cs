@@ -272,6 +272,21 @@ namespace Dcomms
                 return true;
             }
         }
+        public static unsafe bool EqualFloatArrays(float[] a1, float[] a2)
+        {
+            if (a1 == a2) return true;
+            if (a1 == null || a2 == null || a1.Length != a2.Length)
+                return false;
+            fixed (float* p1 = a1, p2 = a2)
+            {
+                float* x1 = p1, x2 = p2;
+                int l = a1.Length;
+                for (int i = 0; i < l; i++, x1++, x2++)
+                    if (*x1 != *x2) return false;
+
+                return true;
+            }
+        }
         public static unsafe int GetArrayHashCode(byte[] a)
         {
             fixed (byte* p = a)
@@ -281,6 +296,18 @@ namespace Dcomms
                 int r = 0;
                 for (int i = 0; i < l / 4; i++, x += 4)
                     r ^= *((int*)x);
+                return r;
+            }
+        }
+        public static unsafe int GetArrayHashCode(float[] a)
+        {
+            fixed (float* p = a)
+            {
+                int* x = (int*)p;
+                int l = a.Length;
+                int r = 0;
+                for (int i = 0; i < l; i++, x++)
+                    r ^= *x;
                 return r;
             }
         }

@@ -97,18 +97,17 @@ namespace Dcomms.DRP.Packets
 
             return r;
         }
-
-
+        
         public static ushort DecodeNeighborToken16(byte[] udpData)
         { // first 2 bytes ares packet type and flags. then 4 bytes are NeighborToken32
             return (ushort)(udpData[2] | (udpData[3] << 8));
         }
-
         public void GetUniqueRequestIdFields(BinaryWriter writer)
         {
             RequesterRegistrationId.Encode(writer);
             ResponderRegistrationId.Encode(writer);
             writer.Write(ReqTimestamp32S);
         }
+
     }
 }

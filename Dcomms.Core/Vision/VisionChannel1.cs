@@ -11,6 +11,7 @@ namespace Dcomms.Vision
 {
     public class VisionChannel1 : VisionChannel, INotifyPropertyChanged
     {
+        public bool AttentionToRoutedPath { get; set; } = true;
         public AttentionLevel AttentionLevel { get; set; } = AttentionLevel.deepDetail;
         public AttentionLevel DisplayFilterMinLevel { get; set; } = AttentionLevel.guiActivity;
         public override AttentionLevel GetAttentionTo(string visionChannelSourceId, string moduleName)
@@ -19,6 +20,7 @@ namespace Dcomms.Vision
         }
         public IEnumerable<AttentionLevel> DisplayFilterMinLevels => Enum.GetValues(typeof(AttentionLevel)).Cast<AttentionLevel>();
         public Action<string,List<IVisiblePeer>,VisiblePeersDisplayMode> DisplayPeersDelegate;
+        public Action<object> DisplayRoutingPathDelegate;
 
         public string DisplayFilterSourceIds { get; set; }
         public string DisplayFilterMessageContainsString { get; set; }
@@ -66,6 +68,16 @@ namespace Dcomms.Vision
                     return _logMessagesNewestFirst.Where(x=>x.Selected).ToList();
                 }
             }
+        }
+        public List<LogMessage> GetLogMessages(object routingPathReq)
+        {          
+            lock (_logMessagesNewestFirst)
+            {
+                IEnumerable<LogMessage> r = _logMessagesNewestFirst;
+                r = r.Where(x => routingPathReq.Equals(x.RoutedPathReq));
+              //  r = r.Where(x => x.AttentionLevel >= DisplayFilterMinLevel);
+                return r.Take(DisplayedLogMessagesMaxCount).ToList();
+            }            
         }
 
         public ICommand RefreshDisplayedSelectedLogMessages => new DelegateCommand(() =>
@@ -118,6 +130,33 @@ namespace Dcomms.Vision
                 PeersListDisplayMode = peersListDisplayMode,
 
             };
+            lock (_logMessagesNewestFirst)
+            {
+                _logMessagesNewestFirst.AddFirst(msg);
+                while (_logMessagesNewestFirst.Count > LogMessagesMaxCount)
+                    _logMessagesNewestFirst.RemoveLast();
+            }
+        }
+        public override void EmitPeerInRoutedPath(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, object req, IVisiblePeer localPeer)
+        {
+            if (!EnableNewLogMessages) return;
+            var msg = new LogMessage(this)
+            {
+                AttentionLevel = level,
+                ManagedThreadId = Thread.CurrentThread.ManagedThreadId,
+                Time = TimeNow,
+                SourceId = visionChannelSourceId,
+                ModuleName = moduleName,
+                Message = message,               
+
+            };
+
+            if (AttentionToRoutedPath && req != null)
+            {
+                msg.RoutedPathPeer = ClonedVisiblePeer.Clone(localPeer);
+                msg.RoutedPathReq = req;
+            }
+
             lock (_logMessagesNewestFirst)
             {
                 _logMessagesNewestFirst.AddFirst(msg);
@@ -218,6 +257,16 @@ namespace Dcomms.Vision
             {
                 _visionChannel.DisplayPeersDelegate(Message, PeersList, PeersListDisplayMode);
             });
+
+
+            public bool DisplayRoutingPathVisible => (RoutedPathReq != null && _visionChannel.DisplayRoutingPathDelegate != null);
+            public ICommand DisplayRoutingPath => new DelegateCommand(() =>
+            {
+                _visionChannel.DisplayRoutingPathDelegate(RoutedPathReq);
+            });
+
+            public object RoutedPathReq;
+            public IVisiblePeer RoutedPathPeer;
         }
         
         class ClonedVisiblePeer: IVisiblePeer
@@ -268,7 +317,36 @@ namespace Dcomms.Vision
             }
             string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer)
             {
-                throw new NotImplementedException();
+                return "";
+            }
+            
+            public static IVisiblePeer Clone(IVisiblePeer sourcePeer)
+            {
+                var r = new ClonedVisiblePeer
+                {
+                    VectorValues = sourcePeer.VectorValues.ToArray(),
+                    Highlighted = sourcePeer.Highlighted,
+                    Name = sourcePeer.Name
+                };              
+
+                r.NeighborPeers = new List<IVisiblePeer>();
+                foreach (var neighbor in sourcePeer.NeighborPeers)
+                {                       
+                    r.NeighborPeers.Add(new ClonedVisiblePeer
+                    {
+                        VectorValues = neighbor.VectorValues.ToArray()
+                    });                        
+                }               
+
+                return r;
+            }
+            public override int GetHashCode()
+            {
+                return MiscProcedures.GetArrayHashCode(VectorValues);
+            }
+            public override bool Equals(object obj)
+            {
+                return MiscProcedures.EqualFloatArrays(this.VectorValues, ((ClonedVisiblePeer)obj).VectorValues);
             }
         }
     }

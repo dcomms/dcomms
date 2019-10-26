@@ -50,10 +50,23 @@ namespace Dcomms.SandboxTester
             }, null, 0, 3000);
             this.Closed += CryptographyTesterMainWindow_Closed1;
 
-            VisionChannel.DisplayPeersDelegate = (text,peersList,mode) =>
+            VisionChannel.DisplayPeersDelegate = (text, peersList, mode) =>
             {
-                var wnd = new PeersDisplayWindow(text,peersList,mode);
+                var wnd = new PeersDisplayWindow(text, peersList, mode);
                 wnd.Show();
+            };
+            VisionChannel.DisplayRoutingPathDelegate = (req) =>
+            {
+                var logMessages = VisionChannel.GetLogMessages(req);
+                var peers = logMessages.Select(x => x.RoutedPathPeer).Distinct().ToList();
+
+                var peersWnd = new PeersDisplayWindow($"routing for {req}", peers, VisiblePeersDisplayMode.routingPath);
+                peersWnd.Show();
+
+
+                var logWnd = new FilteredLogMessagesWindow(logMessages) { Title = $"routing for {req}" };
+                logWnd.Show();
+
             };
         }
 

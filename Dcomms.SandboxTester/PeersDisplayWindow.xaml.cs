@@ -13,6 +13,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using static Dcomms.Vision.VisionChannel1;
 
 namespace Dcomms.SandboxTester
 {
@@ -31,17 +32,18 @@ namespace Dcomms.SandboxTester
             this.Initialized += PeersDisplayWindow_Initialized;
             this.SizeChanged += PeersDisplayWindow_SizeChanged;
 
-            if (displayMode == VisiblePeersDisplayMode.routingPath)
+            if (_displayMode == VisiblePeersDisplayMode.routingPath)
             {
                 text1.Visibility = Visibility.Visible;
                 var sb = new StringBuilder();
                 sb.Append("distances to target: ");
-                for (int i = 0; i < peers.Count; i++)
-                    sb.Append($"hop{i}({peers[i].Name}):{peers[peers.Count-1].GetDistanceString(peers[i])};  ");
-               
+                for (int i = 0; i < _peers.Count; i++)
+                    sb.Append($"hop{i}({_peers[i].Name}):{_peers[_peers.Count-1].GetDistanceString(_peers[i])};  ");
+                
                 text1.Text = sb.ToString();
             }
         }
+    
 
         private void PeersDisplayWindow_SizeChanged(object sender, SizeChangedEventArgs e)
         {
@@ -60,11 +62,15 @@ namespace Dcomms.SandboxTester
             if (_displayMode == VisiblePeersDisplayMode.routingPath)
                 foreach (var peer in _peers)
                     foreach (var neighborPeer in peer.NeighborPeers)
-                        foreach (var neighborPeer2 in neighborPeer.NeighborPeers)
-                        {
-                            DisplayConnection(Colors.LightGreen, peer, neighborPeer2, 1);
-                            DisplayPeer(Colors.LightGreen, neighborPeer2, 2);
-                        }
+                    {
+                        var neighborPeers2 = neighborPeer.NeighborPeers;
+                        if (neighborPeers2 != null)
+                            foreach (var neighborPeer2 in neighborPeers2)
+                            {
+                                DisplayConnection(Colors.LightGreen, peer, neighborPeer2, 1);
+                                DisplayPeer(Colors.LightGreen, neighborPeer2, 2);
+                            }
+                    }
                               
 
             foreach (var peer in _peers)

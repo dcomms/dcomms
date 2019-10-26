@@ -141,7 +141,7 @@ namespace Dcomms.DRP
                         if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.03 || ConnectedNeighbors.Count == 0))
                         {
                             var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
-                            Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({ConnectedNeighbors.Count} connected neighbors now)");
+                            Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({ConnectedNeighbors.Count} connected neighbors now)", null, null);
                             await Engine.RegisterAsync(this, epEndpoint, 0, 20);
                         }
                         else
@@ -149,7 +149,7 @@ namespace Dcomms.DRP
                             if (ConnectedNeighbors.Count != 0)
                             {
                                 var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
-                                Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)");
+                                Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)", null, null);
                                 await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, 20,
                                     2//////////////////////////////////todo when need random hops??????????????? 2
 
@@ -167,11 +167,11 @@ namespace Dcomms.DRP
                     //}
                     catch (DrpResponderRejectedP2pNetworkServiceUnavailableException exc)
                     {
-                        Engine.WriteToLog_reg_requesterSide_lightPain($"failed to extend neighbors for {this}: {exc}");
+                        Engine.WriteToLog_reg_requesterSide_lightPain($"failed to extend neighbors for {this}: {exc}", null, null);
                     }
                     catch (Exception exc)
                     {
-                        Engine.WriteToLog_reg_requesterSide_mediumPain($"failed to extend neighbors for {this}: {exc}");
+                        Engine.WriteToLog_reg_requesterSide_mediumPain($"failed to extend neighbors for {this}: {exc}", null, null);
                     }
                 }
             }
@@ -184,11 +184,11 @@ namespace Dcomms.DRP
         /// </summary>
         void NeighborsApoptosisProcedure(DateTime timeNowUtc)
         {
-            if (ConnectedNeighbors.Count > Configuration.AbsoluteMaxDesiredNumberOfNeighbors)
+            if (ConnectedNeighbors.Count > Configuration.AbsoluteMaxNumberOfNeighbors)
             {
                 DestroyWorstNeighbor(null, timeNowUtc);
             }
-            else if (ConnectedNeighbors.Count > Configuration.SoftMaxDesiredNumberOfNeighbors)
+            else if (ConnectedNeighbors.Count > Configuration.SoftMaxNumberOfNeighbors)
             {
                 DestroyWorstNeighbor(P2pConnectionValueCalculator.MutualValueToKeepConnectionAlive_SoftLimitNeighborsCountCases, timeNowUtc);
             }
@@ -254,7 +254,7 @@ namespace Dcomms.DRP
                 try
                 {
                     var conn = await Engine.RegisterAsync(this, endpoint, 0, 1); // engine thread
-                    Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"@BeginConnectToEPsAsync connected to {endpoint}. {ConnectedNeighbors.Count} connected neighbors");
+                    Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"@BeginConnectToEPsAsync connected to {endpoint}. {ConnectedNeighbors.Count} connected neighbors", null, null);
                 }
                 catch (Exception exc)
                 {
@@ -291,8 +291,8 @@ namespace Dcomms.DRP
         public RegistrationId LocalPeerRegistrationId { get; private set; }
         public RegistrationPrivateKey LocalPeerRegistrationPrivateKey { get; private set; }
         public int? MinDesiredNumberOfNeighbors;// = 12;
-        public int? SoftMaxDesiredNumberOfNeighbors;// = 13; 
-        public int? AbsoluteMaxDesiredNumberOfNeighbors;// = 20;
+        public int? SoftMaxNumberOfNeighbors;// = 13; 
+        public int? AbsoluteMaxNumberOfNeighbors;// = 20;
         public double? MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS;// = 30;
 
         public static LocalDrpPeerConfiguration CreateWithNewKeypair(ICryptoLibrary cryptoLibrary)

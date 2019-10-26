@@ -95,6 +95,10 @@ namespace Dcomms.Vision
             VisiblePeersDisplayMode peersListDisplayMode)
         {
         }
+
+        public virtual void EmitPeerInRoutedPath(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, object req, IVisiblePeer localPeer)
+        {
+        }
     }
     public interface IVisibleModule
     {

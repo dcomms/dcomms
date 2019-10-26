@@ -20,11 +20,17 @@ namespace Dcomms.Sandbox
         //const int EpAbsoluteMaxDesiredNumberOfNeighbors = 30;
         //const int EpSoftMaxDesiredNumberOfNeighbors = 25;
 
-
+        const int NumberOfPeers = 50;
         const int NumberOfEPs = 10;
         const int NumberOfDimensions = 2;
-        const int MinDesiredNumberOfNeighbors = 5;
+        const int MinDesiredNumberOfNeighbors = 6;
         const int SoftMaxDesiredNumberOfNeighbors = 7;
+        const int AbsoluteMaxDesiredNumberOfNeighbors = 10;
+        const int MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 3000000;///===============================================================
+        const double NeighborhoodExtensionMinIntervalS = 20;///===========================================================
+
+
+
         const int EpAbsoluteMaxDesiredNumberOfNeighbors = 13;
         const int EpSoftMaxDesiredNumberOfNeighbors = 10;
         const int EpMinDesiredNumberOfNeighbors = 5;
@@ -109,8 +115,7 @@ namespace Dcomms.Sandbox
         //    }, null, 0, 500);
         //}
         void xList_BeginCreate(int index)
-        {         
-
+        {        
             var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 InsecureRandomSeed = _insecureRandom.Next(),
@@ -118,7 +123,8 @@ namespace Dcomms.Sandbox
                 ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
                 VisionChannelSourceId = $"X{index}",
                 SandboxModeOnly_DisablePoW = true,
-                SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
+                SandboxModeOnly_NumberOfDimensions = NumberOfDimensions,
+                NeighborhoodExtensionMinIntervalS = NeighborhoodExtensionMinIntervalS
             });
 
             EmitAllPeers(AttentionLevel.guiActivity, $"creating peer index {index}...");
@@ -126,7 +132,9 @@ namespace Dcomms.Sandbox
             var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(x.CryptoLibrary);
             xLocalDrpPeerConfig.EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) };
             xLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = MinDesiredNumberOfNeighbors;
-            xLocalDrpPeerConfig.SoftMaxDesiredNumberOfNeighbors = SoftMaxDesiredNumberOfNeighbors;
+            xLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = SoftMaxDesiredNumberOfNeighbors;
+            xLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = AbsoluteMaxDesiredNumberOfNeighbors;
+            xLocalDrpPeerConfig.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS;
             var xDrpTesterPeerApp = new DrpTesterPeerApp(x, xLocalDrpPeerConfig);
             _xList.Add(xDrpTesterPeerApp);
             x.BeginRegister(xLocalDrpPeerConfig, xDrpTesterPeerApp, (localDrpPeer) =>
@@ -145,7 +153,7 @@ namespace Dcomms.Sandbox
             if (x.LocalDrpPeer.ConnectedNeighbors.Count >= x.LocalDrpPeer.Configuration.MinDesiredNumberOfNeighbors)
             {
                 EmitAllPeers(AttentionLevel.guiActivity, $"{x} is connected with {x.LocalDrpPeer.ConnectedNeighbors.Count} neighbors, enough to continue with other peers");
-                if (index < 2)
+                if (index < NumberOfPeers)
                     xList_BeginCreate(index + 1);
             }
             else
@@ -192,8 +200,8 @@ namespace Dcomms.Sandbox
                     foreach (var ep2 in _epList)
                     {
                         ep2.DrpPeerRegistrationConfiguration.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = null;
-                        ep2.DrpPeerRegistrationConfiguration.AbsoluteMaxDesiredNumberOfNeighbors = EpAbsoluteMaxDesiredNumberOfNeighbors;
-                        ep2.DrpPeerRegistrationConfiguration.SoftMaxDesiredNumberOfNeighbors = EpSoftMaxDesiredNumberOfNeighbors;
+                        ep2.DrpPeerRegistrationConfiguration.AbsoluteMaxNumberOfNeighbors = EpAbsoluteMaxDesiredNumberOfNeighbors;
+                        ep2.DrpPeerRegistrationConfiguration.SoftMaxNumberOfNeighbors = EpSoftMaxDesiredNumberOfNeighbors;
                         ep2.DrpPeerRegistrationConfiguration.MinDesiredNumberOfNeighbors = EpMinDesiredNumberOfNeighbors;
                     }
 
@@ -234,8 +242,8 @@ namespace Dcomms.Sandbox
                 });
                 var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(ep.CryptoLibrary);
                 epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
-                epLocalDrpPeerConfig.AbsoluteMaxDesiredNumberOfNeighbors = null;
-                epLocalDrpPeerConfig.SoftMaxDesiredNumberOfNeighbors = null;
+                epLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = null;
+                epLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = null;
                 epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
                 epLocalDrpPeerConfig.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = null;
                 _epList.Add(new DrpTesterPeerApp(ep, epLocalDrpPeerConfig));

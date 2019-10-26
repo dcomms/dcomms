@@ -50,6 +50,6 @@ namespace Dcomms.DRP
         public int? SandboxModeOnly_NumberOfDimensions;        
 
         public double NeighborhoodExtensionMaxRetryIntervalS = 20;
-        public double NeighborhoodExtensionMinIntervalS = 1;
+        public double NeighborhoodExtensionMinIntervalS = 0.5;
     }
 }
