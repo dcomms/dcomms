@@ -152,8 +152,6 @@ namespace Dcomms.DRP
                                 Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)", null, null);
                                 await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, 20,
                                     2//////////////////////////////////todo when need random hops??????????????? 2
-
-
                                     );
                             }
                         }
@@ -165,9 +163,13 @@ namespace Dcomms.DRP
                     //    if (_numberOfHopsToExtendNeighbors < 50)
                     //        _numberOfHopsToExtendNeighbors = (byte)(_numberOfHopsToExtendNeighbors + 5);
                     //}
+                    catch (NextHopRejectedExceptionServiceUnavailable exc)
+                    {
+                        Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"failed to extend neighbors for {this}: {exc}", null, null);
+                    }
                     catch (DrpResponderRejectedP2pNetworkServiceUnavailableException exc)
                     {
-                        Engine.WriteToLog_reg_requesterSide_lightPain($"failed to extend neighbors for {this}: {exc}", null, null);
+                        Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"failed to extend neighbors for {this}: {exc}", null, null);
                     }
                     catch (Exception exc)
                     {
@@ -211,6 +213,7 @@ namespace Dcomms.DRP
                     P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary,
                         this.Configuration.LocalPeerRegistrationId, this.ConnectedNeighborsBusySectorIds,
                         neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0, Engine.NumberOfDimensions);
+                Engine.WriteToLog_p2p_higherLevelDetail(neighbor, $"@DestroyWorstNeighbor() p2pConnectionValue_withNeighbor={p2pConnectionValue_withNeighbor} from {this} to {neighbor}", null);
                 if (worstValue == null || p2pConnectionValue_withNeighbor < worstValue)
                 {
                     worstValue = p2pConnectionValue_withNeighbor;
@@ -234,9 +237,7 @@ namespace Dcomms.DRP
                             );
 
                 worstNeighbor.Dispose();
-                _ = Engine.SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pong              
-
-
+                _ = Engine.SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pong    
             }
         }
 

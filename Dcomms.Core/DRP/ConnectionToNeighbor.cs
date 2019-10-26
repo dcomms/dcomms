@@ -524,7 +524,7 @@ namespace Dcomms.DRP
 
                 if ((pingRequestPacket.Flags & PingPacket.Flags_ConnectionTeardown) != 0)
                 {
-                    _engine.WriteToLog_p2p_higherLevelDetail(this, "received PING with connection teardown flag set", null);
+                    _engine.WriteToLog_p2p_higherLevelDetail(this, "received PING with connection teardown flag set: destroying p2p connection", null);
                     this.Dispose();
                 }
             }

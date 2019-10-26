@@ -76,7 +76,12 @@ namespace Dcomms.DRP
                         req.NpaSeq16, req.GetSignedFieldsForNeighborHMAC);
                     if (sourcePeer?.IsDisposed == true)
                     {
-                        WriteToLog_reg_proxySide_detail($"sourcePeer={sourcePeer} is disposed during proxying", req, destinationPeer.LocalDrpPeer);
+                        WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 52460", req, destinationPeer.LocalDrpPeer);
+                        return false;
+                    }
+                    if (destinationPeer?.IsDisposed == true)
+                    {
+                        WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 52460", req, destinationPeer.LocalDrpPeer);
                         return false;
                     }
                 }
@@ -85,7 +90,7 @@ namespace Dcomms.DRP
                     WriteToLog_reg_proxySide_higherLevelDetail($"got response=serviceUnavailable from destination {destinationPeer}. will try another neighbor..", req, destinationPeer.LocalDrpPeer);
                     if (sourcePeer?.IsDisposed == true)
                     {
-                        WriteToLog_reg_proxySide_detail($"sourcePeer={sourcePeer} is disposed during proxying", req, destinationPeer.LocalDrpPeer);
+                        WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 35346232", req, destinationPeer.LocalDrpPeer);
                         return false;
                     }
                     return true;
@@ -95,7 +100,7 @@ namespace Dcomms.DRP
                     HandleExceptionWhileProxyingRegister(req, destinationPeer.LocalDrpPeer, requesterEndpoint, reqExc);
                     if (sourcePeer?.IsDisposed == true)
                     {
-                        WriteToLog_reg_proxySide_detail($"sourcePeer={sourcePeer} is disposed during proxying", req, destinationPeer.LocalDrpPeer);
+                        WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 76897805", req, destinationPeer.LocalDrpPeer);
                         return false;
                     }
                     return true;
@@ -110,7 +115,12 @@ namespace Dcomms.DRP
                                 ));
                 if (sourcePeer?.IsDisposed == true)
                 {
-                    WriteToLog_reg_proxySide_detail($"sourcePeer={sourcePeer} is disposed during proxying", req, destinationPeer.LocalDrpPeer);
+                    WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 1649321", req, destinationPeer.LocalDrpPeer);
+                    return false;
+                }
+                if (destinationPeer?.IsDisposed == true)
+                {
+                    WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 1649321", req, destinationPeer.LocalDrpPeer);
                     return false;
                 }
                 if (ack1UdpData == null) throw new DrpTimeoutException("Did not receive ACK1 on timeout");
@@ -168,7 +178,12 @@ namespace Dcomms.DRP
                     WriteToLog_reg_proxySide_detail($"received ACK2", req, destinationPeer.LocalDrpPeer);
                     if (sourcePeer?.IsDisposed == true)
                     {
-                        WriteToLog_reg_proxySide_detail($"sourcePeer={sourcePeer} is disposed during proxying", req, destinationPeer.LocalDrpPeer);
+                        WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 2345135", req, destinationPeer.LocalDrpPeer);
+                        return false;
+                    }
+                    if (destinationPeer?.IsDisposed == true)
+                    {
+                        WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 2345135", req, destinationPeer.LocalDrpPeer);
                         return false;
                     }
                     var ack2 = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(ack2UdpData, null, null, null);
@@ -182,7 +197,12 @@ namespace Dcomms.DRP
                     // wait for NPACK
                     if (destinationPeer.IsDisposed == true)
                     {
-                        WriteToLog_reg_proxySide_detail($"destinationPeer={destinationPeer} is disposed during proxying", req, destinationPeer.LocalDrpPeer);
+                        WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 345784567", req, destinationPeer.LocalDrpPeer);
+                        return false;
+                    }
+                    if (sourcePeer?.IsDisposed == true)
+                    {
+                        WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 345784567", req, destinationPeer.LocalDrpPeer);
                         return false;
                     }
                     ack2.NpaSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
@@ -190,7 +210,12 @@ namespace Dcomms.DRP
                         ack2.NpaSeq16, ack2.GetSignedFieldsForNeighborHMAC);
                     if (sourcePeer?.IsDisposed == true)
                     {
-                        WriteToLog_reg_proxySide_detail($"sourcePeer={sourcePeer} is disposed during proxying", req, destinationPeer.LocalDrpPeer);
+                        WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 234646", req, destinationPeer.LocalDrpPeer);
+                        return false;
+                    }
+                    if (destinationPeer?.IsDisposed == true)
+                    {
+                        WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 234646", req, destinationPeer.LocalDrpPeer);
                         return false;
                     }
 
@@ -202,7 +227,12 @@ namespace Dcomms.DRP
                     var cfm = RegisterConfirmationPacket.DecodeAndOptionallyVerify(cfmUdpData, null, null);
                     if (sourcePeer?.IsDisposed == true)
                     {
-                        WriteToLog_reg_proxySide_detail($"sourcePeer={sourcePeer} is disposed during proxying", req, destinationPeer.LocalDrpPeer);
+                        WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 3452326", req, destinationPeer.LocalDrpPeer);
+                        return false;
+                    }
+                    if (destinationPeer?.IsDisposed == true)
+                    {
+                        WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 3452326", req, destinationPeer.LocalDrpPeer);
                         return false;
                     }
 
@@ -215,7 +245,12 @@ namespace Dcomms.DRP
                     // wait for NPACK from destination peer, retransmit
                     if (destinationPeer.IsDisposed == true)
                     {
-                        WriteToLog_reg_proxySide_detail($"destinationPeer={destinationPeer} is disposed during proxying", req, destinationPeer.LocalDrpPeer);
+                        WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 123678", req, destinationPeer.LocalDrpPeer);
+                        return false;
+                    }
+                    if (sourcePeer?.IsDisposed == true)
+                    {
+                        WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 123678", req, destinationPeer.LocalDrpPeer);
                         return false;
                     }
                     cfm.NpaSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
@@ -223,7 +258,7 @@ namespace Dcomms.DRP
                         cfm.NpaSeq16, cfm.GetSignedFieldsForNeighborHMAC);
                 }
 
-                WriteToLog_reg_proxySide_higherLevelDetail($"proxying {req} is complete", req, destinationPeer.LocalDrpPeer);
+                WriteToLog_reg_proxySide_higherLevelDetail($"proxying {req} is successfully complete", req, destinationPeer.LocalDrpPeer);
             }
             catch (Exception exc)
             {

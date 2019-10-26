@@ -73,7 +73,7 @@ namespace Dcomms.DRP
 
                 var reqUdpData = req.Encode_SetP2pFields(destinationPeer);
 
-                WriteToLog_inv_requesterSide_detail($"sending REQ, waiting for NPACK");
+                WriteToLog_inv_requesterSide_detail($"sending {req}, waiting for NPACK");
                 await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.NpaSeq16, req.GetSignedFieldsForNeighborHMAC);
                 WriteToLog_inv_requesterSide_detail($"received NPACK");
 

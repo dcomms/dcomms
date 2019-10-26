@@ -47,7 +47,7 @@ namespace Dcomms.DRP
                         );
                     var reqToAck1Stopwatch = Stopwatch.StartNew();
 
-                    _engine.WriteToLog_reg_requesterSide_detail($"sending REQ, waiting for NPACK. NpaSeq16={req.NpaSeq16}", req, _localDrpPeer);
+                    _engine.WriteToLog_reg_requesterSide_detail($"sending {req}, waiting for NPACK. NpaSeq16={req.NpaSeq16}", req, _localDrpPeer);
                     await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(req.Encode_OptionallySignNeighborHMAC(this), this.RemoteEndpoint, req.NpaSeq16);
                     #endregion
 
@@ -68,6 +68,17 @@ namespace Dcomms.DRP
                     {
                         _engine.WriteToLog_reg_requesterSide_needsAttention($"got ACK1 with error={ack1.ResponderStatusCode}", req, _localDrpPeer);
                         throw DrpResponderRejectedException.Create(ack1.ResponderStatusCode);
+                    }
+
+                    if (newConnectionToNeighbor.IsDisposed)
+                    {
+                        _engine.WriteToLog_reg_requesterSide_needsAttention($"connection {newConnectionToNeighbor} is disposed during reg. request 5345322345", req, _localDrpPeer);
+                        return;
+                    }
+                    if (IsDisposed)
+                    {
+                        _engine.WriteToLog_reg_requesterSide_needsAttention($"connection {this} is disposed during reg. request 5345322345", req, _localDrpPeer);
+                        return;
                     }
 
                     _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
@@ -106,6 +117,18 @@ namespace Dcomms.DRP
                         await _engine.EngineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(neighborWaitTimeMs)); // wait until the ACK2 reaches neighbor N via peers
                     }
 
+
+                    if (newConnectionToNeighbor.IsDisposed)
+                    {
+                        _engine.WriteToLog_reg_requesterSide_needsAttention($"connection {newConnectionToNeighbor} is disposed during reg. request 234574568", req, _localDrpPeer);
+                        return;
+                    }
+                    if (IsDisposed)
+                    {
+                        _engine.WriteToLog_reg_requesterSide_needsAttention($"connection {this} is disposed during reg. request 234574568", req, _localDrpPeer);
+                        return;
+                    }
+
                     _localDrpPeer.AddToConnectedNeighbors(newConnectionToNeighbor, req);
 
                     #region send ping request directly to neighbor N, retransmit               
@@ -122,9 +145,14 @@ namespace Dcomms.DRP
                     _engine.WriteToLog_reg_requesterSide_detail($"sending PING, waiting for PONG", req, _localDrpPeer);
                     var pongPacketData = await _engine.SendUdpRequestAsync_Retransmit(pendingPingRequest);
                     if (pongPacketData == null) throw new DrpTimeoutException();
-                    if (IsDisposed || newConnectionToNeighbor.IsDisposed)
+                    if (newConnectionToNeighbor.IsDisposed)
                     {
-                        _engine.WriteToLog_reg_requesterSide_detail($"a connection is disposed during reg. request", req, _localDrpPeer);
+                        _engine.WriteToLog_reg_requesterSide_needsAttention($"connection {newConnectionToNeighbor} is disposed during reg. request 548798", req, _localDrpPeer);
+                        return;
+                    }
+                    if (IsDisposed)
+                    {
+                        _engine.WriteToLog_reg_requesterSide_needsAttention($"connection {this} is disposed during reg. request 548798", req, _localDrpPeer);
                         return;
                     }
 
@@ -146,9 +174,14 @@ namespace Dcomms.DRP
                 #region send registration confirmation packet to X->N
                 try
                 {
-                    if (IsDisposed || newConnectionToNeighbor.IsDisposed)
+                    if (newConnectionToNeighbor.IsDisposed)
                     {
-                        _engine.WriteToLog_reg_requesterSide_detail($"a connection is disposed during reg. request", req, _localDrpPeer);
+                        _engine.WriteToLog_reg_requesterSide_needsAttention($"connection {newConnectionToNeighbor} is disposed during reg. request 541687987", req, _localDrpPeer);
+                        return;
+                    }
+                    if (IsDisposed)
+                    {
+                        _engine.WriteToLog_reg_requesterSide_needsAttention($"connection {this} is disposed during reg. request 541687987", req, _localDrpPeer);
                         return;
                     }
                     var cfm = new RegisterConfirmationPacket
