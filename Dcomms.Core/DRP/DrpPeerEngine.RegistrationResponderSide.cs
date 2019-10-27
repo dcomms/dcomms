@@ -195,14 +195,14 @@ namespace Dcomms.DRP
             RespondToRequestAndRetransmissions(req.DecodedUdpPayloadData, npAckUdpData, requesterEndpoint);
 
         }
-        internal void SendServiceUnavailableResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, 
-            ConnectionToNeighbor neighbor, bool alreadyRepliedWithNPA)
+        internal void SendErrorResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, 
+            ConnectionToNeighbor neighbor, bool alreadyRepliedWithNPA, DrpResponderStatusCode errorCode)
         {
             WriteToLog_routing_higherLevelDetail($"routing failed, executing SendServiceUnavailableResponseToRegisterReq()", req, neighbor.LocalDrpPeer);
             if (alreadyRepliedWithNPA)
             {
                 // send ack1
-                _ = RespondToSourcePeerWithAck1_Error(requesterEndpoint, req, neighbor, DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable);
+                _ = RespondToSourcePeerWithAck1_Error(requesterEndpoint, req, neighbor, errorCode);
             }
             else
             {

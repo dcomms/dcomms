@@ -312,7 +312,7 @@ namespace Dcomms.DRP
         PingPacket _latestPingReceived;// float MaxTxInviteRateRps, MaxTxRegiserRateRps; // sent by remote peer via ping
         public ushort? RemoteNeighborsBusySectorIds => _latestPingReceived?.RequesterNeighborsBusySectorIds;
         public bool PingReceived => _latestPingReceived != null;
-        public bool CanBeUsedForRouting => PingReceived == true && IsInTeardownState == false;
+        public bool CanBeUsedForNewRequests => PingReceived == true && IsInTeardownState == false;
 
         PongPacket _latestReceivedPong;
         TimeSpan? _latestPingPongDelay_RTT;
@@ -381,8 +381,15 @@ namespace Dcomms.DRP
             if (_disposed) return;
             _disposed = true;
             _localDrpPeer.ConnectedNeighbors.Remove(this);
-            _engine.ConnectedPeersByToken16[LocalNeighborToken32.Token16] = null;
             _engine.Configuration.VisionChannel?.UnregisterVisibleModule(_engine.Configuration.VisionChannelSourceId, VisibleModulePath);
+
+            _engine.WriteToLog_p2p_detail(this, $"disposed connection to neighbor: neighborToken16={LocalNeighborToken32.Token16.ToString("X4")}", null);
+
+            _engine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(10), () =>
+            {
+                _engine.WriteToLog_p2p_detail(this, $"removing neighborToken16={LocalNeighborToken32.Token16.ToString("X4")} from table", null);
+                _engine.ConnectedPeersByToken16[LocalNeighborToken32.Token16] = null;   
+            });    
         }
 
         #region ping pong
@@ -577,11 +584,12 @@ namespace Dcomms.DRP
                 var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
                 bool checkRecentUniqueProxiedRegistrationRequests = true;
                 bool alreadyRepliedWithNPA = false;
+                DrpResponderStatusCode errorResponseCode = DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
 _retry:
                 this.AssertIsNotDisposed();
                 if (!_engine.RouteRegistrationRequest(this.LocalDrpPeer, this, alreadyTriedProxyingToDestinationPeers, req, out var proxyToDestinationPeer, out var acceptAt)) // routing
                 { // no route found
-                    if (!this.IsDisposed) _engine.SendServiceUnavailableResponseToRegisterReq(req, requesterEndpoint, this, alreadyRepliedWithNPA);
+                    if (!this.IsDisposed) _engine.SendErrorResponseToRegisterReq(req, requesterEndpoint, this, alreadyRepliedWithNPA, errorResponseCode);
                     return;
                 }
 
@@ -593,11 +601,13 @@ _retry:
                 else if (proxyToDestinationPeer != null)
                 {  // proxy the registration request to another peer
                     this.AssertIsNotDisposed();
-                    var needToRerouteToAnotherNeighbor = await _engine.ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, this, checkRecentUniqueProxiedRegistrationRequests, reqReceivedTimeUtc);
+                    var errorCodeFromDestination = await _engine.ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, this, checkRecentUniqueProxiedRegistrationRequests, reqReceivedTimeUtc);
+                    var needToRerouteToAnotherNeighbor = errorCodeFromDestination.HasValue;
+                    errorResponseCode = errorCodeFromDestination ?? DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
                     if (needToRerouteToAnotherNeighbor && !this.IsDisposed)
                     {
                         alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
-                        _engine.WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}", req, LocalDrpPeer);
+                        _engine.WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error {errorCodeFromDestination}. already tried {alreadyTriedProxyingToDestinationPeers.Count}", req, LocalDrpPeer);
                         checkRecentUniqueProxiedRegistrationRequests = false;
                         alreadyRepliedWithNPA = true;
 

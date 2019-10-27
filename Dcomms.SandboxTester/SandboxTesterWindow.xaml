@@ -205,6 +205,9 @@
 
                                 <TextBlock Text="Msg contains:" />
                                 <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="200" />
+
+                                <CheckBox Content="skip new unselected" IsChecked="{Binding SkipNewUnselectedMessages, Mode=TwoWay}" />
+
                             </WrapPanel>
                             <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedLogMessages}" AutoGenerateColumns="False" >
                                 <DataGrid.Columns>

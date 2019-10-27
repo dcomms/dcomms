@@ -172,6 +172,10 @@ namespace Dcomms.DRP
             {
                 WriteToLog_routing_detail($"not accepting request at local peer: already connected to {req.RequesterRegistrationId}", req, localDrpPeer);
             }
+            else if (localDrpPeer.ConnectedNeighbors.Count > localDrpPeer.Configuration.AbsoluteMaxNumberOfNeighbors)
+            {
+                WriteToLog_routing_detail($"not accepting request at local peer: already too many neighbors ({localDrpPeer.ConnectedNeighbors.Count})", req, localDrpPeer);
+            }
             else
             {
                 var p2pConnectionValue_withLocalPeer = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds, localDrpPeer.Configuration.LocalPeerRegistrationId, localDrpPeer.ConnectedNeighborsBusySectorIds, NumberOfDimensions);
@@ -189,7 +193,7 @@ namespace Dcomms.DRP
         {
             ConnectionToNeighbor r = null;
             RegistrationIdDistance minDistance = null;
-            foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors.Where(x => x.CanBeUsedForRouting))
+            foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
             {
                 var distanceToConnectedPeer = req.ResponderRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId, NumberOfDimensions);
                 WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from INVITE REQ {req.ResponderRegistrationId} to {connectedPeer.RemoteRegistrationId}", req, localDrpPeer);

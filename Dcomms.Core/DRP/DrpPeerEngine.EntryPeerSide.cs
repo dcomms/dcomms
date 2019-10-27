@@ -185,12 +185,15 @@ namespace Dcomms.DRP
             var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
             bool checkRecentUniqueProxiedRegistrationRequests = true;
             bool alreadyRepliedWithNPA = false;
+            DrpResponderStatusCode errorCode = DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
      _retry:
             RouteRegistrationRequest(null, null, alreadyTriedProxyingToDestinationPeers, req, out var proxyToDestinationPeer, out var acceptAt); // routing
 
             if (proxyToDestinationPeer != null)
             {  // proxy the registration request via the local EP to another peer
-                var needToRerouteToAnotherNeighbor = await ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, null, checkRecentUniqueProxiedRegistrationRequests, reqReceivedTimeUtc);
+                var errorCodeFromDestination = await ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, null, checkRecentUniqueProxiedRegistrationRequests, reqReceivedTimeUtc);
+                var needToRerouteToAnotherNeighbor = errorCodeFromDestination.HasValue;
+                errorCode = errorCodeFromDestination ?? DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
                 if (needToRerouteToAnotherNeighbor)
                 {
                     alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
@@ -206,7 +209,7 @@ namespace Dcomms.DRP
             }
             else
             {
-                SendServiceUnavailableResponseToRegisterReq(req, requesterEndpoint, null, alreadyRepliedWithNPA);
+                SendErrorResponseToRegisterReq(req, requesterEndpoint, null, alreadyRepliedWithNPA, errorCode);
             }
         }
     }

@@ -152,10 +152,18 @@ namespace Dcomms.DRP
                             var neighborToken16 = PingPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             WriteToLog_receiver_detail($"got connectedPeer={connectedPeer} by neighborToken16={neighborToken16.ToString("X4")} to process ping udp data {MiscProcedures.ByteArrayToString(udpData)}");
+                           
                             if (connectedPeer != null)
+                            {
+                                if (connectedPeer.IsDisposed)
+                                {
+                                    WriteToLog_receiver_detail($"connectedPeer={connectedPeer} is disposed, being removed from table");
+                                    return;
+                                }
                                 connectedPeer.OnReceivedPing(remoteEndpoint, udpData);
+                            }
                             else
-                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
+                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16.ToString("X4")}");
 
                         } break;
                     case DrpDmpPacketTypes.Pong:
@@ -163,9 +171,16 @@ namespace Dcomms.DRP
                             var neighborToken16 = PongPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             if (connectedPeer != null)
+                            {
+                                if (connectedPeer.IsDisposed)
+                                {
+                                    WriteToLog_receiver_detail($"connectedPeer={connectedPeer} is disposed, being removed from table");
+                                    return;
+                                }
                                 connectedPeer.OnReceivedPong(remoteEndpoint, udpData, receivedAtUtc);
+                            }
                             else
-                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
+                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16.ToString("X4")}");
                         }
                         break;
                     case DrpDmpPacketTypes.RegisterReq:
@@ -173,7 +188,14 @@ namespace Dcomms.DRP
                             var neighborToken16 = RegisterRequestPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             if (connectedPeer != null)
+                            {
+                                if (connectedPeer.IsDisposed)
+                                {
+                                    WriteToLog_receiver_lightPain($"can't process REGISTER REQ: connectedPeer={connectedPeer} is disposed, being removed from table");
+                                    return;
+                                }
                                 _ = connectedPeer.OnReceivedRegisterReq(remoteEndpoint, udpData, receivedAtUtc);
+                            }
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }
@@ -183,7 +205,14 @@ namespace Dcomms.DRP
                             var neighborToken16 = InviteRequestPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             if (connectedPeer != null)
+                            {
+                                if (connectedPeer.IsDisposed)
+                                {
+                                    WriteToLog_receiver_lightPain($"can't process INVITE REQ: connectedPeer={connectedPeer} is disposed, being removed from table");
+                                    return;
+                                }
                                 connectedPeer.OnReceivedInviteReq(remoteEndpoint, udpData);
+                            }
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }

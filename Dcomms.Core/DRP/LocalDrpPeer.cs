@@ -59,7 +59,7 @@ namespace Dcomms.DRP
             get
             {
                 ushort r = 0;
-                foreach (var n in ConnectedNeighbors)
+                foreach (var n in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
                     r |= n.SectorIndexFlagsMask;
                 return r;
             }
@@ -80,7 +80,7 @@ namespace Dcomms.DRP
             HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
             RegisterRequestPacket req)
         {
-            foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.CanBeUsedForRouting))
+            foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
             {
                 if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
                 {
@@ -138,20 +138,21 @@ namespace Dcomms.DRP
                     try
                     {
                         //    extend neighbors via ep (3% probability)  or via existing neighbors --- increase mindistance, from 1
-                        if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.03 || ConnectedNeighbors.Count == 0))
+                        var connectedNeighborsForRequest = ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests).ToList();
+                        if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.03 || connectedNeighborsForRequest.Count == 0))
                         {
                             var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
-                            Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({ConnectedNeighbors.Count} connected neighbors now)", null, null);
-                            await Engine.RegisterAsync(this, epEndpoint, 0, 20);
+                            Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({connectedNeighborsForRequest.Count} connected operable neighbors now)", null, null);
+                            await Engine.RegisterAsync(this, epEndpoint, 0, RegisterRequestPacket.MaxNumberOfHopsRemaining);
                         }
                         else
                         {
-                            if (ConnectedNeighbors.Count != 0)
+                            if (connectedNeighborsForRequest.Count != 0)
                             {
-                                var neighborToSendRegister = ConnectedNeighbors[Engine.InsecureRandom.Next(ConnectedNeighbors.Count)];
-                                Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({ConnectedNeighbors.Count} connected neighbors now)", null, null);
-                                await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, 20,
-                                    2//////////////////////////////////todo when need random hops??????????????? 2
+                                var neighborToSendRegister = connectedNeighborsForRequest[Engine.InsecureRandom.Next(connectedNeighborsForRequest.Count)];
+                                Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({connectedNeighborsForRequest.Count} connected operable neighbors now)", null, null);
+                                await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, RegisterRequestPacket.MaxNumberOfHopsRemaining,
+                                    (byte)Engine.InsecureRandom.Next(4)
                                     );
                             }
                         }
@@ -212,7 +213,7 @@ namespace Dcomms.DRP
 
             double? worstValue = mutualValueLowLimit;
             ConnectionToNeighbor worstNeighbor = null;
-            foreach (var neighbor in ConnectedNeighbors.Where(x => x.CanBeUsedForRouting))
+            foreach (var neighbor in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
             {
                 var p2pConnectionValue_withNeighbor =
                     P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary,

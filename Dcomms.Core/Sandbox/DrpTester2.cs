@@ -20,13 +20,13 @@ namespace Dcomms.Sandbox
         //const int EpAbsoluteMaxDesiredNumberOfNeighbors = 30;
         //const int EpSoftMaxDesiredNumberOfNeighbors = 25;
 
-        const int NumberOfPeers = 100;
+        const int NumberOfPeers = 300;
         const int NumberOfDimensions = 2;
         const int MinDesiredNumberOfNeighbors = 6;
-        const int SoftMaxDesiredNumberOfNeighbors = 7;
-        const int AbsoluteMaxDesiredNumberOfNeighbors = 10;
-        const int MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 3000000;///===============================================================
-        const double NeighborhoodExtensionMinIntervalS = 1;///===========================================================
+        const int SoftMaxDesiredNumberOfNeighbors = 8;
+        const int AbsoluteMaxDesiredNumberOfNeighbors = 12;
+        const int MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 60;///===============================================================
+        const double NeighborhoodExtensionMinIntervalS = 0.5;///===========================================================
 
 
 
@@ -56,7 +56,7 @@ namespace Dcomms.Sandbox
         }
         public ICommand ShowPeers => new DelegateCommand(() =>
         {
-            EmitAllPeers(AttentionLevel.needsAttention, "all peers on GUI request");
+            EmitAllPeers(AttentionLevel.needsAttention, $"all peers on GUI request {DateTime.Now}");
         });
         void EmitAllPeers(AttentionLevel level, string message)
         {

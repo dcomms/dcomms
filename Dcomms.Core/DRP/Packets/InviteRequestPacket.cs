@@ -27,7 +27,8 @@ namespace Dcomms.DRP.Packets
         public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new DirectChannel connection
         public RegistrationSignature RequesterRegistrationSignature;
 
-        public byte NumberOfHopsRemaining; // max 10 // is decremented by peers
+        public byte NumberOfHopsRemaining; // is decremented by peers
+        public const byte MaxNumberOfHopsRemaining = 30;
 
         public NeighborPeerAckSequenceNumber16 NpaSeq16;
 

@@ -28,13 +28,17 @@ namespace Dcomms.Vision
         public string DisplayFilterModuleExcludesStrings { get; set; }
         public int DisplayedLogMessagesMaxCount { get; set; } = 30;
 
+
         public IEnumerable<LogMessage> DisplayedLogMessages
         {
             get
             {
                 lock (_logMessagesNewestFirst)
                 {
-                    IEnumerable<LogMessage> r = _logMessagesNewestFirst;
+                    IEnumerable<LogMessage> r;
+                    if (_skipNewUnselectedMessages) r = _logMessagesNewestFirst.SkipWhile(x => x.Selected == false);
+                    else r = _logMessagesNewestFirst;
+
                     if (!String.IsNullOrEmpty(DisplayFilterSourceIds))
                     {
                         var displayFilterSourceIds = new HashSet<string>(DisplayFilterSourceIds.Split(',', ';'));
@@ -52,7 +56,6 @@ namespace Dcomms.Vision
                         var modules = new HashSet<string>(DisplayFilterModuleExcludesStrings.Split(',', ';'));
                         r = r.Where(x => modules.Contains(x.ModuleName) == false);
                     }
-
 
                     r = r.Where(x => x.AttentionLevel >= DisplayFilterMinLevel);
                     return r.Take(DisplayedLogMessagesMaxCount).ToList();
@@ -177,6 +180,17 @@ namespace Dcomms.Vision
             if (PropertyChanged != null)
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));
         });
+        bool _skipNewUnselectedMessages;
+        public bool SkipNewUnselectedMessages
+        {
+            get => _skipNewUnselectedMessages;
+            set
+            {
+                _skipNewUnselectedMessages = value;
+                if (PropertyChanged != null)
+                    PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));
+            }
+        }
 
         public string VisibleModulePathContainsString { get; set; }
         public string VisibleModuleStatusContainsString { get; set; }

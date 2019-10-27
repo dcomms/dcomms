@@ -25,7 +25,12 @@ namespace Dcomms.DRP
 
             Engine.RecentUniqueInviteRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
             Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
-            
+
+            if (req.NumberOfHopsRemaining > InviteRequestPacket.MaxNumberOfHopsRemaining)
+            {
+                SendNeighborPeerAckResponseToReq(req, sourcePeer, NextHopResponseCode.rejected_serviceUnavailable);
+                return;
+            }
             if (req.NumberOfHopsRemaining <= 1)
             {
                 SendNeighborPeerAckResponseToReq(req, sourcePeer, NextHopResponseCode.rejected_invite_numberOfHopsRemainingReachedZero);

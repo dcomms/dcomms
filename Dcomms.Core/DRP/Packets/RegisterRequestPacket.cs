@@ -64,6 +64,8 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public byte NumberOfHopsRemaining;
         public byte NumberOfRandomHopsRemaining;
+        public const byte MaxNumberOfHopsRemaining = 30;
+
         public bool RandomModeAtThisHop => NumberOfRandomHopsRemaining > 0;
 
         public NeighborPeerAckSequenceNumber16 NpaSeq16;
