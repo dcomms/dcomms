@@ -198,7 +198,7 @@ namespace Dcomms.DRP
         internal void SendErrorResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, 
             ConnectionToNeighbor neighbor, bool alreadyRepliedWithNPA, DrpResponderStatusCode errorCode)
         {
-            WriteToLog_routing_higherLevelDetail($"routing failed, executing SendServiceUnavailableResponseToRegisterReq()", req, neighbor.LocalDrpPeer);
+            WriteToLog_routing_higherLevelDetail($"routing failed, executing SendErrorResponseToRegisterReq()", req, neighbor?.LocalDrpPeer);
             if (alreadyRepliedWithNPA)
             {
                 // send ack1

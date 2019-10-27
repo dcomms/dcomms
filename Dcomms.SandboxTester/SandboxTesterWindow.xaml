@@ -161,6 +161,7 @@
 
                 <StackPanel Orientation="Horizontal" >
                     <Button Content="ShowPeers" Margin="3" Command="{Binding DrpTester2.ShowPeers}" />
+                    <Button Content="TestInvites" Margin="3" Command="{Binding DrpTester2.TestInvites}" />                    
                 </StackPanel>
             </Grid>
             

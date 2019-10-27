@@ -205,7 +205,7 @@ namespace Dcomms.DRP.Packets
 
         public override bool Equals(object obj)
         {
-            var obj2 = (RegisterRequestPacket)obj;
+            var obj2 = obj as RegisterRequestPacket;
             if (obj2 == null) return false;
             return obj2.ReqTimestamp64 == this.ReqTimestamp64 && obj2.RequesterRegistrationId.Equals(this.RequesterRegistrationId);
         }

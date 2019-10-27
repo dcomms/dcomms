@@ -112,7 +112,7 @@ namespace Dcomms.DRP.Packets
 
         public override bool Equals(object obj)
         {
-            var obj2 = (InviteRequestPacket)obj;
+            var obj2 = obj as InviteRequestPacket;
             if (obj2 == null) return false;
             return obj2.ReqTimestamp32S == this.ReqTimestamp32S && obj2.RequesterRegistrationId.Equals(this.RequesterRegistrationId);
         }
@@ -120,6 +120,6 @@ namespace Dcomms.DRP.Packets
         {
             return ReqTimestamp32S.GetHashCode() ^ RequesterRegistrationId.GetHashCode();
         }
-        public override string ToString() => $"invReq[{RequesterRegistrationId}-{ReqTimestamp32S}]";
+        public override string ToString() => $"invReq[{RequesterRegistrationId}-{ReqTimestamp32S}-{RequesterEcdhePublicKey}]";
     }
 }

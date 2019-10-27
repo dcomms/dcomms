@@ -16,13 +16,15 @@ namespace Dcomms.DRP
         {
             Engine.EngineThreadQueue.Enqueue(async () =>
             {
+                object req = null;
                 try
                 {
                     var sw = Stopwatch.StartNew();
                     var session = await SendInviteAsync(requesterUserCertificate, responderRegistrationId, responderUserId, SessionType.asyncShortSingleMessage);
                     try
                     {
-                        WriteToLog_inv_requesterSide_detail($"remote peer accepted invite session in {(int)sw.Elapsed.TotalMilliseconds}ms: {session.RemoteSessionDescription}");
+                        req = session.Req;
+                        WriteToLog_inv_requesterSide_detail($"remote peer accepted invite session in {(int)sw.Elapsed.TotalMilliseconds}ms: {session.RemoteSessionDescription}", req);
 
                         await session.SetupAEkeysAsync();
 
@@ -37,7 +39,7 @@ namespace Dcomms.DRP
                 }
                 catch (Exception exc)
                 {
-                    Engine.HandleExceptionInInviteRequester(exc);
+                    Engine.HandleExceptionInInviteRequester(exc, req, this);
                 }
             });
         }
@@ -65,6 +67,7 @@ namespace Dcomms.DRP
                     ResponderRegistrationId = responderRegistrationId,
                     ReqTimestamp32S = Engine.Timestamp32S,
                 };
+                session.Req = req;
                 Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
                 req.RequesterRegistrationSignature = RegistrationSignature.Sign(Engine.CryptoLibrary, req.GetSharedSignedFields, this.Configuration.LocalPeerRegistrationPrivateKey);
 
@@ -73,12 +76,12 @@ namespace Dcomms.DRP
 
                 var reqUdpData = req.Encode_SetP2pFields(destinationPeer);
 
-                WriteToLog_inv_requesterSide_detail($"sending {req}, waiting for NPACK");
+                WriteToLog_inv_requesterSide_detail($"sending {req}, waiting for NPACK", req);
                 await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.NpaSeq16, req.GetSignedFieldsForNeighborHMAC);
-                WriteToLog_inv_requesterSide_detail($"received NPACK");
+                WriteToLog_inv_requesterSide_detail($"received NPACK", req);
 
                 #region wait for ACK1
-                WriteToLog_inv_requesterSide_detail($"waiting for ACK1");
+                WriteToLog_inv_requesterSide_detail($"waiting for ACK1", req);
                 var ack1UdpData = await Engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
                                 InviteAck1Packet.GetScanner(req, destinationPeer),
                                     Engine.DateTimeNowUtc, Engine.Configuration.InviteRequestsTimoutS
@@ -95,7 +98,7 @@ namespace Dcomms.DRP
                     },
                     responderRegistrationId))
                     throw new BadSignatureException();
-                WriteToLog_inv_requesterSide_detail($"verified ACK1");
+                WriteToLog_inv_requesterSide_detail($"verified ACK1", req);
                 session.DeriveSharedInviteAckDhSecret(Engine.CryptoLibrary, ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
                 // send NPACK to ACK1
@@ -144,13 +147,13 @@ namespace Dcomms.DRP
                     }, this.Configuration.LocalPeerRegistrationPrivateKey);
                 var ack2UdpData = ack2.Encode_SetP2pFields(destinationPeer);
 
-                WriteToLog_inv_requesterSide_detail($"sending ACK2, waiting for NPACK");
+                WriteToLog_inv_requesterSide_detail($"sending ACK2, waiting for NPACK", req);
                 await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2UdpData, ack2.NpaSeq16, ack2.GetSignedFieldsForNeighborHMAC);
-                WriteToLog_inv_requesterSide_detail($"received NPACK");
+                WriteToLog_inv_requesterSide_detail($"received NPACK", req);
                 #endregion
 
                 #region wait for CFM
-                WriteToLog_inv_requesterSide_detail($"waiting for CFM");
+                WriteToLog_inv_requesterSide_detail($"waiting for CFM", req);
                 var cfmUdpData = await Engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
                                 InviteConfirmationPacket.GetScanner(req, destinationPeer),
                                 Engine.DateTimeNowUtc, Engine.Configuration.InviteRequestsTimoutS
@@ -169,7 +172,7 @@ namespace Dcomms.DRP
                     responderRegistrationId))
                     throw new BadSignatureException();
 
-                WriteToLog_inv_requesterSide_detail($"verified CFM");
+                WriteToLog_inv_requesterSide_detail($"verified CFM", req);
 
                 // send NPACK to CFM
                 SendNeighborPeerAckResponseToCfm(cfm, destinationPeer);
@@ -245,9 +248,9 @@ namespace Dcomms.DRP
 
         }
 
-        void WriteToLog_inv_requesterSide_detail(string msg)
+        void WriteToLog_inv_requesterSide_detail(string msg, object req)
         {
-            Engine.WriteToLog_inv_requesterSide_detail(msg);
+            Engine.WriteToLog_inv_requesterSide_detail(msg, req, this);
         }
     }
 }

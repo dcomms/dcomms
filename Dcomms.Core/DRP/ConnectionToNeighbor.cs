@@ -635,6 +635,7 @@ _retry:
             {
                 // we got REQ from this instance neighbor
                 var req = InviteRequestPacket.Decode_VerifyNeighborHMAC(udpData, this);
+                Engine.WriteToLog_inv_detail($"{this} received {req}", req, LocalDrpPeer);
                 // NeighborToken32 and NeighborHMAC are verified at this time
 
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
@@ -642,7 +643,7 @@ _retry:
 
                 if (LocalDrpPeer.PendingInviteRequestExists(req.RequesterRegistrationId))
                 {
-                    Engine.WriteToLog_inv_proxySide_detail($"rejecting {req}: another request is already being proxied");
+                    Engine.WriteToLog_inv_lightPain($"rejecting {req}: another request is already being processed", req, LocalDrpPeer);
                     LocalDrpPeer.SendNeighborPeerAckResponseToReq(req, this, NextHopResponseCode.rejected_serviceUnavailable);
                     return;
                 }

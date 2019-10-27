@@ -2,6 +2,7 @@
 using Dcomms.DMP.Packets;
 using Dcomms.DRP;
 using Dcomms.DRP.Packets;
+using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -115,6 +116,7 @@ namespace Dcomms.DMP
         readonly LocalDrpPeer _localDrpPeer;
         internal readonly DirectChannelToken32 LocalDirectChannelToken32;
         bool _disposed;
+        public InviteRequestPacket Req; // is used for vision
         public InviteSession(LocalDrpPeer localDrpPeer)
         {
             _localDrpPeer = localDrpPeer;
@@ -142,13 +144,29 @@ namespace Dcomms.DMP
             _disposed = true;
             _localDrpPeer.Engine.InviteSessionsByToken16[LocalDirectChannelToken32.Token16] = null;
         }
+        public override string ToString() => $"inv{LocalDirectChannelToken32}";
 
-               
+        #region vision
+
+        internal void WriteToLog_detail(string message)
+        {
+            var config = _localDrpPeer.Engine.Configuration;
+            if (config.VisionChannel?.GetAttentionTo(config.VisionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_inv) <= AttentionLevel.detail)
+                config.VisionChannel?.Emit(config.VisionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_inv, AttentionLevel.detail, $"[{this}] {message}");
+        }
+        #endregion
+
+
         #region ping pong packets
         internal void OnReceivedDmpPing(IPEndPoint remoteEndpoint, byte[] udpData) // engine thread
         {
             if (!remoteEndpoint.Equals(RemoteSessionDescription.DirectChannelEndPoint))
                 throw new PossibleAttackException();
+            if (SharedPingPongHmacKey == null)
+            {
+                WriteToLog_detail($"ignoring received DMP PING: SharedPingPongHmacKey is not initialized yet");
+                return;
+            }
 
             var ping = DmpPingPacket.DecodeAndVerify(udpData, this);
 

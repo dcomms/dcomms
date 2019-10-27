@@ -663,6 +663,7 @@ namespace Dcomms.DRP
             // todo: check if it is valid point on curve  - do we really need to check it?
             return r;
         }
+        public override string ToString() => MiscProcedures.ByteArrayToString(Ecdh25519PublicKey);
     }
   
     public class HMAC

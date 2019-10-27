@@ -139,7 +139,7 @@ namespace Dcomms.DRP
                     {
                         //    extend neighbors via ep (3% probability)  or via existing neighbors --- increase mindistance, from 1
                         var connectedNeighborsForRequest = ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests).ToList();
-                        if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.03 || connectedNeighborsForRequest.Count == 0))
+                        if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.01 || connectedNeighborsForRequest.Count == 0))
                         {
                             var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
                             Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({connectedNeighborsForRequest.Count} connected operable neighbors now)", null, null);
@@ -152,7 +152,7 @@ namespace Dcomms.DRP
                                 var neighborToSendRegister = connectedNeighborsForRequest[Engine.InsecureRandom.Next(connectedNeighborsForRequest.Count)];
                                 Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({connectedNeighborsForRequest.Count} connected operable neighbors now)", null, null);
                                 await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, RegisterRequestPacket.MaxNumberOfHopsRemaining,
-                                    (byte)Engine.InsecureRandom.Next(4)
+                                    (byte)Engine.InsecureRandom.Next(10)
                                     );
                             }
                         }

@@ -1,4 +1,5 @@
-﻿using Dcomms.DRP;
+﻿using Dcomms.DMP;
+using Dcomms.DRP;
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace Dcomms.Sandbox
@@ -61,7 +63,7 @@ namespace Dcomms.Sandbox
         void EmitAllPeers(AttentionLevel level, string message)
         {
             var list = VisiblePeers.ToList();
-            _visionChannel.EmitListOfPeers("allPeers", DrpTesterVisionChannelModuleName, level, message, list, VisiblePeersDisplayMode.allPeers);
+            _visionChannel.EmitListOfPeers("allPeers", DrpTesterVisionChannelModuleName, level, message + $" ({list.Count} peers)", list, VisiblePeersDisplayMode.allPeers);
 
         }
 
@@ -155,6 +157,7 @@ namespace Dcomms.Sandbox
                 EmitAllPeers(AttentionLevel.guiActivity, $"{x} is connected with {x.LocalDrpPeer.ConnectedNeighbors.Count} neighbors, enough to continue with other peers");
                 if (index < NumberOfPeers)
                     xList_BeginCreate(index + 1);
+                if (index > 20) BeginTestInvitesIfNotStartedAlready();
             }
             else
             {
@@ -258,5 +261,87 @@ namespace Dcomms.Sandbox
             foreach (var x in _xList)
                 x.DrpPeerEngine.Dispose();
         }
+
+        Random _rnd = new Random();
+        void BeginTestInvites(InvitesTest test, Action cb = null)
+        {           
+            var peer1 = test.Peers[_rnd.Next(test.Peers.Count)];
+        _retry:
+            var peer2 = test.Peers[_rnd.Next(test.Peers.Count)];
+            if (peer1 == peer2) goto _retry;
+
+            EmitAllPeers(AttentionLevel.guiActivity, $"testing message from {peer1} to {peer2} ({test.counter}/{test.MaxCount}) {DateTime.Now}");
+               
+            var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
+
+            var text = $"test{_rnd.Next()}-{_rnd.Next()}";
+            peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, () =>
+            {
+                test.counter++;
+                if (peer2.LatestReceivedTextMessage == text)
+                {
+                    test.successfulCount++;
+                    _visionChannel.Emit(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                        AttentionLevel.guiActivity, $"successfully tested message from {peer1} to {peer2}. success rate = {test.successfulCount * 100 / test.counter}% ({test.successfulCount}/{test.counter})");
+                }
+                else
+                {
+                    EmitAllPeers(AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}");
+                }
+
+                if (test.counter < test.MaxCount) BeginTestInvites(test);
+                else
+                {
+                    _visionChannel.Emit(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                        AttentionLevel.guiActivity, $"messages test is complete: success rate = {test.successfulCount * 100 / test.counter}%");
+                    cb?.Invoke();
+                }
+            });
+        }
+        class InvitesTest
+        {
+            public int counter;
+            public int MaxCount = 100;
+            public int successfulCount;
+            public List<DrpTesterPeerApp> Peers;
+        }
+
+        Timer _invitesTestTimer = null;
+        bool _invitesTestInProgress = false;
+        void BeginTestInvitesIfNotStartedAlready()
+        {
+            if (_invitesTestTimer != null) return;
+            _invitesTestTimer = new Timer((obj) =>
+            {
+                if (_invitesTestInProgress) return;
+                _invitesTestInProgress = true;
+                var test = new InvitesTest() { Peers = _xList.Where(x => x.LocalDrpPeer != null).ToList() };
+                GenerateSharedContactBook(test.Peers);
+                BeginTestInvites(test, ()=>
+                {
+                    _invitesTestInProgress = false;
+                });
+            }, null, 0, 10000);
+             
+
+
+
+        }
+
+        void GenerateSharedContactBook(List<DrpTesterPeerApp> peers)
+        {
+            var contactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
+            foreach (var x in peers)
+                contactBookUsersByRegId.Add(x.LocalDrpPeer.Configuration.LocalPeerRegistrationId, x.UserId);
+            foreach (var x in peers)
+                x.ContactBookUsersByRegId = contactBookUsersByRegId;
+        }
+
+        public ICommand TestInvites => new DelegateCommand(() =>
+        {
+            var test = new InvitesTest() { Peers = _xList.Where(x => x.LocalDrpPeer != null).ToList() };
+            GenerateSharedContactBook(test.Peers);
+            BeginTestInvites(test);
+        });
     }
 }

@@ -17,25 +17,25 @@ namespace Dcomms.DRP
             if (!req.ResponderRegistrationId.Equals(this.Configuration.LocalPeerRegistrationId))
                 throw new ArgumentException();
 
-            Engine.WriteToLog_inv_responderSide_detail($"accepting invite from {req.RequesterRegistrationId}");
+            Engine.WriteToLog_inv_responderSide_detail($"accepting {req} from sourcePeer={sourcePeer}", req, this);
             
             // check if regID exists in contact book, get userID from the local contact book
             // ignore the REQ packet if no such user in contacts
              this._drpPeerApp.OnReceivedInvite(req.RequesterRegistrationId, out var remoteRequesterUserIdFromLocalContactBook, out var localUserCertificateWithPrivateKey, out var autoReceiveShortSingleMessage);
             if (remoteRequesterUserIdFromLocalContactBook == null)
             { // ignore INVITEs from unknown users
-                Engine.WriteToLog_inv_responderSide_detail($"ignored invite from unknown user (no user found in local contact book by requester regID)");
+                Engine.WriteToLog_inv_responderSide_lightPain($"ignored invite from unknown user (no user found in local contact book by requester regID)", req, this);
                 return;
             }
 
             if (autoReceiveShortSingleMessage == false)
             {
-                Engine.WriteToLog_inv_responderSide_detail($"ignored invite: autoReceiveShortSingleMessage = false, other session types are not implemented");
+                Engine.WriteToLog_inv_responderSide_detail($"ignored invite: autoReceiveShortSingleMessage = false, other session types are not implemented", req, this);
                 return;
             }
 
 
-            Engine.WriteToLog_inv_responderSide_detail($"resolved user {remoteRequesterUserIdFromLocalContactBook} by requester regID={req.RequesterRegistrationId}");
+            Engine.WriteToLog_inv_responderSide_detail($"resolved user {remoteRequesterUserIdFromLocalContactBook} by requester regID={req.RequesterRegistrationId}", req, this);
 
             Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
             Engine.RecentUniqueInviteRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
@@ -49,10 +49,10 @@ namespace Dcomms.DRP
             try
             {
                 // send NPACK to REQ
-                Engine.WriteToLog_inv_responderSide_detail($"sending NPACK to REQ source peer");
+                Engine.WriteToLog_inv_responderSide_detail($"sending NPACK to REQ source peer", req, this);
                 SendNeighborPeerAckResponseToReq(req, sourcePeer);
 
-                var session = new InviteSession(this);
+                var session = new InviteSession(this) { Req = req };
                 try
                 {
                     session.DeriveSharedInviteAckDhSecret(Engine.CryptoLibrary, req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
@@ -63,7 +63,7 @@ namespace Dcomms.DRP
                         DirectChannelEndPoint = sourcePeer.LocalEndpoint,
                         DirectChannelToken32 = session.LocalDirectChannelToken32
                     };
-                    Engine.WriteToLog_inv_responderSide_detail($"responding with local session {session.LocalSessionDescription}");
+                    Engine.WriteToLog_inv_responderSide_detail($"responding with local session {session.LocalSessionDescription}", req, this);
 
                     session.LocalSessionDescription.UserCertificate = localUserCertificateWithPrivateKey;
 
@@ -96,16 +96,16 @@ namespace Dcomms.DRP
                     );
 
                     var ack1UdpData = ack1.Encode_SetP2pFields(sourcePeer);
-                    Engine.WriteToLog_inv_responderSide_detail($"sending ACK1 to source peer, awaiting for NPACK");
+                    Engine.WriteToLog_inv_responderSide_detail($"sending ACK1 to source peer, awaiting for NPACK", req, this);
                     _ = sourcePeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack1UdpData, ack1.NpaSeq16, ack1.GetSignedFieldsForNeighborHMAC);
                     // not waiting for NPACK, wait for ACK2
                     #endregion
 
                     // wait for ACK2
-                    Engine.WriteToLog_inv_responderSide_detail($"waiting for ACK2");
+                    Engine.WriteToLog_inv_responderSide_detail($"waiting for ACK2", req, this);
                     var ack2UdpData = await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, sourcePeer.RemoteEndpoint,
                         InviteAck2Packet.GetScanner(req, sourcePeer));
-                    Engine.WriteToLog_inv_responderSide_detail($"received ACK2");
+                    Engine.WriteToLog_inv_responderSide_detail($"received ACK2", req, this);
                     var ack2 = InviteAck2Packet.Decode(ack2UdpData);
                     if (!ack2.RequesterRegistrationSignature.Verify(Engine.CryptoLibrary, w =>
                         {
@@ -125,7 +125,7 @@ namespace Dcomms.DRP
 
 
                     // send NPACK to ACK1
-                    Engine.WriteToLog_inv_proxySide_detail($"sending NPACK to ACK1 to source peer");
+                    Engine.WriteToLog_inv_proxySide_detail($"sending NPACK to ACK1 to source peer", req, this);
                     SendNeighborPeerAckResponseToAck2(ack2, sourcePeer);
                     
                     // send CFM with signature
@@ -143,9 +143,9 @@ namespace Dcomms.DRP
                         }, this.Configuration.LocalPeerRegistrationPrivateKey);
                     var cfmUdpData = cfm.Encode_SetP2pFields(sourcePeer);
 
-                    Engine.WriteToLog_inv_responderSide_detail($"sending CFM to source peer, waiting for NPACK");
+                    Engine.WriteToLog_inv_responderSide_detail($"sending CFM to source peer, waiting for NPACK", req, this);
                     await sourcePeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(cfmUdpData, cfm.NpaSeq16, cfm.GetSignedFieldsForNeighborHMAC);
-                    Engine.WriteToLog_inv_responderSide_detail($"received NPACK to CFM");
+                    Engine.WriteToLog_inv_responderSide_detail($"received NPACK to CFM", req, this);
 
                     session.DeriveSharedPingPongHmacKey(req, ack1, ack2, cfm);
 
@@ -167,7 +167,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                Engine.HandleExceptionWhileAcceptingInvite(exc);
+                Engine.HandleExceptionWhileAcceptingInvite(exc, req, this);
             }
             finally
             {

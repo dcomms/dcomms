@@ -91,7 +91,7 @@ namespace Dcomms.Vision
 
         public LinkedList<LogMessage> _logMessagesNewestFirst = new LinkedList<LogMessage>(); // locked
         public bool EnableNewLogMessages { get; set; } = true;
-        public int LogMessagesMaxCount { get; set; } = 500000;
+        public int LogMessagesMaxCount { get; set; } = 2000000;
 
         readonly Stopwatch _sw = Stopwatch.StartNew();
         readonly DateTime _started = DateTime.Now;
@@ -311,7 +311,21 @@ namespace Dcomms.Vision
                     var sourcePeer = sourceList[i];
                     var clonedPeer = r[i];
                     clonedPeer.NeighborPeers = new List<IVisiblePeer>();
-                    foreach (var neighbor in sourcePeer.NeighborPeers)
+
+                    List<IVisiblePeer> sourcePeerNeighborPeers;
+                    int c = 0;
+_retry:
+                    try
+                    {
+                        sourcePeerNeighborPeers = sourcePeer.NeighborPeers.ToList();
+                    }
+                    catch (InvalidOperationException)
+                    { // collection was modifid. retry 10 times
+                        if (c++ < 10) goto _retry;
+                        else throw;
+                    }
+
+                    foreach (var neighbor in sourcePeerNeighborPeers)
                     {
                         if (sourcePeersIndexes.TryGetValue(neighbor, out var neighborIndex))
                         {                        
