@@ -18,9 +18,9 @@ namespace Dcomms.DRP
         /// is null in A-EP mode
         /// </param>
         /// <returns>
-        /// non-null value to retry the request with another neighbor (if the request needs to be "rerouted")
+        /// true to retry the request with another neighbor (if the request needs to be "rerouted")
         /// </returns>
-        internal async Task<DrpResponderStatusCode?> ProxyRegisterRequestAsync(ConnectionToNeighbor destinationPeer, 
+        internal async Task<bool> ProxyRegisterRequestAsync(ConnectionToNeighbor destinationPeer, 
             RegisterRequestPacket req, IPEndPoint requesterEndpoint, 
             ConnectionToNeighbor sourcePeer, bool checkRecentUniqueProxiedRegistrationRequests, DateTime reqReceivedTimeUtc
             ) // engine thread
@@ -30,15 +30,15 @@ namespace Dcomms.DRP
             if (PendingRegisterRequestExists(req.RequesterRegistrationId))
             {
                 WriteToLog_reg_proxySide_higherLevelDetail($"rejecting duplicate REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={requesterEndpoint}", req, destinationPeer.LocalDrpPeer);
-                SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, sourcePeer);
-                return null;
+                SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseOrFailureCode.failure_routeIsUnavailable, sourcePeer);
+                return false;
             }
 
             if (req.NumberOfHopsRemaining > RegisterRequestPacket.MaxNumberOfHopsRemaining || req.NumberOfRandomHopsRemaining > RegisterRequestPacket.MaxNumberOfHopsRemaining)
             {
                 WriteToLog_reg_proxySide_needsAttention($"rejecting REGISTER request {req.RequesterRegistrationId}: invalid number of hops remaining", req, destinationPeer.LocalDrpPeer);
-                SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, sourcePeer);
-                return null;
+                SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseOrFailureCode.failure_routeIsUnavailable, sourcePeer);
+                return false;
             }
 
             if (checkRecentUniqueProxiedRegistrationRequests)
@@ -47,15 +47,24 @@ namespace Dcomms.DRP
                 if (!recentUniqueProxiedRegistrationRequests.Filter(req.GetUniqueRequestIdFields))
                 {
                     WriteToLog_reg_proxySide_lightPain($"rejecting non-unique REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={requesterEndpoint}", req, destinationPeer.LocalDrpPeer);
-                    SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, sourcePeer);
-                    return null;
+                    SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseOrFailureCode.failure_routeIsUnavailable, sourcePeer);
+                    return false;
                 }
             }
 
-            WriteToLog_reg_proxySide_higherLevelDetail($"proxying REGISTER request: requesterEndpoint={requesterEndpoint}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, NpaSeq16={req.NpaSeq16}, destinationPeer={destinationPeer}, sourcePeer={sourcePeer}", req, destinationPeer.LocalDrpPeer);
+            WriteToLog_reg_proxySide_higherLevelDetail($"proxying REGISTER request: requesterEndpoint={requesterEndpoint}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, ReqP2pSeq16={req.ReqP2pSeq16}, destinationPeer={destinationPeer}, sourcePeer={sourcePeer}", req, destinationPeer.LocalDrpPeer);
             
             if (!ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
                 throw new BadSignatureException();
+
+            req.NumberOfHopsRemaining--;
+            if (req.NumberOfHopsRemaining == 0)
+            {
+                WriteToLog_reg_proxySide_needsAttention($"rejecting REGISTER request {req.RequesterRegistrationId}: max hops reached", req, destinationPeer.LocalDrpPeer);
+                SendErrorResponseToRegisterReq();
+                await RespondToSourcePeerWithAck1_Error(requesterEndpoint, req, sourcePeer, DrpResponderStatusCode.rejected_maxhopsReached);
+                return false;
+            }
 
             _pendingRegisterRequests.Add(req.RequesterRegistrationId);
             try
@@ -64,43 +73,35 @@ namespace Dcomms.DRP
                 WriteToLog_reg_proxySide_detail($"sending NPACK to REQ source peer (delay={(int)(DateTimeNowUtc - reqReceivedTimeUtc).TotalMilliseconds}ms)", req, destinationPeer.LocalDrpPeer);
                 sourcePeer?.AssertIsNotDisposed();
                 SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.accepted, sourcePeer);
-
-
-                req.NumberOfHopsRemaining--;
-                if (req.NumberOfHopsRemaining == 0)
-                {
-                    WriteToLog_reg_proxySide_needsAttention($"rejecting REGISTER request {req.RequesterRegistrationId}: max hops reached", req, destinationPeer.LocalDrpPeer);
-                    await RespondToSourcePeerWithAck1_Error(requesterEndpoint, req, sourcePeer, DrpResponderStatusCode.rejected_maxhopsReached);
-                    return null;
-                }
+                
                                 
                 if (req.NumberOfRandomHopsRemaining >= 1) req.NumberOfRandomHopsRemaining--;
-                WriteToLog_reg_proxySide_detail($"decremented number of hops for reg. req {req.RequesterRegistrationId}: NumberOfHopsRemaining={req.NumberOfHopsRemaining}, NumberOfRandomHopsRemaining={req.NumberOfRandomHopsRemaining}", req, destinationPeer.LocalDrpPeer);
+                WriteToLog_reg_proxySide_detail($"decremented number of hops in {req}: NumberOfHopsRemaining={req.NumberOfHopsRemaining}, NumberOfRandomHopsRemaining={req.NumberOfRandomHopsRemaining}", req, destinationPeer.LocalDrpPeer);
 
                 // send (proxy) REQ to responder. wait for NPACK, verify NPACK.senderHMAC, retransmit REQ
-                req.NpaSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
+                req.ReqP2pSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
                 try
                 {
                     await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(req.Encode_OptionallySignNeighborHMAC(destinationPeer),
-                        req.NpaSeq16, req.GetSignedFieldsForNeighborHMAC);
+                        req.ReqP2pSeq16, req.GetSignedFieldsForNeighborHMAC);
                     if (sourcePeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 52460", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
                     if (destinationPeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 52460", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
                 }
-                catch (NextHopRejectedExceptionServiceUnavailable)
+                catch (NextHopRejectedExceptionRouteIsUnavailable)
                 {
                     WriteToLog_reg_proxySide_higherLevelDetail($"got response=serviceUnavailable from destination {destinationPeer}. will try another neighbor..", req, destinationPeer.LocalDrpPeer);
                     if (sourcePeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 35346232", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
                     return DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
                 }               
@@ -110,9 +111,9 @@ namespace Dcomms.DRP
                     if (sourcePeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 76897805", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
-                    return DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
+                    return true;
                 }
 
                 // wait for ACK1 from destination peer
@@ -125,12 +126,12 @@ namespace Dcomms.DRP
                 if (sourcePeer?.IsDisposed == true)
                 {
                     WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 1649321", req, destinationPeer.LocalDrpPeer);
-                    return null;
+                    return false;
                 }
                 if (destinationPeer?.IsDisposed == true)
                 {
                     WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 1649321", req, destinationPeer.LocalDrpPeer);
-                    return null;
+                    return false;
                 }
                 if (ack1UdpData == null) throw new DrpTimeoutException("Did not receive ACK1 on timeout");
                 var ack1 = RegisterAck1Packet.DecodeAndOptionallyVerify(ack1UdpData, null, null);
@@ -155,7 +156,7 @@ namespace Dcomms.DRP
                 if (sourcePeer != null)
                 {   // P2P mode
                     sourcePeer.AssertIsNotDisposed();
-                    ack1.NpaSeq16 = sourcePeer.GetNewNpaSeq16_P2P();
+                    ack1.ReqP2pSeq16 = sourcePeer.GetNewNpaSeq16_P2P();
                 }
                 else
                 {   // A-EP mode
@@ -168,7 +169,7 @@ namespace Dcomms.DRP
                     // terminate the async operation here, if response code is ERROR = num_hops  reached zero
                     WriteToLog_reg_proxySide_needsAttention($"sending ACK1 with error={ack1.ResponderStatusCode}, waiting for NPACK", req, destinationPeer.LocalDrpPeer);
                     await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack1UdpDataTx, requesterEndpoint,
-                        ack1.NpaSeq16, sourcePeer, ack1.GetSignedFieldsForNeighborHMAC);
+                        ack1.ReqP2pSeq16, sourcePeer, ack1.GetSignedFieldsForNeighborHMAC);
                 }
                 else
                 {
@@ -183,7 +184,7 @@ namespace Dcomms.DRP
                     {   // P2P mode: retransmit ACK1 until NPACK (via P2P); at same time wait for ACK2
                         WriteToLog_reg_proxySide_detail($"sending ACK1, awaiting for NPACK", req, destinationPeer.LocalDrpPeer);
                         _ = OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack1UdpDataTx, requesterEndpoint,
-                            ack1.NpaSeq16, sourcePeer, ack1.GetSignedFieldsForNeighborHMAC);
+                            ack1.ReqP2pSeq16, sourcePeer, ack1.GetSignedFieldsForNeighborHMAC);
                         // not waiting for NPACK, wait for ACK2
                         WriteToLog_reg_proxySide_detail($"waiting for ACK2", req, destinationPeer.LocalDrpPeer);
                         ack2UdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requesterEndpoint, ack2Scanner);
@@ -193,12 +194,12 @@ namespace Dcomms.DRP
                     if (sourcePeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 2345135", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
                     if (destinationPeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 2345135", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
                     var ack2 = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(ack2UdpData, null, null, null);
 
@@ -207,30 +208,30 @@ namespace Dcomms.DRP
                     SendNeighborPeerAckResponseToRegisterAck2(ack2, requesterEndpoint, sourcePeer);
 
                     // send ACK2 to destination peer
-                    // put ACK2.NpaSeq16, sendertoken32, senderHMAC  
+                    // put ACK2.ReqP2pSeq16, sendertoken32, senderHMAC  
                     // wait for NPACK
                     if (destinationPeer.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 345784567", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
                     if (sourcePeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 345784567", req, destinationPeer.LocalDrpPeer);
                         return null;
                     }
-                    ack2.NpaSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
+                    ack2.ReqP2pSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
                     await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2.Encode_OptionallySignNeighborHMAC(destinationPeer),
-                        ack2.NpaSeq16, ack2.GetSignedFieldsForNeighborHMAC);
+                        ack2.ReqP2pSeq16, ack2.GetSignedFieldsForNeighborHMAC);
                     if (sourcePeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 234646", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
                     if (destinationPeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 234646", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
 
                     // wait for CFM from source peer
@@ -242,12 +243,12 @@ namespace Dcomms.DRP
                     if (sourcePeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 3452326", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
                     if (destinationPeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 3452326", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
 
                     // TODO verify signatures and update QoS
@@ -260,16 +261,16 @@ namespace Dcomms.DRP
                     if (destinationPeer.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 123678", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
                     if (sourcePeer?.IsDisposed == true)
                     {
                         WriteToLog_reg_proxySide_needsAttention($"sourcePeer={sourcePeer} is disposed during proxying 123678", req, destinationPeer.LocalDrpPeer);
-                        return null;
+                        return false;
                     }
-                    cfm.NpaSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
+                    cfm.ReqP2pSeq16 = destinationPeer.GetNewNpaSeq16_P2P();
                     await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(cfm.Encode_OptionallySignNeighborHMAC(destinationPeer),
-                        cfm.NpaSeq16, cfm.GetSignedFieldsForNeighborHMAC);
+                        cfm.ReqP2pSeq16, cfm.GetSignedFieldsForNeighborHMAC);
                 }
 
                 WriteToLog_reg_proxySide_higherLevelDetail($"proxying {req} is successfully complete", req, destinationPeer.LocalDrpPeer);
@@ -283,37 +284,37 @@ namespace Dcomms.DRP
                 _pendingRegisterRequests.Remove(req.RequesterRegistrationId);
             }
 
-            return null;
+            return false;
         }
-        async Task RespondToSourcePeerWithAck1_Error(IPEndPoint requesterEndpoint, RegisterRequestPacket req, 
-            ConnectionToNeighbor sourcePeer, DrpResponderStatusCode errorCode)
-        {
-            sourcePeer?.AssertIsNotDisposed();
-            var localDrpPeerThatRejectsRequest = sourcePeer?.LocalDrpPeer ?? this.LocalPeers.Values.First();
+        //async Task RespondToSourcePeerWithAck1_Error(IPEndPoint requesterEndpoint, RegisterRequestPacket req, 
+        //    ConnectionToNeighbor sourcePeer, DrpResponderStatusCode errorCode)
+        //{
+        //    sourcePeer?.AssertIsNotDisposed();
+        //    var localDrpPeerThatRejectsRequest = sourcePeer?.LocalDrpPeer ?? this.LocalPeers.Values.First();
 
-            var ack1 = new RegisterAck1Packet
-            {
-                RequesterRegistrationId = req.RequesterRegistrationId,
-                ReqTimestamp64 = req.ReqTimestamp64,
-                ResponderStatusCode = errorCode,
-                ResponderRegistrationId = localDrpPeerThatRejectsRequest.Configuration.LocalPeerRegistrationId,
-            };
+        //    var ack1 = new RegisterAck1Packet
+        //    {
+        //        RequesterRegistrationId = req.RequesterRegistrationId,
+        //        ReqTimestamp64 = req.ReqTimestamp64,
+        //        ResponderStatusCode = errorCode,
+        //        ResponderRegistrationId = localDrpPeerThatRejectsRequest.Configuration.LocalPeerRegistrationId,
+        //    };
 
-            ack1.NpaSeq16 = sourcePeer?.GetNewNpaSeq16_P2P() ?? this.GetNewNpaSeq16_AtoEP();           
+        //    ack1.ReqP2pSeq16 = sourcePeer?.GetNewNpaSeq16_P2P() ?? this.GetNewNpaSeq16_AtoEP();           
           
-            ack1.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
-                (w2) =>
-                {
-                    req.GetSharedSignedFields(w2, true);
-                    ack1.GetSharedSignedFields(w2, false, true);
-                },
-                localDrpPeerThatRejectsRequest.Configuration.LocalPeerRegistrationPrivateKey);
+        //    ack1.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
+        //        (w2) =>
+        //        {
+        //            req.GetSharedSignedFields(w2, true);
+        //            ack1.GetSharedSignedFields(w2, false, true);
+        //        },
+        //        localDrpPeerThatRejectsRequest.Configuration.LocalPeerRegistrationPrivateKey);
 
 
-            var ack1UdpData = ack1.Encode_OpionallySignNeighborHMAC(sourcePeer);
-            await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack1UdpData, requesterEndpoint,
-                        ack1.NpaSeq16, sourcePeer, ack1.GetSignedFieldsForNeighborHMAC);
+        //    var ack1UdpData = ack1.Encode_OpionallySignNeighborHMAC(sourcePeer);
+        //    await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack1UdpData, requesterEndpoint,
+        //                ack1.ReqP2pSeq16, sourcePeer, ack1.GetSignedFieldsForNeighborHMAC);
 
-        }
+        //}
     }
 }

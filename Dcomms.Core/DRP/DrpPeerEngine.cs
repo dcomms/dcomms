@@ -46,7 +46,7 @@ namespace Dcomms.DRP
         string IVisibleModule.Status => $"socket: {_socket?.Client?.LocalEndPoint}, local peers: {LocalPeers.Count}, ConnectedPeer tokens: {ConnectedPeersByToken16.Count(x => x != null)}, InviteSession tokens: {InviteSessionsByToken16.Count(x => x != null)}, queue count: {EngineThreadQueue.Count}";
         
         ushort _seq16Counter_AtoEP; // accessed only by engine thread
-        internal NeighborPeerAckSequenceNumber16 GetNewNpaSeq16_AtoEP() => new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
+        internal RequestP2pSequenceNumber16 GetNewNpaSeq16_AtoEP() => new RequestP2pSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
         public DrpPeerEngineConfiguration Configuration { get; private set; }
 
         #region unique data filters
@@ -211,7 +211,7 @@ namespace Dcomms.DRP
                                     WriteToLog_receiver_lightPain($"can't process INVITE REQ: connectedPeer={connectedPeer} is disposed, being removed from table");
                                     return;
                                 }
-                                connectedPeer.OnReceivedInviteReq(remoteEndpoint, udpData);
+                                _ = connectedPeer.OnReceivedInviteReq(remoteEndpoint, udpData);
                             }
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");

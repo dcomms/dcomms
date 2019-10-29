@@ -116,7 +116,6 @@ namespace Dcomms.DMP
         readonly LocalDrpPeer _localDrpPeer;
         internal readonly DirectChannelToken32 LocalDirectChannelToken32;
         bool _disposed;
-        public InviteRequestPacket Req; // is used for vision
         public InviteSession(LocalDrpPeer localDrpPeer)
         {
             _localDrpPeer = localDrpPeer;

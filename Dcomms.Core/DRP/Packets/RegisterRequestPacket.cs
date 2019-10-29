@@ -68,7 +68,7 @@ namespace Dcomms.DRP.Packets
 
         public bool RandomModeAtThisHop => NumberOfRandomHopsRemaining > 0;
 
-        public NeighborPeerAckSequenceNumber16 NpaSeq16;
+        public RequestP2pSequenceNumber16 ReqP2pSeq16;
         /// <summary>
         /// signature of latest proxy sender: EP,M,X
         /// is NULL for A->EP packet
@@ -106,7 +106,7 @@ namespace Dcomms.DRP.Packets
             }
             writer.Write(NumberOfHopsRemaining);
             writer.Write(NumberOfRandomHopsRemaining);
-            NpaSeq16.Encode(writer);
+            ReqP2pSeq16.Encode(writer);
             if (connectionToNeighborNullable != null)
             {
                 NeighborHMAC = connectionToNeighborNullable.GetNeighborHMAC(this.GetSignedFieldsForNeighborHMAC);
@@ -134,7 +134,7 @@ namespace Dcomms.DRP.Packets
             GetSharedSignedFields(writer, true);
             writer.Write(NumberOfHopsRemaining);
             writer.Write(NumberOfRandomHopsRemaining);
-            NpaSeq16.Encode(writer);
+            ReqP2pSeq16.Encode(writer);
         }
         public byte[] DecodedUdpPayloadData;
 
@@ -174,7 +174,7 @@ namespace Dcomms.DRP.Packets
             if ((flags & Flag_AtoEP) != 0) r.ProofOfWork2 = reader.ReadBytes(64);
             r.NumberOfHopsRemaining = reader.ReadByte();
             r.NumberOfRandomHopsRemaining = reader.ReadByte();
-            r.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);
+            r.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);
             if ((flags & Flag_AtoEP) == 0)
             {
                 r.NeighborHMAC = HMAC.Decode(reader);

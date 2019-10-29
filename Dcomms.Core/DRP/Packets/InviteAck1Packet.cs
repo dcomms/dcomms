@@ -23,7 +23,7 @@ namespace Dcomms.DRP.Packets
         public byte[] ToResponderSessionDescriptionEncrypted;
         public RegistrationSignature ResponderRegistrationSignature;
 
-        public NeighborPeerAckSequenceNumber16 NpaSeq16;
+        public RequestP2pSequenceNumber16 ReqP2pSeq16;
 
         /// <summary>
         /// authorizes peer that sends the packet
@@ -40,7 +40,7 @@ namespace Dcomms.DRP.Packets
             NeighborToken32 = transmitToNeighbor.RemoteNeighborToken32;
             NeighborToken32.Encode(w);
 
-            NpaSeq16 = transmitToNeighbor.GetNewNpaSeq16_P2P();
+            ReqP2pSeq16 = transmitToNeighbor.GetNewNpaSeq16_P2P();
 
             GetSignedFieldsForNeighborHMAC(w);
 
@@ -62,7 +62,7 @@ namespace Dcomms.DRP.Packets
         {
             GetSharedSignedFields(w, true);
             ResponderRegistrationSignature.Encode(w);
-            NpaSeq16.Encode(w);
+            ReqP2pSeq16.Encode(w);
         }
 
         internal byte[] DecodedUdpPayloadData;
@@ -83,7 +83,7 @@ namespace Dcomms.DRP.Packets
             r.ResponderEcdhePublicKey = EcdhPublicKey.Decode(reader);
             r.ToResponderSessionDescriptionEncrypted = PacketProcedures.DecodeByteArray65536(reader);
             r.ResponderRegistrationSignature = RegistrationSignature.Decode(reader);
-            r.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);
+            r.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);
 
             r.NeighborHMAC = HMAC.Decode(reader);
 

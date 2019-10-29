@@ -125,6 +125,7 @@ namespace Dcomms.Sandbox
                 ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
                 VisionChannelSourceId = $"X{index}",
                 SandboxModeOnly_DisablePoW = true,
+                SandboxModeOnly_EnableInsecureLogs = true,
                 SandboxModeOnly_NumberOfDimensions = NumberOfDimensions,
                 NeighborhoodExtensionMinIntervalS = NeighborhoodExtensionMinIntervalS
             });
@@ -236,13 +237,14 @@ namespace Dcomms.Sandbox
                 var ep = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
                     InsecureRandomSeed = _insecureRandom.Next(),
-                    LocalPort = (ushort)(EpLocalPort+i),
+                    LocalPort = (ushort)(EpLocalPort + i),
                     VisionChannel = visionChannel,
                     VisionChannelSourceId = $"EP{i}",
                     ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
                     SandboxModeOnly_DisablePoW = true,
+                    SandboxModeOnly_EnableInsecureLogs = true,
                     SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
-                });
+                }); ;
                 var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(ep.CryptoLibrary);
                 epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
                 epLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = null;
@@ -274,7 +276,7 @@ namespace Dcomms.Sandbox
                
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
 
-            var text = $"test{_rnd.Next()}-{_rnd.Next()}";
+            var text = $"test{_rnd.Next()}-{_rnd.Next()}_from_{peer1}_to_{peer2}";
             peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, () =>
             {
                 test.counter++;
@@ -289,7 +291,7 @@ namespace Dcomms.Sandbox
                     EmitAllPeers(AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}");
                 }
 
-                if (test.counter < test.MaxCount) BeginTestInvites(test);
+                if (test.counter < test.MaxCount) BeginTestInvites(test, cb);
                 else
                 {
                     _visionChannel.Emit(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
@@ -322,10 +324,6 @@ namespace Dcomms.Sandbox
                     _invitesTestInProgress = false;
                 });
             }, null, 0, 10000);
-             
-
-
-
         }
 
         void GenerateSharedContactBook(List<DrpTesterPeerApp> peers)

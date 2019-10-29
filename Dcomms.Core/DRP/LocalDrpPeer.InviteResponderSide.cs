@@ -52,7 +52,7 @@ namespace Dcomms.DRP
                 Engine.WriteToLog_inv_responderSide_detail($"sending NPACK to REQ source peer", req, this);
                 SendNeighborPeerAckResponseToReq(req, sourcePeer);
 
-                var session = new InviteSession(this) { Req = req };
+                var session = new InviteSession(this);
                 try
                 {
                     session.DeriveSharedInviteAckDhSecret(Engine.CryptoLibrary, req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
@@ -97,7 +97,7 @@ namespace Dcomms.DRP
 
                     var ack1UdpData = ack1.Encode_SetP2pFields(sourcePeer);
                     Engine.WriteToLog_inv_responderSide_detail($"sending ACK1 to source peer, awaiting for NPACK", req, this);
-                    _ = sourcePeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack1UdpData, ack1.NpaSeq16, ack1.GetSignedFieldsForNeighborHMAC);
+                    _ = sourcePeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack1UdpData, ack1.ReqP2pSeq16, ack1.GetSignedFieldsForNeighborHMAC);
                     // not waiting for NPACK, wait for ACK2
                     #endregion
 
@@ -144,7 +144,7 @@ namespace Dcomms.DRP
                     var cfmUdpData = cfm.Encode_SetP2pFields(sourcePeer);
 
                     Engine.WriteToLog_inv_responderSide_detail($"sending CFM to source peer, waiting for NPACK", req, this);
-                    await sourcePeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(cfmUdpData, cfm.NpaSeq16, cfm.GetSignedFieldsForNeighborHMAC);
+                    await sourcePeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(cfmUdpData, cfm.ReqP2pSeq16, cfm.GetSignedFieldsForNeighborHMAC);
                     Engine.WriteToLog_inv_responderSide_detail($"received NPACK to CFM", req, this);
 
                     session.DeriveSharedPingPongHmacKey(req, ack1, ack2, cfm);

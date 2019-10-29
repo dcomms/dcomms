@@ -161,7 +161,7 @@ namespace Dcomms.DRP
                         MinimalDistanceToNeighbor = minimalDistanceToNeighbor,
                         NumberOfHopsRemaining = numberofHops,
                         RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
-                        NpaSeq16 = GetNewNpaSeq16_AtoEP(),
+                        ReqP2pSeq16 = GetNewNpaSeq16_AtoEP(),
                         EpEndpoint = epEndpoint
                     };
                     RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
@@ -182,9 +182,9 @@ namespace Dcomms.DRP
                         );
                     var reqToAck1Stopwatch = Stopwatch.StartNew();
 
-                    WriteToLog_reg_requesterSide_detail($"PoW2 took {(int)pow2SW.Elapsed.TotalMilliseconds}ms. sending REQ, waiting for NPACK. NpaSeq16={req.NpaSeq16}", req, localDrpPeer);
+                    WriteToLog_reg_requesterSide_detail($"PoW2 took {(int)pow2SW.Elapsed.TotalMilliseconds}ms. sending REQ, waiting for NPACK. ReqP2pSeq16={req.ReqP2pSeq16}", req, localDrpPeer);
                     var reqSW = Stopwatch.StartNew();
-                    await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(req.Encode_OptionallySignNeighborHMAC(null), epEndpoint, req.NpaSeq16);
+                    await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(req.Encode_OptionallySignNeighborHMAC(null), epEndpoint, req.ReqP2pSeq16);
                     var reqNpackDelayMs = reqSW.Elapsed.TotalMilliseconds;
                     WriteToLog_reg_requesterSide_detail($"got NPACK, REQ-NPACK delay={(int)reqNpackDelayMs}ms", req, localDrpPeer);
                     #endregion
@@ -205,7 +205,7 @@ namespace Dcomms.DRP
                         // respond to ACK1 with NPACK.   the EP needs to get some confirmation to the erroneous ACK1
                         var npAck = new NeighborPeerAckPacket
                         {
-                            NpaSeq16 = ack1.NpaSeq16,
+                            ReqP2pSeq16 = ack1.ReqP2pSeq16,
                             StatusCode = NextHopResponseCode.accepted
                         };
                         var npAckData = npAck.Encode(true);
@@ -234,7 +234,7 @@ namespace Dcomms.DRP
                     {
                         ReqTimestamp64 = req.ReqTimestamp64,
                         RequesterRegistrationId = localDrpPeer.Configuration.LocalPeerRegistrationId,
-                        NpaSeq16 = GetNewNpaSeq16_AtoEP()
+                        ReqP2pSeq16 = GetNewNpaSeq16_AtoEP()
                     };
                     ack2.ToRequesterTxParametersEncrypted = newConnectionToNeighbor.Encrypt_ack2_ToRequesterTxParametersEncrypted_AtRequester(req, ack1, ack2);
                     newConnectionToNeighbor.InitializeP2pStream(req, ack1, ack2);
@@ -249,7 +249,7 @@ namespace Dcomms.DRP
 
                     WriteToLog_reg_requesterSide_detail($"sending ACK2 (in response to ACK1), waiting for NPACK", req, localDrpPeer);
                     RespondToRequestAndRetransmissions(ack1UdpData, ack2.Encode_OptionallySignNeighborHMAC(null), epEndpoint);
-                    await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(null, epEndpoint, ack2.NpaSeq16);
+                    await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(null, epEndpoint, ack2.ReqP2pSeq16);
                     #endregion
 
                     var neighborWaitTimeMs = reqToAck1TimeMs * 0.5 - 250; if (neighborWaitTimeMs < 0) neighborWaitTimeMs = 0;
@@ -300,13 +300,13 @@ namespace Dcomms.DRP
                         ReqTimestamp64 = req.ReqTimestamp64,
                         RequesterRegistrationId = localDrpPeer.Configuration.LocalPeerRegistrationId,
                         ResponderRegistrationConfirmationSignature = pong.ResponderRegistrationConfirmationSignature,
-                        NpaSeq16 = GetNewNpaSeq16_AtoEP()
+                        ReqP2pSeq16 = GetNewNpaSeq16_AtoEP()
                     };
                     cfm.RequesterRegistrationConfirmationSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         w => newConnectionToNeighbor.GetRequesterRegistrationConfirmationSignatureFields(w, cfm.ResponderRegistrationConfirmationSignature),
                         localDrpPeer.Configuration.LocalPeerRegistrationPrivateKey);
                     WriteToLog_reg_requesterSide_detail($"sending CFM, waiting for NPACK", req, localDrpPeer);
-                    await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(cfm.Encode_OptionallySignNeighborHMAC(null), epEndpoint, cfm.NpaSeq16);
+                    await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(cfm.Encode_OptionallySignNeighborHMAC(null), epEndpoint, cfm.ReqP2pSeq16);
                     WriteToLog_reg_requesterSide_detail($"received NPACK to CFM", req, localDrpPeer);
                 }
                 catch (Exception exc)

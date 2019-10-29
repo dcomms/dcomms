@@ -26,15 +26,14 @@ namespace Dcomms.DRP.Packets
         /// is copied from REGISTER REQ request packet by N and put into the ACK1 response
         /// </summary>
         public Int64 ReqTimestamp64;
-        public DrpResponderStatusCode ResponderStatusCode;
-        public EcdhPublicKey ResponderEcdhePublicKey; // is not null only when ResponderStatusCode=confirmed
+
+        public EcdhPublicKey ResponderEcdhePublicKey; 
         /// <summary>
         /// not null only for (status=connected) (N->X-M-EP-A)
         /// IP address of N with salt, encrypted for A
         /// </summary>
-        public byte[] ToResponderTxParametersEncrypted; // is not null only when ResponderStatusCode=confirmed
+        public byte[] ToResponderTxParametersEncrypted; 
         public const int ToResponderTxParametersEncryptedLength = 32;
-
 
         public RegistrationId ResponderRegistrationId; // public key of responder (neighbor, N)
         /// <summary>
@@ -43,7 +42,6 @@ namespace Dcomms.DRP.Packets
         ///   (virtual) REQ shared fields
         ///   RequesterRegistrationId,
         ///   RegisterReqTimestamp32S,
-        ///   ResponderStatusCode,
         ///   ResponderEcdhePublicKey,
         ///   ToResponderTxParametersEncrypted,
         ///   ResponderPublicKey 
@@ -54,16 +52,15 @@ namespace Dcomms.DRP.Packets
         HMAC NeighborHMAC; // is not sent from EP to A
 
         /// <summary>
-        /// is not null  only in EP-A   mode when ResponderStatusCode=confirmed
+        /// is not null  only in EP-A mode
         /// </summary>       
         public IPEndPoint RequesterEndpoint; // public IP:port of A, for UDP hole punching  // not encrypted.  IP address is validated at requester side       
 
         /// <summary>
         /// is not sent from EP to A (because response to the ACK1 is ACK2, not NPACK) 
-        /// is always sent when ResponderStatusCode != confirmed
         /// goes into NPACK packet at peer that responds to this packet
         /// </summary>
-        public NeighborPeerAckSequenceNumber16 NpaSeq16;
+        public RequestP2pSequenceNumber16 ReqP2pSeq16;
 
         public byte[] DecodedUdpPayloadData;
 
@@ -82,13 +79,9 @@ namespace Dcomms.DRP.Packets
             if ((ack1.Flags & Flag_EPtoA) == 0) ack1.NeighborToken32 = NeighborToken32.Decode(reader);
             if ((ack1.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             ack1.RequesterRegistrationId = RegistrationId.Decode(reader);
-            ack1.ReqTimestamp64 = reader.ReadInt64();
-            ack1.ResponderStatusCode = (DrpResponderStatusCode)reader.ReadByte();
-            if (ack1.ResponderStatusCode == DrpResponderStatusCode.confirmed)
-            {
-                ack1.ResponderEcdhePublicKey = EcdhPublicKey.Decode(reader);
-                ack1.ToResponderTxParametersEncrypted = reader.ReadBytes(ToResponderTxParametersEncryptedLength);
-            }
+            ack1.ReqTimestamp64 = reader.ReadInt64();                      
+            ack1.ResponderEcdhePublicKey = EcdhPublicKey.Decode(reader);
+            ack1.ToResponderTxParametersEncrypted = reader.ReadBytes(ToResponderTxParametersEncryptedLength);         
             ack1.ResponderRegistrationId = RegistrationId.Decode(reader);
 
             if (newConnectionToNeighborAtRequesterNullable != null)
@@ -111,17 +104,18 @@ namespace Dcomms.DRP.Packets
             if (reqNullable != null)
             {
                 ack1.AssertMatchToRegisterReq(reqNullable);
-                if (newConnectionToNeighborAtRequesterNullable != null && ack1.ResponderStatusCode == DrpResponderStatusCode.confirmed)
+                if (newConnectionToNeighborAtRequesterNullable != null)
                 {
                     newConnectionToNeighborAtRequesterNullable.Decrypt_ack1_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(reqNullable, ack1);
                 }
             }
-            if ((ack1.Flags & Flag_EPtoA) != 0 && ack1.ResponderStatusCode == DrpResponderStatusCode.confirmed)
+            if ((ack1.Flags & Flag_EPtoA) != 0)
                 ack1.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
-            if ((ack1.Flags & Flag_EPtoA) == 0 || ack1.ResponderStatusCode != DrpResponderStatusCode.confirmed)
-                ack1.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);            
-            if ((ack1.Flags & Flag_EPtoA) == 0)
+            else
+            {
+                ack1.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);
                 ack1.NeighborHMAC = HMAC.Decode(reader);
+            }
 
             return ack1;
         }
@@ -142,16 +136,14 @@ namespace Dcomms.DRP.Packets
         {
             RequesterRegistrationId.Encode(writer);
             writer.Write(ReqTimestamp64);
-            writer.Write((byte)ResponderStatusCode);
-            if (ResponderStatusCode == DrpResponderStatusCode.confirmed)
+           
+            ResponderEcdhePublicKey.Encode(writer);
+            if (includeTxParameters)
             {
-                ResponderEcdhePublicKey.Encode(writer);
-                if (includeTxParameters)
-                {
-                    if (ToResponderTxParametersEncrypted.Length != ToResponderTxParametersEncryptedLength) throw new ArgumentException();
-                    writer.Write(ToResponderTxParametersEncrypted);
-                }
+                if (ToResponderTxParametersEncrypted.Length != ToResponderTxParametersEncryptedLength) throw new ArgumentException();
+                writer.Write(ToResponderTxParametersEncrypted);
             }
+           
             ResponderRegistrationId.Encode(writer);
             if (includeSignature) ResponderSignature.Encode(writer);
         }
@@ -174,8 +166,8 @@ namespace Dcomms.DRP.Packets
             GetSharedSignedFields(writer, true, true);
 
 
-            if (reqReceivedFromInP2pMode != null || ResponderStatusCode != DrpResponderStatusCode.confirmed)
-                NpaSeq16.Encode(writer);
+            if (reqReceivedFromInP2pMode != null)
+                ReqP2pSeq16.Encode(writer);
             
             if (reqReceivedFromInP2pMode != null)
             {
@@ -184,8 +176,7 @@ namespace Dcomms.DRP.Packets
             }
             else
             {
-                if (ResponderStatusCode == DrpResponderStatusCode.confirmed)
-                    PacketProcedures.EncodeIPEndPoint(writer, RequesterEndpoint);
+                PacketProcedures.EncodeIPEndPoint(writer, RequesterEndpoint);
             }
 
             return ms.ToArray();
@@ -195,7 +186,7 @@ namespace Dcomms.DRP.Packets
         {
             NeighborToken32.Encode(w);
             GetSharedSignedFields(w, true, true);
-            NpaSeq16.Encode(w);
+            ReqP2pSeq16.Encode(w);
         }
 
         /// <summary>

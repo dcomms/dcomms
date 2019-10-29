@@ -49,7 +49,7 @@ namespace Dcomms.DRP
                 return;
             }
 
-            WriteToLog_reg_responderSide_higherLevelDetail($"accepting registration from {requesterEndpoint}: NpaSeq16={req.NpaSeq16}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, epEndpoint={req.EpEndpoint}, sourcePeer={sourcePeer}, ts={req.ReqTimestamp64}", req, acceptAt);
+            WriteToLog_reg_responderSide_higherLevelDetail($"accepting registration from {requesterEndpoint}: ReqP2pSeq16={req.ReqP2pSeq16}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, epEndpoint={req.EpEndpoint}, sourcePeer={sourcePeer}, ts={req.ReqTimestamp64}", req, acceptAt);
 
             if (!RecentUniquePublicEcdhKeys.Filter(req.RequesterEcdhePublicKey.Ecdh25519PublicKey))
             {
@@ -77,7 +77,7 @@ namespace Dcomms.DRP
                         ResponderEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                         ResponderRegistrationId = acceptAt.Configuration.LocalPeerRegistrationId,
                         ResponderStatusCode = DrpResponderStatusCode.confirmed,
-                        NpaSeq16 = GetNewNpaSeq16_AtoEP(),
+                        ReqP2pSeq16 = GetNewNpaSeq16_AtoEP(),
                     };
                     RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
                     ack1.ToResponderTxParametersEncrypted = newConnectionToNeighbor.Encrypt_ack1_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(req, ack1, sourcePeer);
@@ -102,7 +102,7 @@ namespace Dcomms.DRP
                     {   // retransmit ACK1 until NPACK (via P2P); at same time wait for ACK
                         WriteToLog_reg_responderSide_detail($"sending ACK1, awaiting for NPACK", req, acceptAt);
                         _ = OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack1UdpData, requesterEndpoint,
-                            ack1.NpaSeq16, sourcePeer, ack1.GetSignedFieldsForNeighborHMAC);
+                            ack1.ReqP2pSeq16, sourcePeer, ack1.GetSignedFieldsForNeighborHMAC);
                         // not waiting for NPACK, wait for ACK
                         WriteToLog_reg_responderSide_detail($"waiting for ACK2", req, acceptAt);                        
                         ack2UdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requesterEndpoint, ack2Scanner);                
@@ -177,13 +177,13 @@ namespace Dcomms.DRP
             }
         }
 
-        internal void SendNeighborPeerAckResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, NextHopResponseCode statusCode, ConnectionToNeighbor neighbor)
+        internal void SendNeighborPeerAckResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, NextHopResponseOrFailureCode responseCode, ConnectionToNeighbor neighbor)
         {
             neighbor?.AssertIsNotDisposed();
             var npAck = new NeighborPeerAckPacket
             {
-                NpaSeq16 = req.NpaSeq16,
-                StatusCode = statusCode
+                ReqP2pSeq16 = req.ReqP2pSeq16,
+                ResponseCode = responseCode
             };
             if (neighbor != null)
             {
@@ -207,7 +207,7 @@ namespace Dcomms.DRP
             else
             {
                 // send NPACK
-                SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, neighbor);
+                SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseOrFailureCode.failure_routeIsUnavailable, neighbor);
             }
         }
 
@@ -215,8 +215,8 @@ namespace Dcomms.DRP
         {
             var npAck = new NeighborPeerAckPacket
             {
-                NpaSeq16 = ack1.NpaSeq16,
-                StatusCode = NextHopResponseCode.accepted
+                ReqP2pSeq16 = ack1.ReqP2pSeq16,
+                ResponseCode = NextHopResponseOrFailureCode.accepted
             };
 
             npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
@@ -229,8 +229,8 @@ namespace Dcomms.DRP
         {
             var npAck = new NeighborPeerAckPacket
             {
-                NpaSeq16 = ack2.NpaSeq16,
-                StatusCode = NextHopResponseCode.accepted
+                ReqP2pSeq16 = ack2.ReqP2pSeq16,
+                ResponseCode = NextHopResponseOrFailureCode.accepted
             };
             if (ack2.AtoEP == false)
             {
@@ -245,8 +245,8 @@ namespace Dcomms.DRP
         {
             var npAck = new NeighborPeerAckPacket
             {
-                NpaSeq16 = cfm.NpaSeq16,
-                StatusCode = NextHopResponseCode.accepted
+                ReqP2pSeq16 = cfm.ReqP2pSeq16,
+                ResponseCode = NextHopResponseOrFailureCode.accepted
             };
             if (cfm.AtoEP == false)
             {

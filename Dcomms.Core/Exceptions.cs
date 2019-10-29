@@ -33,10 +33,7 @@ namespace Dcomms
     {
 
     }
-    class NoNeighborsForRoutingException: ApplicationException
-    {
-
-    }
+   
     class ExpiredUserKeysException: BadSignatureException
     {
 
@@ -61,17 +58,28 @@ namespace Dcomms
     }
     class NextHopRejectedException : ApplicationException
     {
-        public NextHopRejectedException(NextHopResponseCode responseCode)
+        public NextHopRejectedException(NextHopResponseOrFailureCode responseCode)
             : base($"Next hop rejected request with status = {responseCode}")
         {
 
         }
     }
-    class NextHopRejectedExceptionServiceUnavailable : NextHopRejectedException
+    class NextHopRejectedExceptionRouteIsUnavailable : NextHopRejectedException
     {
-        public NextHopRejectedExceptionServiceUnavailable() : base(NextHopResponseCode.rejected_serviceUnavailable)
+        public NextHopRejectedExceptionRouteIsUnavailable() : base(NextHopResponseOrFailureCode.failure_routeIsUnavailable)
         { }
     }
+
+
+    class NoNeighborsToSendInviteException : ApplicationException
+    {
+        public NoNeighborsToSendInviteException()
+            : base("no neighbors to send INVITE")
+        {
+
+        }
+    }
+
 
     class Pow1RejectedException : ApplicationException
     {
@@ -83,30 +91,30 @@ namespace Dcomms
     }
 
 
-    class DrpResponderRejectedException : ApplicationException
-    {
-        internal static DrpResponderRejectedException Create(DrpResponderStatusCode responseCode)
-        {
-            if (responseCode == DrpResponderStatusCode.rejected_maxhopsReached) return new DrpResponderRejectedMaxHopsReachedException();
-            else if (responseCode == DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable) return new DrpResponderRejectedP2pNetworkServiceUnavailableException();
-            else return new DrpResponderRejectedException(responseCode);
-        }
-        internal DrpResponderRejectedException(DrpResponderStatusCode responseCode)
-            : base($"Responder rejected request with status = {responseCode}")
-        {
-        }
-    }
-    class DrpResponderRejectedMaxHopsReachedException : DrpResponderRejectedException
-    {
-        public DrpResponderRejectedMaxHopsReachedException() : base(DrpResponderStatusCode.rejected_maxhopsReached)
-        {
-        }
-    }
-    class DrpResponderRejectedP2pNetworkServiceUnavailableException : DrpResponderRejectedException
-    {
-        public DrpResponderRejectedP2pNetworkServiceUnavailableException() : base(DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable)
-        {
-        }
-    }
+    //class DrpResponderRejectedException : ApplicationException
+    //{
+    //    internal static DrpResponderRejectedException Create(DrpResponderStatusCode responseCode)
+    //    {
+    //        if (responseCode == DrpResponderStatusCode.rejected_maxhopsReached) return new DrpResponderRejectedMaxHopsReachedException();
+    //        else if (responseCode == DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable) return new DrpResponderRejectedP2pNetworkServiceUnavailableException();
+    //        else return new DrpResponderRejectedException(responseCode);
+    //    }
+    //    internal DrpResponderRejectedException(DrpResponderStatusCode responseCode)
+    //        : base($"Responder rejected request with status = {responseCode}")
+    //    {
+    //    }
+    //}
+    //class DrpResponderRejectedMaxHopsReachedException : DrpResponderRejectedException
+    //{
+    //    public DrpResponderRejectedMaxHopsReachedException() : base(DrpResponderStatusCode.rejected_maxhopsReached)
+    //    {
+    //    }
+    //}
+    //class DrpResponderRejectedP2pNetworkServiceUnavailableException : DrpResponderRejectedException
+    //{
+    //    public DrpResponderRejectedP2pNetworkServiceUnavailableException() : base(DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable)
+    //    {
+    //    }
+    //}
 
 }

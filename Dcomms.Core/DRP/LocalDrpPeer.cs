@@ -103,6 +103,33 @@ namespace Dcomms.DRP
             }
         }
 
+        public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(ConnectionToNeighbor sourceNeighborNullable,
+            HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
+            InviteRequestPacket req)
+        {
+            foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
+            {
+                if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
+                {
+                    Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}", req, this);
+                    continue;
+                }
+                if (alreadyTriedProxyingToDestinationPeersNullable != null && alreadyTriedProxyingToDestinationPeersNullable.Contains(connectedPeer))
+                {
+                    Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}", req, this);
+                    continue;
+                }
+
+                if (req.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
+                {
+                    Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}", req, this);
+                    continue;
+                }
+
+                yield return connectedPeer;
+            }
+        }
+
         public void AddToConnectedNeighbors(ConnectionToNeighbor newConnectedNeighbor, RegisterRequestPacket req)
         {
             newConnectedNeighbor.OnP2pInitialized();
@@ -164,7 +191,7 @@ namespace Dcomms.DRP
                     //    if (_numberOfHopsToExtendNeighbors < 50)
                     //        _numberOfHopsToExtendNeighbors = (byte)(_numberOfHopsToExtendNeighbors + 5);
                     //}
-                    catch (NextHopRejectedExceptionServiceUnavailable exc)
+                    catch (NextHopRejectedExceptionRouteIsUnavailable exc)
                     {
                         Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"failed to extend neighbors for {this}: {exc}", null, null);
                     }

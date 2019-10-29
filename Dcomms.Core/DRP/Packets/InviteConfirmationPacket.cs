@@ -21,7 +21,7 @@ namespace Dcomms.DRP.Packets
 
         public RegistrationSignature ResponderRegistrationSignature;
 
-        public NeighborPeerAckSequenceNumber16 NpaSeq16;
+        public RequestP2pSequenceNumber16 ReqP2pSeq16;
 
         /// <summary>
         /// authorizes peer that sends the packet
@@ -38,7 +38,7 @@ namespace Dcomms.DRP.Packets
             NeighborToken32 = transmitToNeighbor.RemoteNeighborToken32;
             NeighborToken32.Encode(w);
 
-            NpaSeq16 = transmitToNeighbor.GetNewNpaSeq16_P2P();
+            ReqP2pSeq16 = transmitToNeighbor.GetNewNpaSeq16_P2P();
 
             GetSignedFieldsForNeighborHMAC(w);
 
@@ -58,7 +58,7 @@ namespace Dcomms.DRP.Packets
         {
             GetSharedSignedFields(w);
             ResponderRegistrationSignature.Encode(w);
-            NpaSeq16.Encode(w);
+            ReqP2pSeq16.Encode(w);
         }
 
         internal byte[] DecodedUdpPayloadData;
@@ -77,7 +77,7 @@ namespace Dcomms.DRP.Packets
             r.RequesterRegistrationId = RegistrationId.Decode(reader);
             r.ResponderRegistrationId = RegistrationId.Decode(reader);
             r.ResponderRegistrationSignature = RegistrationSignature.Decode(reader);
-            r.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);
+            r.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);
 
             r.NeighborHMAC = HMAC.Decode(reader);
 

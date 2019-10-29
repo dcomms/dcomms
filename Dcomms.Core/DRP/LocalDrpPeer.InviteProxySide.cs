@@ -19,7 +19,10 @@ namespace Dcomms.DRP
         /// <summary>
         /// Timestamp32S, NeighborToken32 and NeighborHMAC are verified at this time
         /// </summary>
-        internal async Task ProxyInviteRequestAsync(InviteRequestPacket req, ConnectionToNeighbor sourcePeer, ConnectionToNeighbor destinationPeer)
+        /// <returns>
+        /// true to retry the request with another neighbor (if the request needs to be "rerouted")
+        /// </returns>
+        internal async Task<bool> ProxyInviteRequestAsync(InviteRequestPacket req, ConnectionToNeighbor sourcePeer, ConnectionToNeighbor destinationPeer)
         {
             Engine.WriteToLog_inv_proxySide_detail($"proxying {req}", req, this);
 
@@ -28,13 +31,13 @@ namespace Dcomms.DRP
 
             if (req.NumberOfHopsRemaining > InviteRequestPacket.MaxNumberOfHopsRemaining)
             {
-                SendNeighborPeerAckResponseToReq(req, sourcePeer, NextHopResponseCode.rejected_serviceUnavailable);
-                return;
+                SendNeighborPeerAckResponseToReq(req, sourcePeer, NextHopResponseOrFailureCode.failure_routeIsUnavailable);
+                return null;
             }
             if (req.NumberOfHopsRemaining <= 1)
             {
                 SendNeighborPeerAckResponseToReq(req, sourcePeer, NextHopResponseCode.rejected_invite_numberOfHopsRemainingReachedZero);
-                return;
+                return null;
             }
 
             _pendingInviteRequests.Add(req.RequesterRegistrationId);
@@ -45,28 +48,38 @@ namespace Dcomms.DRP
                 SendNeighborPeerAckResponseToReq(req, sourcePeer);
 
                 req.NumberOfHopsRemaining--;
-                //if (req.NumberOfHopsRemaining == 0)       TODO
-                //{
-                //    xx
-                //    return;
-                //}
+                Engine.WriteToLog_inv_proxySide_detail($"decremented number of hops in {req}: NumberOfHopsRemaining={req.NumberOfHopsRemaining}", req, this);
+
 
                 // send (proxy) REQ to responder. wait for NPACK, verify NPACK.senderHMAC, retransmit REQ   
                 var reqUdpData = req.Encode_SetP2pFields(destinationPeer);
-                await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.NpaSeq16, req.GetSignedFieldsForNeighborHMAC);
 
                 #region wait for ACK1 from responder  verify NeighborHMAC
-                Engine.WriteToLog_inv_proxySide_detail($"waiting for ACK1 from responder", req, this);
-                var ack1UdpData = await Engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
-                                InviteAck1Packet.GetScanner(req, destinationPeer),
-                                    Engine.DateTimeNowUtc, Engine.Configuration.InviteRequestsTimoutS
-                                ));
-                if (ack1UdpData == null) throw new DrpTimeoutException("Did not receive ACK1 on timeout");
-                var ack1 = InviteAck1Packet.Decode(ack1UdpData);
-                Engine.WriteToLog_inv_proxySide_detail($"verified ACK1 from responder", req, this);
-                
-                // respond with NPACK to ACk1
-                SendNeighborPeerAckResponseToAck1(ack1, destinationPeer);
+                InviteAck1Packet ack1 = null;
+                try
+                {
+                    await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.ReqP2pSeq16, req.GetSignedFieldsForNeighborHMAC);
+
+                    Engine.WriteToLog_inv_proxySide_detail($"waiting for ACK1 from responder", req, this);
+                    var ack1UdpData = await Engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
+                                    InviteAck1Packet.GetScanner(req, destinationPeer),
+                                        Engine.DateTimeNowUtc, Engine.Configuration.InviteRequestsTimoutS
+                                    ));
+                    if (ack1UdpData == null) throw new DrpTimeoutException("Did not receive ACK1 on timeout");
+                    ack1 = InviteAck1Packet.Decode(ack1UdpData);
+                    Engine.WriteToLog_inv_proxySide_detail($"verified ACK1 from responder", req, this);
+                    // respond with NPACK to ACk1
+                    SendNeighborPeerAckResponseToAck1(ack1, destinationPeer);
+                }
+                catch (Exception exc2)
+                {
+                    xxxx
+                    return DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
+                }
+                if (ack1.StatusCode != OK)
+                {
+                    xxxxxx
+                }
                 #endregion
 
                 #region send ACK1 to requester, wait for NPACK and ACK2
@@ -74,7 +87,7 @@ namespace Dcomms.DRP
 
                 Engine.WriteToLog_inv_proxySide_detail($"sending ACK1, awaiting for NPACK", req, this);
                 _ = Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack1UdpDataTx, sourcePeer.RemoteEndpoint,
-                    ack1.NpaSeq16, sourcePeer, ack1.GetSignedFieldsForNeighborHMAC);
+                    ack1.ReqP2pSeq16, sourcePeer, ack1.GetSignedFieldsForNeighborHMAC);
                 // not waiting for NPACK, wait for ACK1
                 Engine.WriteToLog_inv_proxySide_detail($"waiting for ACK2", req, this);
 
@@ -89,12 +102,12 @@ namespace Dcomms.DRP
                 SendNeighborPeerAckResponseToAck2(ack2, sourcePeer);
 
                 // send ACK2 to responder
-                // put ACK2.NpaSeq16, sendertoken32, senderHMAC  
+                // put ACK2.ReqP2pSeq16, sendertoken32, senderHMAC  
                 // wait for NPACK
                 var ack2UdpDataTx = ack2.Encode_SetP2pFields(destinationPeer);
                 Engine.WriteToLog_inv_proxySide_detail($"sending ACK2 to responder", req, this);
                 await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2UdpDataTx,
-                    ack2.NpaSeq16, ack2.GetSignedFieldsForNeighborHMAC);
+                    ack2.ReqP2pSeq16, ack2.GetSignedFieldsForNeighborHMAC);
                 Engine.WriteToLog_inv_proxySide_detail($"received NPACK to ACK2 from destination peer", req, this);
 
                 // wait for CFM from responder
@@ -116,7 +129,7 @@ namespace Dcomms.DRP
 
                 Engine.WriteToLog_inv_proxySide_detail($"sending CFM to requester, waiting for NPACK", req, this);
                 await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(cfmUdpDataTx, sourcePeer.RemoteEndpoint,
-                    cfm.NpaSeq16, sourcePeer, cfm.GetSignedFieldsForNeighborHMAC);
+                    cfm.ReqP2pSeq16, sourcePeer, cfm.GetSignedFieldsForNeighborHMAC);
                 Engine.WriteToLog_inv_proxySide_detail($"received NPACK to CFM from source peer", req, this);
             }
             catch (Exception exc)

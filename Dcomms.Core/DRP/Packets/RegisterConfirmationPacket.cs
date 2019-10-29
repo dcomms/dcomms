@@ -41,7 +41,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public RegistrationSignature RequesterRegistrationConfirmationSignature;
 
-        public NeighborPeerAckSequenceNumber16 NpaSeq16;
+        public RequestP2pSequenceNumber16 ReqP2pSeq16;
         public HMAC NeighborHMAC; // is NULL for A->EP
 
         const ushort RequesterRegistrationConfirmationSignature_MagicNumber = 0x39E1;
@@ -126,7 +126,7 @@ namespace Dcomms.DRP.Packets
             ResponderRegistrationConfirmationSignature.Encode(writer);
             RequesterRegistrationConfirmationSignature.Encode(writer);
 
-            NpaSeq16.Encode(writer);
+            ReqP2pSeq16.Encode(writer);
             if (connectionToNeighbor != null)
             {
                 this.NeighborHMAC = connectionToNeighbor.GetNeighborHMAC(this.GetSignedFieldsForNeighborHMAC);
@@ -169,7 +169,7 @@ namespace Dcomms.DRP.Packets
                 cfm.RequesterRegistrationConfirmationSignature = RegistrationSignature.Decode(reader);
             }
                 
-            cfm.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);                 
+            cfm.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);                 
             if ((cfm.Flags & Flag_AtoEP) == 0)
             {
                 cfm.NeighborHMAC = HMAC.Decode(reader);
@@ -192,7 +192,7 @@ namespace Dcomms.DRP.Packets
             RequesterRegistrationId.Encode(writer);
             ResponderRegistrationConfirmationSignature.Encode(writer);
             RequesterRegistrationConfirmationSignature.Encode(writer);
-            NpaSeq16.Encode(writer);
+            ReqP2pSeq16.Encode(writer);
         }
     }
 

@@ -298,10 +298,10 @@ namespace Dcomms.DRP
         /// </summary>
         readonly Random _insecureRandom = new Random();
         ushort _seq16Counter_P2P; // accessed only by engine thread
-        internal NeighborPeerAckSequenceNumber16 GetNewNpaSeq16_P2P()
+        internal RequestP2pSequenceNumber16 GetNewNpaSeq16_P2P()
         {
             AssertIsNotDisposed();
-            return new NeighborPeerAckSequenceNumber16 { Seq16 = _seq16Counter_P2P++ };
+            return new RequestP2pSequenceNumber16 { Seq16 = _seq16Counter_P2P++ };
         }
 
         // IirFilterCounter RxInviteRateRps;
@@ -576,7 +576,7 @@ namespace Dcomms.DRP
                 if (_engine.PendingRegisterRequestExists(req.RequesterRegistrationId))
                 {
                     _engine.WriteToLog_routing_higherLevelDetail($"rejecting {req}: another request is already pending", req, LocalDrpPeer);
-                    _engine.SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseCode.rejected_serviceUnavailable, this);
+                    _engine.SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseOrFailureCode.failure_routeIsUnavailable, this);
                     return;
                 }
 
@@ -623,7 +623,7 @@ _retry:
             }
         }
 
-        internal void OnReceivedInviteReq(IPEndPoint requesterEndpoint, byte[] udpData)
+        internal async Task OnReceivedInviteReq(IPEndPoint requesterEndpoint, byte[] udpData)
         {
             if (_disposed) return;
             if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -644,7 +644,7 @@ _retry:
                 if (LocalDrpPeer.PendingInviteRequestExists(req.RequesterRegistrationId))
                 {
                     Engine.WriteToLog_inv_lightPain($"rejecting {req}: another request is already being processed", req, LocalDrpPeer);
-                    LocalDrpPeer.SendNeighborPeerAckResponseToReq(req, this, NextHopResponseCode.rejected_serviceUnavailable);
+                    LocalDrpPeer.SendNeighborPeerAckResponseToReq(req, this, NextHopResponseOrFailureCode.failure_routeIsUnavailable);
                     return;
                 }
 
@@ -654,8 +654,30 @@ _retry:
                 }
                 else
                 {
-                    var destinationPeer = _engine.RouteInviteRequest(this.LocalDrpPeer, req); // routing
-                    _ = this.LocalDrpPeer.ProxyInviteRequestAsync(req, this, destinationPeer);                  
+                    var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
+                    DrpResponderStatusCode errorResponseCode = DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
+                    bool alreadyRepliedWithNPA = false;
+                _retry:
+                    var destinationPeer = _engine.RouteInviteRequest(this.LocalDrpPeer, req, this, alreadyTriedProxyingToDestinationPeers); // routing
+                    if (destinationPeer == null)
+                    {
+                        // no neighbors found. send error response to sender
+                        LocalDrpPeer.SendErrorResponseToInviteReq(req, requesterEndpoint, this, alreadyRepliedWithNPA, errorResponseCode);
+                        return;
+                    }
+
+                    var errorCodeFromDestination = await this.LocalDrpPeer.ProxyInviteRequestAsync(req, this, destinationPeer);
+                    var needToRerouteToAnotherNeighbor = errorCodeFromDestination.HasValue;
+                    errorResponseCode = errorCodeFromDestination ?? DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
+                    if (needToRerouteToAnotherNeighbor)
+                    {
+                        alreadyTriedProxyingToDestinationPeers.Add(destinationPeer);
+                        Engine.WriteToLog_inv_proxySide_detail($"retrying to proxy invite to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}", req, LocalDrpPeer);
+            
+                        alreadyRepliedWithNPA = true;
+                        goto _retry;
+                    }
+
                 }
             }
             catch (Exception exc)
@@ -668,10 +690,10 @@ _retry:
         {
             _engine.SendPacket(udpPayload, RemoteEndpoint);
         }
-        internal async Task SendUdpRequestAsync_Retransmit_WaitForNPACK(byte[] requestUdpData, NeighborPeerAckSequenceNumber16 npaSeq16, 
+        internal async Task SendUdpRequestAsync_Retransmit_WaitForNPACK(byte[] requestUdpData, RequestP2pSequenceNumber16 reqP2pSeq16, 
             Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
-            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(requestUdpData, RemoteEndpoint, npaSeq16, this, npaRequestFieldsForNeighborHmacNullable);
+            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(requestUdpData, RemoteEndpoint, reqP2pSeq16, this, npaRequestFieldsForNeighborHmacNullable);
         }
                
         internal void GetResponderRegistrationConfirmationSignatureFields(BinaryWriter w)

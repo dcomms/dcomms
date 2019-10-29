@@ -189,21 +189,29 @@ namespace Dcomms.DRP
             }            
         }
 
-        public ConnectionToNeighbor RouteInviteRequest(LocalDrpPeer localDrpPeer, InviteRequestPacket req)
+        /// <returns>null if no neighbors found for routing</returns>
+        public ConnectionToNeighbor RouteInviteRequest(LocalDrpPeer localDrpPeer, InviteRequestPacket req,
+            ConnectionToNeighbor sourceNeighborNullable, HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable)
         {
             ConnectionToNeighbor r = null;
             RegistrationIdDistance minDistance = null;
-            foreach (var connectedPeer in localDrpPeer.ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
+            var connectedNeighborsForRouting = localDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req).ToList();
+
+            foreach (var connectedPeer in connectedNeighborsForRouting)
             {
                 var distanceToConnectedPeer = req.ResponderRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId, NumberOfDimensions);
-                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from INVITE REQ {req.ResponderRegistrationId} to {connectedPeer.RemoteRegistrationId}", req, localDrpPeer);
+                WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from {req} to {connectedPeer.RemoteRegistrationId}", req, localDrpPeer);
                 if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
                 {
                     minDistance = distanceToConnectedPeer;
                     r = connectedPeer;
                 }
             }
-            if (r == null) throw new NoNeighborsForRoutingException();
+            if (r == null)
+            {
+                WriteToLog_routing_detail($"no neighbors found for routing", req, localDrpPeer);
+            }
+         
             return r;
         }
     }

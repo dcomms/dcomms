@@ -46,7 +46,7 @@ namespace Dcomms.DRP.Packets
         public RegistrationSignature RequesterSignature;
 
         public HMAC NeighborHMAC; // is NULL for A->EP
-        public NeighborPeerAckSequenceNumber16 NpaSeq16;
+        public RequestP2pSequenceNumber16 ReqP2pSeq16;
         public byte[] DecodedUdpPayloadData;
         public RegisterAck2Packet()
         {
@@ -113,7 +113,7 @@ namespace Dcomms.DRP.Packets
 
             GetSharedSignedFields(writer, true, true);
 
-            NpaSeq16.Encode(writer);
+            ReqP2pSeq16.Encode(writer);
 
             if (connectionToNeighborNullable != null)
                 connectionToNeighborNullable.GetNeighborHMAC(this.GetSignedFieldsForNeighborHMAC).Encode(writer);
@@ -135,7 +135,7 @@ namespace Dcomms.DRP.Packets
         {
             NeighborToken32.Encode(writer);
             GetSharedSignedFields(writer, true, true);
-            NpaSeq16.Encode(writer);
+            ReqP2pSeq16.Encode(writer);
         }
 
         void AssertMatchToSyn(RegisterRequestPacket remoteRegisterReq)
@@ -191,7 +191,7 @@ namespace Dcomms.DRP.Packets
                     throw new BadSignatureException();
             }
 
-            ack.NpaSeq16 = NeighborPeerAckSequenceNumber16.Decode(reader);
+            ack.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);
 
             if ((ack.Flags & Flag_AtoEP) == 0)
             {

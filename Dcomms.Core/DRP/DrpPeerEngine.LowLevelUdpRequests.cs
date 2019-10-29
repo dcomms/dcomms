@@ -21,10 +21,10 @@ namespace Dcomms.DRP
 
         /// <param name="waitNhaFromNeighborNullable">is used to verify NPACK.NeighborHMAC</param>
         internal async Task<NeighborPeerAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, 
-            NeighborPeerAckSequenceNumber16 npaSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
+            RequestP2pSequenceNumber16 reqP2pSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
-            var npaScanner = NeighborPeerAckPacket.GetScanner(npaSeq16, waitNhaFromNeighborNullable, npaRequestFieldsForNeighborHmacNullable);
-            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"waiting for NPACK, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} npaSeq={npaSeq16}");
+            var npaScanner = NeighborPeerAckPacket.GetScanner(reqP2pSeq16, waitNhaFromNeighborNullable, npaRequestFieldsForNeighborHmacNullable);
+            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"waiting for NPACK, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} npaSeq={reqP2pSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(responderEndpoint,
                          npaScanner, 
@@ -41,11 +41,11 @@ namespace Dcomms.DRP
             }
 
             var nextHopResponsePacket = new NeighborPeerAckPacket(nextHopResponsePacketData);
-            if (nextHopResponsePacket.StatusCode != NextHopResponseCode.accepted)
+            if (nextHopResponsePacket.ResponseCode != NextHopResponseOrFailureCode.accepted)
             {
-                if (nextHopResponsePacket.StatusCode == NextHopResponseCode.rejected_serviceUnavailable)
-                    throw new NextHopRejectedExceptionServiceUnavailable();
-                else throw new NextHopRejectedException(nextHopResponsePacket.StatusCode);
+                if (nextHopResponsePacket.ResponseCode == NextHopResponseOrFailureCode.failure_routeIsUnavailable)
+                    throw new NextHopRejectedExceptionRouteIsUnavailable();
+                else throw new NextHopRejectedException(nextHopResponsePacket.ResponseCode);
             }
             return nextHopResponsePacket;
         }
