@@ -76,26 +76,24 @@ namespace Dcomms.DRP
         }
         #endregion
 
-        public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(ConnectionToNeighbor sourceNeighborNullable,
-            HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
-            RegisterRequestPacket req)
+        public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(ReceivedRequest receivedRequest)
         {
             foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
             {
-                if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
+                if (receivedRequest.ReceivedFromNeighborNullable != null && connectedPeer == receivedRequest.ReceivedFromNeighborNullable)
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}", req, this);
+                    Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}", receivedRequest.Req, this);
                     continue;
                 }
-                if (alreadyTriedProxyingToDestinationPeersNullable != null && alreadyTriedProxyingToDestinationPeersNullable.Contains(connectedPeer))
+                if (receivedRequest.TriedNeighbors.Contains(connectedPeer))
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}", req, this);
+                    Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}", receivedRequest.Req, this);
                     continue;
                 }
 
-                if (req.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
+                if (receivedRequest.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}", req, this);
+                    Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}", receivedRequest.Req, this);
                     continue;
                 }
 
@@ -103,32 +101,32 @@ namespace Dcomms.DRP
             }
         }
 
-        public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(ConnectionToNeighbor sourceNeighborNullable,
-            HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
-            InviteRequestPacket req)
-        {
-            foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
-            {
-                if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
-                {
-                    Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}", req, this);
-                    continue;
-                }
-                if (alreadyTriedProxyingToDestinationPeersNullable != null && alreadyTriedProxyingToDestinationPeersNullable.Contains(connectedPeer))
-                {
-                    Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}", req, this);
-                    continue;
-                }
+        //public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(ConnectionToNeighbor sourceNeighborNullable,
+        //    HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
+        //    InviteRequestPacket req)
+        //{
+        //    foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
+        //    {
+        //        if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
+        //        {
+        //            Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}", req, this);
+        //            continue;
+        //        }
+        //        if (alreadyTriedProxyingToDestinationPeersNullable != null && alreadyTriedProxyingToDestinationPeersNullable.Contains(connectedPeer))
+        //        {
+        //            Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}", req, this);
+        //            continue;
+        //        }
 
-                if (req.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
-                {
-                    Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}", req, this);
-                    continue;
-                }
+        //        if (req.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
+        //        {
+        //            Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}", req, this);
+        //            continue;
+        //        }
 
-                yield return connectedPeer;
-            }
-        }
+        //        yield return connectedPeer;
+        //    }
+        //}
 
         public void AddToConnectedNeighbors(ConnectionToNeighbor newConnectedNeighbor, RegisterRequestPacket req)
         {

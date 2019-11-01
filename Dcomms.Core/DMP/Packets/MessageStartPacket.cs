@@ -22,7 +22,7 @@ namespace Dcomms.DMP.Packets
         internal static LowLevelUdpResponseScanner GetScanner(DirectChannelToken32 localDirectChannelToken32, InviteSession session)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpDmpPacketTypes.MessageStart);
+            w.Write((byte)PacketTypes.MessageStart);
             localDirectChannelToken32.Encode(w);            
             return new LowLevelUdpResponseScanner
             {
@@ -62,7 +62,7 @@ namespace Dcomms.DMP.Packets
         public byte[] Encode()
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
-            writer.Write((byte)DrpDmpPacketTypes.MessageStart);
+            writer.Write((byte)PacketTypes.MessageStart);
             DirectChannelToken32.Encode(writer);
             writer.Write(MessageId32);
             byte flags = 0;

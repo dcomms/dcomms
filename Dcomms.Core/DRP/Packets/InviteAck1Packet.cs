@@ -33,14 +33,14 @@ namespace Dcomms.DRP.Packets
         public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpDmpPacketTypes.InviteAck1);
+            w.Write((byte)PacketTypes.InviteAck1);
             byte flags = 0;
             w.Write(flags);
 
             NeighborToken32 = transmitToNeighbor.RemoteNeighborToken32;
             NeighborToken32.Encode(w);
 
-            ReqP2pSeq16 = transmitToNeighbor.GetNewNpaSeq16_P2P();
+            ReqP2pSeq16 = transmitToNeighbor.GetNewRequestP2pSeq16_P2P();
 
             GetSignedFieldsForNeighborHMAC(w);
 
@@ -98,10 +98,10 @@ namespace Dcomms.DRP.Packets
         /// <param name="connectionToNeighbor">
         /// peer that responds to REQ with ACK1
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(InviteRequestPacket req, ConnectionToNeighbor connectionToNeighbor)
+        public static LowLevelUdpResponseScanner GetScanner(Logger logger, InviteRequestPacket req, ConnectionToNeighbor connectionToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpDmpPacketTypes.InviteAck1);
+            w.Write((byte)PacketTypes.InviteAck1);
             w.Write((byte)0); // flags
            
             connectionToNeighbor.LocalNeighborToken32.Encode(w);
@@ -120,11 +120,15 @@ namespace Dcomms.DRP.Packets
             {
                 if (connectionToNeighbor.IsDisposed)
                 {
-                    connectionToNeighbor.Engine.WriteToLog_p2p_needsAttention(connectionToNeighbor, "ignoring ACK1: connection is disposed", req);
+                    logger.WriteToLog_needsAttention("ignoring ACK1: connection is disposed");
                     return false;
                 }
                 var ack1 = Decode(responseData);
-                if (ack1.NeighborHMAC.Equals(connectionToNeighbor.GetNeighborHMAC(ack1.GetSignedFieldsForNeighborHMAC)) == false) return false;
+                if (ack1.NeighborHMAC.Equals(connectionToNeighbor.GetNeighborHMAC(ack1.GetSignedFieldsForNeighborHMAC)) == false)
+                {
+                    logger.WriteToLog_attacks("ignoring ACK1: received NeighborHMAC is invalid");
+                    return false;
+                }
                 return true;
             };
             

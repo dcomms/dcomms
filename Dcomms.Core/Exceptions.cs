@@ -44,10 +44,15 @@ namespace Dcomms
     }
 
 
+    class RequestFailedException: ApplicationException
+    {
+        public RequestFailedException(string desc): base(desc)
+        {
+        }
+    }
 
 
-
-    class DrpTimeoutException : ApplicationException // next hop or EP, or whatever responder timed out
+    class DrpTimeoutException : RequestFailedException // next hop or EP, or whatever responder timed out
     {
         public DrpTimeoutException(string message = "Timeout while waiting for response")
             : base(message)
@@ -56,22 +61,23 @@ namespace Dcomms
         }
 
     }
-    class NextHopRejectedException : ApplicationException
+
+    class RequestRejectedException : RequestFailedException
     {
-        public NextHopRejectedException(NextHopResponseOrFailureCode responseCode)
-            : base($"Next hop rejected request with status = {responseCode}")
+        public RequestRejectedException(ResponseOrFailureCode responseCode)
+            : base($"Request was rejected with status = {responseCode}")
         {
 
         }
     }
-    class NextHopRejectedExceptionRouteIsUnavailable : NextHopRejectedException
+    class RequestRejectedExceptionRouteIsUnavailable : RequestRejectedException
     {
-        public NextHopRejectedExceptionRouteIsUnavailable() : base(NextHopResponseOrFailureCode.failure_routeIsUnavailable)
+        public RequestRejectedExceptionRouteIsUnavailable() : base(ResponseOrFailureCode.failure_routeIsUnavailable)
         { }
     }
 
 
-    class NoNeighborsToSendInviteException : ApplicationException
+    class NoNeighborsToSendInviteException : RequestFailedException
     {
         public NoNeighborsToSendInviteException()
             : base("no neighbors to send INVITE")

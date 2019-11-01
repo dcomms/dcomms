@@ -40,11 +40,11 @@ namespace Dcomms.DRP.Packets
         public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpDmpPacketTypes.InviteReq);
+            w.Write((byte)PacketTypes.InviteReq);
             byte flags = 0;
             w.Write(flags);
 
-            ReqP2pSeq16 = transmitToNeighbor.GetNewNpaSeq16_P2P();
+            ReqP2pSeq16 = transmitToNeighbor.GetNewRequestP2pSeq16_P2P();
             NeighborToken32 = transmitToNeighbor.RemoteNeighborToken32;
             NeighborToken32.Encode(w);
 

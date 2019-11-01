@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Dcomms.DRP.Packets
 {
-    enum NextHopResponseOrFailureCode
+    public enum ResponseOrFailureCode
     {
         /// <summary>
         /// is sent to previous hop immediately when packet is proxied, to stop retransmission timer

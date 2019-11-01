@@ -95,13 +95,13 @@ namespace Dcomms.P2PTP.LocalLogic
                         {
                             switch (packetType.Value)
                             {
-                                case PacketType.hello:
+                                case PacketTypes.hello:
                                     manager.ProcessReceivedHello(udpData, remoteEndpoint, this, timestamp32);
                                     break;
-                                case PacketType.peersListIpv4:
+                                case PacketTypes.peersListIpv4:
                                     manager.ProcessReceivedSharedPeers(udpData, remoteEndpoint);
                                     break;
-                                case PacketType.extensionSignaling:
+                                case PacketTypes.extensionSignaling:
                                     manager.ProcessReceivedExtensionSignalingPacket(PacketProcedures.CreateBinaryReader(udpData, P2ptpCommon.HeaderSize), remoteEndpoint);
                                     break;
                             }

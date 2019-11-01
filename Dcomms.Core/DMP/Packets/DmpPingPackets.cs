@@ -23,7 +23,7 @@ namespace Dcomms.DMP.Packets
 
         public void GetSignedFieldsForPingPongHMAC(BinaryWriter writer)
         {
-            writer.Write((byte)DrpDmpPacketTypes.DmpPing);
+            writer.Write((byte)PacketTypes.DmpPing);
             DirectChannelToken32.Encode(writer);
             writer.Write(PingRequestId32);            
             if (PublicEcdheKeyA != null)
@@ -36,7 +36,7 @@ namespace Dcomms.DMP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             
-            writer.Write((byte)DrpDmpPacketTypes.DmpPing);
+            writer.Write((byte)PacketTypes.DmpPing);
             DirectChannelToken32.Encode(writer);
             writer.Write(PingRequestId32);
 
@@ -152,7 +152,7 @@ namespace Dcomms.DMP.Packets
         }
         static void GetHeaderFields(BinaryWriter writer, DirectChannelToken32 directChannelToken32, uint pingRequestId32)
         {
-            writer.Write((byte)DrpDmpPacketTypes.DmpPong);
+            writer.Write((byte)PacketTypes.DmpPong);
             directChannelToken32.Encode(writer);
             writer.Write(pingRequestId32);
         }

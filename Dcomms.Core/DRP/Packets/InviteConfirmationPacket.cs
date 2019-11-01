@@ -31,14 +31,14 @@ namespace Dcomms.DRP.Packets
         public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpDmpPacketTypes.InviteCfm);
+            w.Write((byte)PacketTypes.InviteCfm);
             byte flags = 0;
             w.Write(flags);
 
             NeighborToken32 = transmitToNeighbor.RemoteNeighborToken32;
             NeighborToken32.Encode(w);
 
-            ReqP2pSeq16 = transmitToNeighbor.GetNewNpaSeq16_P2P();
+            ReqP2pSeq16 = transmitToNeighbor.GetNewRequestP2pSeq16_P2P();
 
             GetSignedFieldsForNeighborHMAC(w);
 
@@ -93,10 +93,10 @@ namespace Dcomms.DRP.Packets
         /// <param name="connectionToNeighbor">
         /// peer that responds with CFM
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(InviteRequestPacket req, ConnectionToNeighbor connectionToNeighbor)
+        public static LowLevelUdpResponseScanner GetScanner(Logger logger, InviteRequestPacket req, ConnectionToNeighbor connectionToNeighbor)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpDmpPacketTypes.InviteCfm);
+            w.Write((byte)PacketTypes.InviteCfm);
             w.Write((byte)0); // flags
 
             connectionToNeighbor.LocalNeighborToken32.Encode(w);
@@ -115,11 +115,15 @@ namespace Dcomms.DRP.Packets
             {
                 if (connectionToNeighbor.IsDisposed)
                 {
-                    connectionToNeighbor.Engine.WriteToLog_p2p_needsAttention(connectionToNeighbor, "ignoring CFM: connection is disposed", req);
+                    logger.WriteToLog_needsAttention("ignoring CFM: connection is disposed");
                     return false;
                 }
                 var cfm = Decode(responseData);
-                if (cfm.NeighborHMAC.Equals(connectionToNeighbor.GetNeighborHMAC(cfm.GetSignedFieldsForNeighborHMAC)) == false) return false;
+                if (cfm.NeighborHMAC.Equals(connectionToNeighbor.GetNeighborHMAC(cfm.GetSignedFieldsForNeighborHMAC)) == false)
+                {
+                    logger.WriteToLog_attacks("ignoring CFM: received NeighborHMAC is invalid");
+                    return false;
+                }
                 return true;
             };
 

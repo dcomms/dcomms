@@ -298,7 +298,7 @@ namespace Dcomms.DRP
         /// </summary>
         readonly Random _insecureRandom = new Random();
         ushort _seq16Counter_P2P; // accessed only by engine thread
-        internal RequestP2pSequenceNumber16 GetNewNpaSeq16_P2P()
+        internal RequestP2pSequenceNumber16 GetNewRequestP2pSeq16_P2P()
         {
             AssertIsNotDisposed();
             return new RequestP2pSequenceNumber16 { Seq16 = _seq16Counter_P2P++ };
@@ -566,56 +566,13 @@ namespace Dcomms.DRP
                 var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpData, this);
                 // NeighborToken32 and NeighborHMAC are verified at this time
                 
-                if (!_engine.ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
-                    throw new BadSignatureException();
-
+                var receivedRequest = new ReceivedRequest(LocalDrpPeer, this, requesterEndpoint, reqReceivedTimeUtc) { RegisterReq = req };
                 _engine.WriteToLog_p2p_higherLevelDetail(this, $"received {req} ({req.NumberOfHopsRemaining} hops remaining) via P2P connection", req);
+                
                 if (req.RequesterRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
                     _engine.WriteToLog_routing_lightPain($"received {req} to same reg. ID", req, LocalDrpPeer);
 
-                if (_engine.PendingRegisterRequestExists(req.RequesterRegistrationId))
-                {
-                    _engine.WriteToLog_routing_higherLevelDetail($"rejecting {req}: another request is already pending", req, LocalDrpPeer);
-                    _engine.SendNeighborPeerAckResponseToRegisterReq(req, requesterEndpoint, NextHopResponseOrFailureCode.failure_routeIsUnavailable, this);
-                    return;
-                }
-
-
-                var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
-                bool checkRecentUniqueProxiedRegistrationRequests = true;
-                bool alreadyRepliedWithNPA = false;
-                DrpResponderStatusCode errorResponseCode = DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
-_retry:
-                this.AssertIsNotDisposed();
-                if (!_engine.RouteRegistrationRequest(this.LocalDrpPeer, this, alreadyTriedProxyingToDestinationPeers, req, out var proxyToDestinationPeer, out var acceptAt)) // routing
-                { // no route found
-                    if (!this.IsDisposed) _engine.SendErrorResponseToRegisterReq(req, requesterEndpoint, this, alreadyRepliedWithNPA, errorResponseCode);
-                    return;
-                }
-
-                if (acceptAt != null)
-                {   // accept the registration request here at this.LocalDrpPeer     
-                    this.AssertIsNotDisposed();
-                    _ = _engine.AcceptRegisterRequestAsync(acceptAt, req, requesterEndpoint, this, reqReceivedTimeUtc);
-                }
-                else if (proxyToDestinationPeer != null)
-                {  // proxy the registration request to another peer
-                    this.AssertIsNotDisposed();
-                    var errorCodeFromDestination = await _engine.ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, this, checkRecentUniqueProxiedRegistrationRequests, reqReceivedTimeUtc);
-                    var needToRerouteToAnotherNeighbor = errorCodeFromDestination.HasValue;
-                    errorResponseCode = errorCodeFromDestination ?? DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
-                    if (needToRerouteToAnotherNeighbor && !this.IsDisposed)
-                    {
-                        alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
-                        _engine.WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error {errorCodeFromDestination}. already tried {alreadyTriedProxyingToDestinationPeers.Count}", req, LocalDrpPeer);
-                        checkRecentUniqueProxiedRegistrationRequests = false;
-                        alreadyRepliedWithNPA = true;
-
-                        this.AssertIsNotDisposed();
-                        goto _retry;
-                    }
-                }
-                else throw new Exception();
+                await _engine.ProcessRegisterRequestAsync(LocalDrpPeer, receivedRequest);
             }
             catch (Exception exc)
             {
@@ -623,7 +580,7 @@ _retry:
             }
         }
 
-        internal async Task OnReceivedInviteReq(IPEndPoint requesterEndpoint, byte[] udpData)
+        internal async Task OnReceivedInviteReq(IPEndPoint requesterEndpoint, byte[] udpData, DateTime reqReceivedTimeUtc)
         {
             if (_disposed) return;
             if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -641,40 +598,34 @@ _retry:
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
                     throw new BadSignatureException();
 
+                var receivedRequest = new ReceivedRequest(LocalDrpPeer, this,  requesterEndpoint, reqReceivedTimeUtc) { InviteReq = req };
                 if (LocalDrpPeer.PendingInviteRequestExists(req.RequesterRegistrationId))
                 {
-                    Engine.WriteToLog_inv_lightPain($"rejecting {req}: another request is already being processed", req, LocalDrpPeer);
-                    LocalDrpPeer.SendNeighborPeerAckResponseToReq(req, this, NextHopResponseOrFailureCode.failure_routeIsUnavailable);
+                    Engine.WriteToLog_inv_lightPain($"rejecting {req}: another INVITE request is already being processed", req, LocalDrpPeer);
+                    await receivedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
                     return;
                 }
 
                 if (req.ResponderRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
                 {
-                    _ = this.LocalDrpPeer.AcceptInviteRequestAsync(req, this);
+                    _ = this.LocalDrpPeer.AcceptInviteRequestAsync(receivedRequest);
                 }
                 else
                 {
-                    var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
-                    DrpResponderStatusCode errorResponseCode = DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
-                    bool alreadyRepliedWithNPA = false;
-                _retry:
-                    var destinationPeer = _engine.RouteInviteRequest(this.LocalDrpPeer, req, this, alreadyTriedProxyingToDestinationPeers); // routing
+ _retry:
+                    var destinationPeer = _engine.RouteInviteRequest(this.LocalDrpPeer, receivedRequest); // routing
                     if (destinationPeer == null)
                     {
                         // no neighbors found. send error response to sender
-                        LocalDrpPeer.SendErrorResponseToInviteReq(req, requesterEndpoint, this, alreadyRepliedWithNPA, errorResponseCode);
+                        await receivedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
                         return;
                     }
 
-                    var errorCodeFromDestination = await this.LocalDrpPeer.ProxyInviteRequestAsync(req, this, destinationPeer);
-                    var needToRerouteToAnotherNeighbor = errorCodeFromDestination.HasValue;
-                    errorResponseCode = errorCodeFromDestination ?? DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
+                    var needToRerouteToAnotherNeighbor = await this.LocalDrpPeer.ProxyInviteRequestAsync(receivedRequest, destinationPeer);            
                     if (needToRerouteToAnotherNeighbor)
                     {
-                        alreadyTriedProxyingToDestinationPeers.Add(destinationPeer);
-                        Engine.WriteToLog_inv_proxySide_detail($"retrying to proxy invite to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}", req, LocalDrpPeer);
-            
-                        alreadyRepliedWithNPA = true;
+                        receivedRequest.TriedNeighbors.Add(destinationPeer);
+                        Engine.WriteToLog_inv_proxySide_detail($"retrying to proxy invite to another neighbor on error. already tried {receivedRequest.TriedNeighbors.Count}", req, LocalDrpPeer);             
                         goto _retry;
                     }
 

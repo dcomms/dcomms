@@ -40,7 +40,7 @@ namespace Dcomms.DRP.Packets
         }
         public void GetSignedFieldsForNeighborHMAC(BinaryWriter writer)
         {
-            writer.Write((byte)DrpDmpPacketTypes.Ping);
+            writer.Write((byte)PacketTypes.Ping);
             NeighborToken32.Encode(writer);
             writer.Write(PingRequestId32);
             writer.Write(Flags);
@@ -177,7 +177,7 @@ namespace Dcomms.DRP.Packets
         }
         static void GetHeaderFields(BinaryWriter writer, NeighborToken32 senderToken32, uint pingRequestId32)
         {
-            writer.Write((byte)DrpDmpPacketTypes.Pong);
+            writer.Write((byte)PacketTypes.Pong);
             senderToken32.Encode(writer);
             writer.Write(pingRequestId32);
         }

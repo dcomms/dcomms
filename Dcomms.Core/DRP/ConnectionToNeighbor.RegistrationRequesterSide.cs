@@ -36,7 +36,7 @@ namespace Dcomms.DRP
                         NumberOfHopsRemaining = numberOfHopsRemaining,
                         NumberOfRandomHopsRemaining = numberOfRandomHopsRemaining,
                         RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
-                        ReqP2pSeq16 = GetNewNpaSeq16_P2P(),
+                        ReqP2pSeq16 = GetNewRequestP2pSeq16_P2P(),
                         EpEndpoint = this.RemoteEndpoint
                     };
                     _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
@@ -48,7 +48,10 @@ namespace Dcomms.DRP
                     var reqToAck1Stopwatch = Stopwatch.StartNew();
 
                     _engine.WriteToLog_reg_requesterSide_detail($"sending {req}, waiting for NPACK. ReqP2pSeq16={req.ReqP2pSeq16}", req, _localDrpPeer);
-                    await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(req.Encode_OptionallySignNeighborHMAC(this), this.RemoteEndpoint, req.ReqP2pSeq16);
+
+                    var sentRequest = new SentRequest();
+                    sentRequest.SendRequestAsync();
+
                     #endregion
 
                     #region wait for ACK1, respond with NPACK
@@ -94,7 +97,7 @@ namespace Dcomms.DRP
                     {
                         ReqTimestamp64 = req.ReqTimestamp64,
                         RequesterRegistrationId = _localDrpPeer.Configuration.LocalPeerRegistrationId,
-                        ReqP2pSeq16 = GetNewNpaSeq16_P2P(),
+                        ReqP2pSeq16 = GetNewRequestP2pSeq16_P2P(),
                     };
                     ack2.ToRequesterTxParametersEncrypted = newConnectionToNeighbor.Encrypt_ack2_ToRequesterTxParametersEncrypted_AtRequester(req, ack1, ack2);
                     newConnectionToNeighbor.InitializeP2pStream(req, ack1, ack2);
@@ -189,7 +192,7 @@ namespace Dcomms.DRP
                         ReqTimestamp64 = req.ReqTimestamp64,
                         RequesterRegistrationId = _localDrpPeer.Configuration.LocalPeerRegistrationId,
                         ResponderRegistrationConfirmationSignature = pong.ResponderRegistrationConfirmationSignature,
-                        ReqP2pSeq16 = GetNewNpaSeq16_P2P()
+                        ReqP2pSeq16 = GetNewRequestP2pSeq16_P2P()
                     };
                     cfm.RequesterRegistrationConfirmationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
                         w => newConnectionToNeighbor.GetRequesterRegistrationConfirmationSignatureFields(w, cfm.ResponderRegistrationConfirmationSignature),

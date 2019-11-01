@@ -34,14 +34,14 @@ namespace Dcomms.DRP
         public double UdpLowLevelRequests_ExpirationTimeoutS = 5;
         public double UdpLowLevelRequests_InitialRetransmissionTimeoutS = 0.35;
         public double UdpLowLevelRequests_RetransmissionTimeoutIncrement = 1.5;
-        public double RegisterRequestsTimoutS = 15;
+
 
         public double InitialPingRequests_ExpirationTimeoutS = 5;
         public double InitialPingRequests_InitialRetransmissionTimeoutS = 0.2;
         public double InitialPingRequests_RetransmissionTimeoutIncrement = 1.05;
         public TimeSpan ResponderToRetransmittedRequestsTimeout = TimeSpan.FromSeconds(15);
 
-        public double InviteRequestsTimoutS = 15;
+        public double Ack1TimoutS = 15;
 
         public VisionChannel VisionChannel;
         public string VisionChannelSourceId;

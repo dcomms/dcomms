@@ -153,7 +153,7 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
-            writer.Write((byte)DrpDmpPacketTypes.RegisterAck1);
+            writer.Write((byte)PacketTypes.RegisterAck1);
             byte flags = 0;
             if (reqReceivedFromInP2pMode == null) flags |= Flag_EPtoA;
             writer.Write(flags);
@@ -196,10 +196,10 @@ namespace Dcomms.DRP.Packets
         /// peer that responds to REQ with ACK1
         /// if not null - the scanner will verify ACK1.NeighborHMAC
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(RegisterRequestPacket req, ConnectionToNeighbor connectionToNeighborNullable = null)
+        public static LowLevelUdpResponseScanner GetScanner(Logger logger, RegisterRequestPacket req, ConnectionToNeighbor connectionToNeighborNullable = null)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpDmpPacketTypes.RegisterAck1);
+            w.Write((byte)PacketTypes.RegisterAck1);
             w.Write((byte)0);
             if (connectionToNeighborNullable != null)
             {
@@ -220,11 +220,15 @@ namespace Dcomms.DRP.Packets
                 {
                     if (connectionToNeighborNullable.IsDisposed)
                     {
-                        connectionToNeighborNullable.Engine.WriteToLog_p2p_needsAttention(connectionToNeighborNullable, "ignoring ACK1: connection is disposed", req);
+                        logger.WriteToLog_needsAttention("ignoring ACK1: connection is disposed");
                         return false;
                     }
                     var ack1 = DecodeAndOptionallyVerify(responseData, null, null);
-                    if (ack1.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(ack1.GetSignedFieldsForNeighborHMAC)) == false) return false;
+                    if (ack1.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(ack1.GetSignedFieldsForNeighborHMAC)) == false)
+                    {
+                        logger.WriteToLog_attacks("ignoring ACK1: received NeighborHMAC is invalid");
+                        return false;
+                    }
                     return true;
                 };
             }

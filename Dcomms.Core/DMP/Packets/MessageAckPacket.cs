@@ -22,7 +22,7 @@ namespace Dcomms.DMP.Packets
         public byte[] Encode()
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
-            writer.Write((byte)DrpDmpPacketTypes.MessageAck);
+            writer.Write((byte)PacketTypes.MessageAck);
             writer.Write(MessageId32);
             writer.Write((byte)ReceiverStatus);
             byte flags = 0;
@@ -62,7 +62,7 @@ namespace Dcomms.DMP.Packets
         internal static LowLevelUdpResponseScanner GetScanner(uint messageId32, InviteSession session, MessageSessionStatusCode statusCode)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpDmpPacketTypes.MessageAck);
+            w.Write((byte)PacketTypes.MessageAck);
             w.Write(messageId32);
             w.Write((byte)statusCode);
 

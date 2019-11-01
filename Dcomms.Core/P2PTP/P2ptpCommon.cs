@@ -63,31 +63,6 @@ namespace Dcomms.P2PTP
 
     }
 
-    /// <summary>
-    /// specifies type of the P2PTP packet
-    /// takes 1 byte
-    /// </summary>
-    public enum PacketType
-    {      
-        hello = 1,
-
-        /// <summary>
-        /// is shared regularly between peers
-        /// is accepted by client peers
-        /// is ignored by server peers. servers themselves know many connected clients and send the peersList to the clients, so clients know about each other
-        /// </summary>
-        peersListIpv4 = 5,
-        /// <summary>
-        /// reserved for future use
-        /// </summary>
-        peersListIpv4and6 = 6,      
-        
-        /// <summary>
-        /// contain ensapsulated extension-specific data
-        /// are processed by manager thread
-        /// </summary>
-        extensionSignaling = 7,
-    }
    
     public class PeerId
     {

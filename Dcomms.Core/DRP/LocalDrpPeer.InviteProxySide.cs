@@ -22,8 +22,9 @@ namespace Dcomms.DRP
         /// <returns>
         /// true to retry the request with another neighbor (if the request needs to be "rerouted")
         /// </returns>
-        internal async Task<bool> ProxyInviteRequestAsync(InviteRequestPacket req, ConnectionToNeighbor sourcePeer, ConnectionToNeighbor destinationPeer)
+        internal async Task<bool> ProxyInviteRequestAsync(ReceivedRequest receivedRequest, ConnectionToNeighbor destinationPeer)
         {
+            var req = receivedRequest.InviteReq;
             Engine.WriteToLog_inv_proxySide_detail($"proxying {req}", req, this);
 
             Engine.RecentUniqueInviteRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
@@ -31,13 +32,13 @@ namespace Dcomms.DRP
 
             if (req.NumberOfHopsRemaining > InviteRequestPacket.MaxNumberOfHopsRemaining)
             {
-                SendNeighborPeerAckResponseToReq(req, sourcePeer, NextHopResponseOrFailureCode.failure_routeIsUnavailable);
-                return null;
+                await receivedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
+                return false;
             }
             if (req.NumberOfHopsRemaining <= 1)
             {
-                SendNeighborPeerAckResponseToReq(req, sourcePeer, NextHopResponseCode.rejected_invite_numberOfHopsRemainingReachedZero);
-                return null;
+                await receivedRequest.SendErrorResponse(ResponseOrFailureCode.failure_numberOfHopsRemainingReachedZero);
+                return false;
             }
 
             _pendingInviteRequests.Add(req.RequesterRegistrationId);
@@ -45,12 +46,11 @@ namespace Dcomms.DRP
             {
                 // send NPACK to REQ
                 Engine.WriteToLog_inv_proxySide_detail($"sending NPACK to REQ source peer", req, this);
-                SendNeighborPeerAckResponseToReq(req, sourcePeer);
+                receivedRequest.SendNeighborPeerAck_accepted_IfNotAlreadyReplied();
 
                 req.NumberOfHopsRemaining--;
                 Engine.WriteToLog_inv_proxySide_detail($"decremented number of hops in {req}: NumberOfHopsRemaining={req.NumberOfHopsRemaining}", req, this);
-
-
+                
                 // send (proxy) REQ to responder. wait for NPACK, verify NPACK.senderHMAC, retransmit REQ   
                 var reqUdpData = req.Encode_SetP2pFields(destinationPeer);
 
@@ -58,6 +58,10 @@ namespace Dcomms.DRP
                 InviteAck1Packet ack1 = null;
                 try
                 {
+                    var sentRequest = new SentRequest();
+                    sentRequest.SendRequestAsync();
+
+
                     await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.ReqP2pSeq16, req.GetSignedFieldsForNeighborHMAC);
 
                     Engine.WriteToLog_inv_proxySide_detail($"waiting for ACK1 from responder", req, this);

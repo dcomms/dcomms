@@ -14,19 +14,19 @@ namespace Dcomms.DRP
         /// </summary>
         /// <param name="receivedAtLocalDrpPeerNullable">
         /// is set when routing REQ packets that are received via P2P connection from neighbor to the LocalDrpPeer
+        /// is null in A-EP mode
         /// </param>
-        internal bool RouteRegistrationRequest(LocalDrpPeer receivedAtLocalDrpPeerNullable, ConnectionToNeighbor sourceNeighborNullable,
-            HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
-            RegisterRequestPacket req, out ConnectionToNeighbor proxyToDestinationPeer, out LocalDrpPeer acceptAt)
+        internal bool RouteRegistrationRequest(LocalDrpPeer receivedAtLocalDrpPeerNullable, ReceivedRequest receivedRequest, out ConnectionToNeighbor proxyToDestinationPeer, out LocalDrpPeer acceptAt)
         {
             proxyToDestinationPeer = null;
             acceptAt = null;
 
-            var localPeerForLogging = receivedAtLocalDrpPeerNullable ?? sourceNeighborNullable?.LocalDrpPeer ?? LocalPeers.Values.FirstOrDefault();
+            var req = receivedRequest.RegisterReq;
+            var logger = receivedRequest.Logger;
 
             if (req.NumberOfHopsRemaining <= 1)
             {
-                var possibleAcceptAt = receivedAtLocalDrpPeerNullable ?? sourceNeighborNullable?.LocalDrpPeer;
+                var possibleAcceptAt = receivedAtLocalDrpPeerNullable ?? receivedRequest.ReceivedFromNeighborNullable?.LocalDrpPeer;
                 if (possibleAcceptAt == null)
                     possibleAcceptAt = LocalPeers.Values.Where(x => x.Configuration.LocalPeerRegistrationId.Equals(req.RequesterRegistrationId) == false).FirstOrDefault();
 
@@ -34,13 +34,13 @@ namespace Dcomms.DRP
                 {
                     if (!possibleAcceptAt.ConnectedNeighbors.Any(x => x.RemoteRegistrationId.Equals(req.RequesterRegistrationId)))
                     {
-                        WriteToLog_routing_higherLevelDetail($"accepting registration request {req.RequesterRegistrationId} at local DRP peer {acceptAt}: low number of hops remaining", req, localPeerForLogging);
+                        logger.WriteToLog_routing_higherLevelDetail($"accepting registration request {req.RequesterRegistrationId} at local DRP peer {acceptAt}: low number of hops remaining");
                         acceptAt = possibleAcceptAt;
                         return true;
                     }
                     else
-                        WriteToLog_routing_higherLevelDetail($"not accepting registration at local DRP peer" +
-                            $" {acceptAt} when low number of hops remaining: already connected", req, localPeerForLogging);
+                        logger.WriteToLog_routing_higherLevelDetail($"not accepting registration at local DRP peer" +
+                            $" {acceptAt} when low number of hops remaining: already connected");
 
                 }
             }
@@ -48,72 +48,69 @@ namespace Dcomms.DRP
             if (req.RandomModeAtThisHop)
             { // random mode
                 var itemsForRouting = new List<object>();
-                if (sourceNeighborNullable == null)
+                if (receivedRequest.ReceivedFromNeighborNullable == null)
                 {
                     foreach (var localDrpPeer in LocalPeers.Values)
                     {
-                        itemsForRouting.AddRange(localDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req));
+                        itemsForRouting.AddRange(localDrpPeer.GetConnectedNeighborsForRouting(receivedRequest));
                         if (!localDrpPeer.Configuration.LocalPeerRegistrationId.Equals(req.RequesterRegistrationId))
                             itemsForRouting.Add(localDrpPeer);
                     }
                 }
                 else
                 {
-                    itemsForRouting.AddRange(sourceNeighborNullable.LocalDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req));
-                    if (!sourceNeighborNullable.LocalDrpPeer.Configuration.LocalPeerRegistrationId.Equals(req.RequesterRegistrationId))
-                        itemsForRouting.Add(sourceNeighborNullable.LocalDrpPeer);
+                    itemsForRouting.AddRange(receivedRequest.ReceivedFromNeighborNullable.LocalDrpPeer.GetConnectedNeighborsForRouting(receivedRequest));
+                    if (!receivedRequest.ReceivedFromNeighborNullable.LocalDrpPeer.Configuration.LocalPeerRegistrationId.Equals(req.RequesterRegistrationId))
+                        itemsForRouting.Add(receivedRequest.ReceivedFromNeighborNullable.LocalDrpPeer);
                 }
 
                 if (itemsForRouting.Count != 0)
                 {
                     var itemForRouting = itemsForRouting[_insecureRandom.Next(itemsForRouting.Count - 1)];
-                    WriteToLog_routing_higherLevelDetail($"routing registration in random mode to one of {itemsForRouting.Count} destinations: {proxyToDestinationPeer}", req, localPeerForLogging);
+                    logger.WriteToLog_routing_higherLevelDetail($"routing registration in random mode to one of {itemsForRouting.Count} destinations: {proxyToDestinationPeer}");
                     if (itemForRouting is ConnectionToNeighbor) proxyToDestinationPeer = (ConnectionToNeighbor)itemForRouting;
                     else acceptAt = (LocalDrpPeer)itemForRouting;
                 }
-                else WriteToLog_routing_needsAttention($"can not route registration in random mode: no destinations available including local peers", req, localPeerForLogging);
+                else
+                    logger.WriteToLog_routing_needsAttention($"can not route registration in random mode: no destinations available including local peers");
             }
             else
             {
                 double? maxP2pConnectionValue = null;
                 if (receivedAtLocalDrpPeerNullable != null)
                 {
-                    RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req, ref maxP2pConnectionValue, ref proxyToDestinationPeer, ref acceptAt);
+                    RouteRegistrationRequest_LocalDrpPeerIteration(receivedAtLocalDrpPeerNullable, receivedRequest, ref maxP2pConnectionValue, ref proxyToDestinationPeer, ref acceptAt);
                 }
                 else
                 {
                     foreach (var localDrpPeer in LocalPeers.Values)
-                        RouteRegistrationRequest_LocalDrpPeerIteration(localDrpPeer, sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req, ref maxP2pConnectionValue, ref proxyToDestinationPeer, ref acceptAt);
+                        RouteRegistrationRequest_LocalDrpPeerIteration(localDrpPeer, receivedRequest, ref maxP2pConnectionValue, ref proxyToDestinationPeer, ref acceptAt);
                 }
             }
 
             if (proxyToDestinationPeer != null)
             {
-                WriteToLog_routing_higherLevelDetail($"proxying registration to {proxyToDestinationPeer}", req, localPeerForLogging);
+                logger.WriteToLog_routing_higherLevelDetail($"proxying registration to {proxyToDestinationPeer}");
                 return true;
             }
             else if (acceptAt != null)
             {
-                WriteToLog_routing_higherLevelDetail($"accepting registration at local DRP peer {acceptAt}", req, localPeerForLogging);
+                logger.WriteToLog_routing_higherLevelDetail($"accepting registration at local DRP peer {acceptAt}");
                 return true;
             }
             else
             {
-                WriteToLog_routing_needsAttention($"no route found for REGISTER request to {req.RequesterRegistrationId}", req, localPeerForLogging);
+                logger.WriteToLog_routing_higherLevelDetail($"no route found for REGISTER request to {req.RequesterRegistrationId}");
                 return false;
             }
         }
 
-
-
-
-        void RouteRegistrationRequest_LocalDrpPeerIteration(LocalDrpPeer localDrpPeer, ConnectionToNeighbor sourceNeighborNullable,
-            HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
-            RegisterRequestPacket req,
+        void RouteRegistrationRequest_LocalDrpPeerIteration(LocalDrpPeer localDrpPeer, ReceivedRequest receivedRequest,
             ref double? maxP2pConnectionValue,
             ref ConnectionToNeighbor proxyToDestinationPeer, ref LocalDrpPeer acceptAt)
         {
-            var connectedNeighborsForRouting = localDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req).ToList();
+            var req = receivedRequest.RegisterReq;
+            var connectedNeighborsForRouting = localDrpPeer.GetConnectedNeighborsForRouting(receivedRequest).ToList();
 
             int connectedNeighborsCountThatMatchMinDistance = 0;
             foreach (var neighbor in connectedNeighborsForRouting)
@@ -190,12 +187,12 @@ namespace Dcomms.DRP
         }
 
         /// <returns>null if no neighbors found for routing</returns>
-        public ConnectionToNeighbor RouteInviteRequest(LocalDrpPeer localDrpPeer, InviteRequestPacket req,
-            ConnectionToNeighbor sourceNeighborNullable, HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable)
+        public ConnectionToNeighbor RouteInviteRequest(LocalDrpPeer localDrpPeer, ReceivedRequest receivedRequest)
         {
+            var req = receivedRequest.InviteReq;
             ConnectionToNeighbor r = null;
             RegistrationIdDistance minDistance = null;
-            var connectedNeighborsForRouting = localDrpPeer.GetConnectedNeighborsForRouting(sourceNeighborNullable, alreadyTriedProxyingToDestinationPeersNullable, req).ToList();
+            var connectedNeighborsForRouting = localDrpPeer.GetConnectedNeighborsForRouting(receivedRequest).ToList();
 
             foreach (var connectedPeer in connectedNeighborsForRouting)
             {

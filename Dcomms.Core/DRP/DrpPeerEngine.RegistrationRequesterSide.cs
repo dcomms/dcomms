@@ -190,6 +190,12 @@ namespace Dcomms.DRP
                     #endregion
 
                     #region wait for ACK1
+
+
+                    var sentRequest = new SentRequest();
+                    sentRequest.SendRequestAsync();
+
+
                     WriteToLog_reg_requesterSide_detail($"waiting for ACK1", req, localDrpPeer);
                     var ack1UdpData = await WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(epEndpoint,
                                     RegisterAck1Packet.GetScanner(req),

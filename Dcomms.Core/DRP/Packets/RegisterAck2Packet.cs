@@ -55,11 +55,11 @@ namespace Dcomms.DRP.Packets
         /// peer that sends ACK2
         /// if not null - the scanner will verify ACK2.NeighborHMAC
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegisterRequestPacket req)
+        public static LowLevelUdpResponseScanner GetScanner(Logger logger, ConnectionToNeighbor connectionToNeighborNullable, RegisterRequestPacket req)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
-            writer.Write((byte)DrpDmpPacketTypes.RegisterAck2);
+            writer.Write((byte)PacketTypes.RegisterAck2);
           
             writer.Write((byte)0); // ignored flags
 
@@ -82,11 +82,15 @@ namespace Dcomms.DRP.Packets
                 {
                     if (connectionToNeighborNullable.IsDisposed)
                     {
-                        connectionToNeighborNullable.Engine.WriteToLog_p2p_needsAttention(connectionToNeighborNullable, "ignoring ACK2: connection is disposed", req);
+                        logger.WriteToLog_needsAttention("ignoring ACK2: connection is disposed");
                         return false;
                     }
-                    var ack2 = Decode_OptionallyVerify_InitializeP2pStreamAtResponder(responseData, null, null, null);                   
-                    if (ack2.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(ack2.GetSignedFieldsForNeighborHMAC)) == false) return false;
+                    var ack2 = Decode_OptionallyVerify_InitializeP2pStreamAtResponder(responseData, null, null, null);
+                    if (ack2.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(ack2.GetSignedFieldsForNeighborHMAC)) == false)
+                    {
+                        logger.WriteToLog_attacks("ignoring ACK2: received NeighborHMAC is invalid");
+                        return false;
+                    }
                     return true;
                 };
             }
@@ -100,7 +104,7 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             
-            writer.Write((byte)DrpDmpPacketTypes.RegisterAck2);
+            writer.Write((byte)PacketTypes.RegisterAck2);
             byte flags = 0;
             if (connectionToNeighborNullable == null) flags |= Flag_AtoEP;
             writer.Write(flags);

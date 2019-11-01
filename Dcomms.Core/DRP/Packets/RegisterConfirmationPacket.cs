@@ -68,10 +68,10 @@ namespace Dcomms.DRP.Packets
         /// peer that sends CFM
         /// if not null - the scanner will verify CFM.NeighborHMAC
         /// </param>
-        public static LowLevelUdpResponseScanner GetScanner(ConnectionToNeighbor connectionToNeighborNullable, RegisterRequestPacket req)
+        public static LowLevelUdpResponseScanner GetScanner(Logger logger, ConnectionToNeighbor connectionToNeighborNullable, RegisterRequestPacket req)
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
-            w.Write((byte)DrpDmpPacketTypes.RegisterConfirmation);
+            w.Write((byte)PacketTypes.RegisterConfirmation);
             
             w.Write((byte)0); // ignored flags
 
@@ -92,11 +92,15 @@ namespace Dcomms.DRP.Packets
                 {
                     if (connectionToNeighborNullable.IsDisposed)
                     {
-                        connectionToNeighborNullable.Engine.WriteToLog_p2p_needsAttention(connectionToNeighborNullable, "ignoring CFM: connection is disposed", req);
+                        logger.WriteToLog_needsAttention("ignoring CFM: connection is disposed");
                         return false;
                     }
                     var cfm = DecodeAndOptionallyVerify(responseData, null, null);
-                    if (cfm.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(cfm.GetSignedFieldsForNeighborHMAC)) == false) return false;
+                    if (cfm.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(cfm.GetSignedFieldsForNeighborHMAC)) == false)
+                    {
+                        logger.WriteToLog_attacks("ignoring CFM: received NeighborHMAC is invalid");
+                        return false;
+                    }
                     return true;
                 };
             }
@@ -110,7 +114,7 @@ namespace Dcomms.DRP.Packets
         {
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
 
-            writer.Write((byte)DrpDmpPacketTypes.RegisterConfirmation);
+            writer.Write((byte)PacketTypes.RegisterConfirmation);
             Flags = 0;
             if (connectionToNeighbor == null) Flags |= Flag_AtoEP;
             writer.Write(Flags);

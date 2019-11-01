@@ -35,17 +35,17 @@ namespace Dcomms.DRP
             if (nextHopResponsePacketData == null)
             {
                 string msg = $"Did not get NPACK response to DRP request ";
-                if (requestPacketDataNullable != null) msg += (DrpDmpPacketTypes)requestPacketDataNullable[0];
+                if (requestPacketDataNullable != null) msg += (PacketTypes)requestPacketDataNullable[0];
                 msg += " - timeout expired";
                 throw new DrpTimeoutException(msg);
             }
 
             var nextHopResponsePacket = new NeighborPeerAckPacket(nextHopResponsePacketData);
-            if (nextHopResponsePacket.ResponseCode != NextHopResponseOrFailureCode.accepted)
+            if (nextHopResponsePacket.ResponseCode != ResponseOrFailureCode.accepted)
             {
-                if (nextHopResponsePacket.ResponseCode == NextHopResponseOrFailureCode.failure_routeIsUnavailable)
-                    throw new NextHopRejectedExceptionRouteIsUnavailable();
-                else throw new NextHopRejectedException(nextHopResponsePacket.ResponseCode);
+                if (nextHopResponsePacket.ResponseCode == ResponseOrFailureCode.failure_routeIsUnavailable)
+                    throw new RequestRejectedExceptionRouteIsUnavailable();
+                else throw new RequestRejectedException(nextHopResponsePacket.ResponseCode);
             }
             return nextHopResponsePacket;
         }
@@ -79,7 +79,7 @@ namespace Dcomms.DRP
         {
             if (udpPayload.Length > 548)
                 throw new ArgumentException("Transmitted UDP packet size is too big to bypass internet safely without fragmentation");
-            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"sending packet {(DrpDmpPacketTypes)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpPayload)})");
+            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"sending packet {(PacketTypes)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpPayload)})");
             _socket.Send(udpPayload, udpPayload.Length, remoteEndpoint);
         }
         internal async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
@@ -258,9 +258,9 @@ namespace Dcomms.DRP
         {
             var r = $"responderEP={ResponderEndpoint}";
             if (RequestPacketDataNullable != null)
-                r += $", req={(DrpDmpPacketTypes)RequestPacketDataNullable[0]}";
+                r += $", req={(PacketTypes)RequestPacketDataNullable[0]}";
             if (ResponseScanner != null && ResponseScanner.ResponseFirstBytes != null)
-                r += $", resp={(DrpDmpPacketTypes)ResponseScanner.ResponseFirstBytes[0]}";
+                r += $", resp={(PacketTypes)ResponseScanner.ResponseFirstBytes[0]}";
             r += $", timeout={_expirationTimeoutS}s";
             return r;
         }

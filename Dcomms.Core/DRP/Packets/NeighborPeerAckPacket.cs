@@ -25,7 +25,7 @@ namespace Dcomms.DRP.Packets
         /// comes from ConnectionToNeighbor.RemoteNeighborToken32 in case when this packet goes ofver established P2P connection (flag A-EP is zero)
         /// </summary>
         public NeighborToken32 NeighborToken32; 
-        public NextHopResponseOrFailureCode ResponseCode;
+        public ResponseOrFailureCode ResponseCode;
         /// <summary>
         /// signature of sender neighbor peer
         /// is NULL for EP->A packet
@@ -59,7 +59,7 @@ namespace Dcomms.DRP.Packets
         }
         static void EncodeHeader(BinaryWriter w, RequestP2pSequenceNumber16 reqP2pSeq16)
         {
-            w.Write((byte)DrpDmpPacketTypes.NeighborPeerAck);
+            w.Write((byte)PacketTypes.NeighborPeerAck);
             reqP2pSeq16.Encode(w);
         }
         public byte[] Encode(bool epToA)
@@ -81,7 +81,7 @@ namespace Dcomms.DRP.Packets
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             if ((flags & Flag_EPtoA) == 0) NeighborToken32 = NeighborToken32.Decode(reader);
-            ResponseCode = (NextHopResponseOrFailureCode)reader.ReadByte();
+            ResponseCode = (ResponseOrFailureCode)reader.ReadByte();
             if ((flags & Flag_EPtoA) == 0) NeighborHMAC = HMAC.Decode(reader);
         } 
 

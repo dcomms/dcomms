@@ -122,16 +122,16 @@ namespace Dcomms.DRP
         }
         void ProcessReceivedUdpPacket(IPEndPoint remoteEndpoint, byte[] udpData) // receiver thread
         {
-            var packetType = (DrpDmpPacketTypes)udpData[0];
+            var packetType = (PacketTypes)udpData[0];
             WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint} ({udpData.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpData)})");
-            if (packetType == DrpDmpPacketTypes.RegisterPow1Request)
+            if (packetType == PacketTypes.RegisterPow1Request)
             {
                 ProcessRegisterPow1RequestPacket(remoteEndpoint, udpData);
                 return;
             }
 
             var receivedAtUtc = DateTimeNowUtc;
-            if (packetType == DrpDmpPacketTypes.RegisterReq)
+            if (packetType == PacketTypes.RegisterReq)
             {
                 if (RegisterRequestPacket.IsAtoEP(udpData))
                 {
@@ -147,7 +147,7 @@ namespace Dcomms.DRP
 
                 switch (packetType)
                 {
-                    case DrpDmpPacketTypes.Ping:
+                    case PacketTypes.Ping:
                         {
                             var neighborToken16 = PingPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
@@ -166,7 +166,7 @@ namespace Dcomms.DRP
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16.ToString("X4")}");
 
                         } break;
-                    case DrpDmpPacketTypes.Pong:
+                    case PacketTypes.Pong:
                         {
                             var neighborToken16 = PongPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
@@ -183,7 +183,7 @@ namespace Dcomms.DRP
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16.ToString("X4")}");
                         }
                         break;
-                    case DrpDmpPacketTypes.RegisterReq:
+                    case PacketTypes.RegisterReq:
                         {
                             var neighborToken16 = RegisterRequestPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
@@ -200,7 +200,7 @@ namespace Dcomms.DRP
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }
                         break;
-                    case DrpDmpPacketTypes.InviteReq:
+                    case PacketTypes.InviteReq:
                         {
                             var neighborToken16 = InviteRequestPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
@@ -211,13 +211,13 @@ namespace Dcomms.DRP
                                     WriteToLog_receiver_lightPain($"can't process INVITE REQ: connectedPeer={connectedPeer} is disposed, being removed from table");
                                     return;
                                 }
-                                _ = connectedPeer.OnReceivedInviteReq(remoteEndpoint, udpData);
+                                _ = connectedPeer.OnReceivedInviteReq(remoteEndpoint, udpData, receivedAtUtc);
                             }
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
                         }
                         break;
-                    case DrpDmpPacketTypes.DmpPing:
+                    case PacketTypes.DmpPing:
                         {
                             var dcToken16 = DMP.Packets.DmpPingPacket.DecodeDcToken16(udpData);
                             var session = InviteSessionsByToken16[dcToken16];

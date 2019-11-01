@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -182,35 +183,9 @@ namespace Dcomms.DRP
         }
         async Task ProcessRegisterReqAtoEpPacket2Async(IPEndPoint requesterEndpoint, RegisterRequestPacket req, DateTime reqReceivedTimeUtc)
         {
-            var alreadyTriedProxyingToDestinationPeers = new HashSet<ConnectionToNeighbor>();
-            bool checkRecentUniqueProxiedRegistrationRequests = true;
-            bool alreadyRepliedWithNPA = false;
-            DrpResponderStatusCode errorCode = DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
-     _retry:
-            RouteRegistrationRequest(null, null, alreadyTriedProxyingToDestinationPeers, req, out var proxyToDestinationPeer, out var acceptAt); // routing
-
-            if (proxyToDestinationPeer != null)
-            {  // proxy the registration request via the local EP to another peer
-                var errorCodeFromDestination = await ProxyRegisterRequestAsync(proxyToDestinationPeer, req, requesterEndpoint, null, checkRecentUniqueProxiedRegistrationRequests, reqReceivedTimeUtc);
-                var needToRerouteToAnotherNeighbor = errorCodeFromDestination.HasValue;
-                errorCode = errorCodeFromDestination ?? DrpResponderStatusCode.rejected_p2pNetworkServiceUnavailable;
-                if (needToRerouteToAnotherNeighbor)
-                {
-                    alreadyTriedProxyingToDestinationPeers.Add(proxyToDestinationPeer);
-                    WriteToLog_routing_detail($"retrying to proxy registration to another neighbor on error. already tried {alreadyTriedProxyingToDestinationPeers.Count}", req, proxyToDestinationPeer.LocalDrpPeer);
-                    checkRecentUniqueProxiedRegistrationRequests = false;
-                    alreadyRepliedWithNPA = true;
-                    goto _retry;
-                }
-            }
-            else if (acceptAt != null)
-            {   // accept the registration request here, at EP
-                _ = AcceptRegisterRequestAsync(acceptAt, req, requesterEndpoint, null, reqReceivedTimeUtc);
-            }
-            else
-            {
-                SendErrorResponseToRegisterReq(req, requesterEndpoint, null, alreadyRepliedWithNPA, errorCode);
-            }
+            var logger = new Logger(this, LocalPeers.Values.First(), req, VisionChannelModuleName_reg);
+            var receivedRequest = new ReceivedRequest(logger, null, requesterEndpoint, reqReceivedTimeUtc);
+            await ProcessRegisterRequestAsync(null, receivedRequest);
         }
     }
 

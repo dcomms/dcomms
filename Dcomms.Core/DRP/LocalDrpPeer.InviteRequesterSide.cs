@@ -87,6 +87,12 @@ namespace Dcomms.DRP
                     var reqUdpData = req.Encode_SetP2pFields(destinationPeer);
 
                     WriteToLog_inv_requesterSide_detail($"sending {req}, waiting for NPACK", req);
+
+                    var sentRequest = new SentRequest();
+                    sentRequest.SendRequestAsync();
+
+
+
                     await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.ReqP2pSeq16, req.GetSignedFieldsForNeighborHMAC);
                     WriteToLog_inv_requesterSide_detail($"received NPACK", req);
 
@@ -205,46 +211,13 @@ namespace Dcomms.DRP
                 throw;
             }
         }
-
-        internal void SendNeighborPeerAckResponseToReq(InviteRequestPacket req, ConnectionToNeighbor neighbor, NextHopResponseOrFailureCode responseCode)
-        {
-            var npAck = new NeighborPeerAckPacket
-            {
-                ReqP2pSeq16 = req.ReqP2pSeq16,
-                ResponseCode = responseCode
-            };
-
-            npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
-            npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetSignedFieldsForNeighborHMAC(w, req.GetSignedFieldsForNeighborHMAC));
-            var npAckUdpData = npAck.Encode(false);
-
-            Engine.RespondToRequestAndRetransmissions(req.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
-
-        }
-
-        internal void SendErrorResponseToInviteReq(InviteRequestPacket req, IPEndPoint requesterEndpoint,
-            ConnectionToNeighbor neighborWhoSentRequest, bool alreadyRepliedWithNPA, NextHopResponseOrFailureCode errorCode)
-        {
-            Engine.WriteToLog_inv_proxySide_detail($"routing failed, executing SendErrorResponseToInviteReq()", req, this);
-            if (alreadyRepliedWithNPA)
-            {
-                // send FAILURE
-                _ = RespondToSourcePeerWithAck1_Error(requesterEndpoint, req, neighborWhoSentRequest, errorCode);
-            }
-            else
-            {
-                // send NPACK
-                SendNeighborPeerAckResponseToReq(req, neighborWhoSentRequest, errorCode);
-            }
-        }
-
-
+        
         void SendNeighborPeerAckResponseToAck1(InviteAck1Packet ack1, ConnectionToNeighbor neighbor)
         {
             var npAck = new NeighborPeerAckPacket
             {
                 ReqP2pSeq16 = ack1.ReqP2pSeq16,
-                ResponseCode = NextHopResponseOrFailureCode.accepted
+                ResponseCode = ResponseOrFailureCode.accepted
             };
 
             npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
@@ -259,7 +232,7 @@ namespace Dcomms.DRP
             var npAck = new NeighborPeerAckPacket
             {
                 ReqP2pSeq16 = ack2.ReqP2pSeq16,
-                ResponseCode = NextHopResponseOrFailureCode.accepted
+                ResponseCode = ResponseOrFailureCode.accepted
             };
 
             npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
@@ -273,7 +246,7 @@ namespace Dcomms.DRP
             var npAck = new NeighborPeerAckPacket
             {
                 ReqP2pSeq16 = cfm.ReqP2pSeq16,
-                ResponseCode = NextHopResponseOrFailureCode.accepted
+                ResponseCode = ResponseOrFailureCode.accepted
             };
 
             npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
