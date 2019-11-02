@@ -14,13 +14,13 @@ namespace Dcomms.P2PTP
             return data.Length >= HeaderSize &&
                 data[0] == s[0] && data[1] == s[1] && data[2] == s[2] && data[3] == s[3];
         }
-        public static PacketType? DecodeHeader(byte[] data)
+        public static PacketTypes? DecodeHeader(byte[] data)
         {
             if (!DecodeValidSignature(data)) return null;
-            return (PacketType)data[4];
+            return (PacketTypes)data[4];
         }
         public const int HeaderSize = 5;
-        public static void EncodeHeader(byte[] data, PacketType packetType)
+        public static void EncodeHeader(byte[] data, PacketTypes packetType)
         {
             var s = PacketHeaders.P2PTP;
             data[0] = s[0];
@@ -29,7 +29,7 @@ namespace Dcomms.P2PTP
             data[3] = s[3];
             data[4] = (byte)packetType;
         }
-        public static void EncodeHeader(BinaryWriter writer, PacketType packetType)
+        public static void EncodeHeader(BinaryWriter writer, PacketTypes packetType)
         {
             writer.Write(PacketHeaders.P2PTP);
             writer.Write((byte)packetType);

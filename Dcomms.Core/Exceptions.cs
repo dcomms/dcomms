@@ -64,18 +64,14 @@ namespace Dcomms
 
     class RequestRejectedException : RequestFailedException
     {
+        public readonly ResponseOrFailureCode ResponseCode;
         public RequestRejectedException(ResponseOrFailureCode responseCode)
             : base($"Request was rejected with status = {responseCode}")
         {
-
+            ResponseCode = responseCode;
         }
     }
-    class RequestRejectedExceptionRouteIsUnavailable : RequestRejectedException
-    {
-        public RequestRejectedExceptionRouteIsUnavailable() : base(ResponseOrFailureCode.failure_routeIsUnavailable)
-        { }
-    }
-
+  
 
     class NoNeighborsToSendInviteException : RequestFailedException
     {

@@ -8,15 +8,18 @@ using System.Threading.Tasks;
 
 namespace Dcomms.DRP
 {
-    public class ReceivedRequest
+    public class RoutedRequest
     {
         public readonly IPEndPoint ReceivedFromEndpoint;
         public readonly ConnectionToNeighbor ReceivedFromNeighborNullable;
         readonly DrpPeerEngine _engine;
-        public readonly DateTime ReqReceivedTimeUtc;
+        /// <summary>
+        /// is NULL for request that is generated locally (when local peer sends INVITE/REGISTER)
+        /// </summary>
+        public readonly DateTime? ReqReceivedTimeUtc; 
         public bool CheckedRecentUniqueProxiedRegistrationRequests;
         public readonly Logger Logger;
-        public ReceivedRequest(Logger logger, ConnectionToNeighbor receivedFromNeighborNullable, IPEndPoint receivedFromEndpoint, DateTime reqReceivedTimeUtc)
+        public RoutedRequest(Logger logger, ConnectionToNeighbor receivedFromNeighborNullable, IPEndPoint receivedFromEndpoint, DateTime? reqReceivedTimeUtc)
         {
             ReceivedFromNeighborNullable = receivedFromNeighborNullable;
             ReceivedFromEndpoint = receivedFromEndpoint;

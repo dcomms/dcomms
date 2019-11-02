@@ -106,7 +106,7 @@ namespace Dcomms.DRP.Packets
                 ack1.AssertMatchToRegisterReq(reqNullable);
                 if (newConnectionToNeighborAtRequesterNullable != null)
                 {
-                    newConnectionToNeighborAtRequesterNullable.Decrypt_ack1_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(reqNullable, ack1);
+                    newConnectionToNeighborAtRequesterNullable.Decrypt_ack1_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(logger, reqNullable, ack1);
                 }
             }
             if ((ack1.Flags & Flag_EPtoA) != 0)

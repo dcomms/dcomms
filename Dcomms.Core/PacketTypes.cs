@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Dcomms
 {
-    enum PacketTypes
+    public enum PacketTypes
     {
         #region P2PTP
         hello = 1,

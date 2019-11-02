@@ -42,6 +42,7 @@ namespace Dcomms.DRP
         public TimeSpan ResponderToRetransmittedRequestsTimeout = TimeSpan.FromSeconds(15);
 
         public double Ack1TimoutS = 15;
+        public double CfmTimoutS = 10;
 
         public VisionChannel VisionChannel;
         public string VisionChannelSourceId;

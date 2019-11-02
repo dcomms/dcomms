@@ -43,7 +43,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// initializes parameters to transmit direct (p2p) packets form requester A to neighbor N
         /// </summary>
-        public void Decrypt_ack1_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(RegisterRequestPacket req, RegisterAck1Packet ack1)
+        public void Decrypt_ack1_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(Logger logger, RegisterRequestPacket req, RegisterAck1Packet ack1)
         {            
             SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
@@ -71,7 +71,7 @@ namespace Dcomms.DRP
                 if (magic16 != Magic16_responderToRequester) throw new BrokenCipherException();
             }
             
-            _engine.WriteToLog_reg_requesterSide_detail($"decrypted remote responder endpoint={RemoteEndpoint}, remoteNeighborToken={RemoteNeighborToken32} from ACK1", req, LocalDrpPeer);
+            logger.WriteToLog_detail($"decrypted remote responder endpoint={RemoteEndpoint}, remoteNeighborToken={RemoteNeighborToken32} from ACK1");
             
         }
         const ushort Magic16_responderToRequester = 0x60C1; // is used to validate decrypted data
@@ -79,7 +79,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// when sending ACK1
         /// </summary>
-        public byte[] Encrypt_ack1_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(RegisterRequestPacket req, RegisterAck1Packet ack1, ConnectionToNeighbor neighbor)
+        public byte[] Encrypt_ack1_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(Logger logger, RegisterRequestPacket req, RegisterAck1Packet ack1, ConnectionToNeighbor neighbor)
         {
             IPEndPoint localResponderEndpoint;
             if (neighbor != null)
@@ -112,7 +112,7 @@ namespace Dcomms.DRP
             PacketProcedures.EncodeIPEndPoint(wRxParameters, localResponderEndpoint); // max 19
             LocalNeighborToken32.Encode(wRxParameters); // +4   max 23
 
-            _engine.WriteToLog_reg_responderSide_detail($"encrypting local responder endpoint={localResponderEndpoint}, localNeighborToken={LocalNeighborToken32} into ACK1", req, this.LocalDrpPeer);
+            logger.WriteToLog_detail($"encrypting local responder endpoint={localResponderEndpoint}, localNeighborToken={LocalNeighborToken32} into ACK1");
 
             wRxParameters.Write(Magic16_responderToRequester);    // +2 max 25
             var bytesRemaining = RegisterAck1Packet.ToResponderTxParametersEncryptedLength - (int)msRxParameters.Length;
@@ -566,13 +566,14 @@ namespace Dcomms.DRP
                 var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpData, this);
                 // NeighborToken32 and NeighborHMAC are verified at this time
                 
-                var receivedRequest = new ReceivedRequest(LocalDrpPeer, this, requesterEndpoint, reqReceivedTimeUtc) { RegisterReq = req };
-                _engine.WriteToLog_p2p_higherLevelDetail(this, $"received {req} ({req.NumberOfHopsRemaining} hops remaining) via P2P connection", req);
+                var routedRequest = new RoutedRequest(new Logger(_engine, LocalDrpPeer, req, DrpPeerEngine.VisionChannelModuleName_reg), 
+                     this, requesterEndpoint, reqReceivedTimeUtc) { RegisterReq = req };
+                routedRequest.Logger.WriteToLog_higherLevelDetail($"received {req} ({req.NumberOfHopsRemaining} hops remaining) via P2P connection");
                 
                 if (req.RequesterRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
-                    _engine.WriteToLog_routing_lightPain($"received {req} to same reg. ID", req, LocalDrpPeer);
+                    routedRequest.Logger.WriteToLog_lightPain($"received {req} to same reg. ID");
 
-                await _engine.ProcessRegisterRequestAsync(LocalDrpPeer, receivedRequest);
+                await _engine.ProcessRegisterRequestAsync(LocalDrpPeer, routedRequest);
             }
             catch (Exception exc)
             {
@@ -592,40 +593,41 @@ namespace Dcomms.DRP
             {
                 // we got REQ from this instance neighbor
                 var req = InviteRequestPacket.Decode_VerifyNeighborHMAC(udpData, this);
-                Engine.WriteToLog_inv_detail($"{this} received {req}", req, LocalDrpPeer);
+                var logger = new Logger(Engine, LocalDrpPeer, req, DrpPeerEngine.VisionChannelModuleName_reg_responderSide);
+                logger.WriteToLog_detail($"{this} received {req}");
                 // NeighborToken32 and NeighborHMAC are verified at this time
 
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
                     throw new BadSignatureException();
 
-                var receivedRequest = new ReceivedRequest(LocalDrpPeer, this,  requesterEndpoint, reqReceivedTimeUtc) { InviteReq = req };
+                var routedRequest = new RoutedRequest(logger, this,  requesterEndpoint, reqReceivedTimeUtc) { InviteReq = req };
                 if (LocalDrpPeer.PendingInviteRequestExists(req.RequesterRegistrationId))
                 {
-                    Engine.WriteToLog_inv_lightPain($"rejecting {req}: another INVITE request is already being processed", req, LocalDrpPeer);
-                    await receivedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
+                    logger.WriteToLog_lightPain($"rejecting {req}: another INVITE request is already being processed");
+                    await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
                     return;
                 }
 
                 if (req.ResponderRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
                 {
-                    _ = this.LocalDrpPeer.AcceptInviteRequestAsync(receivedRequest);
+                    _ = this.LocalDrpPeer.AcceptInviteRequestAsync(routedRequest);
                 }
                 else
                 {
  _retry:
-                    var destinationPeer = _engine.RouteInviteRequest(this.LocalDrpPeer, receivedRequest); // routing
+                    var destinationPeer = _engine.RouteInviteRequest(this.LocalDrpPeer, routedRequest); // routing
                     if (destinationPeer == null)
                     {
                         // no neighbors found. send error response to sender
-                        await receivedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
+                        await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
                         return;
                     }
 
-                    var needToRerouteToAnotherNeighbor = await this.LocalDrpPeer.ProxyInviteRequestAsync(receivedRequest, destinationPeer);            
+                    var needToRerouteToAnotherNeighbor = await this.LocalDrpPeer.ProxyInviteRequestAsync(routedRequest, destinationPeer);            
                     if (needToRerouteToAnotherNeighbor)
                     {
-                        receivedRequest.TriedNeighbors.Add(destinationPeer);
-                        Engine.WriteToLog_inv_proxySide_detail($"retrying to proxy invite to another neighbor on error. already tried {receivedRequest.TriedNeighbors.Count}", req, LocalDrpPeer);             
+                        routedRequest.TriedNeighbors.Add(destinationPeer);
+                        logger.WriteToLog_detail($"retrying to proxy invite to another neighbor on error. already tried {routedRequest.TriedNeighbors.Count}");             
                         goto _retry;
                     }
 

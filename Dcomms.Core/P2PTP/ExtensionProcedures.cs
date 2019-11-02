@@ -59,7 +59,7 @@ namespace Dcomms.P2PTP
             if (fromPeerId == null) throw new ArgumentNullException(nameof(fromPeerId));
             if (toPeerId == null) throw new ArgumentNullException(nameof(toPeerId));
             if (streamId == null) throw new ArgumentNullException(nameof(streamId));
-            P2ptpCommon.EncodeHeader(writer, PacketType.extensionSignaling);
+            P2ptpCommon.EncodeHeader(writer, PacketTypes.extensionSignaling);
             PeerId.Encode(writer, fromPeerId);
             PeerId.Encode(writer, toPeerId);
             StreamId.Encode(writer, streamId);

@@ -23,7 +23,7 @@ namespace Dcomms.DRP
         RegistrationId Responder;
         DateTime RequestCreatedTimeUTC;
         DateTime RequestFinishedTimeUTC;
-        DrpResponderStatusCode Status;
+        ResponseOrFailureCode Status;
     }
     enum RequestType
     {

@@ -46,7 +46,7 @@ namespace Dcomms.DRP
             _engine = engine;
         }
 
-        public async Task SendRequestAsync()
+        public async Task<byte[]> SendRequestAsync()
         {
             // wait for NPACK (-accepted or -failure)
             await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(_requestUdpData, _destinationEndpoint, _sentReqP2pSeq16);
@@ -61,6 +61,7 @@ namespace Dcomms.DRP
             {
                 _logger.WriteToLog_detail($"received ACK1");
                 if (Ack1UdpData == null) throw new DrpTimeoutException();
+                return Ack1UdpData;
             }
             else if (_WaitForFailureCompleted)
             {
@@ -86,9 +87,10 @@ namespace Dcomms.DRP
 
                     _engine.RespondToRequestAndRetransmissions(_failureUdpData, npAckUdpData, _destinationEndpoint);
                 }
+
+                throw new RequestRejectedException(failure.ResponseCode);
             }
-            else throw new InvalidOperationException();
-         
+            else throw new InvalidOperationException();         
         }
         bool _WaitForAck1Completed;
         async Task WaitForAck1Async()

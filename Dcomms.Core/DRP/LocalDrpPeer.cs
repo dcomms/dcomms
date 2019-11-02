@@ -76,24 +76,24 @@ namespace Dcomms.DRP
         }
         #endregion
 
-        public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(ReceivedRequest receivedRequest)
+        public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(RoutedRequest routedRequest)
         {
             foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
             {
-                if (receivedRequest.ReceivedFromNeighborNullable != null && connectedPeer == receivedRequest.ReceivedFromNeighborNullable)
+                if (routedRequest.ReceivedFromNeighborNullable != null && connectedPeer == routedRequest.ReceivedFromNeighborNullable)
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}", receivedRequest.Req, this);
+                    Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}", routedRequest.Req, this);
                     continue;
                 }
-                if (receivedRequest.TriedNeighbors.Contains(connectedPeer))
+                if (routedRequest.TriedNeighbors.Contains(connectedPeer))
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}", receivedRequest.Req, this);
+                    Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}", routedRequest.Req, this);
                     continue;
                 }
 
-                if (receivedRequest.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
+                if (routedRequest.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}", receivedRequest.Req, this);
+                    Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}", routedRequest.Req, this);
                     continue;
                 }
 
@@ -182,18 +182,7 @@ namespace Dcomms.DRP
                             }
                         }
                     }
-                    //catch (DrpResponderRejectedMaxHopsReachedException exc)
-                    //{
-                    //    Engine.WriteToLog_reg_requesterSide_lightPain($"failed to extend neighbors for {this}: {exc}.    adjusting  numberOfHops...");
-
-                    //    if (_numberOfHopsToExtendNeighbors < 50)
-                    //        _numberOfHopsToExtendNeighbors = (byte)(_numberOfHopsToExtendNeighbors + 5);
-                    //}
-                    catch (NextHopRejectedExceptionRouteIsUnavailable exc)
-                    {
-                        Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"failed to extend neighbors for {this}: {exc}", null, null);
-                    }
-                    catch (DrpResponderRejectedP2pNetworkServiceUnavailableException exc)
+                    catch (RequestRejectedException exc)
                     {
                         Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"failed to extend neighbors for {this}: {exc}", null, null);
                     }
