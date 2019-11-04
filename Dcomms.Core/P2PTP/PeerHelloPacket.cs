@@ -154,7 +154,7 @@ namespace Dcomms.P2PTP
 
             //  byte[] data = new byte[size];
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
-            P2ptpCommon.EncodeHeader(writer, PacketType.hello);
+            P2ptpCommon.EncodeHeader(writer, PacketTypes.hello);
           //  int index = P2ptpCommon.HeaderSize;
             PeerId.Encode(writer, FromPeerId);
             StreamId.Encode(writer, StreamId);

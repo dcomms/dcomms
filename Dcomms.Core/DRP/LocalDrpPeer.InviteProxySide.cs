@@ -84,7 +84,7 @@ namespace Dcomms.DRP
                 }
                 catch (Exception reqExc)
                 {
-                    Engine.HandleExceptionWhileProxyingInvite(req, reqExc, this);
+                    logger.WriteToLog_mediumPain($"could not proxy INVITE request: {reqExc}");
                     if (routedRequest.ReceivedFromNeighborNullable?.IsDisposed == true)
                     {
                         logger.WriteToLog_needsAttention($"sourcePeer={routedRequest.ReceivedFromNeighborNullable} is disposed during proxying 76897805");
@@ -152,7 +152,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                Engine.HandleExceptionWhileProxyingInvite(req, exc, this);
+                logger.WriteToLog_mediumPain($"could not proxy INVITE request: {exc}");
             }
             finally
             {

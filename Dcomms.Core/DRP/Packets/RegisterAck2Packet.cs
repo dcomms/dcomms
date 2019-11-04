@@ -85,7 +85,7 @@ namespace Dcomms.DRP.Packets
                         logger.WriteToLog_needsAttention("ignoring ACK2: connection is disposed");
                         return false;
                     }
-                    var ack2 = Decode_OptionallyVerify_InitializeP2pStreamAtResponder(responseData, null, null, null);
+                    var ack2 = Decode_OptionallyVerify_InitializeP2pStreamAtResponder(logger, responseData, null, null, null);
                     if (ack2.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(ack2.GetSignedFieldsForNeighborHMAC)) == false)
                     {
                         logger.WriteToLog_attacks("ignoring ACK2: received NeighborHMAC is invalid");
@@ -155,7 +155,7 @@ namespace Dcomms.DRP.Packets
         /// if newConnectionAtResponderToRequesterNullable is specified, the procedure 
         /// verifies RequesterHMAC, decrypts endpoint of A (ToRequesterTxParametersEncrypted), initializes P2P stream
         /// </param>
-        public static RegisterAck2Packet Decode_OptionallyVerify_InitializeP2pStreamAtResponder(byte[] registerAckPacketData,
+        public static RegisterAck2Packet Decode_OptionallyVerify_InitializeP2pStreamAtResponder(Logger logger, byte[] registerAckPacketData,
             RegisterRequestPacket reqNullable,
             RegisterAck1Packet ack1Nullable,
             ConnectionToNeighbor newConnectionAtResponderToRequesterNullable
@@ -176,7 +176,7 @@ namespace Dcomms.DRP.Packets
             ack.ToRequesterTxParametersEncrypted = reader.ReadBytes(ToRequesterTxParametersEncryptedLength);
             if (newConnectionAtResponderToRequesterNullable != null)
             {
-                newConnectionAtResponderToRequesterNullable.Decrypt_ack2_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(reqNullable, ack1Nullable, ack);
+                newConnectionAtResponderToRequesterNullable.Decrypt_ack2_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(logger, reqNullable, ack1Nullable, ack);
             }
 
             ack.RequesterSignature = RegistrationSignature.Decode(reader);

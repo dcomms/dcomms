@@ -82,18 +82,18 @@ namespace Dcomms.DRP
             {
                 if (routedRequest.ReceivedFromNeighborNullable != null && connectedPeer == routedRequest.ReceivedFromNeighborNullable)
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}", routedRequest.Req, this);
+                    routedRequest.Logger.WriteToLog_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}");
                     continue;
                 }
                 if (routedRequest.TriedNeighbors.Contains(connectedPeer))
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}", routedRequest.Req, this);
+                    routedRequest.Logger.WriteToLog_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}");
                     continue;
                 }
 
                 if (routedRequest.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
                 {
-                    Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}", routedRequest.Req, this);
+                    routedRequest.Logger.WriteToLog_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}");
                     continue;
                 }
 

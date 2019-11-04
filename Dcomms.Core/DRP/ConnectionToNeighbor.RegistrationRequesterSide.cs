@@ -53,7 +53,7 @@ namespace Dcomms.DRP
                         req.ReqP2pSeq16, RegisterAck1Packet.GetScanner(logger, req, this));
                     var ack1UdpData = await sentRequest.SendRequestAsync();
 
-                    var ack1 = RegisterAck1Packet.DecodeAndOptionallyVerify(ack1UdpData, req, newConnectionToNeighbor);
+                    var ack1 = RegisterAck1Packet.DecodeAndOptionallyVerify(logger, ack1UdpData, req, newConnectionToNeighbor);
                     logger.WriteToLog_detail($"verified ACK1, sending NPACK to ACK1");
 
                     _engine.SendNeighborPeerAckResponseToRegisterAck1(ack1, this);
@@ -84,7 +84,7 @@ namespace Dcomms.DRP
                         RequesterRegistrationId = _localDrpPeer.Configuration.LocalPeerRegistrationId,
                         ReqP2pSeq16 = GetNewRequestP2pSeq16_P2P(),
                     };
-                    ack2.ToRequesterTxParametersEncrypted = newConnectionToNeighbor.Encrypt_ack2_ToRequesterTxParametersEncrypted_AtRequester(req, ack1, ack2);
+                    ack2.ToRequesterTxParametersEncrypted = newConnectionToNeighbor.Encrypt_ack2_ToRequesterTxParametersEncrypted_AtRequester(logger, req, ack1, ack2);
                     newConnectionToNeighbor.InitializeP2pStream(req, ack1, ack2);
                     ack2.RequesterSignature = RegistrationSignature.Sign(_engine.CryptoLibrary, w =>
                         {
@@ -95,7 +95,7 @@ namespace Dcomms.DRP
                         _localDrpPeer.Configuration.LocalPeerRegistrationPrivateKey
                      );
 
-                    logger.WriteToLog_detail($"sending ACK2 (in response to ACK1), waiting for NPACK", req, _localDrpPeer);
+                    logger.WriteToLog_detail($"sending ACK2 (in response to ACK1), waiting for NPACK");
                     await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack2.Encode_OptionallySignNeighborHMAC(this), this.RemoteEndpoint, ack2.ReqP2pSeq16);
                     #endregion
 
@@ -130,24 +130,24 @@ namespace Dcomms.DRP
                                     _engine.Configuration.InitialPingRequests_RetransmissionTimeoutIncrement
                                 );
 
-                    logger.WriteToLog_detail($"sending PING, waiting for PONG", req, _localDrpPeer);
+                    logger.WriteToLog_detail($"sending PING, waiting for PONG");
                     var pongPacketData = await _engine.SendUdpRequestAsync_Retransmit(pendingPingRequest);
                     if (pongPacketData == null) throw new DrpTimeoutException();
                     if (newConnectionToNeighbor.IsDisposed)
                     {
-                        logger.WriteToLog_needsAttention($"connection {newConnectionToNeighbor} is disposed during reg. request 548798", req, _localDrpPeer);
+                        logger.WriteToLog_needsAttention($"connection {newConnectionToNeighbor} is disposed during reg. request 548798");
                         return;
                     }
                     if (IsDisposed)
                     {
-                        logger.WriteToLog_needsAttention($"connection {this} is disposed during reg. request 548798", req, _localDrpPeer);
+                        logger.WriteToLog_needsAttention($"connection {this} is disposed during reg. request 548798");
                         return;
                     }
 
                     pong = PongPacket.DecodeAndVerify(_engine.CryptoLibrary,
                         pongPacketData, pingRequest, newConnectionToNeighbor,
                         true);
-                    logger.WriteToLog_detail($"verified PONG", req, _localDrpPeer);
+                    logger.WriteToLog_detail($"verified PONG");
                     newConnectionToNeighbor.OnReceivedVerifiedPong(pong, pendingPingRequest.ResponseReceivedAtUtc.Value,
                         pendingPingRequest.ResponseReceivedAtUtc.Value - pendingPingRequest.InitialTxTimeUTC.Value);
                     #endregion

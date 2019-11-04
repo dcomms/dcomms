@@ -88,8 +88,6 @@ namespace Dcomms.DRP
                     // verify NeighborHMAC
                     ack1UdpData = await sentRequest.SendRequestAsync();
 
-                    await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(req.Encode_OptionallySignNeighborHMAC(destinationPeer),
-                        req.ReqP2pSeq16, req.GetSignedFieldsForNeighborHMAC);
                     if (routedRequest.ReceivedFromNeighborNullable?.IsDisposed == true)
                     {
                         logger.WriteToLog_needsAttention($"sourcePeer={routedRequest.ReceivedFromNeighborNullable} is disposed during proxying 52460");
@@ -119,7 +117,7 @@ namespace Dcomms.DRP
                 }
                 catch (Exception reqExc)
                 {
-                    HandleExceptionWhileProxyingRegister(req, destinationPeer.LocalDrpPeer, routedRequest.ReceivedFromEndpoint, reqExc);
+                    logger.WriteToLog_mediumPain($"could not proxy REGISTER request: {reqExc}");
                     if (routedRequest.ReceivedFromNeighborNullable?.IsDisposed == true)
                     {
                         logger.WriteToLog_needsAttention($"sourcePeer={routedRequest.ReceivedFromNeighborNullable} is disposed during proxying 76897805");
@@ -128,7 +126,7 @@ namespace Dcomms.DRP
                     return true; // will retry
                 }
                               
-                var ack1 = RegisterAck1Packet.DecodeAndOptionallyVerify(ack1UdpData, req, null);
+                var ack1 = RegisterAck1Packet.DecodeAndOptionallyVerify(logger, ack1UdpData, req, null);
                 logger.WriteToLog_detail($"verified ACK1 from destination");
 
                 // respond with NPACK
@@ -176,7 +174,7 @@ namespace Dcomms.DRP
                    logger.WriteToLog_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 2345135");
                     return false;
                 }
-                var ack2 = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(ack2UdpData, null, null, null);
+                var ack2 = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(logger, ack2UdpData, null, null, null);
 
                 // send NPACK to source peer
                 logger.WriteToLog_detail($"sending NPACK to ACK2 to source peer");
@@ -252,7 +250,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                HandleExceptionWhileProxyingRegister(req, destinationPeer.LocalDrpPeer, routedRequest.ReceivedFromEndpoint, exc);
+                logger.WriteToLog_mediumPain($"could not proxy REGISTER request: {exc}");
             }
             finally
             {

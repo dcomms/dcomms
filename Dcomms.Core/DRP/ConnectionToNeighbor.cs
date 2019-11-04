@@ -130,7 +130,7 @@ namespace Dcomms.DRP
         }
                
         /// <summary>initializes parameters to transmit direct (p2p) packets form neighbor N to requester A</returns>
-        public void Decrypt_ack2_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
+        public void Decrypt_ack2_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(Logger logger, RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
         {
             #region key, iv
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
@@ -157,7 +157,7 @@ namespace Dcomms.DRP
                 if (magic16 != Magic16_ipv4_requesterToResponder) throw new BrokenCipherException();
             }
 
-            _engine.WriteToLog_reg_responderSide_detail($"decrypted remote requester endpoint={RemoteEndpoint}, remoteNeighborToken={RemoteNeighborToken32} from ACK2", req, this.LocalDrpPeer);
+            logger.WriteToLog_detail($"decrypted remote requester endpoint={RemoteEndpoint}, remoteNeighborToken={RemoteNeighborToken32} from ACK2");
 
             InitializeP2pStream(req, ack1, ack2);            
         }
@@ -165,7 +165,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// when sending ACK
         /// </summary>
-        public byte[] Encrypt_ack2_ToRequesterTxParametersEncrypted_AtRequester(RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
+        public byte[] Encrypt_ack2_ToRequesterTxParametersEncrypted_AtRequester(Logger logger, RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
         {
             if (SharedDhSecret == null)
                 throw new InvalidOperationException();
@@ -186,7 +186,7 @@ namespace Dcomms.DRP
             PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
             PacketProcedures.EncodeIPEndPoint(wRxParameters, LocalEndpoint); // max 19
             LocalNeighborToken32.Encode(wRxParameters); // +4 max 23
-            _engine.WriteToLog_reg_requesterSide_detail($"encrypting local requester endpoint={LocalEndpoint}, localNeighborToken={LocalNeighborToken32} into ACK2", req, LocalDrpPeer);
+            logger.WriteToLog_detail($"encrypting local requester endpoint={LocalEndpoint}, localNeighborToken={LocalNeighborToken32} into ACK2");
             wRxParameters.Write(Magic16_ipv4_requesterToResponder); // +2 max 25
             var bytesRemaining = RegisterAck2Packet.ToRequesterTxParametersEncryptedLength - (int)msRxParameters.Length;
             wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));      

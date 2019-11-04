@@ -131,40 +131,38 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_engineThread) <= AttentionLevel.strongPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_engineThread, AttentionLevel.strongPain, $"exception: {exc}");            
         }
-        //internal void WriteToLog_reg_requesterSide_needsAttention(string message, object req, IVisiblePeer localPeer)
-        //{
-        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.needsAttention)
-        //    {
-        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.needsAttention, message, req, localPeer);
-        //    }
-        //}
-        //internal void WriteToLog_reg_requesterSide_detail(string message, object req, IVisiblePeer localPeer)
-        //{
-        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.detail)
-        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.detail, message, req, localPeer);
-        //}
-        //internal void WriteToLog_reg_requesterSide_higherLevelDetail(string message, object req, IVisiblePeer localPeer)
-        //{
-        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.higherLevelDetail)
-        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.higherLevelDetail, message, req, localPeer);
-        //}
+        internal void WriteToLog_reg_requesterSide_needsAttention(string message, object req, IVisiblePeer localPeer)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.needsAttention)
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.needsAttention, message, req, localPeer);
+        }
+        internal void WriteToLog_reg_requesterSide_detail(string message, object req, IVisiblePeer localPeer)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.detail)
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.detail, message, req, localPeer);
+        }
+        internal void WriteToLog_reg_requesterSide_higherLevelDetail(string message, object req, IVisiblePeer localPeer)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.higherLevelDetail)
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.higherLevelDetail, message, req, localPeer);
+        }
+        internal void WriteToLog_reg_requesterSide_mediumPain(string message, object req, IVisiblePeer localPeer)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.mediumPain, message, req, localPeer);
+        }
+        internal void WriteToLog_reg_requesterSide_lightPain(string message, object req, IVisiblePeer localPeer)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.lightPain)
+            {
+                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.lightPain, message, req, localPeer);
+            }
+        }
         internal void WriteToLog_drpGeneral_detail(string message)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general) <= AttentionLevel.detail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general, AttentionLevel.detail, message);
         }
-        //internal void WriteToLog_reg_requesterSide_mediumPain(string message, object req, IVisiblePeer localPeer)
-        //{
-        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.mediumPain)
-        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.mediumPain, message, req, localPeer);
-        //}
-        //internal void WriteToLog_reg_requesterSide_lightPain(string message, object req, IVisiblePeer localPeer)
-        //{
-        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.lightPain)
-        //    {
-        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.lightPain, message, req, localPeer);
-        //    }
-        //}
         //internal void WriteToLog_inv_requesterSide_detail(string message, object req, IVisiblePeer localPeer)
         //{
         //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_requesterSide) <= AttentionLevel.detail)
@@ -212,7 +210,7 @@ namespace Dcomms.DRP
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_dc, AttentionLevel.detail, message);
 
         }
-        void HandleExceptionWhileConnectingToRP(IPEndPoint epEndpoint, Exception exc)
+        void HandleExceptionWhileConnectingToEP(IPEndPoint epEndpoint, Exception exc)
         {
 
             if (exc is BadSignatureException) { WriteToLog_attacks_strongPain($"exception while connection to EP: {exc}"); return; }
@@ -248,23 +246,23 @@ namespace Dcomms.DRP
         }
         #endregion
 
-        void HandleExceptionInRegistrationRequester(Exception exc)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.mediumPain, $"exception while sending REGISTER request: {exc}");
+        //void HandleExceptionInRegistrationRequester(Exception exc)
+        //{
+        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.mediumPain)
+        //        Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.mediumPain, $"exception while sending REGISTER request: {exc}");
 
-        }
-        void HandleExceptionInRegistrationResponder(RegisterRequestPacket req, IPEndPoint requesterEndpoint, Exception exc)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.mediumPain, $"exception while responding to REGISTER REQ {req.RequesterRegistrationId} from {requesterEndpoint}: {exc}");
-        }
-        void HandleExceptionWhileProxyingRegister(RegisterRequestPacket req, IVisiblePeer localPeer, IPEndPoint requesterEndpoint, Exception exc)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.mediumPain,
-                    $"exception while proxying {req} from {requesterEndpoint}: {exc}", req, localPeer);
-        }
+        //}
+        //void HandleExceptionInRegistrationResponder(RegisterRequestPacket req, IPEndPoint requesterEndpoint, Exception exc)
+        //{
+        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.mediumPain)
+        //        Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.mediumPain, $"exception while responding to REGISTER REQ {req.RequesterRegistrationId} from {requesterEndpoint}: {exc}");
+        //}
+        //void HandleExceptionWhileProxyingRegister(RegisterRequestPacket req, IVisiblePeer localPeer, IPEndPoint requesterEndpoint, Exception exc)
+        //{
+        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.mediumPain)
+        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.mediumPain,
+        //            $"exception while proxying {req} from {requesterEndpoint}: {exc}", req, localPeer);
+        //}
         //internal void WriteToLog_reg_responderSide_detail(string message, object req, IVisiblePeer localPeer)
         //{
         //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.detail)
@@ -285,21 +283,21 @@ namespace Dcomms.DRP
         //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.needsAttention)
         //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.needsAttention, message, req, localPeer);
         //}
-        internal void HandleExceptionInInviteRequester(Exception exc, object req, IVisiblePeer localPeer)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_requesterSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_requesterSide, AttentionLevel.mediumPain, $"exception while sending invite request: {exc}", req, localPeer);
-        }
-        internal void HandleExceptionWhileProxyingInvite(InviteRequestPacket req, Exception exc, IVisiblePeer localPeer)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide, AttentionLevel.mediumPain, $"exception while proxying invite from {req.RequesterRegistrationId}: {exc}", req, localPeer);
-        }
-        internal void HandleExceptionWhileAcceptingInvite(Exception exc, object req, IVisiblePeer localPeer)
-        {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide, AttentionLevel.mediumPain, $"exception while accepting invite: {exc}", req, localPeer);
-        }
+        //internal void HandleExceptionInInviteRequester(Exception exc, object req, IVisiblePeer localPeer)
+        //{
+        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_requesterSide) <= AttentionLevel.mediumPain)
+        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_requesterSide, AttentionLevel.mediumPain, $"exception while sending invite request: {exc}", req, localPeer);
+        //}
+        //internal void HandleExceptionWhileProxyingInvite(InviteRequestPacket req, Exception exc, IVisiblePeer localPeer)
+        //{
+        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide) <= AttentionLevel.mediumPain)
+        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_proxySide, AttentionLevel.mediumPain, $"exception while proxying invite from {req.RequesterRegistrationId}: {exc}", req, localPeer);
+        //}
+        //internal void HandleExceptionWhileAcceptingInvite(Exception exc, object req, IVisiblePeer localPeer)
+        //{
+        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide) <= AttentionLevel.mediumPain)
+        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide, AttentionLevel.mediumPain, $"exception while accepting invite: {exc}", req, localPeer);
+        //}
     }
 
 

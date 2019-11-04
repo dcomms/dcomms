@@ -49,18 +49,19 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         public RegistrationSignature ResponderSignature;
 
-        HMAC NeighborHMAC; // is not sent from EP to A
-
-        /// <summary>
-        /// is not null  only in EP-A mode
-        /// </summary>       
-        public IPEndPoint RequesterEndpoint; // public IP:port of A, for UDP hole punching  // not encrypted.  IP address is validated at requester side       
-
         /// <summary>
         /// is not sent from EP to A (because response to the ACK1 is ACK2, not NPACK) 
         /// goes into NPACK packet at peer that responds to this packet
         /// </summary>
         public RequestP2pSequenceNumber16 ReqP2pSeq16;
+
+        /// <summary>
+        /// is not null  only in EP-A mode
+        /// </summary>       
+        public IPEndPoint RequesterEndpoint; // public IP:port of A, for UDP hole punching  // not encrypted.  IP address is validated at requester side       
+        HMAC NeighborHMAC; // is not sent from EP to A
+
+
 
         public byte[] DecodedUdpPayloadData;
 
@@ -69,7 +70,7 @@ namespace Dcomms.DRP.Packets
         /// </summary>
         /// <param name="newConnectionToNeighborAtRequesterNullable">if not null (at requester) - this procedure verifies ResponderSignature</param>
         /// <param name="reader">is positioned after first byte = packet type</param>    
-        public static RegisterAck1Packet DecodeAndOptionallyVerify(byte[] ack1UdpData, RegisterRequestPacket reqNullable,
+        public static RegisterAck1Packet DecodeAndOptionallyVerify(Logger logger, byte[] ack1UdpData, RegisterRequestPacket reqNullable,
             ConnectionToNeighbor newConnectionToNeighborAtRequesterNullable)
         {
             var reader = PacketProcedures.CreateBinaryReader(ack1UdpData, 1);
@@ -105,10 +106,9 @@ namespace Dcomms.DRP.Packets
             {
                 ack1.AssertMatchToRegisterReq(reqNullable);
                 if (newConnectionToNeighborAtRequesterNullable != null)
-                {
-                    newConnectionToNeighborAtRequesterNullable.Decrypt_ack1_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(logger, reqNullable, ack1);
-                }
+                    newConnectionToNeighborAtRequesterNullable.Decrypt_ack1_ToResponderTxParametersEncrypted_AtRequester_DeriveSharedDhSecret(logger, reqNullable, ack1);              
             }
+
             if ((ack1.Flags & Flag_EPtoA) != 0)
                 ack1.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
             else
@@ -116,7 +116,7 @@ namespace Dcomms.DRP.Packets
                 ack1.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);
                 ack1.NeighborHMAC = HMAC.Decode(reader);
             }
-
+           
             return ack1;
         }
 
@@ -125,7 +125,7 @@ namespace Dcomms.DRP.Packets
             if (req.RequesterRegistrationId.Equals(this.RequesterRegistrationId) == false)
                 throw new UnmatchedFieldsException();
             if (req.ReqTimestamp64 != this.ReqTimestamp64)
-                throw new UnmatchedFieldsException();
+                throw new UnmatchedFieldsException();            
         }
 
 
@@ -164,13 +164,10 @@ namespace Dcomms.DRP.Packets
             }
 
             GetSharedSignedFields(writer, true, true);
-
-
-            if (reqReceivedFromInP2pMode != null)
-                ReqP2pSeq16.Encode(writer);
-            
+                        
             if (reqReceivedFromInP2pMode != null)
             {
+                ReqP2pSeq16.Encode(writer);
                 this.NeighborHMAC = reqReceivedFromInP2pMode.GetNeighborHMAC(this.GetSignedFieldsForNeighborHMAC);
                 this.NeighborHMAC.Encode(writer);
             }
@@ -202,13 +199,11 @@ namespace Dcomms.DRP.Packets
             w.Write((byte)PacketTypes.RegisterAck1);
             w.Write((byte)0);
             if (connectionToNeighborNullable != null)
-            {
                 connectionToNeighborNullable.LocalNeighborToken32.Encode(w);
-            }
-
+          
             req.RequesterRegistrationId.Encode(w);
             w.Write(req.ReqTimestamp64);
-            
+                     
             var r = new LowLevelUdpResponseScanner
             {
                 ResponseFirstBytes = ms.ToArray(),
@@ -223,7 +218,7 @@ namespace Dcomms.DRP.Packets
                         logger.WriteToLog_needsAttention("ignoring ACK1: connection is disposed");
                         return false;
                     }
-                    var ack1 = DecodeAndOptionallyVerify(responseData, null, null);
+                    var ack1 = DecodeAndOptionallyVerify(logger, responseData, null, null);
                     if (ack1.NeighborHMAC.Equals(connectionToNeighborNullable.GetNeighborHMAC(ack1.GetSignedFieldsForNeighborHMAC)) == false)
                     {
                         logger.WriteToLog_attacks("ignoring ACK1: received NeighborHMAC is invalid");

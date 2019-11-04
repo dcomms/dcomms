@@ -160,7 +160,7 @@ namespace Dcomms.DRP
                     }
 
                     logger.WriteToLog_detail($"received ACK2");
-                    var ack2 = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(ack2UdpData, req, ack1, newConnectionToNeighbor);
+                    var ack2 = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(logger, ack2UdpData, req, ack1, newConnectionToNeighbor);
                     logger.WriteToLog_detail($"verified ACK2");
 
                     acceptAt.AddToConnectedNeighbors(newConnectionToNeighbor, req); // added to list here in order to respond to ping requests from A    
@@ -199,7 +199,7 @@ namespace Dcomms.DRP
             }
 			catch (Exception exc)
             {
-                HandleExceptionInRegistrationResponder(req, routedRequest.ReceivedFromEndpoint, exc);
+                logger.WriteToLog_mediumPain($"could not accept REGISTER request: {exc}");
             }
             finally
             {
@@ -222,9 +222,8 @@ namespace Dcomms.DRP
             }
 			catch (Exception exc)
             {
-                logger.WriteToLog_lightPain($"disposing new connection because of CFM error");
+                logger.WriteToLog_lightPain($"disposing new connection because of CFM error: {exc}");
                 newConnectionToNeighbor.Dispose();
-                HandleExceptionInRegistrationResponder(req, requesterEndpoint, exc);
             }
         }
 

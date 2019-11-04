@@ -29,9 +29,7 @@ namespace Dcomms.Sandbox
         const int AbsoluteMaxDesiredNumberOfNeighbors = 12;
         const int MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 60;///===============================================================
         const double NeighborhoodExtensionMinIntervalS = 0.5;///===========================================================
-
-
-
+                       
         const int NumberOfEPs = 10;
         const int EpAbsoluteMaxDesiredNumberOfNeighbors = 13;
         const int EpSoftMaxDesiredNumberOfNeighbors = 11;

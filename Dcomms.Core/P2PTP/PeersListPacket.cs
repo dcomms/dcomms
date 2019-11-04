@@ -37,7 +37,7 @@ namespace Dcomms.P2PTP
         public byte[] Encode()
         {
             var data = new byte[EncodedSizeMinimum + SharedPeers.Length * PeersListPacket_SharedPeerIpv4.EncodedSize];
-            P2ptpCommon.EncodeHeader(data, PacketType.peersListIpv4);
+            P2ptpCommon.EncodeHeader(data, PacketTypes.peersListIpv4);
             var index = P2ptpCommon.HeaderSize;
             PeerId.Encode(FromPeerId, data, ref index);
             StreamId.Encode(StreamId, data, ref index);

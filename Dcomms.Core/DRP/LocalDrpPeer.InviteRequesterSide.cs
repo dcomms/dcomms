@@ -16,19 +16,19 @@ namespace Dcomms.DRP
         {
             Engine.EngineThreadQueue.Enqueue(async () =>
             {
-                object req = null;
+                Logger logger = null;
                 try
                 {
                     var sw = Stopwatch.StartNew();
-                    var session = await SendInviteAsync(requesterUserCertificate, responderRegistrationId, responderUserId, SessionType.asyncShortSingleMessage, (req2)=>
+                    var session = await SendInviteAsync(requesterUserCertificate, responderRegistrationId, responderUserId, SessionType.asyncShortSingleMessage, (logger2)=>
                     {
-                        req = req2;
-                        if (Engine.Configuration.SandboxModeOnly_EnableInsecureLogs) logger.WriteToLog_detail($"creating an invite session to send a message '{messageText}'", req2);
+                        logger = logger2;
+                        if (Engine.Configuration.SandboxModeOnly_EnableInsecureLogs) logger.WriteToLog_detail($"creating an invite session to send a message '{messageText}'");
                     });
-                    logger.WriteToLog_detail($"invite session is ready to set up direct channel and send a message", req);
+                    logger.WriteToLog_detail($"invite session is ready to set up direct channel and send a message");
                     try
                     {
-                        logger.WriteToLog_detail($"remote peer accepted invite session in {(int)sw.Elapsed.TotalMilliseconds}ms: {session.RemoteSessionDescription}", req);
+                        logger.WriteToLog_detail($"remote peer accepted invite session in {(int)sw.Elapsed.TotalMilliseconds}ms: {session.RemoteSessionDescription}");
 
                         await session.SetupAEkeysAsync();
 
@@ -43,7 +43,7 @@ namespace Dcomms.DRP
                 }
                 catch (Exception exc)
                 {
-                    Engine.HandleExceptionInInviteRequester(exc, req, this);
+                    logger?.WriteToLog_mediumPain($"sending INVITE failed: {exc}");
                 }
             });
         }
@@ -76,7 +76,7 @@ namespace Dcomms.DRP
                 Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
                 req.RequesterRegistrationSignature = RegistrationSignature.Sign(Engine.CryptoLibrary, req.GetSharedSignedFields, this.Configuration.LocalPeerRegistrationPrivateKey);
 
-                var routedRequest = new RoutedRequest(logger, null, null, null);
+                var routedRequest = new RoutedRequest(logger, null, null, null) { InviteReq = req };
             _retry:
 
                 // find best connected peer to send the request
@@ -113,8 +113,7 @@ namespace Dcomms.DRP
                 }
                 catch (Exception exc2)
                 {
-                    Engine.HandleExceptionInInviteRequester(exc2, req, this);
-                    logger.WriteToLog_detail($"trying again on error... alreadyTriedProxyingToDestinationPeers.Count={routedRequest.TriedNeighbors.Count}");
+                    logger.WriteToLog_mediumPain($"trying again on error {exc2}... alreadyTriedProxyingToDestinationPeers.Count={routedRequest.TriedNeighbors.Count}");
                     routedRequest.TriedNeighbors.Add(destinationPeer);
                     goto _retry;
                 }
@@ -161,9 +160,9 @@ namespace Dcomms.DRP
                     }, this.Configuration.LocalPeerRegistrationPrivateKey);
                 var ack2UdpData = ack2.Encode_SetP2pFields(destinationPeer);
 
-                logger.WriteToLog_detail($"sending ACK2, waiting for NPACK", req);
+                logger.WriteToLog_detail($"sending ACK2, waiting for NPACK");
                 await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2UdpData, ack2.ReqP2pSeq16, ack2.GetSignedFieldsForNeighborHMAC);
-                logger.WriteToLog_detail($"received NPACK", req);
+                logger.WriteToLog_detail($"received NPACK");
                 #endregion
 
                 #region wait for CFM

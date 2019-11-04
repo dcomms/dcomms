@@ -169,7 +169,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                Engine.HandleExceptionWhileAcceptingInvite(exc, req, this);
+                logger.WriteToLog_mediumPain($"could not accept INVITE request: {exc}");
             }
             finally
             {

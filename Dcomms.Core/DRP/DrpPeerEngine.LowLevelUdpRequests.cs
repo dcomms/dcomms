@@ -88,6 +88,11 @@ namespace Dcomms.DRP
                 WriteToLog_udp_lightPain($"_pendingLowLevelUdpRequests.Count={_pendingLowLevelUdpRequests.Count}");
             return await request.TaskCompletionSource.Task;
         }
+        internal void CancelPendingRequest(PendingLowLevelUdpRequest request)
+        {
+            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"cancelled {request}");
+            _pendingLowLevelUdpRequests.Remove(request);
+        }
 
         /// <summary>
         /// raises timeout events, retransmits packets
@@ -254,12 +259,12 @@ namespace Dcomms.DRP
         }
         public override string ToString()
         {
-            var r = $"responderEP={ResponderEndpoint}";
+            var r = $"pendingReq[responderEP={ResponderEndpoint}";
             if (RequestPacketDataNullable != null)
-                r += $", req={(PacketTypes)RequestPacketDataNullable[0]}";
+                r += $", req={(PacketTypes)RequestPacketDataNullable[0]} (hash={MiscProcedures.GetArrayHashCodeString(RequestPacketDataNullable)})";
             if (ResponseScanner != null && ResponseScanner.ResponseFirstBytes != null)
                 r += $", resp={(PacketTypes)ResponseScanner.ResponseFirstBytes[0]}";
-            r += $", timeout={_expirationTimeoutS}s";
+            r += $", timeout={_expirationTimeoutS}s]";
             return r;
         }
         public int RetransmissionsCount { get; private set; }

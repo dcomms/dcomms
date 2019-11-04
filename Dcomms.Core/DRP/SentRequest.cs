@@ -49,21 +49,34 @@ namespace Dcomms.DRP
         public async Task<byte[]> SendRequestAsync()
         {
             // wait for NPACK (-accepted or -failure)
+            _logger.WriteToLog_detail($">> SendRequestAsync() _requestUdpData= {MiscProcedures.GetArrayHashCodeString(_requestUdpData)}");
             await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(_requestUdpData, _destinationEndpoint, _sentReqP2pSeq16);
-            _logger.WriteToLog_detail($"received NPACK");
+            _logger.WriteToLog_detail($"@SendRequestAsync() received NPACK");
           
             // wait for ACK1 OR FAILURE
             await Task.WhenAny(
                 WaitForAck1Async(),
                 WaitForFailureAsync()
                 );
-            if (_WaitForAck1Completed)
+            if (_pendingAck1Request != null)
+            {
+                _engine.CancelPendingRequest(_pendingAck1Request);
+                _pendingAck1Request = null;
+            }
+            if (_pendingFailureRequest != null)
+            {
+                _engine.CancelPendingRequest(_pendingFailureRequest);
+                _pendingFailureRequest = null;
+            }
+
+
+            if (_waitForAck1Completed)
             {
                 _logger.WriteToLog_detail($"received ACK1");
                 if (Ack1UdpData == null) throw new DrpTimeoutException();
                 return Ack1UdpData;
             }
-            else if (_WaitForFailureCompleted)
+            else if (_waitForFailureCompleted)
             {
                 if (_failureUdpData == null) throw new DrpTimeoutException();
                 _logger.WriteToLog_detail($"received FAILURE");
@@ -83,34 +96,41 @@ namespace Dcomms.DRP
                         npAckToFailure.NeighborHMAC = _destinationNeighborNullable.GetNeighborHMAC(w => npAckToFailure.GetSignedFieldsForNeighborHMAC(w, failure.GetSignedFieldsForNeighborHMAC));
                     }
 
-                    var npAckUdpData = npAckToFailure.Encode(_destinationNeighborNullable == null);
+                    var npAckToFailureUdpData = npAckToFailure.Encode(_destinationNeighborNullable == null);
 
-                    _engine.RespondToRequestAndRetransmissions(_failureUdpData, npAckUdpData, _destinationEndpoint);
+                    _engine.RespondToRequestAndRetransmissions(_failureUdpData, npAckToFailureUdpData, _destinationEndpoint);
                 }
 
                 throw new RequestRejectedException(failure.ResponseCode);
             }
             else throw new InvalidOperationException();         
         }
-        bool _WaitForAck1Completed;
+        bool _waitForAck1Completed;
+        PendingLowLevelUdpRequest _pendingAck1Request;
         async Task WaitForAck1Async()
         {
             _logger.WriteToLog_detail($"waiting for ACK1");
-            Ack1UdpData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(_destinationEndpoint,
+            _pendingAck1Request = new PendingLowLevelUdpRequest(_destinationEndpoint,
                             _ack1Scanner, _engine.DateTimeNowUtc, _engine.Configuration.Ack1TimoutS
-                            ));
-            _WaitForAck1Completed = true;
+                            );
+            Ack1UdpData = await _engine.WaitForUdpResponseAsync(_pendingAck1Request);
+            _pendingAck1Request = null;
+            _waitForAck1Completed = true;
+
         }
 
-        bool _WaitForFailureCompleted;
+        PendingLowLevelUdpRequest _pendingFailureRequest;
+        bool _waitForFailureCompleted;
         async Task WaitForFailureAsync()
         {
             var failureScanner = FailurePacket.GetScanner(_logger, _sentReqP2pSeq16, _destinationNeighborNullable); // the scanner verifies neighborHMAC
             _logger.WriteToLog_detail($"waiting for FAILURE");
-            _failureUdpData = await _engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(_destinationEndpoint,
+            _pendingFailureRequest = new PendingLowLevelUdpRequest(_destinationEndpoint,
                             failureScanner, _engine.DateTimeNowUtc, _engine.Configuration.Ack1TimoutS
-                            ));
-            _WaitForFailureCompleted = true;           
+                            );
+            _failureUdpData = await _engine.WaitForUdpResponseAsync(_pendingFailureRequest);
+            _pendingFailureRequest = null;
+            _waitForFailureCompleted = true;
         }
 
     }

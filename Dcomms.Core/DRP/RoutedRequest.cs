@@ -11,7 +11,7 @@ namespace Dcomms.DRP
     public class RoutedRequest
     {
         public readonly IPEndPoint ReceivedFromEndpoint;
-        public readonly ConnectionToNeighbor ReceivedFromNeighborNullable;
+        public readonly ConnectionToNeighbor ReceivedFromNeighborNullable; // is NULL in A-EP mode
         readonly DrpPeerEngine _engine;
         /// <summary>
         /// is NULL for request that is generated locally (when local peer sends INVITE/REGISTER)
@@ -81,7 +81,7 @@ namespace Dcomms.DRP
                 npAck.NeighborHMAC = ReceivedFromNeighborNullable.GetNeighborHMAC(w => npAck.GetSignedFieldsForNeighborHMAC(w, GetSignedFieldsForNeighborHMAC));
             }
 
-            var npAckUdpData = npAck.Encode(false);
+            var npAckUdpData = npAck.Encode(ReceivedFromNeighborNullable == null);
             _engine.RespondToRequestAndRetransmissions(RequestUdpPayloadData, npAckUdpData, ReceivedFromEndpoint);
             _repliedWithNPA = true;
         }
