@@ -120,6 +120,7 @@ namespace Dcomms.DRP.Packets
             {
                 r.OptionalFilter = (responseData) =>
                 {
+                    logger.WriteToLog_detail($"filtering FAILURE @scanner: hash={MiscProcedures.GetArrayHashCodeString(responseData)}");
                     if (connectionToNeighborNullable.IsDisposed)
                     {
                         logger.WriteToLog_needsAttention("ignoring FAILURE: connection is disposed");

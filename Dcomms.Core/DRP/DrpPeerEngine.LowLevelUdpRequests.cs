@@ -145,7 +145,7 @@ namespace Dcomms.DRP
 
                 try
                 {
-                    if (request.ResponderEndpoint.Equals(responderEndpoint) && request.ResponseScanner.Scan(udpData))
+                    if (request.ResponderEndpoint.Equals(responderEndpoint) && request.ResponseScanner.Scan(this, udpData))
                     {
                         _pendingLowLevelUdpRequests.Remove(item);
                         request.ResponseReceivedAtUtc = receivedAtUtc;
@@ -259,7 +259,7 @@ namespace Dcomms.DRP
         }
         public override string ToString()
         {
-            var r = $"pendingReq[responderEP={ResponderEndpoint}";
+            var r = $"[responderEP={ResponderEndpoint}";
             if (RequestPacketDataNullable != null)
                 r += $", req={(PacketTypes)RequestPacketDataNullable[0]} (hash={MiscProcedures.GetArrayHashCodeString(RequestPacketDataNullable)})";
             if (ResponseScanner != null && ResponseScanner.ResponseFirstBytes != null)
@@ -284,12 +284,23 @@ namespace Dcomms.DRP
         public int? IgnoredByteAtOffset1; // is set to position of 'flags' byte in the scanned response packet
         public Func<byte[],bool> OptionalFilter; // verifies NPACK.NeighborHMAC, ignores invalid HMACs // returns false to ignore the processed response packet
 
-        public bool Scan(byte[] udpData) // may throw parser exception
+        public bool Scan(DrpPeerEngine engine, byte[] udpData) // may throw parser exception
         {
-            if (!MiscProcedures.EqualByteArrayHeader(ResponseFirstBytes, udpData, IgnoredByteAtOffset1)) return false;
+            if (!MiscProcedures.EqualByteArrayHeader(ResponseFirstBytes, udpData, IgnoredByteAtOffset1))
+            {
+                if (engine.WriteToLog_udp_deepDetail_enabled)
+                    engine.WriteToLog_udp_deepDetail($"packet does not match to ResponseFirstBytes={MiscProcedures.ByteArrayToString(ResponseFirstBytes)} udpData={MiscProcedures.ByteArrayToString(udpData)} "
+                        );
+                return false;
+            }
             if (OptionalFilter != null)
             {
-                if (!OptionalFilter(udpData)) return false;               
+                if (!OptionalFilter(udpData))
+                {
+                    if (engine.WriteToLog_udp_deepDetail_enabled)
+                        engine.WriteToLog_udp_deepDetail($"packet did not patch OptionalFilter");
+                    return false;
+                }
             }
             return true;
         }
