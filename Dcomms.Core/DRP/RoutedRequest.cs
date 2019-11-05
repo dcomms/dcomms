@@ -17,7 +17,7 @@ namespace Dcomms.DRP
         /// is NULL for request that is generated locally (when local peer sends INVITE/REGISTER)
         /// </summary>
         public readonly DateTime? ReqReceivedTimeUtc; 
-        public bool CheckedRecentUniqueProxiedRegistrationRequests;
+        public bool CheckedRecentUniqueProxiedRequests;
         public readonly Logger Logger;
         public RoutedRequest(Logger logger, ConnectionToNeighbor receivedFromNeighborNullable, IPEndPoint receivedFromEndpoint,
             DateTime? reqReceivedTimeUtc, InviteRequestPacket inviteReqNullable, RegisterRequestPacket registerReqNullable)
@@ -33,7 +33,8 @@ namespace Dcomms.DRP
             _engine = logger.Engine;
             ReqReceivedTimeUtc = reqReceivedTimeUtc;
 
-            ReqP2pSeq16 = InviteReq?.ReqP2pSeq16 ?? RegisterReq.ReqP2pSeq16;
+            if (InviteReq != null) ReqP2pSeq16 = InviteReq.ReqP2pSeq16;
+            else ReqP2pSeq16 = RegisterReq.ReqP2pSeq16;
         }
 
         public readonly InviteRequestPacket InviteReq;

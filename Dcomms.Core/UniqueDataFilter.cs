@@ -45,12 +45,12 @@ namespace Dcomms
         public void AssertIsUnique(byte[] dataMustBeUnique)
         {
             if (!Filter(dataMustBeUnique))
-                throw new NonUniqueNonceException();
+                throw new NonUniquePacketFieldsException();
         }
         public void AssertIsUnique(Action<BinaryWriter> w)
         {
             if (!Filter(w))
-                throw new NonUniqueNonceException();
+                throw new NonUniquePacketFieldsException();
         }
     }
 }

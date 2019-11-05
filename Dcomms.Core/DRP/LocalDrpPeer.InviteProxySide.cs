@@ -29,9 +29,17 @@ namespace Dcomms.DRP
             logger.ModuleName = DrpPeerEngine.VisionChannelModuleName_inv_proxySide;         
             logger.WriteToLog_detail($"proxying {req}");
 
-            Engine.RecentUniqueInviteRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
-            Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
-
+            if (!routedRequest.CheckedRecentUniqueProxiedRequests)
+            {
+                if (!Engine.RecentUniqueInviteRequests.Filter(req.GetUniqueRequestIdFields))
+                {
+                    logger.WriteToLog_lightPain($"rejecting non-unique {req}: requesterEndpoint={routedRequest.ReceivedFromEndpoint}");
+                    await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
+                    return false;
+                }
+                routedRequest.CheckedRecentUniqueProxiedRequests = true;
+            }
+            
             if (req.NumberOfHopsRemaining > InviteRequestPacket.MaxNumberOfHopsRemaining)
             {
                 await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);

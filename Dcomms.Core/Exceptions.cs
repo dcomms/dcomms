@@ -38,7 +38,7 @@ namespace Dcomms
     {
 
     }
-    class NonUniqueNonceException : PossibleAttackException
+    class NonUniquePacketFieldsException : PossibleAttackException
     {
 
     }

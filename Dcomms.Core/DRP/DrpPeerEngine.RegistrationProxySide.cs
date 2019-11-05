@@ -29,31 +29,31 @@ namespace Dcomms.DRP
 
             if (PendingRegisterRequestExists(req.RequesterRegistrationId))
             {
-               logger.WriteToLog_higherLevelDetail($"rejecting duplicate REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={routedRequest.ReceivedFromEndpoint}");
+               logger.WriteToLog_higherLevelDetail($"rejecting duplicate request {req}: requesterEndpoint={routedRequest.ReceivedFromEndpoint}");
                 await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
                 return false;
             }
 
             if (req.NumberOfHopsRemaining > RegisterRequestPacket.MaxNumberOfHopsRemaining || req.NumberOfRandomHopsRemaining > RegisterRequestPacket.MaxNumberOfHopsRemaining)
             {
-               logger.WriteToLog_needsAttention($"rejecting REGISTER request {req.RequesterRegistrationId}: invalid number of hops remaining");
+               logger.WriteToLog_needsAttention($"rejecting {req}: invalid number of hops remaining");
                 await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
                 return false;
             }
 
-            if (!routedRequest.CheckedRecentUniqueProxiedRegistrationRequests)
+            if (!routedRequest.CheckedRecentUniqueProxiedRequests)
             {
                 var recentUniqueProxiedRegistrationRequests = req.RandomModeAtThisHop ? RecentUniqueProxiedRegistrationRequests_RandomHop : RecentUniqueProxiedRegistrationRequests_NonRandomHop;
                 if (!recentUniqueProxiedRegistrationRequests.Filter(req.GetUniqueRequestIdFields))
                 {
-                    logger.WriteToLog_lightPain($"rejecting non-unique REGISTER request {req.RequesterRegistrationId}: requesterEndpoint={routedRequest.ReceivedFromEndpoint}");
+                    logger.WriteToLog_lightPain($"rejecting non-unique request {req}: requesterEndpoint={routedRequest.ReceivedFromEndpoint}");
                     await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
                     return false;
                 }
-                routedRequest.CheckedRecentUniqueProxiedRegistrationRequests = true;
+                routedRequest.CheckedRecentUniqueProxiedRequests = true;
             }
 
-            logger.WriteToLog_higherLevelDetail($"proxying REGISTER request: requesterEndpoint={routedRequest.ReceivedFromEndpoint}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, ReqP2pSeq16={req.ReqP2pSeq16}, destinationPeer={destinationPeer}, sourcePeer={routedRequest.ReceivedFromNeighborNullable}");
+            logger.WriteToLog_higherLevelDetail($"proxying {req}: requesterEndpoint={routedRequest.ReceivedFromEndpoint}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, ReqP2pSeq16={req.ReqP2pSeq16}, destinationPeer={destinationPeer}, sourcePeer={routedRequest.ReceivedFromNeighborNullable}");
             
             if (!ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
                 throw new BadSignatureException();
