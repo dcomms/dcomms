@@ -103,6 +103,7 @@ namespace Dcomms.DRP.Packets
         /// </param>
         public static LowLevelUdpResponseScanner GetScanner(Logger logger, RequestP2pSequenceNumber16 reqP2pSeq16, ConnectionToNeighbor connectionToNeighborNullable = null)
         {
+            logger.WriteToLog_detail($">> FailurePacket.GetScanner() reqP2pSeq16={reqP2pSeq16}");
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.Failure);
             w.Write((byte)0);

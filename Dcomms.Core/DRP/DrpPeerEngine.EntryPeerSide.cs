@@ -184,7 +184,7 @@ namespace Dcomms.DRP
         async Task ProcessRegisterReqAtoEpPacket2Async(IPEndPoint requesterEndpoint, RegisterRequestPacket req, DateTime reqReceivedTimeUtc)
         {
             var logger = new Logger(this, LocalPeers.Values.First(), req, VisionChannelModuleName_reg);
-            var routedRequest = new RoutedRequest(logger, null, requesterEndpoint, reqReceivedTimeUtc) { RegisterReq = req};
+            var routedRequest = new RoutedRequest(logger, null, requesterEndpoint, reqReceivedTimeUtc, null, req);
             await ProcessRegisterRequestAsync(null, routedRequest);
         }
     }

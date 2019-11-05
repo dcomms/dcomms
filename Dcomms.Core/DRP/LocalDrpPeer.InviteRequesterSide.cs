@@ -76,7 +76,7 @@ namespace Dcomms.DRP
                 Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
                 req.RequesterRegistrationSignature = RegistrationSignature.Sign(Engine.CryptoLibrary, req.GetSharedSignedFields, this.Configuration.LocalPeerRegistrationPrivateKey);
 
-                var routedRequest = new RoutedRequest(logger, null, null, null) { InviteReq = req };
+                var routedRequest = new RoutedRequest(logger, null, null, null, req, null);
             _retry:
 
                 // find best connected peer to send the request

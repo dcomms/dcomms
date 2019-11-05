@@ -138,7 +138,9 @@ namespace Dcomms.DRP
                 var request = item.Value;
 
                 if (WriteToLog_udp_deepDetail_enabled)
-                    WriteToLog_udp_deepDetail($"matching to pending request... responderEndpoint={responderEndpoint}, udpData={MiscProcedures.ByteArrayToString(udpData)} " +
+                    WriteToLog_udp_deepDetail($"matching to pending request... responderEndpoint={responderEndpoint}, " +
+                        $"udpData={MiscProcedures.ByteArrayToString(udpData)} ({(PacketTypes)udpData[0]}) " +
+                        $"hash={MiscProcedures.GetArrayHashCodeString(udpData)}, " +
                         $"request={request}" 
                        // + $" ResponseScanner.ResponseFirstBytes={MiscProcedures.ByteArrayToString(request.ResponseScanner.ResponseFirstBytes)}"
                         );
@@ -204,6 +206,8 @@ namespace Dcomms.DRP
             var key = new RequestKey(udpData, requesterEndpoint);
             if (_respondersToRetransmittedRequests.TryGetValue(key, out var responder))
             {
+                if (WriteToLog_udp_deepDetail_enabled)
+                    WriteToLog_udp_deepDetail($"responding {(PacketTypes)responder.ResponseUdpPayloadData[0]} to retransmitted request {(PacketTypes)udpData[0]} (hash={MiscProcedures.GetArrayHashCodeString(udpData)})");
                 SendPacket(responder.ResponseUdpPayloadData, requesterEndpoint);
                 return true;
             }
@@ -289,7 +293,7 @@ namespace Dcomms.DRP
             if (!MiscProcedures.EqualByteArrayHeader(ResponseFirstBytes, udpData, IgnoredByteAtOffset1))
             {
                 if (engine.WriteToLog_udp_deepDetail_enabled)
-                    engine.WriteToLog_udp_deepDetail($"packet does not match to ResponseFirstBytes={MiscProcedures.ByteArrayToString(ResponseFirstBytes)} udpData={MiscProcedures.ByteArrayToString(udpData)} "
+                    engine.WriteToLog_udp_deepDetail($"packet does not match to ResponseFirstBytes={MiscProcedures.ByteArrayToString(ResponseFirstBytes)} ({(PacketTypes)ResponseFirstBytes[0]}) udpData={MiscProcedures.ByteArrayToString(udpData)} ({(PacketTypes)udpData[0]})"
                         );
                 return false;
             }
@@ -297,8 +301,8 @@ namespace Dcomms.DRP
             {
                 if (!OptionalFilter(udpData))
                 {
-                    if (engine.WriteToLog_udp_deepDetail_enabled)
-                        engine.WriteToLog_udp_deepDetail($"packet did not patch OptionalFilter");
+                    //if (engine.WriteToLog_udp_deepDetail_enabled)
+                        engine.WriteToLog_udp_lightPain($"packet did not pass OptionalFilter");
                     return false;
                 }
             }

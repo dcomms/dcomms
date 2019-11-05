@@ -567,7 +567,7 @@ namespace Dcomms.DRP
                 // NeighborToken32 and NeighborHMAC are verified at this time
                 
                 var routedRequest = new RoutedRequest(new Logger(_engine, LocalDrpPeer, req, DrpPeerEngine.VisionChannelModuleName_reg), 
-                     this, requesterEndpoint, reqReceivedTimeUtc) { RegisterReq = req };
+                     this, requesterEndpoint, reqReceivedTimeUtc, null, req);
                 routedRequest.Logger.WriteToLog_higherLevelDetail($"received {req} ({req.NumberOfHopsRemaining} hops remaining) via P2P connection");
                 
                 if (req.RequesterRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
@@ -600,7 +600,7 @@ namespace Dcomms.DRP
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
                     throw new BadSignatureException();
 
-                var routedRequest = new RoutedRequest(logger, this,  requesterEndpoint, reqReceivedTimeUtc) { InviteReq = req };
+                var routedRequest = new RoutedRequest(logger, this,  requesterEndpoint, reqReceivedTimeUtc, req, null);
                 if (LocalDrpPeer.PendingInviteRequestExists(req.RequesterRegistrationId))
                 {
                     logger.WriteToLog_lightPain($"rejecting {req}: another INVITE request is already being processed");

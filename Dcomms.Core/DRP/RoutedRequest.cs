@@ -19,20 +19,28 @@ namespace Dcomms.DRP
         public readonly DateTime? ReqReceivedTimeUtc; 
         public bool CheckedRecentUniqueProxiedRegistrationRequests;
         public readonly Logger Logger;
-        public RoutedRequest(Logger logger, ConnectionToNeighbor receivedFromNeighborNullable, IPEndPoint receivedFromEndpoint, DateTime? reqReceivedTimeUtc)
+        public RoutedRequest(Logger logger, ConnectionToNeighbor receivedFromNeighborNullable, IPEndPoint receivedFromEndpoint,
+            DateTime? reqReceivedTimeUtc, InviteRequestPacket inviteReqNullable, RegisterRequestPacket registerReqNullable)
         {
+            InviteReq = inviteReqNullable;
+            RegisterReq = registerReqNullable;
+            if (InviteReq == null && RegisterReq == null) throw new ArgumentException();
+            if (InviteReq != null && RegisterReq != null) throw new ArgumentException();
+
             ReceivedFromNeighborNullable = receivedFromNeighborNullable;
             ReceivedFromEndpoint = receivedFromEndpoint;
             Logger = logger;
             _engine = logger.Engine;
             ReqReceivedTimeUtc = reqReceivedTimeUtc;
+
+            ReqP2pSeq16 = InviteReq?.ReqP2pSeq16 ?? RegisterReq.ReqP2pSeq16;
         }
 
-        public InviteRequestPacket InviteReq;
-        public RegisterRequestPacket RegisterReq;
+        public readonly InviteRequestPacket InviteReq;
+        public readonly RegisterRequestPacket RegisterReq;
         public object Req => (object)InviteReq ?? RegisterReq;
         public RegistrationId RequesterRegistrationId => InviteReq?.RequesterRegistrationId ?? RegisterReq.RequesterRegistrationId;
-        public RequestP2pSequenceNumber16 ReqP2pSeq16 => InviteReq?.ReqP2pSeq16 ?? RegisterReq.ReqP2pSeq16;
+        public readonly RequestP2pSequenceNumber16 ReqP2pSeq16;
         byte[] RequestUdpPayloadData => InviteReq?.DecodedUdpPayloadData ?? RegisterReq.DecodedUdpPayloadData;
         void GetSignedFieldsForNeighborHMAC(BinaryWriter w)
         {
@@ -48,7 +56,7 @@ namespace Dcomms.DRP
         /// </summary>
         public async Task SendErrorResponse(ResponseOrFailureCode responseCode)
         {
-            Logger.WriteToLog_higherLevelDetail($">> SendErrorResponse(responseCode={responseCode})");
+            Logger.WriteToLog_higherLevelDetail($">> SendErrorResponse(responseCode={responseCode}) ReqP2pSeq16={ReqP2pSeq16}");
             if (ReceivedFromNeighborNullable?.IsDisposed == true) return;
             if (_repliedWithNPA)
             {

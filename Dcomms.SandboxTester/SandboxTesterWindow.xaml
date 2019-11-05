@@ -224,7 +224,7 @@
                                     <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
                                     <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
                                     <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
-                                    <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" MaxWidth="1000" >
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" MaxWidth="800" >
                                         <DataGridTextColumn.ElementStyle>
                                             <Style>
                                                 <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
@@ -270,7 +270,13 @@
                                 <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
                                 <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
                                 <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
-                                <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" MaxWidth="800" >
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style>
+                                            <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
