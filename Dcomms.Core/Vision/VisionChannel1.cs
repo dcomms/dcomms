@@ -116,6 +116,11 @@ namespace Dcomms.Vision
                 while (_logMessagesNewestFirst.Count > LogMessagesMaxCount)
                     _logMessagesNewestFirst.RemoveLast();
             }
+
+            if (_maxEmittedAttentionLevelLogMessage == null || msg.AttentionLevel >= _maxEmittedAttentionLevelLogMessage.AttentionLevel)
+            {
+                _maxEmittedAttentionLevelLogMessage = msg;
+            }
         }
         public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, VisiblePeersDisplayMode peersListDisplayMode
            )
@@ -138,6 +143,11 @@ namespace Dcomms.Vision
                 _logMessagesNewestFirst.AddFirst(msg);
                 while (_logMessagesNewestFirst.Count > LogMessagesMaxCount)
                     _logMessagesNewestFirst.RemoveLast();
+            }
+
+            if (_maxEmittedAttentionLevelLogMessage == null || msg.AttentionLevel >= _maxEmittedAttentionLevelLogMessage.AttentionLevel)
+            {
+                _maxEmittedAttentionLevelLogMessage = msg;
             }
         }
         public override void EmitPeerInRoutedPath(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, object req, IVisiblePeer localPeer)
@@ -166,16 +176,41 @@ namespace Dcomms.Vision
                 while (_logMessagesNewestFirst.Count > LogMessagesMaxCount)
                     _logMessagesNewestFirst.RemoveLast();
             }
+            if (_maxEmittedAttentionLevelLogMessage == null || msg.AttentionLevel >= _maxEmittedAttentionLevelLogMessage.AttentionLevel)
+            {
+                _maxEmittedAttentionLevelLogMessage = msg;
+            }
+        }
+        LogMessage _maxEmittedAttentionLevelLogMessage;
+        public System.Drawing.Color RefreshDisplayedLogMessagesButtonColor
+        {
+            get => _maxEmittedAttentionLevelLogMessage?.AttentionLevelColor ?? System.Drawing.Color.White;
+        }
+        public string MaxEmittedAttentionLevelLogMessage
+        {
+            get => _maxEmittedAttentionLevelLogMessage?.Message;
         }
         public ICommand RefreshDisplayedLogMessages => new DelegateCommand(() =>
         {
             if (PropertyChanged != null)
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));
         });
+
+        public void UpdateGui_100ms()
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs("RefreshDisplayedLogMessagesButtonColor"));
+                PropertyChanged(this, new PropertyChangedEventArgs("MaxEmittedAttentionLevelLogMessage"));
+            }
+        }
+
+
         public ICommand ClearLogMessages => new DelegateCommand(() =>
         {
             lock (_logMessagesNewestFirst)
                 _logMessagesNewestFirst.Clear();
+            _maxEmittedAttentionLevelLogMessage = null;
 
             if (PropertyChanged != null)
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));

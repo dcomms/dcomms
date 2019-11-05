@@ -28,6 +28,7 @@ namespace Dcomms.SandboxTester
         readonly SandboxTester1 _tester;
 
         Timer _timer;
+        Timer _refreshVisionChannelUiTimer;
         public SandboxTesterMainWindow()
         {
             _tester = new SandboxTester1(VisionChannel);
@@ -37,6 +38,13 @@ namespace Dcomms.SandboxTester
 
             this.Closed += CryptographyTesterMainWindow_Closed;
 
+            _refreshVisionChannelUiTimer = new Timer((o) =>
+            {
+                this.Dispatcher.Invoke(() =>
+                {
+                    VisionChannel.UpdateGui_100ms();
+                });
+            }, null, 0, 100);
 
             _timer = new Timer((o) =>
             {
@@ -48,7 +56,6 @@ namespace Dcomms.SandboxTester
                     }
                 });
             }, null, 0, 3000);
-            this.Closed += CryptographyTesterMainWindow_Closed1;
 
             VisionChannel.DisplayPeersDelegate = (text, peersList, mode) =>
             {
@@ -69,14 +76,11 @@ namespace Dcomms.SandboxTester
 
             };
         }
-
-        private void CryptographyTesterMainWindow_Closed1(object sender, EventArgs e)
-        {
-            _timer.Dispose();
-        }
-
+        
         private void CryptographyTesterMainWindow_Closed(object sender, EventArgs e)
         {
+            _refreshVisionChannelUiTimer.Dispose();
+            _timer.Dispose();
             _tester.Dispose();
         }
     }

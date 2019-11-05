@@ -10,38 +10,38 @@ namespace Dcomms.Vision
         /// <summary>
         /// details that can easily overload the RAM (sent every 10ms)
         /// </summary>
-        deepDetail,
+        deepDetail = 0,
         /// <summary>
         /// "sent request X" "received response X totally 10 times"
         /// </summary>
-        detail,
-        higherLevelDetail,
+        detail = 1,
+        higherLevelDetail = 2,
         /// <summary>
         /// "pressed button X", "started app", "closed app after 10 minutes"
         /// </summary>
-        guiActivity,
+        guiActivity = 3,
         /// <summary>
         /// DoS countermeasures, light warnings
         /// </summary>
-        needsAttention,
+        needsAttention = 4,
         /// <summary>
         /// (possible) problem expressed by user: closed app with no clicks, sent a bad feedback "app is not clear" "app does not work"
         /// </summary>
-        guiPain,
+        guiPain = 5,
         /// <summary>
         /// signal of possible future problems, self-tested in code
         /// "abnormal delay in X"  
         /// </summary>
-        lightPain,
+        lightPain = 6,
         /// <summary>
         /// self-tested problem; an important problem but the application still works and is able to provide some value to user
         /// </summary>
-        mediumPain,
-        strongPain,
+        mediumPain = 7,
+        strongPain = 8,
         /// <summary>
         /// application crashed after non-recoverable error,  like memory leak
         /// </summary>
-        death
+        death = 9
     }
 
     /// <summary>

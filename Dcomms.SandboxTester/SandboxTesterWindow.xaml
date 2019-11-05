@@ -176,7 +176,7 @@
                             </Grid.RowDefinitions>
 
                             <WrapPanel Orientation="Horizontal">
-                                <Button Content="refresh" Command="{Binding RefreshDisplayedLogMessages}" />
+                                <Button Content="refresh" Command="{Binding RefreshDisplayedLogMessages}" Background="{Binding RefreshDisplayedLogMessagesButtonColor, Mode=OneWay, Converter={StaticResource ColorToBrushConverter}}" />
 
                                 <Button Content="clear" Command="{Binding ClearLogMessages}" />
 
@@ -208,6 +208,8 @@
                                 <TextBox Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" Width="200" />
 
                                 <CheckBox Content="skip new unselected" IsChecked="{Binding SkipNewUnselectedMessages, Mode=TwoWay}" />
+                                
+                                <TextBlock Text="{Binding MaxEmittedAttentionLevelLogMessage, Mode=OneWay}" TextWrapping="Wrap" />
 
                             </WrapPanel>
                             <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedLogMessages}" AutoGenerateColumns="False" >
