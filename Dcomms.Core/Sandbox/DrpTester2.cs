@@ -292,8 +292,10 @@ namespace Dcomms.Sandbox
                 if (test.counter < test.MaxCount) BeginTestInvites(test, cb);
                 else
                 {
+                    var successRatePercents = test.successfulCount * 100 / test.counter;
+                    var level = successRatePercents == 100 ? AttentionLevel.guiActivity : (successRatePercents > 99 ? AttentionLevel.lightPain : AttentionLevel.mediumPain);
                     _visionChannel.Emit(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                        AttentionLevel.guiActivity, $"messages test is complete: success rate = {test.successfulCount * 100 / test.counter}%");
+                        level, $"messages test is complete: success rate = {successRatePercents}%");
                     cb?.Invoke();
                 }
             });
@@ -321,7 +323,7 @@ namespace Dcomms.Sandbox
                 {
                     _invitesTestInProgress = false;
                 });
-            }, null, 0, 10000);
+            }, null, 0, 30000);
         }
 
         void GenerateSharedContactBook(List<DrpTesterPeerApp> peers)

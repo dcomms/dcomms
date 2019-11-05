@@ -603,7 +603,7 @@ namespace Dcomms.DRP
                 var routedRequest = new RoutedRequest(logger, this,  requesterEndpoint, reqReceivedTimeUtc, req, null);
                 if (LocalDrpPeer.PendingInviteRequestExists(req.RequesterRegistrationId))
                 {
-                    logger.WriteToLog_lightPain($"rejecting {req}: another INVITE request is already being processed");
+                    logger.WriteToLog_higherLevelDetail($"rejecting {req}: another INVITE request from {req.RequesterRegistrationId} is already being processed");
                     await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
                     return;
                 }
