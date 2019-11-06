@@ -46,7 +46,7 @@ namespace Dcomms.DRP
                 var recentUniqueProxiedRegistrationRequests = req.RandomModeAtThisHop ? RecentUniqueProxiedRegistrationRequests_RandomHop : RecentUniqueProxiedRegistrationRequests_NonRandomHop;
                 if (!recentUniqueProxiedRegistrationRequests.Filter(req.GetUniqueRequestIdFields))
                 {
-                    logger.WriteToLog_lightPain($"rejecting non-unique request {req}: requesterEndpoint={routedRequest.ReceivedFromEndpoint}");
+                    logger.WriteToLog_higherLevelDetail($"rejecting non-unique request {req}: requesterEndpoint={routedRequest.ReceivedFromEndpoint}");
                     await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
                     return false;
                 }

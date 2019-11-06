@@ -593,13 +593,14 @@ namespace Dcomms.DRP
             {
                 // we got REQ from this instance neighbor
                 var req = InviteRequestPacket.Decode_VerifyNeighborHMAC(udpData, this);
-                var logger = new Logger(Engine, LocalDrpPeer, req, DrpPeerEngine.VisionChannelModuleName_reg_responderSide);
+                var logger = new Logger(Engine, LocalDrpPeer, req, DrpPeerEngine.VisionChannelModuleName_inv);
                 logger.WriteToLog_detail($"{this} received {req}");
                 // NeighborToken32 and NeighborHMAC are verified at this time
 
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
                     throw new BadSignatureException();
 
+                this.LocalDrpPeer.TestDirection(logger, req.ResponderRegistrationId);
                 var routedRequest = new RoutedRequest(logger, this,  requesterEndpoint, reqReceivedTimeUtc, req, null);
                 if (LocalDrpPeer.PendingInviteRequestExists(req.RequesterRegistrationId))
                 {

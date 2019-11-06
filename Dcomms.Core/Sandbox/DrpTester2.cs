@@ -263,9 +263,11 @@ namespace Dcomms.Sandbox
         }
 
         Random _rnd = new Random();
+        int _inviteTestsCounter = 0;
         void BeginTestInvites(InvitesTest test, Action cb = null)
         {           
-            var peer1 = test.Peers[_rnd.Next(test.Peers.Count)];
+            var peer1 = test.Peers[_inviteTestsCounter++ % test.Peers.Count];
+
         _retry:
             var peer2 = test.Peers[_rnd.Next(test.Peers.Count)];
             if (peer1 == peer2) goto _retry;
@@ -275,9 +277,10 @@ namespace Dcomms.Sandbox
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
 
             var text = $"test{_rnd.Next()}-{_rnd.Next()}_from_{peer1}_to_{peer2}";
-            peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, () =>
+            peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, (exc) =>
             {
                 test.counter++;
+                
                 if (peer2.LatestReceivedTextMessage == text)
                 {
                     test.successfulCount++;
@@ -323,7 +326,7 @@ namespace Dcomms.Sandbox
                 {
                     _invitesTestInProgress = false;
                 });
-            }, null, 0, 30000);
+            }, null, 0, 60000);
         }
 
         void GenerateSharedContactBook(List<DrpTesterPeerApp> peers)

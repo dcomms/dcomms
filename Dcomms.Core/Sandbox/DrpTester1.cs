@@ -138,10 +138,12 @@ namespace Dcomms.Sandbox
                 $"sending message: {message}");
 
             _aLocalDrpPeer.BeginSendShortSingleMessage(aUserCertificate, _xLocalDrpPeer.Configuration.LocalPeerRegistrationId, _xUser.UserId, message,
-                () =>
+                (exc) =>
                 {
-                    _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+                    if (exc == null) _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
                         $"message was sent successfully");
+                    else _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.mediumPain,
+                        $"message was not sent successfully");
                 });
         }
     }

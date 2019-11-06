@@ -33,7 +33,7 @@ namespace Dcomms.DRP
             {
                 if (!Engine.RecentUniqueInviteRequests.Filter(req.GetUniqueRequestIdFields))
                 {
-                    logger.WriteToLog_lightPain($"rejecting non-unique {req}: requesterEndpoint={routedRequest.ReceivedFromEndpoint}");
+                    logger.WriteToLog_higherLevelDetail($"rejecting non-unique {req}: requesterEndpoint={routedRequest.ReceivedFromEndpoint}");
                     await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
                     return false;
                 }

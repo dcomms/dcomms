@@ -18,6 +18,7 @@ namespace Dcomms.DRP
             if (!req.ResponderRegistrationId.Equals(this.Configuration.LocalPeerRegistrationId))
                 throw new ArgumentException();
             var logger = routedRequest.Logger;
+            logger.ModuleName = DrpPeerEngine.VisionChannelModuleName_inv_responderSide;
 
             logger.WriteToLog_detail($"accepting {req} from sourcePeer={routedRequest.ReceivedFromNeighborNullable}");
             
@@ -39,8 +40,16 @@ namespace Dcomms.DRP
 
             logger.WriteToLog_detail($"resolved user {remoteRequesterUserIdFromLocalContactBook} by requester regID={req.RequesterRegistrationId}");
 
-            Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
-            Engine.RecentUniqueInviteRequests.AssertIsUnique(req.GetUniqueRequestIdFields);
+            if (!Engine.RecentUniquePublicEcdhKeys.Filter(req.RequesterEcdhePublicKey.Ecdh25519PublicKey))
+            {
+                logger.WriteToLog_mediumPain($"RequesterEcdhePublicKey is not unique, it has been recently processed");
+                return;
+            }
+            if (!Engine.RecentUniqueInviteRequests.Filter(req.GetUniqueRequestIdFields)) 
+            {
+                logger.WriteToLog_mediumPain($"{req} fields are not unique, the request has been recently processed");
+                return;
+            }
 
             // verify requester reg. signature
             if (!req.RequesterRegistrationSignature.Verify(Engine.CryptoLibrary, req.GetSharedSignedFields, req.RequesterRegistrationId))

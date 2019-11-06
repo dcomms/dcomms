@@ -274,8 +274,10 @@ namespace Dcomms.DRP
     {
         readonly List<float[]> _simplexVertices;
         public int IndexesCount => _simplexVertices.Count;
+        readonly int _numberOfDimensions;
         public VectorSectorIndexCalculator(int numberOfDimensions)
         {
+            _numberOfDimensions = numberOfDimensions;
             if (numberOfDimensions == 2)
             {
                 _simplexVertices = new List<float[]>();
@@ -334,6 +336,54 @@ namespace Dcomms.DRP
             }
             return bextVertexIndex.Value;
         }
+        
+
+        IEnumerable<byte[]> GetGroupsOfSimplexVertices(int simplexesCountInGroup)
+        {
+            var r = new byte[simplexesCountInGroup];
+            // enumerate all combinations/groups of vertex indexes
+            //  for (byte x = 0; x < )
+            if (IndexesCount == 3)
+            {
+                if (simplexesCountInGroup == 1)
+                {
+                    r[0] = 0; yield return r;
+                    r[0] = 1; yield return r;
+                    r[0] = 2; yield return r;
+                }
+                else if (simplexesCountInGroup == 2)
+                {
+                    r[0] = 0; r[1] = 1; yield return r;
+                    r[0] = 0; r[1] = 2; yield return r;
+                    r[0] = 1; r[1] = 2; yield return r;
+                }
+                else throw new NotImplementedException();
+
+            }
+            else throw new NotImplementedException(); // todo 8D
+
+        }
+        internal IEnumerable<double[]> EnumerateDirections()
+        {
+            for (int simplexesCountInGroup = 1; simplexesCountInGroup <= _numberOfDimensions; simplexesCountInGroup++)
+            {
+                // find all groups of simplex vertices
+                foreach (var groupOfSimplexes in GetGroupsOfSimplexVertices(simplexesCountInGroup))
+                {
+                    var groupAverageVector = new double[_numberOfDimensions];
+                    for (int simplexIndexInGroup = 0; simplexIndexInGroup < groupOfSimplexes.Length; simplexIndexInGroup++)
+                    {
+                        var simplexVertex = GetSimplexVector(simplexIndexInGroup);
+                        for (int dimensionI = 0; dimensionI < _numberOfDimensions; dimensionI++)
+                            groupAverageVector[dimensionI] += simplexVertex[dimensionI];
+                    }
+
+                    yield return groupAverageVector;
+                }
+            }
+        }
+
+
     }
 
     public class P2pConnectionValueCalculator
@@ -359,63 +409,28 @@ namespace Dcomms.DRP
         readonly VectorSectorIndexCalculator _vsic;
         static readonly Dictionary<int, VectorSectorIndexCalculator> _vsics = new Dictionary<int, VectorSectorIndexCalculator>();
 
-        static IEnumerable<byte[]> GetGroupsOfSimplexVertices(int simplexesCountInGroup, int verticesCount)
+      
+        internal static double[] FindEmptyDirection(int numberOfDimensions, VectorSectorIndexCalculator vsic, List<float[]> unitVectorsFromLocalPeerToNeighbors) // solves a linear inequation
         {
-            var r = new byte[simplexesCountInGroup];
-            // enumerate all combinations/groups of vertex indexes
-            //  for (byte x = 0; x < )
-            if (verticesCount == 3)
+            foreach (var directionVector in vsic.EnumerateDirections())
             {
-                if (simplexesCountInGroup == 1)
+                // are all vectors along directionVector?
+                bool neighbor_along_directionVector_exists = false;
+                foreach (var unitVectorFromLocalPeerToNeighbor in unitVectorsFromLocalPeerToNeighbors)
                 {
-                    r[0] = 0; yield return r;
-                    r[0] = 1; yield return r;
-                    r[0] = 2; yield return r;
-                }
-                else if (simplexesCountInGroup == 2)
-                {
-                    r[0] = 0; r[1] = 1; yield return r;
-                    r[0] = 0; r[1] = 2; yield return r;
-                    r[0] = 1; r[1] = 2; yield return r;
-                }
-                else throw new NotImplementedException();
-
-            }
-            else throw new NotImplementedException();
-
-        }
-        static float[] FindEmptyDirection(int numberOfDimensions, VectorSectorIndexCalculator vsic, List<float[]> unitVectorsFromLocalPeerToNeighbors) // solves a linear inequation
-        {
-            for (int simplexesCountInGroup = 1; simplexesCountInGroup <= numberOfDimensions; simplexesCountInGroup++)
-            {
-                // find all groups of simplex vertices
-                foreach (var groupOfSimplexes in GetGroupsOfSimplexVertices(simplexesCountInGroup, vsic.IndexesCount))
-                {
-                    var groupAverageVector = new float[numberOfDimensions];
-                    for (int simplexIndexInGroup = 0; simplexIndexInGroup < groupOfSimplexes.Length; simplexIndexInGroup++)
+                    double multProduct = 0;
+                    for (int dimensionI = 0; dimensionI < numberOfDimensions; dimensionI++)
+                        multProduct += unitVectorFromLocalPeerToNeighbor[dimensionI] * directionVector[dimensionI];
+                    if (multProduct > 0)
                     {
-                        var simplexVertex = vsic.GetSimplexVector(simplexIndexInGroup);
-                        for (int dimensionI = 0; dimensionI < numberOfDimensions; dimensionI++)
-                            groupAverageVector[dimensionI] += simplexVertex[dimensionI];
+                        neighbor_along_directionVector_exists = true;
+                        break;
                     }
-
-                    // are all vectors along groupAverageVector?
-                    bool neighbor_along_groupAverageVector_exists = false;
-                    foreach (var unitVectorFromLocalPeerToNeighbor in unitVectorsFromLocalPeerToNeighbors)
-                    {
-                        float multProduct = 0;
-                        for (int dimensionI = 0; dimensionI < numberOfDimensions; dimensionI++)
-                            multProduct += unitVectorFromLocalPeerToNeighbor[dimensionI] * groupAverageVector[dimensionI];
-                        if (multProduct > 0)
-                        {
-                            neighbor_along_groupAverageVector_exists = true;
-                            break;
-                        }
-                    }
-                    if (neighbor_along_groupAverageVector_exists == false)
-                        return groupAverageVector;
                 }
+                if (neighbor_along_directionVector_exists == false)
+                    return directionVector;
             }
+
             return null;
         }
 

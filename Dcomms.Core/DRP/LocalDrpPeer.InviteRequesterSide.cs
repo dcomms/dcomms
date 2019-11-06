@@ -12,7 +12,7 @@ namespace Dcomms.DRP
     partial class LocalDrpPeer
     {
         public void BeginSendShortSingleMessage(UserCertificate requesterUserCertificate, RegistrationId responderRegistrationId, UserId responderUserId,            
-            string messageText, Action cb)
+            string messageText, Action<Exception> cb)
         {
             Engine.EngineThreadQueue.Enqueue(async () =>
             {
@@ -39,11 +39,12 @@ namespace Dcomms.DRP
                         session.Dispose();
                     }
 
-                    if (cb != null) cb();
+                    cb?.Invoke(null);
                 }
                 catch (Exception exc)
                 {
                     logger?.WriteToLog_mediumPain($"sending INVITE failed: {exc}");
+                    cb?.Invoke(exc);
                 }
             });
         }
@@ -71,11 +72,12 @@ namespace Dcomms.DRP
                     ResponderRegistrationId = responderRegistrationId,
                     ReqTimestamp32S = Engine.Timestamp32S,
                 };
-                var logger = new Logger(Engine, this, req, DrpPeerEngine.VisionChannelModuleName_reg_requesterSide);
+                var logger = new Logger(Engine, this, req, DrpPeerEngine.VisionChannelModuleName_inv_requesterSide);
                 loggerCb?.Invoke(logger);
                 Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
                 req.RequesterRegistrationSignature = RegistrationSignature.Sign(Engine.CryptoLibrary, req.GetSharedSignedFields, this.Configuration.LocalPeerRegistrationPrivateKey);
 
+                this.TestDirection(logger, req.ResponderRegistrationId);
                 var routedRequest = new RoutedRequest(logger, null, null, null, req, null);
             _retry:
 
@@ -111,9 +113,9 @@ namespace Dcomms.DRP
                     SendNeighborPeerAckResponseToAck1(ack1, destinationPeer);
                     #endregion
                 }
-                catch (Exception exc2)
+                catch (RequestFailedException exc2)
                 {
-                    logger.WriteToLog_mediumPain($"trying again on error {exc2}... alreadyTriedProxyingToDestinationPeers.Count={routedRequest.TriedNeighbors.Count}");
+                    logger.WriteToLog_higherLevelDetail($"trying again on error {exc2}... alreadyTriedProxyingToDestinationPeers.Count={routedRequest.TriedNeighbors.Count}");
                     routedRequest.TriedNeighbors.Add(destinationPeer);
                     goto _retry;
                 }

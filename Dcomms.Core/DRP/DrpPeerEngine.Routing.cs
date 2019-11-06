@@ -150,7 +150,7 @@ namespace Dcomms.DRP
                 foreach (var connectedPeer in connectedNeighborsForRouting)
                 {         
                     var distanceToConnectedPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId, NumberOfDimensions);
-                    logger.WriteToLog_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterRegistrationId} to {connectedPeer.RemoteRegistrationId} (req.min={req.MinimalDistanceToNeighbor})");
+                    logger.WriteToLog_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterRegistrationId} to {connectedPeer} (req.min={req.MinimalDistanceToNeighbor})");
                    
                     if (maxDistance == null || distanceToConnectedPeer.IsGreaterThan(maxDistance))
                     {
@@ -184,7 +184,10 @@ namespace Dcomms.DRP
                     proxyToDestinationPeer = null;
                     acceptAt = localDrpPeer;
                 }
-            }            
+            }
+
+            logger.WriteToLog_detail($"<< RouteRegistrationRequest_LocalDrpPeerIteration() proxyTo={proxyToDestinationPeer}, acceptAt={acceptAt}");
+
         }
 
         /// <returns>null if no neighbors found for routing</returns>
@@ -199,7 +202,7 @@ namespace Dcomms.DRP
             foreach (var connectedPeer in connectedNeighborsForRouting)
             {
                 var distanceToConnectedPeer = req.ResponderRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId, NumberOfDimensions);
-                logger.WriteToLog_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from {req} to {connectedPeer.RemoteRegistrationId}");
+                logger.WriteToLog_routing_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from {req} to {connectedPeer}");
                 if (minDistance == null || minDistance.IsGreaterThan(distanceToConnectedPeer))
                 {
                     minDistance = distanceToConnectedPeer;
@@ -208,7 +211,7 @@ namespace Dcomms.DRP
             }
             if (r == null)
             {
-                logger.WriteToLog_detail($"no neighbors found for routing");
+                logger.WriteToLog_routing_detail($"no neighbors found for routing");
             }
          
             return r;

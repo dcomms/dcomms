@@ -18,14 +18,14 @@ namespace Dcomms.DRP
         internal const string VisionChannelModuleName_reg = "reg";
         const string VisionChannelModuleName_reg_epSide = "reg.ep";
         const string VisionChannelModuleName_reg_proxySide = "reg.proxy";
-        const string VisionChannelModuleName_inv_requesterSide = "inv.requester";
+        internal const string VisionChannelModuleName_inv_requesterSide = "inv.requester";
         internal const string VisionChannelModuleName_inv_proxySide = "inv.proxy";
-        const string VisionChannelModuleName_inv_responderSide = "inv.responder";
+        internal const string VisionChannelModuleName_inv_responderSide = "inv.responder";
         internal const string VisionChannelModuleName_inv = "inv";
         const string VisionChannelModuleName_dc = "dc";
         const string VisionChannelModuleName_engineThread = "engineThread";
         const string VisionChannelModuleName_receiverThread = "receiverThread";
-        const string VisionChannelModuleName_p2p = "p2p"; // ping, direct p2p communication
+        internal const string VisionChannelModuleName_p2p = "p2p"; // ping, direct p2p communication
         internal const string VisionChannelModuleName_routing = "routing";
         const string VisionChannelModuleName_udp = "udp";
         internal const string VisionChannelModuleName_attacks = "attacks";
@@ -356,6 +356,12 @@ namespace Dcomms.DRP
         {
             if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_attacks) <= AttentionLevel.strongPain)
                 _visionChannel.EmitPeerInRoutedPath(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_attacks, AttentionLevel.strongPain,
+                    message, _req, _localPeer);
+        }
+        internal void WriteToLog_routing_detail(string message)
+        {
+            if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_routing) <= AttentionLevel.detail)
+                _visionChannel.EmitPeerInRoutedPath(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_routing, AttentionLevel.detail,
                     message, _req, _localPeer);
         }
         internal void WriteToLog_routing_higherLevelDetail(string message)

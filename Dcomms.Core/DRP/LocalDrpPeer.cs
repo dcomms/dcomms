@@ -69,7 +69,7 @@ namespace Dcomms.DRP
         float[] IVisiblePeer.VectorValues => RegistrationIdDistance.GetVectorValues(CryptoLibrary, _configuration.LocalPeerRegistrationId, Engine.NumberOfDimensions).Select(x => (float)x).ToArray();
         bool IVisiblePeer.Highlighted => false;
         string IVisiblePeer.Name => Engine.Configuration.VisionChannelSourceId;
-        IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => ConnectedNeighbors;
+        IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests);
         string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer)
         {
             throw new NotImplementedException();
@@ -82,18 +82,18 @@ namespace Dcomms.DRP
             {
                 if (routedRequest.ReceivedFromNeighborNullable != null && connectedPeer == routedRequest.ReceivedFromNeighborNullable)
                 {
-                    routedRequest.Logger.WriteToLog_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}");
+                    routedRequest.Logger.WriteToLog_detail($"skipping routing back to source peer {connectedPeer}");
                     continue;
                 }
                 if (routedRequest.TriedNeighbors.Contains(connectedPeer))
                 {
-                    routedRequest.Logger.WriteToLog_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}");
+                    routedRequest.Logger.WriteToLog_detail($"skipping routing to previously tried peer {connectedPeer}");
                     continue;
                 }
 
                 if (routedRequest.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
                 {
-                    routedRequest.Logger.WriteToLog_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}");
+                    routedRequest.Logger.WriteToLog_detail($"skipping routing to peer with same regID {connectedPeer}");
                     continue;
                 }
 
@@ -101,39 +101,13 @@ namespace Dcomms.DRP
             }
         }
 
-        //public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(ConnectionToNeighbor sourceNeighborNullable,
-        //    HashSet<ConnectionToNeighbor> alreadyTriedProxyingToDestinationPeersNullable,
-        //    InviteRequestPacket req)
-        //{
-        //    foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
-        //    {
-        //        if (sourceNeighborNullable != null && connectedPeer == sourceNeighborNullable)
-        //        {
-        //            Engine.WriteToLog_routing_detail($"skipping routing back to source peer {connectedPeer.RemoteRegistrationId}", req, this);
-        //            continue;
-        //        }
-        //        if (alreadyTriedProxyingToDestinationPeersNullable != null && alreadyTriedProxyingToDestinationPeersNullable.Contains(connectedPeer))
-        //        {
-        //            Engine.WriteToLog_routing_detail($"skipping routing to previously tried peer {connectedPeer.RemoteRegistrationId}", req, this);
-        //            continue;
-        //        }
-
-        //        if (req.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
-        //        {
-        //            Engine.WriteToLog_routing_detail($"skipping routing to peer with same regID {connectedPeer.RemoteRegistrationId}", req, this);
-        //            continue;
-        //        }
-
-        //        yield return connectedPeer;
-        //    }
-        //}
 
         public void AddToConnectedNeighbors(ConnectionToNeighbor newConnectedNeighbor, RegisterRequestPacket req)
         {
             newConnectedNeighbor.OnP2pInitialized();
             ConnectedNeighbors.Add(newConnectedNeighbor);
 
-            Engine.WriteToLog_p2p_higherLevelDetail(newConnectedNeighbor, $"added new connection to list of neighbors: {newConnectedNeighbor.RemoteRegistrationId} to {newConnectedNeighbor.RemoteEndpoint}", req);
+            Engine.WriteToLog_p2p_higherLevelDetail(newConnectedNeighbor, $"added new connection to list of neighbors: {newConnectedNeighbor} to {newConnectedNeighbor.RemoteEndpoint}", req);
         }
         public int CurrentRegistrationOperationsCount;
 
@@ -143,8 +117,56 @@ namespace Dcomms.DRP
         }
         public override string ToString() => $"localDrpPeer{_configuration.LocalPeerRegistrationId}";
 
+
+
+
+        internal void TestDirection(Logger logger, RegistrationId destinationRegId)
+        {
+            var thisRegIdVector = RegistrationIdDistance.GetVectorValues(CryptoLibrary, this.Configuration.LocalPeerRegistrationId, Engine.Configuration.SandboxModeOnly_NumberOfDimensions ?? 8);
+            var destinationRegIdVector = RegistrationIdDistance.GetVectorValues(CryptoLibrary, destinationRegId, Engine.Configuration.SandboxModeOnly_NumberOfDimensions ?? 8);
+            var diff = new double[thisRegIdVector.Length];
+            for (int i = 0; i < diff.Length; i++)
+                diff[i] = destinationRegIdVector[i] - thisRegIdVector[i];
+            TestDirection(logger, diff);
+        }
+        void TestDirection(Logger logger, double[] vectorFromThisToDestination)
+        {
+            // are all vectors along directionVector?
+            bool neighbor_along_destinationVector_exists = false;
+
+            foreach (var neighbor in ConnectedNeighbors.Where( x=> x.CanBeUsedForNewRequests == true))
+            {
+                var thisRegIdVector = RegistrationIdDistance.GetVectorValues(CryptoLibrary, this.Configuration.LocalPeerRegistrationId, vectorFromThisToDestination.Length);
+                var neighbornRegIdVector = RegistrationIdDistance.GetVectorValues(CryptoLibrary, neighbor.RemoteRegistrationId, vectorFromThisToDestination.Length);
+                var vectorFromLocalPeerToNeighbor = new double[thisRegIdVector.Length];
+                for (int i = 0; i < vectorFromLocalPeerToNeighbor.Length; i++)
+                    vectorFromLocalPeerToNeighbor[i] = neighbornRegIdVector[i] - thisRegIdVector[i];
+                               
+                double multProduct = 0;
+                for (int dimensionI = 0; dimensionI < vectorFromThisToDestination.Length; dimensionI++)
+                    multProduct += vectorFromLocalPeerToNeighbor[dimensionI] * vectorFromThisToDestination[dimensionI];
+                if (multProduct > 0)
+                {
+                    neighbor_along_destinationVector_exists = true;
+                    break;
+                }
+            }
+            if (neighbor_along_destinationVector_exists == false)
+                logger.WriteToLog_lightPain($"no neighbors to destination {MiscProcedures.VectorToString(vectorFromThisToDestination)}");
+        }
+        void TestDirections()
+        {
+            var logger = new Logger(Engine, this, null, DrpPeerEngine.VisionChannelModuleName_p2p);
+
+            var numberOfDimensions = Engine.Configuration.SandboxModeOnly_NumberOfDimensions ?? 8;
+            var vsic = new VectorSectorIndexCalculator(numberOfDimensions);
+            foreach (var directionVector in vsic.EnumerateDirections())
+                TestDirection(logger, directionVector);
+        }
+
         #region on timer 
         DateTime? _latestConnectToNewNeighborOperationStartTimeUtc;
+        DateTime? _latestEmptyDirectionsTestTimeUtc;
         async Task ConnectToNewNeighborIfNeededAsync(DateTime timeNowUtc)
         {
             if (ConnectedNeighbors.Count < _configuration.MinDesiredNumberOfNeighbors)
@@ -190,6 +212,14 @@ namespace Dcomms.DRP
                     {
                         Engine.WriteToLog_reg_requesterSide_mediumPain($"failed to extend neighbors for {this}: {exc}", null, null);
                     }
+                }
+            }
+            else
+            { // enough neighbors
+                if (_latestEmptyDirectionsTestTimeUtc == null || timeNowUtc > _latestEmptyDirectionsTestTimeUtc.Value.AddSeconds(20))
+                {
+                    _latestEmptyDirectionsTestTimeUtc = timeNowUtc;
+                    TestDirections();
                 }
             }
         }
