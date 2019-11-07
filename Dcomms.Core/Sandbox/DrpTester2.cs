@@ -15,13 +15,6 @@ namespace Dcomms.Sandbox
 {
     public class DrpTester2 : IDisposable
     {
-        //const int NumberOfEPs = 20;
-        //const int NumberOfDimensions = 2;
-        //const int MinDesiredNumberOfNeighbors = 5;
-        //const int SoftMaxDesiredNumberOfNeighbors = 7;
-        //const int EpAbsoluteMaxDesiredNumberOfNeighbors = 30;
-        //const int EpSoftMaxDesiredNumberOfNeighbors = 25;
-
         const int NumberOfPeers = 300;
         const int NumberOfDimensions = 2;
         const int MinDesiredNumberOfNeighbors = 6;
@@ -52,7 +45,7 @@ namespace Dcomms.Sandbox
                 foreach (var x in _xList)
                     foreach (var p in x.DrpPeerEngine.VisibleLocalPeers)
                         yield return p;
-            }
+            }  
         }
         public ICommand ShowPeers => new DelegateCommand(() =>
         {
@@ -60,60 +53,10 @@ namespace Dcomms.Sandbox
         });
         void EmitAllPeers(AttentionLevel level, string message)
         {
-            var list = VisiblePeers.ToList();
-            _visionChannel.EmitListOfPeers("allPeers", DrpTesterVisionChannelModuleName, level, message + $" ({list.Count} peers)", list, VisiblePeersDisplayMode.allPeers);
+            _visionChannel.EmitListOfPeers("allPeers", DrpTesterVisionChannelModuleName, level, message + $" ({_xList.Count} peers)");
 
         }
 
-        //void xList_BeginRegistrations(int index)
-        //{
-        //    if (index >= _xList.Count)
-        //    {
-        //        xList_BeginExtendNeighbors();
-        //        return;
-        //    }
-        //    var x = _xList[index];
-        //    var sw = Stopwatch.StartNew();
-        //    _visionChannel.Emit(x.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-        //        AttentionLevel.guiActivity, $"registering...");
-        //    ShowPeers.Execute(null);
-        //    x.DrpPeerEngine.BeginRegister(x.DrpPeerRegistrationConfiguration, x, (localDrpPeer) =>
-        //    {
-        //        x.LocalDrpPeer = localDrpPeer;
-        //        _visionChannel.Emit(x.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-        //            AttentionLevel.guiActivity, $"registration complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
-        //        x.DrpPeerEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(1), () =>
-        //        {
-        //            xList_BeginRegistrations(index + 1);
-        //        });
-        //    });         
-        //}
-        //void xList_BeginExtendNeighbors()
-        //{
-        //    int xIndex = 0;
-        //    int neighborsCount = 3;
-        //    Timer timer = null;
-        //    timer = new Timer((o) =>
-        //    {
-        //        if (xIndex >= _xList.Count)
-        //        {
-        //            neighborsCount++;
-        //            if (neighborsCount > 13)
-        //            {
-        //                timer.Dispose();
-        //                return;
-        //            }
-        //            xIndex = 0;
-        //        }
-
-        //        var app = _xList[xIndex];
-        //        _visionChannel.Emit(app.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"extending neighbors: count={neighborsCount}...");
-        //        ShowPeers.Execute(null);
-        //        app.DrpPeerRegistrationConfiguration.MinDesiredNumberOfNeighbors = neighborsCount;
-
-        //        xIndex++;
-        //    }, null, 0, 500);
-        //}
         void xList_BeginCreate(int index)
         {        
             var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
@@ -230,6 +173,7 @@ namespace Dcomms.Sandbox
         public DrpTester2(VisionChannel visionChannel)
         {
             _visionChannel = visionChannel;
+            _visionChannel.VisiblePeersDelegate = () => { return VisiblePeers.ToList(); };
             for (int i = 0; i < NumberOfEPs; i++)
             {
                 var ep = new DrpPeerEngine(new DrpPeerEngineConfiguration

@@ -89,13 +89,12 @@ namespace Dcomms.Vision
                 _visibleModulesByPath.Remove(visionChannelSourceId + PathSeparator + path);
             }
         }
+        
+        public Func<List<IVisiblePeer>> VisiblePeersDelegate = null;
 
-
-        public virtual void EmitListOfPeers(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, 
-            VisiblePeersDisplayMode peersListDisplayMode)
+        public virtual void EmitListOfPeers(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList_RoutedPath = null)
         {
         }
-
         public virtual void EmitPeerInRoutedPath(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, object req, IVisiblePeer localPeer)
         {
         }

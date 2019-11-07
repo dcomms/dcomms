@@ -208,12 +208,12 @@ namespace Dcomms.Sandbox
             RaisePropertyChanged(() => DrpTester3Visible);
         });
 
-        public DrpDistanceTester DrpDistanceTester { get; private set; }
+        public DrpTester4 DrpDistanceTester { get; private set; }
         public bool DrpDistanceTesterVisible => DrpDistanceTester != null;
         public DelegateCommand CreateDrpDistanceTester => new DelegateCommand(() =>
         {
             if (DrpDistanceTester != null) throw new InvalidOperationException();
-            DrpDistanceTester = new DrpDistanceTester(_visionChannel);
+            DrpDistanceTester = new DrpTester4(_visionChannel);
             RaisePropertyChanged(() => DrpDistanceTester);
             RaisePropertyChanged(() => DrpDistanceTesterVisible);
         });

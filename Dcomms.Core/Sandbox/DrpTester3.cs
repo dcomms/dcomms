@@ -72,10 +72,21 @@ namespace Dcomms.Sandbox
         readonly List<DrpTesterPeerApp> _apps = new List<DrpTesterPeerApp>();
         readonly List<DrpPeerEngine> _engines = new List<DrpPeerEngine>();
 
+        IEnumerable<IVisiblePeer> VisiblePeers
+        {
+            get
+            {
+                foreach (var x in _engines)
+                    foreach (var p in x.VisibleLocalPeers)
+                        yield return p;
+            }
+        }
+
         readonly VisionChannel _visionChannel;
         public DrpTester3(VisionChannel visionChannel)
         {
             _visionChannel = visionChannel;
+            _visionChannel.VisiblePeersDelegate = () => { return VisiblePeers.ToList(); };
         }
 
         public ICommand InitializeEpHost => new DelegateCommand(() =>

@@ -122,8 +122,7 @@ namespace Dcomms.Vision
                 _maxEmittedAttentionLevelLogMessage = msg;
             }
         }
-        public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList, VisiblePeersDisplayMode peersListDisplayMode
-           )
+        public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList_RoutingPath)
         {
             if (!EnableNewLogMessages) return;
             var msg = new LogMessage(this)
@@ -134,8 +133,8 @@ namespace Dcomms.Vision
                 SourceId = sourceId,
                 ModuleName = moduleName,
                 Message = message,
-                PeersList = peersListDisplayMode == VisiblePeersDisplayMode.allPeers ? ClonedVisiblePeer.Clone(peersList) : peersList,
-                PeersListDisplayMode = peersListDisplayMode,
+                PeersList = peersList_RoutingPath ?? ClonedVisiblePeer.Clone(VisiblePeersDelegate()),
+                PeersListDisplayMode = peersList_RoutingPath != null ? VisiblePeersDisplayMode.routingPath : VisiblePeersDisplayMode.allPeers,
 
             };
             lock (_logMessagesNewestFirst)

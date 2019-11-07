@@ -341,8 +341,17 @@ namespace Dcomms.DRP
         internal void WriteToLog_lightPain(string message)
         {
             if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, ModuleName) <= AttentionLevel.lightPain)
-                _visionChannel.EmitPeerInRoutedPath(_visionChannelSourceId, ModuleName, AttentionLevel.lightPain,
-                    message, _req, _localPeer);
+                _visionChannel.EmitPeerInRoutedPath(_visionChannelSourceId, ModuleName, AttentionLevel.lightPain, message, _req, _localPeer);
+        }
+        internal void WriteToLog_lightPain_EmitListOfPeers(string message)
+        {
+            if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, ModuleName) <= AttentionLevel.lightPain)
+                _visionChannel.EmitListOfPeers(_visionChannelSourceId, ModuleName, AttentionLevel.lightPain, message);
+        }
+        internal void WriteToLog_lightPain_allPeers(string message)
+        {
+            if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, ModuleName) <= AttentionLevel.lightPain)
+                _visionChannel.EmitListOfPeers(_visionChannelSourceId, ModuleName, AttentionLevel.lightPain, message);
         }
         internal void WriteToLog_mediumPain(string message)
         {
@@ -350,8 +359,7 @@ namespace Dcomms.DRP
                 _visionChannel.EmitPeerInRoutedPath(_visionChannelSourceId, ModuleName, AttentionLevel.mediumPain,
                     message, _req, _localPeer);
         }
-
-
+        
         internal void WriteToLog_attacks(string message)
         {
             if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_attacks) <= AttentionLevel.strongPain)
@@ -361,14 +369,12 @@ namespace Dcomms.DRP
         internal void WriteToLog_routing_detail(string message)
         {
             if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_routing) <= AttentionLevel.detail)
-                _visionChannel.EmitPeerInRoutedPath(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_routing, AttentionLevel.detail,
-                    message, _req, _localPeer);
+                _visionChannel.EmitPeerInRoutedPath(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_routing, AttentionLevel.detail, message, _req, _localPeer);
         }
         internal void WriteToLog_routing_higherLevelDetail(string message)
         {
             if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_routing) <= AttentionLevel.higherLevelDetail)
-                _visionChannel.EmitPeerInRoutedPath(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_routing, AttentionLevel.higherLevelDetail,
-                    message, _req, _localPeer);
+                _visionChannel.EmitPeerInRoutedPath(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_routing, AttentionLevel.higherLevelDetail,  message, _req, _localPeer);
         }
         internal void WriteToLog_routing_needsAttention(string message)
         {
