@@ -51,7 +51,15 @@ namespace Dcomms.DRP
             return MiscProcedures.ByteArrayToString(Ed25519publicKey);
         }
         public RegistrationIdDistance GetDistanceTo(ICryptoLibrary cryptoLibrary, RegistrationId another, int numberOfDimensions) => new RegistrationIdDistance(cryptoLibrary, this, another, numberOfDimensions);
-              
+        public static double[] GetDifferenceVector(RegistrationId from, RegistrationId to, ICryptoLibrary cryptoLibrary, int numberOfDimensions)
+        {
+            var fromRegIdVector = RegistrationIdDistance.GetVectorValues(cryptoLibrary, from, numberOfDimensions);
+            var destinationRegIdVector = RegistrationIdDistance.GetVectorValues(cryptoLibrary, to, numberOfDimensions);
+            var diff = new double[fromRegIdVector.Length];
+            for (int i = 0; i < diff.Length; i++)
+                diff[i] = RegistrationIdDistance.GetDifferenceInLoopedRegistrationIdSpace(fromRegIdVector[i], destinationRegIdVector[i]);
+            return diff;
+        }
     }
 
 
@@ -240,7 +248,12 @@ namespace Dcomms.DRP
         public override string ToString() => ((float)_distance_sumSqr).ToString("E02");
         public double ToDouble() => Math.Sqrt(_distance_sumSqr);
 
-        public static void ProcessVectorInLoopedRegistrationIdSpace(double from, ref double to)
+        public static double GetDifferenceInLoopedRegistrationIdSpace(double from, double to)
+        {
+            ProcessVectorInLoopedRegistrationIdSpace(from, ref to);
+            return to - from;
+        }
+        static void ProcessVectorInLoopedRegistrationIdSpace(double from, ref double to)
         {
             if (to - from > 0.5)
             { // case 1
@@ -253,6 +266,11 @@ namespace Dcomms.DRP
                     to += 1.0;
                 }
             }
+        }
+        public static float GetDifferenceInLoopedRegistrationIdSpace(float from, float to)
+        {
+            ProcessVectorInLoopedRegistrationIdSpace(from, ref to);
+            return to - from;
         }
         public static void ProcessVectorInLoopedRegistrationIdSpace(float from, ref float to)
         {
@@ -371,9 +389,9 @@ namespace Dcomms.DRP
                 foreach (var groupOfSimplexes in GetGroupsOfSimplexVertices(simplexesCountInGroup))
                 {
                     var groupAverageVector = new double[_numberOfDimensions];
-                    for (int simplexIndexInGroup = 0; simplexIndexInGroup < groupOfSimplexes.Length; simplexIndexInGroup++)
+                    for (int simplexIndexInGroup = 0; simplexIndexInGroup < simplexesCountInGroup; simplexIndexInGroup++)
                     {
-                        var simplexVertex = GetSimplexVector(simplexIndexInGroup);
+                        var simplexVertex = GetSimplexVector(groupOfSimplexes[simplexIndexInGroup]);
                         for (int dimensionI = 0; dimensionI < _numberOfDimensions; dimensionI++)
                             groupAverageVector[dimensionI] += simplexVertex[dimensionI];
                     }
@@ -452,10 +470,7 @@ namespace Dcomms.DRP
                 float vectorFromLocalPeerToNeighbor_length = 0;
                 for (int i = 0; i < NumberOfDimensions; i++)
                 {
-                    var from = _localPeerVector[i];
-                    var to = neighborVector[i];
-                    RegistrationIdDistance.ProcessVectorInLoopedRegistrationIdSpace(from, ref to);
-                    var vectorFromLocalPeerToNeighbor_i = to - from;
+                    var vectorFromLocalPeerToNeighbor_i = RegistrationIdDistance.GetDifferenceInLoopedRegistrationIdSpace(_localPeerVector[i], neighborVector[i]);
                     vectorFromLocalPeerToNeighbor[i] = vectorFromLocalPeerToNeighbor_i;
                     vectorFromLocalPeerToNeighbor_length += vectorFromLocalPeerToNeighbor_i * vectorFromLocalPeerToNeighbor_i;
                 }
@@ -547,10 +562,7 @@ namespace Dcomms.DRP
             var vectorFromLocalPeerToNeighbor = new float[NumberOfDimensions];
             for (int i = 0; i < neighborVector.Length; i++)
             {
-                var from = _localPeerVector[i];
-                var to = neighborVector[i];
-                RegistrationIdDistance.ProcessVectorInLoopedRegistrationIdSpace(from, ref to);
-                var vectorFromLocalPeerToNeighbor_i = to - from;
+                var vectorFromLocalPeerToNeighbor_i = RegistrationIdDistance.GetDifferenceInLoopedRegistrationIdSpace(_localPeerVector[i], neighborVector[i]);
                 vectorFromLocalPeerToNeighbor[i] = vectorFromLocalPeerToNeighbor_i;
                 distanceFromLocalPeerToNeighbor += vectorFromLocalPeerToNeighbor_i * vectorFromLocalPeerToNeighbor_i;
             }

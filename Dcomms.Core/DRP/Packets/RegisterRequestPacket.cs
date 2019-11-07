@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 
@@ -19,8 +20,9 @@ namespace Dcomms.DRP.Packets
         /// 1: if packet is transmitted from registering A to EP, 
         /// 0: if packet is transmitted between neighbor peers (from sender to receiver). NeighborHMAC is sent 
         /// </summary>
-        static byte Flag_AtoEP = 0x01;
-        const byte FlagsMask_MustBeZero = 0b11110000;
+        static byte Flag_AtoEP = 0b00000001;
+        static byte Flag_DirectionVectorExists = 0b00000010;
+        const byte FlagsMask_MustBeZero = 0b11100000;
 
         public bool AtoEP => NeighborToken32 == null;
 
@@ -40,10 +42,37 @@ namespace Dcomms.DRP.Packets
         public Int64 ReqTimestamp64;
 
         public uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood // inclusive
+
+        public sbyte[] DirectionVectorNullable;
+        public double[] DirectionVectorNullableD
+        {
+            get
+            {
+                if (DirectionVectorNullable == null) return null;
+                var r = new double[DirectionVectorNullable.Length];
+                for (int i = 0; i < DirectionVectorNullable.Length; i++)
+                    r[i] = DirectionVectorNullable[i];
+                return r;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    DirectionVectorNullable = null;
+                    return;
+                }
+                var max = value.Select(x => Math.Abs(x)).Max();
+                DirectionVectorNullable = new sbyte[value.Length];
+                for (int i = 0; i < value.Length; i++)
+                    DirectionVectorNullable[i] = (sbyte)(127.0 * value[i] / max);
+            }
+        }
+
+
         public IPEndPoint EpEndpoint; // is not null only in A-EP mode // unencrypted  // makes sense when EP is behind NAT (e.g amazon) and does not know its public IP
 
         /// <summary>
-        /// signs fields: {RequesterRegistrationId,BusySectorIds,RequesterEcdhePublicKey,Timestamp32S,MinimalDistanceToNeighbor,EpEndpoint}
+        /// signs fields: {RequesterRegistrationId,BusySectorIds,RequesterEcdhePublicKey,Timestamp32S,MinimalDistanceToNeighbor,DirectionVectorNullable,EpEndpoint}
         /// the signature is needed: 
         /// 1 to authorize sender of the request when intermediate peers build RDRs and rating of sender
         /// 2 to authorize sender at neighbor, to reject blacklisted requesters and prioritize previously known good requester neighbors
@@ -86,10 +115,9 @@ namespace Dcomms.DRP.Packets
 
             writer.Write((byte)PacketTypes.RegisterReq);
             byte flags = 0;
-            if (connectionToNeighborNullable == null)
-            {
-                flags |= Flag_AtoEP;
-            }
+            if (connectionToNeighborNullable == null) flags |= Flag_AtoEP;
+            if (DirectionVectorNullable != null) flags |= Flag_DirectionVectorExists;
+
             writer.Write(flags);
             if (connectionToNeighborNullable != null)
             {
@@ -125,6 +153,9 @@ namespace Dcomms.DRP.Packets
             RequesterEcdhePublicKey.Encode(writer);
             writer.Write(ReqTimestamp64);
             writer.Write(MinimalDistanceToNeighbor);
+            if (DirectionVectorNullable != null)
+                foreach (var sb in DirectionVectorNullable)
+                    writer.Write(sb);
             PacketProcedures.EncodeIPEndPoint(writer, EpEndpoint);
             if (includeRequesterSignature) RequesterSignature.Encode(writer);
         }
@@ -142,7 +173,7 @@ namespace Dcomms.DRP.Packets
         /// when REQ is received from neighbor, verifies senderHMAC and NeighborToken32
         /// </summary>
         /// <param name="receivedFromNeighborNullable">is NULL when decoding REQ from A at EP</param>
-        public static RegisterRequestPacket Decode_OptionallyVerifyNeighborHMAC(byte[] udpData, ConnectionToNeighbor receivedFromNeighborNullable)
+        public static RegisterRequestPacket Decode_OptionallyVerifyNeighborHMAC(byte[] udpData, ConnectionToNeighbor receivedFromNeighborNullable, int numberOfDimensions)
         {
             var r = new RegisterRequestPacket();
             r.DecodedUdpPayloadData = udpData;
@@ -168,6 +199,14 @@ namespace Dcomms.DRP.Packets
             r.RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
             r.ReqTimestamp64 = reader.ReadInt64();
             r.MinimalDistanceToNeighbor = reader.ReadUInt32();
+
+            if ((flags & Flag_DirectionVectorExists) != 0)
+            {
+                r.DirectionVectorNullable = new sbyte[numberOfDimensions];
+                for (int i = 0; i < numberOfDimensions; i++)
+                    r.DirectionVectorNullable[i] = reader.ReadSByte();
+            }
+
             r.EpEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
             r.RequesterSignature = RegistrationSignature.Decode(reader);
             

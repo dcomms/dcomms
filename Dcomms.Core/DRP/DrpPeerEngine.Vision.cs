@@ -348,11 +348,6 @@ namespace Dcomms.DRP
             if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, ModuleName) <= AttentionLevel.lightPain)
                 _visionChannel.EmitListOfPeers(_visionChannelSourceId, ModuleName, AttentionLevel.lightPain, message);
         }
-        internal void WriteToLog_lightPain_allPeers(string message)
-        {
-            if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, ModuleName) <= AttentionLevel.lightPain)
-                _visionChannel.EmitListOfPeers(_visionChannelSourceId, ModuleName, AttentionLevel.lightPain, message);
-        }
         internal void WriteToLog_mediumPain(string message)
         {
             if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, ModuleName) <= AttentionLevel.mediumPain)

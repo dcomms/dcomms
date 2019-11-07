@@ -12,7 +12,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// is used to expand neighborhood
         /// </summary>
-        internal async Task RegisterAsync(uint minimalDistanceToNeighbor, ushort busySectorIds, byte numberOfHopsRemaining, byte numberOfRandomHopsRemaining)
+        internal async Task RegisterAsync(uint minimalDistanceToNeighbor, ushort busySectorIds, byte numberOfHopsRemaining, byte numberOfRandomHopsRemaining, double[] directionVectorNullable)
         {
             _engine.WriteToLog_reg_requesterSide_detail($">> ConnectionToNeighbor.RegisterAsync(minimalDistanceToNeighbor={minimalDistanceToNeighbor}", null, null);
             _localDrpPeer.CurrentRegistrationOperationsCount++;
@@ -32,7 +32,8 @@ namespace Dcomms.DRP
                     NumberOfRandomHopsRemaining = numberOfRandomHopsRemaining,
                     RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                     ReqP2pSeq16 = GetNewRequestP2pSeq16_P2P(),
-                    EpEndpoint = this.RemoteEndpoint
+                    EpEndpoint = this.RemoteEndpoint,
+                    DirectionVectorNullableD = directionVectorNullable
                 };
                 var logger = new Logger(Engine, LocalDrpPeer, req, DrpPeerEngine.VisionChannelModuleName_reg_requesterSide);
                 try

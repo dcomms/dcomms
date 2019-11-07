@@ -164,7 +164,7 @@ namespace Dcomms.DRP
                 }
             }
 
-            var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpData, null);
+            var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpData, null, Configuration.SandboxModeOnly_NumberOfDimensions);
 
             if (!Configuration.SandboxModeOnly_DisablePoW)
             {

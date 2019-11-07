@@ -270,13 +270,8 @@ namespace Dcomms.DRP
                     var neighborPeerVector = RegistrationIdDistance.GetVectorValues(_engine.CryptoLibrary, _remoteRegistrationId, _engine.NumberOfDimensions);
                     var vectorFromLocalToNeighbor = new float[localPeerVector.Length];
                     for (int i = 0; i < neighborPeerVector.Length; i++)
-                    {
-                        var from = localPeerVector[i];
-                        var to = neighborPeerVector[i];
-                        RegistrationIdDistance.ProcessVectorInLoopedRegistrationIdSpace(from, ref to);   
-                        vectorFromLocalToNeighbor[i] = (float)(to - from);
-                    }
-
+                        vectorFromLocalToNeighbor[i] = (float)RegistrationIdDistance.GetDifferenceInLoopedRegistrationIdSpace(localPeerVector[i], neighborPeerVector[i]);
+                  
                     var sectorIndex = Engine.VSIC.GetSectorIndex(vectorFromLocalToNeighbor);
                     SectorIndexFlagsMask = (ushort)(1 << sectorIndex);
                 }
@@ -563,7 +558,7 @@ namespace Dcomms.DRP
             try
             {
                 // we got REQ from this instance neighbor
-                var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpData, this);
+                var req = RegisterRequestPacket.Decode_OptionallyVerifyNeighborHMAC(udpData, this, _engine.Configuration.SandboxModeOnly_NumberOfDimensions);
                 // NeighborToken32 and NeighborHMAC are verified at this time
                 
                 var routedRequest = new RoutedRequest(new Logger(_engine, LocalDrpPeer, req, DrpPeerEngine.VisionChannelModuleName_reg), 

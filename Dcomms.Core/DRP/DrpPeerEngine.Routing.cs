@@ -113,13 +113,16 @@ namespace Dcomms.DRP
             var connectedNeighborsForRouting = localDrpPeer.GetConnectedNeighborsForRouting(routedRequest).ToList();
             var logger = routedRequest.Logger;
 
-            int connectedNeighborsCountThatMatchMinDistance = 0;
+            var distancesToNeighbors = new List<RegistrationIdDistance>();
+            var requestedDirectionMulResults = new List<double>();
+            int connectedNeighborsCountThatMatchReqFilters = 0;
             foreach (var neighbor in connectedNeighborsForRouting)
             {
-                var distanceToNeighbor = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, neighbor.RemoteRegistrationId, NumberOfDimensions);
-                logger.WriteToLog_detail($"distanceToNeighbor={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor} (req.min={req.MinimalDistanceToNeighbor})");
                 if (req.MinimalDistanceToNeighbor != 0)
                 {
+                    var distanceToNeighbor = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, neighbor.RemoteRegistrationId, NumberOfDimensions);
+                    distancesToNeighbors.Add(distanceToNeighbor);
+                    logger.WriteToLog_detail($"distanceToNeighbor={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor} (req.min={req.MinimalDistanceToNeighbor})");
                     if (distanceToNeighbor.IsLessThan(req.MinimalDistanceToNeighbor))
                     {
                         // skip: this is too close than requested
@@ -127,12 +130,26 @@ namespace Dcomms.DRP
                         continue;
                     }
                 }
+                if (req.DirectionVectorNullable != null)
+                {
+                    var requestedDirectionVector = req.DirectionVectorNullableD;
+                    var vectorFromThisToNeighbor = RegistrationId.GetDifferenceVector(req.RequesterRegistrationId, neighbor.RemoteRegistrationId, CryptoLibrary, Configuration.SandboxModeOnly_NumberOfDimensions);
+                    double mulResult = 0;
+                    for (int i = 0; i < requestedDirectionVector.Length; i++)
+                        mulResult += requestedDirectionVector[i] * requestedDirectionVector[i];
+                    requestedDirectionMulResults.Add(mulResult);
+                    if (mulResult < 0)
+                    {
+                        logger.WriteToLog_detail($"skipping connection to {neighbor}: direction from requester to neighbor does not match requested vector");
+                        continue;
+                    }
+                }
+                connectedNeighborsCountThatMatchReqFilters++;
+                
                 var p2pConnectionValue_withNeighbor = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds,
                     neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0, NumberOfDimensions);
-
                 logger.WriteToLog_detail($"p2pConnectionValue_withNeighbor={p2pConnectionValue_withNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor}");
 
-                connectedNeighborsCountThatMatchMinDistance++;
                 if (maxP2pConnectionValue == null || maxP2pConnectionValue < p2pConnectionValue_withNeighbor)
                 {
                     maxP2pConnectionValue = p2pConnectionValue_withNeighbor;
@@ -141,22 +158,41 @@ namespace Dcomms.DRP
                 }
             }
 
-            if (connectedNeighborsCountThatMatchMinDistance == 0 && connectedNeighborsForRouting.Count != 0)
+            if (connectedNeighborsCountThatMatchReqFilters == 0 && connectedNeighborsForRouting.Count != 0)
             {
-                // special case: we are inside the "minDistance" hypersphere: move away from the requester, proxy to most distant neighbor
-                logger.WriteToLog_detail($"special case: move away from the requester, proxy to most distant neighbor");
-
-                RegistrationIdDistance maxDistance = null;
-                foreach (var connectedPeer in connectedNeighborsForRouting)
-                {         
-                    var distanceToConnectedPeer = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, connectedPeer.RemoteRegistrationId, NumberOfDimensions);
-                    logger.WriteToLog_detail($"distanceToConnectedPeer={distanceToConnectedPeer} from REGISTER REQ {req.RequesterRegistrationId} to {connectedPeer} (req.min={req.MinimalDistanceToNeighbor})");
-                   
-                    if (maxDistance == null || distanceToConnectedPeer.IsGreaterThan(maxDistance))
+                if (req.MinimalDistanceToNeighbor != 0)
+                {
+                    // special case: we are inside the "minDistance" hypersphere: move away from the requester, proxy to most distant neighbor
+                    logger.WriteToLog_detail($"special case: move away from the requester, proxy to most distant neighbor");
+                    RegistrationIdDistance maxDistance = null;
+                    for (int i = 0; i < connectedNeighborsForRouting.Count; i++)
                     {
-                        maxDistance = distanceToConnectedPeer;
-                        proxyToDestinationPeer = connectedPeer;
-                        acceptAt = null;
+                        var neighbor = connectedNeighborsForRouting[i];
+                        var distanceToNeighbor = distancesToNeighbors[i];
+                        logger.WriteToLog_detail($"distanceToConnectedPeer={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor} (req.min={req.MinimalDistanceToNeighbor})");
+                        if (maxDistance == null || distanceToNeighbor.IsGreaterThan(maxDistance))
+                        {
+                            maxDistance = distanceToNeighbor;
+                            proxyToDestinationPeer = neighbor;
+                            acceptAt = null;
+                        }
+                    }
+                }
+                if (req.DirectionVectorNullable != null)
+                {
+                    logger.WriteToLog_detail($"special case: move towards the specified direction");
+                    double? maxMulResult = null;
+                    for (int i = 0; i < connectedNeighborsForRouting.Count; i++)
+                    {
+                        var neighbor = connectedNeighborsForRouting[i];
+                        var mulResult = requestedDirectionMulResults[i];
+                        logger.WriteToLog_detail($"mulResult={mulResult} for {neighbor}");
+                        if (maxMulResult == null || mulResult > maxMulResult)
+                        {
+                            maxMulResult = mulResult;
+                            proxyToDestinationPeer = neighbor;
+                            acceptAt = null;
+                        }
                     }
                 }
             }

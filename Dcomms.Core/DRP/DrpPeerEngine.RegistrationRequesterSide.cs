@@ -82,7 +82,7 @@ namespace Dcomms.DRP
                   //  {
                         try
                         {
-                            if (await RegisterAsync(localDrpPeer, epEndpoint, 0, 20) == null)
+                            if (await RegisterAsync(localDrpPeer, epEndpoint, 0, 20, null) == null)
                                 continue;
 
                             //  on error or timeout try next entry server
@@ -105,7 +105,7 @@ namespace Dcomms.DRP
 
 
         /// <returns>null if registration failed with timeout or some error code</returns>
-        public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint, uint minimalDistanceToNeighbor, byte numberofHops) // engine thread
+        public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint, uint minimalDistanceToNeighbor, byte numberofHops, double[] directionVectorNullable) // engine thread
         {
             WriteToLog_reg_requesterSide_higherLevelDetail($"connecting via EntryPeer {epEndpoint}", null, null);
             localDrpPeer.CurrentRegistrationOperationsCount++;
@@ -151,7 +151,8 @@ namespace Dcomms.DRP
                     NumberOfHopsRemaining = numberofHops,
                     RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                     ReqP2pSeq16 = GetNewNpaSeq16_AtoEP(),
-                    EpEndpoint = epEndpoint
+                    EpEndpoint = epEndpoint,
+                    DirectionVectorNullableD = directionVectorNullable
                 };
                 var logger = new Logger(this, localDrpPeer, req, VisionChannelModuleName_reg_requesterSide);
                 try

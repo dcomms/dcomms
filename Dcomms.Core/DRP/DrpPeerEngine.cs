@@ -61,7 +61,7 @@ namespace Dcomms.DRP
         #endregion
 
         public readonly VectorSectorIndexCalculator VSIC;
-        public int NumberOfDimensions => Configuration.SandboxModeOnly_NumberOfDimensions ?? 8;
+        public int NumberOfDimensions => Configuration.SandboxModeOnly_NumberOfDimensions;
         public DrpPeerEngine(DrpPeerEngineConfiguration configuration)
         {
             configuration.VisionChannel?.RegisterVisibleModule(configuration.VisionChannelSourceId, "DrpPeerEngine", this);

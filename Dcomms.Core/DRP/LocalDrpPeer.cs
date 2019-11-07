@@ -122,11 +122,8 @@ namespace Dcomms.DRP
 
         internal void TestDirection(Logger logger, RegistrationId destinationRegId)
         {
-            var thisRegIdVector = RegistrationIdDistance.GetVectorValues(CryptoLibrary, this.Configuration.LocalPeerRegistrationId, Engine.Configuration.SandboxModeOnly_NumberOfDimensions ?? 8);
-            var destinationRegIdVector = RegistrationIdDistance.GetVectorValues(CryptoLibrary, destinationRegId, Engine.Configuration.SandboxModeOnly_NumberOfDimensions ?? 8);
-            var diff = new double[thisRegIdVector.Length];
-            for (int i = 0; i < diff.Length; i++)
-                diff[i] = destinationRegIdVector[i] - thisRegIdVector[i];
+            if (this.Configuration.LocalPeerRegistrationId.Equals(destinationRegId) == true) return;
+            var diff = RegistrationId.GetDifferenceVector(this.Configuration.LocalPeerRegistrationId, destinationRegId, CryptoLibrary, Engine.Configuration.SandboxModeOnly_NumberOfDimensions);                
             TestDirection(logger, diff);
         }
         void TestDirection(Logger logger, double[] vectorFromThisToDestination)
@@ -137,10 +134,10 @@ namespace Dcomms.DRP
             foreach (var neighbor in ConnectedNeighbors.Where( x=> x.CanBeUsedForNewRequests == true))
             {
                 var thisRegIdVector = RegistrationIdDistance.GetVectorValues(CryptoLibrary, this.Configuration.LocalPeerRegistrationId, vectorFromThisToDestination.Length);
-                var neighbornRegIdVector = RegistrationIdDistance.GetVectorValues(CryptoLibrary, neighbor.RemoteRegistrationId, vectorFromThisToDestination.Length);
+                var neighborRegIdVector = RegistrationIdDistance.GetVectorValues(CryptoLibrary, neighbor.RemoteRegistrationId, vectorFromThisToDestination.Length);
                 var vectorFromLocalPeerToNeighbor = new double[thisRegIdVector.Length];
                 for (int i = 0; i < vectorFromLocalPeerToNeighbor.Length; i++)
-                    vectorFromLocalPeerToNeighbor[i] = neighbornRegIdVector[i] - thisRegIdVector[i];
+                    vectorFromLocalPeerToNeighbor[i] = RegistrationIdDistance.GetDifferenceInLoopedRegistrationIdSpace(thisRegIdVector[i], neighborRegIdVector[i]);
                                
                 double multProduct = 0;
                 for (int dimensionI = 0; dimensionI < vectorFromThisToDestination.Length; dimensionI++)
@@ -152,29 +149,25 @@ namespace Dcomms.DRP
                 }
             }
             if (neighbor_along_destinationVector_exists == false)
-                logger.WriteToLog_lightPain($"no neighbors to destination {MiscProcedures.VectorToString(vectorFromThisToDestination)}");
-        }
-        void TestDirections()
-        {
-            var logger = new Logger(Engine, this, null, DrpPeerEngine.VisionChannelModuleName_p2p);
+            {
+                logger.WriteToLog_lightPain_EmitListOfPeers($"no neighbors to destination {MiscProcedures.VectorToString(vectorFromThisToDestination)}");
 
-            var numberOfDimensions = Engine.Configuration.SandboxModeOnly_NumberOfDimensions ?? 8;
-            var vsic = new VectorSectorIndexCalculator(numberOfDimensions);
-            foreach (var directionVector in vsic.EnumerateDirections())
-                TestDirection(logger, directionVector);
+                // try to fix the pain: connect to neighbors at empty direction
+                _ = ConnectToNewNeighborAsync(Engine.DateTimeNowUtc, true, vectorFromThisToDestination);
+            }
         }
 
         #region on timer 
         DateTime? _latestConnectToNewNeighborOperationStartTimeUtc;
         DateTime? _latestEmptyDirectionsTestTimeUtc;
-        async Task ConnectToNewNeighborIfNeededAsync(DateTime timeNowUtc)
-        {
-            if (ConnectedNeighbors.Count < _configuration.MinDesiredNumberOfNeighbors)
+        async Task ConnectToNewNeighborAsync(DateTime timeNowUtc, bool connectAnyway, double[] directionVectorNullable)
+        {           
+            if (connectAnyway || ConnectedNeighbors.Count(x => x.CanBeUsedForNewRequests) < _configuration.MinDesiredNumberOfNeighbors)
             {
-                if ((CurrentRegistrationOperationsCount == 0) ||
+                if (connectAnyway || (CurrentRegistrationOperationsCount == 0) ||
                     timeNowUtc > _latestConnectToNewNeighborOperationStartTimeUtc + TimeSpan.FromSeconds(Engine.Configuration.NeighborhoodExtensionMaxRetryIntervalS))
                 {
-                    if (_latestConnectToNewNeighborOperationStartTimeUtc.HasValue)
+                    if (connectAnyway == false && _latestConnectToNewNeighborOperationStartTimeUtc.HasValue)
                     {
                         if ((timeNowUtc - _latestConnectToNewNeighborOperationStartTimeUtc.Value).TotalSeconds < Engine.Configuration.NeighborhoodExtensionMinIntervalS)
                             return;
@@ -190,7 +183,7 @@ namespace Dcomms.DRP
                         {
                             var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
                             Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({connectedNeighborsForRequest.Count} connected operable neighbors now)", null, null);
-                            await Engine.RegisterAsync(this, epEndpoint, 0, RegisterRequestPacket.MaxNumberOfHopsRemaining);
+                            await Engine.RegisterAsync(this, epEndpoint, 0, RegisterRequestPacket.MaxNumberOfHopsRemaining, directionVectorNullable);
                         }
                         else
                         {
@@ -199,7 +192,8 @@ namespace Dcomms.DRP
                                 var neighborToSendRegister = connectedNeighborsForRequest[Engine.InsecureRandom.Next(connectedNeighborsForRequest.Count)];
                                 Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({connectedNeighborsForRequest.Count} connected operable neighbors now)", null, null);
                                 await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, RegisterRequestPacket.MaxNumberOfHopsRemaining,
-                                    (byte)Engine.InsecureRandom.Next(10)
+                                    (byte)Engine.InsecureRandom.Next(10),
+                                    directionVectorNullable
                                     );
                             }
                         }
@@ -213,15 +207,8 @@ namespace Dcomms.DRP
                         Engine.WriteToLog_reg_requesterSide_mediumPain($"failed to extend neighbors for {this}: {exc}", null, null);
                     }
                 }
-            }
-            else
-            { // enough neighbors
-                if (_latestEmptyDirectionsTestTimeUtc == null || timeNowUtc > _latestEmptyDirectionsTestTimeUtc.Value.AddSeconds(20))
-                {
-                    _latestEmptyDirectionsTestTimeUtc = timeNowUtc;
-                    TestDirections();
-                }
-            }
+            }               
+          
         }
 
         DateTime? _lastTimeDetroyedWorstNeighborUtc;
@@ -299,10 +286,33 @@ namespace Dcomms.DRP
             }
         }
 
+
+        void TestDirections(DateTime timeNowUtc)
+        {
+            if (ConnectedNeighbors.Count(x => x.CanBeUsedForNewRequests) >= _configuration.MinDesiredNumberOfNeighbors)
+            { // enough neighbors
+                if (_latestEmptyDirectionsTestTimeUtc == null || timeNowUtc > _latestEmptyDirectionsTestTimeUtc.Value.AddSeconds(20))
+                {
+                    _latestEmptyDirectionsTestTimeUtc = timeNowUtc;
+
+
+                    var logger = new Logger(Engine, this, null, DrpPeerEngine.VisionChannelModuleName_p2p);
+
+                    var numberOfDimensions = Engine.Configuration.SandboxModeOnly_NumberOfDimensions;
+                    var vsic = new VectorSectorIndexCalculator(numberOfDimensions);
+                    foreach (var directionVector in vsic.EnumerateDirections())
+                        TestDirection(logger, directionVector);
+
+                }
+            }
+        }
+
+
         internal void EngineThreadOnTimer100ms(DateTime timeNowUtc)
         {
-            _ = ConnectToNewNeighborIfNeededAsync(timeNowUtc);
+            _ = ConnectToNewNeighborAsync(timeNowUtc, false, null);
             NeighborsApoptosisProcedure(timeNowUtc);
+            TestDirections(timeNowUtc);
         }
         #endregion
 
@@ -312,7 +322,7 @@ namespace Dcomms.DRP
             {
                 try
                 {
-                    var conn = await Engine.RegisterAsync(this, endpoint, 0, 1); // engine thread
+                    var conn = await Engine.RegisterAsync(this, endpoint, 0, 1, null); // engine thread
                     Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"@BeginConnectToEPsAsync connected to {endpoint}. {ConnectedNeighbors.Count} connected neighbors", null, null);
                 }
                 catch (Exception exc)
