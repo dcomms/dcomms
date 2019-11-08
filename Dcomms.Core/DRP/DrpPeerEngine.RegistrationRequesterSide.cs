@@ -238,7 +238,7 @@ namespace Dcomms.DRP
                     localDrpPeer.AddToConnectedNeighbors(newConnectionToNeighbor, req);
 
                     #region send ping request directly to neighbor N, retransmit               
-                    var pingRequest = newConnectionToNeighbor.CreatePing(true, false, localDrpPeer.ConnectedNeighborsBusySectorIds);
+                    var pingRequest = newConnectionToNeighbor.CreatePing(true, false, localDrpPeer.ConnectedNeighborsBusySectorIds, localDrpPeer.AnotherNeighborToSameSectorExists(newConnectionToNeighbor));
                     pendingPingRequest = new PendingLowLevelUdpRequest(newConnectionToNeighbor.RemoteEndpoint,
                                     PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, pingRequest.PingRequestId32),
                                     DateTimeNowUtc,

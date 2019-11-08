@@ -60,6 +60,8 @@ namespace Dcomms.DRP
                 diff[i] = RegistrationIdDistance.GetDifferenceInLoopedRegistrationIdSpace(fromRegIdVector[i], destinationRegIdVector[i]);
             return diff;
         }
+        public static float[] GetDifferenceVectorF(RegistrationId from, RegistrationId to, ICryptoLibrary cryptoLibrary, int numberOfDimensions)
+            => GetDifferenceVector(from, to, cryptoLibrary, numberOfDimensions).Select(x => (float)x).ToArray();
     }
 
 
@@ -527,28 +529,34 @@ namespace Dcomms.DRP
         public static float MutualValueToKeepConnectionAlive_SoftLimitNeighborsCountCases => ValueToKeepConnectionAlive_SoftLimitNeighborsCountCases * 2;
 
 
-        public static double GetMutualP2pConnectionValue(ICryptoLibrary cryptoLibrary, RegistrationId registrationId1, ushort neighborsBusySectorIds1, RegistrationId registrationId2, ushort neighborsBusySectorIds2, int numberOfDimensions)
+        public static double GetMutualP2pConnectionValue(ICryptoLibrary cryptoLibrary, RegistrationId registrationId1, ushort neighborsBusySectorIds1,
+            RegistrationId registrationId2, ushort neighborsBusySectorIds2, int numberOfDimensions,
+            bool thisConnectionAlreadyExists, bool anotherNeighborToSameSectorExists1, bool anotherNeighborToSameSectorExists2)
         {
             double r = 0;
             var distance = registrationId1.GetDistanceTo(cryptoLibrary, registrationId2, numberOfDimensions).ToDouble();
             r -= distance;
 
-            var vector1 = RegistrationIdDistance.GetVectorValues(cryptoLibrary, registrationId1, numberOfDimensions);
-            var vector2 = RegistrationIdDistance.GetVectorValues(cryptoLibrary, registrationId1, numberOfDimensions);
+            if (thisConnectionAlreadyExists)
+            {
+                if (anotherNeighborToSameSectorExists1 == false) r += EmptySectorOccupationValue;
+                if (anotherNeighborToSameSectorExists2 == false) r += EmptySectorOccupationValue;
+            }
+            else
+            {
+                var vsic = new VectorSectorIndexCalculator(numberOfDimensions);
+                var vector1to2 = RegistrationId.GetDifferenceVectorF(registrationId1, registrationId2, cryptoLibrary, numberOfDimensions);
+                var vector1to2SectorIndex = vsic.GetSectorIndex(vector1to2);
+                var vector1to2IsInVacantSector = ((neighborsBusySectorIds1 >> vector1to2SectorIndex) & 0x0001) == 0;
+                if (vector1to2IsInVacantSector) r += EmptySectorOccupationValue;
 
-            var vsic = new VectorSectorIndexCalculator(vector1.Length);
-            var vector1to2 = new float[vector1.Length];
-            for (int i = 0; i < vector1.Length; i++) vector1to2[i] = (float)(vector2[i] - vector1[i]);
-            var vector1to2SectorIndex = vsic.GetSectorIndex(vector1to2);
-            var vector1to2IsInVacantSector = ((neighborsBusySectorIds1 >> vector1to2SectorIndex) & 0x0001) == 0;
-            if (vector1to2IsInVacantSector) r += EmptySectorOccupationValue;
+                var vector2to1 = new float[numberOfDimensions];
+                for (int i = 0; i < numberOfDimensions; i++) vector2to1[i] = -vector1to2[i];
+                var vector2to1SectorIndex = vsic.GetSectorIndex(vector2to1);
 
-            var vector2to1 = new float[vector1.Length];
-            for (int i = 0; i < vector1.Length; i++) vector2to1[i] = -vector1to2[i];
-            var vector2to1SectorIndex = vsic.GetSectorIndex(vector2to1);
-
-            var vector2to1IsInVacantSector = ((neighborsBusySectorIds2 >> vector2to1SectorIndex) & 0x0001) == 0;
-            if (vector2to1IsInVacantSector) r += EmptySectorOccupationValue;
+                var vector2to1IsInVacantSector = ((neighborsBusySectorIds2 >> vector2to1SectorIndex) & 0x0001) == 0;
+                if (vector2to1IsInVacantSector) r += EmptySectorOccupationValue;
+            }
 
             return r;
         }

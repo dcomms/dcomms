@@ -278,6 +278,10 @@ namespace Dcomms.DRP
             }
         }
         public string RemoteVisionName { get; set; }
+        /// <summary>
+        /// specifies sector of directin vector from local peer to neighbor peer
+        /// has only one bit set to 1
+        /// </summary>
         public ushort SectorIndexFlagsMask { get; private set; }
         public override string ToString() => $"connTo{RemoteVisionName}-{RemoteEndpoint}-{RemoteRegistrationId}";        
         string IVisibleModule.Status => $"{RemoteVisionName}-localEP={LocalEndpoint}, remoteEP={RemoteEndpoint}, RTT={_latestPingPongDelay_RTT?.TotalMilliseconds}ms, remoteRegID={RemoteRegistrationId},  LocalNeighborToken32={LocalNeighborToken32}, LocalNeighborToken16={LocalNeighborToken32?.Token16.ToString("X4")}, RemoteNeighborToken32={RemoteNeighborToken32}, RemoteNeighborToken16={RemoteNeighborToken32?.Token16.ToString("X4")}";
@@ -306,6 +310,9 @@ namespace Dcomms.DRP
         DateTime? _latestPingSentTime;
         PingPacket _latestPingReceived;// float MaxTxInviteRateRps, MaxTxRegiserRateRps; // sent by remote peer via ping
         public ushort? RemoteNeighborsBusySectorIds => _latestPingReceived?.RequesterNeighborsBusySectorIds;
+        
+        public bool? Remote_AnotherNeighborToSameSectorExists => _latestPingReceived?.Requester_AnotherNeighborToSameSectorExists;
+
         public bool PingReceived => _latestPingReceived != null;
         public bool CanBeUsedForNewRequests => PingReceived == true && IsInTeardownState == false;
 
@@ -388,13 +395,14 @@ namespace Dcomms.DRP
         }
 
         #region ping pong
-        public PingPacket CreatePing(bool requestRegistrationConfirmationSignature, bool connectionTeardownFlag, ushort requesterNeighborsBusySectorIds)
+        public PingPacket CreatePing(bool requestRegistrationConfirmationSignature, bool connectionTeardownFlag, ushort requesterNeighborsBusySectorIds, bool requester_AnotherNeighborToSameSectorExists)
         {
             if (_disposed) throw new ObjectDisposedException(ToString());
             var r = new PingPacket
             {
                 NeighborToken32 = RemoteNeighborToken32,
                 RequesterNeighborsBusySectorIds = requesterNeighborsBusySectorIds,
+                Requester_AnotherNeighborToSameSectorExists = requester_AnotherNeighborToSameSectorExists,
                 MaxRxInviteRateRps = 10, //todo get from some local capabilities   like number of neighbors
                 MaxRxRegisterRateRps = 10, //todo get from some local capabilities   like number of neighbors
                 PingRequestId32 = (uint)_insecureRandom.Next(),
@@ -442,7 +450,7 @@ namespace Dcomms.DRP
         }
         void SendPingRequestOnTimer()
         {
-            var pingRequestPacket = CreatePing(false, false, _localDrpPeer.ConnectedNeighborsBusySectorIds);
+            var pingRequestPacket = CreatePing(false, false, _localDrpPeer.ConnectedNeighborsBusySectorIds, _localDrpPeer.AnotherNeighborToSameSectorExists(this));
             SendPacket(pingRequestPacket.Encode());
             _latestPingSent = pingRequestPacket;
             _latestPingSentTime = _engine.DateTimeNowUtc;

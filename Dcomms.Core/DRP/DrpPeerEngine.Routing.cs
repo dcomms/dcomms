@@ -147,7 +147,7 @@ namespace Dcomms.DRP
                 connectedNeighborsCountThatMatchReqFilters++;
                 
                 var p2pConnectionValue_withNeighbor = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds,
-                    neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0, NumberOfDimensions);
+                    neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0, NumberOfDimensions, false, false, false);
                 logger.WriteToLog_detail($"p2pConnectionValue_withNeighbor={p2pConnectionValue_withNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor}");
 
                 if (maxP2pConnectionValue == null || maxP2pConnectionValue < p2pConnectionValue_withNeighbor)
@@ -212,7 +212,8 @@ namespace Dcomms.DRP
             }
             else
             {
-                var p2pConnectionValue_withLocalPeer = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds, localDrpPeer.Configuration.LocalPeerRegistrationId, localDrpPeer.ConnectedNeighborsBusySectorIds, NumberOfDimensions);
+                var p2pConnectionValue_withLocalPeer = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds,
+                    localDrpPeer.Configuration.LocalPeerRegistrationId, localDrpPeer.ConnectedNeighborsBusySectorIds, NumberOfDimensions, false, false, false);
                 logger.WriteToLog_detail($"p2pConnectionValue_withLocalPeer={p2pConnectionValue_withLocalPeer} from REGISTER REQ {req.RequesterRegistrationId} to {localDrpPeer.Configuration.LocalPeerRegistrationId}");
                 if (maxP2pConnectionValue == null || p2pConnectionValue_withLocalPeer > maxP2pConnectionValue)
                 {

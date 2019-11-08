@@ -24,7 +24,22 @@ namespace Dcomms.DRP.Packets
         
         public string VisionName { get; set; }
 
-        public ushort RequesterNeighborsBusySectorIds; // flags, 1 is set if there is a connected neighbor in specific sector of the 8D regID space // only 9 LSB bits are used now
+        /// <summary>
+        /// flags, 1 is set if there is a connected neighbor in specific sector of the 8D regID space 
+        /// only 9 LSB bits are used now 
+        /// MSB1 (in udp data only) = Requester_AnotherNeighborToSameSectorExists
+        /// </summary>
+        public ushort RequesterNeighborsBusySectorIds;
+        public bool Requester_AnotherNeighborToSameSectorExists;
+        public ushort RequesterNeighborsBusySectorIds__AnotherNeighborToSameSectorExists_Combined
+        {
+            get => (ushort)(RequesterNeighborsBusySectorIds | (Requester_AnotherNeighborToSameSectorExists ? 0x8000 : 0x0000));
+            set
+            {
+                RequesterNeighborsBusySectorIds = (ushort)(value & 0x7FFF);
+                Requester_AnotherNeighborToSameSectorExists = (value & 0x8000) != 0;
+            }
+        }
 
         public float? MaxRxInviteRateRps;   // zero means NULL // signal from sender "how much I can receive via this p2p connection"
         public float? MaxRxRegisterRateRps; // zero means NULL // signal from sender "how much I can receive via this p2p connection"
@@ -45,7 +60,7 @@ namespace Dcomms.DRP.Packets
             writer.Write(PingRequestId32);
             writer.Write(Flags);
             PacketProcedures.EncodeString1ASCII(writer, VisionName);
-            writer.Write(RequesterNeighborsBusySectorIds);
+            writer.Write(RequesterNeighborsBusySectorIds__AnotherNeighborToSameSectorExists_Combined);
             writer.Write(RpsToUint16(MaxRxInviteRateRps));
             writer.Write(RpsToUint16(MaxRxRegisterRateRps));
         }
@@ -71,8 +86,8 @@ namespace Dcomms.DRP.Packets
             r.PingRequestId32 = reader.ReadUInt32();
             r.Flags = reader.ReadByte();
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
-            r.VisionName = PacketProcedures.DecodeString1ASCII(reader);
-            r.RequesterNeighborsBusySectorIds = reader.ReadUInt16();
+            r.VisionName = PacketProcedures.DecodeString1ASCII(reader);            
+            r.RequesterNeighborsBusySectorIds__AnotherNeighborToSameSectorExists_Combined = reader.ReadUInt16();
             r.MaxRxInviteRateRps = RpsFromUint16(reader.ReadUInt16());
             r.MaxRxRegisterRateRps = RpsFromUint16(reader.ReadUInt16());
             r.NeighborHMAC = HMAC.Decode(reader);

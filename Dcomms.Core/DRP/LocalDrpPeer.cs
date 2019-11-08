@@ -54,22 +54,31 @@ namespace Dcomms.DRP
             engine.Configuration.VisionChannel?.RegisterVisibleModule(engine.Configuration.VisionChannelSourceId, this.ToString(), this);
         }
         public List<ConnectionToNeighbor> ConnectedNeighbors = new List<ConnectionToNeighbor>();
+        public IEnumerable<ConnectionToNeighbor> ConnectedNeighborsCanBeUsedForNewRequests => ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests);
         public ushort ConnectedNeighborsBusySectorIds
         {
             get
             {
                 ushort r = 0;
-                foreach (var n in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
+                foreach (var n in ConnectedNeighborsCanBeUsedForNewRequests)
                     r |= n.SectorIndexFlagsMask;
                 return r;
             }
+        }
+        public bool AnotherNeighborToSameSectorExists(ConnectionToNeighbor neighbor)
+        {
+            ushort r = 0;
+            foreach (var n in ConnectedNeighborsCanBeUsedForNewRequests)
+                if (n != neighbor && n.SectorIndexFlagsMask == neighbor.SectorIndexFlagsMask)
+                    return true;
+            return false;
         }
 
         #region IVisiblePeer implementation
         float[] IVisiblePeer.VectorValues => RegistrationIdDistance.GetVectorValues(CryptoLibrary, _configuration.LocalPeerRegistrationId, Engine.NumberOfDimensions).Select(x => (float)x).ToArray();
         bool IVisiblePeer.Highlighted => false;
         string IVisiblePeer.Name => Engine.Configuration.VisionChannelSourceId;
-        IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests);
+        IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => ConnectedNeighborsCanBeUsedForNewRequests;
         string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer)
         {
             throw new NotImplementedException();
@@ -78,7 +87,7 @@ namespace Dcomms.DRP
 
         public IEnumerable<ConnectionToNeighbor> GetConnectedNeighborsForRouting(RoutedRequest routedRequest)
         {
-            foreach (var connectedPeer in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
+            foreach (var connectedPeer in ConnectedNeighborsCanBeUsedForNewRequests)
             {
                 if (routedRequest.ReceivedFromNeighborNullable != null && connectedPeer == routedRequest.ReceivedFromNeighborNullable)
                 {
@@ -131,7 +140,7 @@ namespace Dcomms.DRP
             // are all vectors along directionVector?
             bool neighbor_along_destinationVector_exists = false;
 
-            foreach (var neighbor in ConnectedNeighbors.Where( x=> x.CanBeUsedForNewRequests == true))
+            foreach (var neighbor in ConnectedNeighborsCanBeUsedForNewRequests)
             {
                 var thisRegIdVector = RegistrationIdDistance.GetVectorValues(CryptoLibrary, this.Configuration.LocalPeerRegistrationId, vectorFromThisToDestination.Length);
                 var neighborRegIdVector = RegistrationIdDistance.GetVectorValues(CryptoLibrary, neighbor.RemoteRegistrationId, vectorFromThisToDestination.Length);
@@ -162,7 +171,7 @@ namespace Dcomms.DRP
         DateTime? _latestEmptyDirectionsTestTimeUtc;
         async Task ConnectToNewNeighborAsync(DateTime timeNowUtc, bool connectAnyway, double[] directionVectorNullable)
         {           
-            if (connectAnyway || ConnectedNeighbors.Count(x => x.CanBeUsedForNewRequests) < _configuration.MinDesiredNumberOfNeighbors)
+            if (connectAnyway || ConnectedNeighborsCanBeUsedForNewRequests.Count() < _configuration.MinDesiredNumberOfNeighbors)
             {
                 if (connectAnyway || (CurrentRegistrationOperationsCount == 0) ||
                     timeNowUtc > _latestConnectToNewNeighborOperationStartTimeUtc + TimeSpan.FromSeconds(Engine.Configuration.NeighborhoodExtensionMaxRetryIntervalS))
@@ -178,7 +187,7 @@ namespace Dcomms.DRP
                     try
                     {
                         //    extend neighbors via ep (3% probability)  or via existing neighbors --- increase mindistance, from 1
-                        var connectedNeighborsForRequest = ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests).ToList();
+                        var connectedNeighborsForRequest = ConnectedNeighborsCanBeUsedForNewRequests.ToList();
                         if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.01 || connectedNeighborsForRequest.Count == 0))
                         {
                             var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
@@ -244,12 +253,17 @@ namespace Dcomms.DRP
 
             double? worstValue = mutualValueLowLimit;
             ConnectionToNeighbor worstNeighbor = null;
-            foreach (var neighbor in ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests))
+            foreach (var neighbor in ConnectedNeighborsCanBeUsedForNewRequests)
             {
                 var p2pConnectionValue_withNeighbor =
                     P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary,
                         this.Configuration.LocalPeerRegistrationId, this.ConnectedNeighborsBusySectorIds,
-                        neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0, Engine.NumberOfDimensions);
+                        neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0,
+                        Engine.NumberOfDimensions,
+                        true, 
+                        this.AnotherNeighborToSameSectorExists(neighbor),
+                        neighbor.Remote_AnotherNeighborToSameSectorExists ?? false
+                        );
                 Engine.WriteToLog_p2p_higherLevelDetail(neighbor, $"@DestroyWorstNeighbor() p2pConnectionValue_withNeighbor={p2pConnectionValue_withNeighbor} from {this} to {neighbor}", null);
                 if (worstValue == null || p2pConnectionValue_withNeighbor < worstValue)
                 {
@@ -263,7 +277,7 @@ namespace Dcomms.DRP
                 _lastTimeDetroyedWorstNeighborUtc = timeNowUtc;
 
                 Engine.WriteToLog_p2p_higherLevelDetail(worstNeighbor, $"destroying worst P2P connection with neighbor. neighbors count = {ConnectedNeighbors.Count}", null);
-                var ping = worstNeighbor.CreatePing(false, true, 0);
+                var ping = worstNeighbor.CreatePing(false, true, 0, false);
 
                 var pendingPingRequest = new PendingLowLevelUdpRequest(worstNeighbor.RemoteEndpoint,
                                 PongPacket.GetScanner(worstNeighbor.LocalNeighborToken32, ping.PingRequestId32), Engine.DateTimeNowUtc,
@@ -289,7 +303,7 @@ namespace Dcomms.DRP
 
         void TestDirections(DateTime timeNowUtc)
         {
-            if (ConnectedNeighbors.Count(x => x.CanBeUsedForNewRequests) >= _configuration.MinDesiredNumberOfNeighbors)
+            if (ConnectedNeighborsCanBeUsedForNewRequests.Count() >= _configuration.MinDesiredNumberOfNeighbors)
             { // enough neighbors
                 if (_latestEmptyDirectionsTestTimeUtc == null || timeNowUtc > _latestEmptyDirectionsTestTimeUtc.Value.AddSeconds(20))
                 {
