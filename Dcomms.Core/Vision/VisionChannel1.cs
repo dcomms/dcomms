@@ -122,7 +122,7 @@ namespace Dcomms.Vision
                 _maxEmittedAttentionLevelLogMessage = msg;
             }
         }
-        public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList_RoutingPath)
+        public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList_RoutingPath, IVisiblePeer selectedPeer)
         {
             if (!EnableNewLogMessages) return;
             var msg = new LogMessage(this)
@@ -133,7 +133,7 @@ namespace Dcomms.Vision
                 SourceId = sourceId,
                 ModuleName = moduleName,
                 Message = message,
-                PeersList = peersList_RoutingPath ?? ClonedVisiblePeer.Clone(VisiblePeersDelegate()),
+                PeersList = peersList_RoutingPath ?? ClonedVisiblePeer.Clone(VisiblePeersDelegate(), selectedPeer),
                 PeersListDisplayMode = peersList_RoutingPath != null ? VisiblePeersDisplayMode.routingPath : VisiblePeersDisplayMode.allPeers,
 
             };
@@ -324,7 +324,7 @@ namespace Dcomms.Vision
             public string Name { get; private set; }
             public List<IVisiblePeer> NeighborPeers { get; private set; }
             IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => NeighborPeers;            
-            public static List<IVisiblePeer> Clone(List<IVisiblePeer> sourceList)
+            public static List<IVisiblePeer> Clone(List<IVisiblePeer> sourceList, IVisiblePeer forceHighlightedPeer = null)
             {
                 var r = new List<ClonedVisiblePeer>(sourceList.Count);
                 var sourcePeersIndexes = new Dictionary<IVisiblePeer, int>();
@@ -335,7 +335,7 @@ namespace Dcomms.Vision
                     r.Add(new ClonedVisiblePeer
                     {
                         VectorValues = sourcePeer.VectorValues.ToArray(),
-                        Highlighted = sourcePeer.Highlighted,
+                        Highlighted = sourcePeer.Highlighted || sourcePeer == forceHighlightedPeer,
                         Name = sourcePeer.Name
                     });
                 }

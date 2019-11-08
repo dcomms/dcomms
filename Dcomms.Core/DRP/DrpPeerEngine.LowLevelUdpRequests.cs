@@ -88,8 +88,12 @@ namespace Dcomms.DRP
                 WriteToLog_udp_lightPain($"_pendingLowLevelUdpRequests.Count={_pendingLowLevelUdpRequests.Count}");
             return await request.TaskCompletionSource.Task;
         }
+
+
+        bool _CancelPendingRequest_WasInvoked;
         internal void CancelPendingRequest(PendingLowLevelUdpRequest request)
         {
+            _CancelPendingRequest_WasInvoked = true;
             if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"cancelled {request}");
             _pendingLowLevelUdpRequests.Remove(request);
         }
@@ -99,6 +103,8 @@ namespace Dcomms.DRP
         /// </summary>
         void PendingUdpRequests_OnTimer100ms(DateTime timeNowUTC)
         {
+        _retry:
+            _CancelPendingRequest_WasInvoked = false;
             for (var item = _pendingLowLevelUdpRequests.First; item != null;)
             {
                 var request = item.Value;
@@ -110,6 +116,11 @@ namespace Dcomms.DRP
                     WriteToLog_udp_lightPain($"timer expired, removed pending request {request}");                   
 
                     request.TaskCompletionSource.SetResult(null);
+
+                    if (_CancelPendingRequest_WasInvoked)
+                    {
+                        goto _retry;
+                    }
                     item = nextItem;
                     continue;
                 }

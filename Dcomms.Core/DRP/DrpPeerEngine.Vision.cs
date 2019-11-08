@@ -51,6 +51,11 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p) <= AttentionLevel.lightPain)
                 Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p, AttentionLevel.lightPain, $"[{connectionToNeighbor}] {message}", req, connectionToNeighbor.LocalDrpPeer);
         }
+        internal void WriteToLog_p2p_mediumPain(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p) <= AttentionLevel.mediumPain)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p, AttentionLevel.mediumPain, message);
+        }
         //internal void WriteToLog_routing_detail(string message, object req, IVisiblePeer localPeer)
         //{
         //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_routing) <= AttentionLevel.detail)
@@ -343,10 +348,10 @@ namespace Dcomms.DRP
             if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, ModuleName) <= AttentionLevel.lightPain)
                 _visionChannel.EmitPeerInRoutedPath(_visionChannelSourceId, ModuleName, AttentionLevel.lightPain, message, _req, _localPeer);
         }
-        internal void WriteToLog_lightPain_EmitListOfPeers(string message)
+        internal void WriteToLog_lightPain_EmitListOfPeers(string message, IVisiblePeer selectedPeer = null)
         {
             if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, ModuleName) <= AttentionLevel.lightPain)
-                _visionChannel.EmitListOfPeers(_visionChannelSourceId, ModuleName, AttentionLevel.lightPain, message);
+                _visionChannel.EmitListOfPeers(_visionChannelSourceId, ModuleName, AttentionLevel.lightPain, message, null, selectedPeer);
         }
         internal void WriteToLog_mediumPain(string message)
         {

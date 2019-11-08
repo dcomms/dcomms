@@ -159,7 +159,7 @@ namespace Dcomms.DRP
             }
             if (neighbor_along_destinationVector_exists == false)
             {
-                logger.WriteToLog_lightPain_EmitListOfPeers($"no neighbors to destination {MiscProcedures.VectorToString(vectorFromThisToDestination)}");
+                logger.WriteToLog_lightPain_EmitListOfPeers($"no neighbors to destination {MiscProcedures.VectorToString(vectorFromThisToDestination)}", this);
 
                 // try to fix the pain: connect to neighbors at empty direction
                 _ = ConnectToNewNeighborAsync(Engine.DateTimeNowUtc, true, vectorFromThisToDestination);
@@ -324,9 +324,16 @@ namespace Dcomms.DRP
 
         internal void EngineThreadOnTimer100ms(DateTime timeNowUtc)
         {
-            _ = ConnectToNewNeighborAsync(timeNowUtc, false, null);
-            NeighborsApoptosisProcedure(timeNowUtc);
-            TestDirections(timeNowUtc);
+            try
+            {
+                _ = ConnectToNewNeighborAsync(timeNowUtc, false, null);
+                NeighborsApoptosisProcedure(timeNowUtc);
+                TestDirections(timeNowUtc);
+            }
+            catch (Exception exc)
+            {
+                Engine.WriteToLog_p2p_mediumPain($"error in {this} timer procedure: {exc}");
+            }
         }
         #endregion
 

@@ -233,7 +233,7 @@ namespace Dcomms.Sandbox
                 }
                 else
                 {
-                    EmitAllPeers(AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}");
+                    EmitAllPeers(AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{text}");
                 }
 
                 if (test.counter < test.MaxCount) BeginTestInvites(test, cb);

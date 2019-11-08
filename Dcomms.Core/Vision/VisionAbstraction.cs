@@ -92,7 +92,7 @@ namespace Dcomms.Vision
         
         public Func<List<IVisiblePeer>> VisiblePeersDelegate = null;
 
-        public virtual void EmitListOfPeers(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList_RoutedPath = null)
+        public virtual void EmitListOfPeers(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList_RoutedPath = null, IVisiblePeer selectedPeer = null)
         {
         }
         public virtual void EmitPeerInRoutedPath(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, object req, IVisiblePeer localPeer)
