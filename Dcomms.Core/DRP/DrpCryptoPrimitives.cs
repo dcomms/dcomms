@@ -325,6 +325,7 @@ namespace Dcomms.DRP
                 _simplexVertices.Add(new float[] { 1.0f / 6, (float)Math.Sqrt(1.0f / 28), -(float)Math.Sqrt(12.0f / 7), 0, 0, 0, 0, 0 });
                 _simplexVertices.Add(new float[] { 1.0f / 6, -(float)Math.Sqrt(7.0f / 4), 0, 0, 0, 0, 0, 0 });
                 _simplexVertices.Add(new float[] { -4.0f / 3, 0, 0, 0, 0, 0, 0, 0 });
+                _simplexVertices.Add(new float[] { 0, 0, 0, 0, 0, 0, 0, 1 }); // ????????????????????
             }
             else throw new NotImplementedException();
             
@@ -378,7 +379,107 @@ namespace Dcomms.DRP
                     r[0] = 1; r[1] = 2; yield return r;
                 }
                 else throw new NotImplementedException();
-
+            }
+            else if (IndexesCount == 9)
+            {
+                if (simplexesCountInGroup == 1)
+                {
+                    for (byte i = 0; i < IndexesCount; i++)
+                    {
+                        r[0] = i;
+                        yield return r;
+                    }
+                }
+                else if (simplexesCountInGroup == 2)
+                {
+                    for (byte i0 = 0; i0 < IndexesCount; i0++)
+                    {
+                        for (byte i1 = (byte)(i0 + 1); i1 < IndexesCount; i1++)
+                        {
+                            r[0] = i0;
+                            r[1] = i1;
+                            yield return r;
+                        }
+                    }
+                }
+                else if (simplexesCountInGroup == 3)
+                {
+                    for (byte i0 = 0; i0 < IndexesCount; i0++)
+                        for (byte i1 = (byte)(i0 + 1); i1 < IndexesCount; i1++)
+                            for (byte i2 = (byte)(i1 + 1); i2 < IndexesCount; i2++)
+                            {
+                                r[0] = i0;
+                                r[1] = i1;
+                                r[2] = i2;
+                                yield return r;
+                            }
+                }
+                else if (simplexesCountInGroup == 4)
+                {
+                    for (byte i0 = 0; i0 < IndexesCount; i0++)
+                        for (byte i1 = (byte)(i0 + 1); i1 < IndexesCount; i1++)
+                            for (byte i2 = (byte)(i1 + 1); i2 < IndexesCount; i2++)
+                                for (byte i3 = (byte)(i2 + 1); i3 < IndexesCount; i3++)
+                                {
+                                    r[0] = i0; r[1] = i1; r[2] = i2; r[3] = i3;
+                                    yield return r;
+                                }
+                }
+                else if (simplexesCountInGroup == 5)
+                {
+                    for (byte i0 = 0; i0 < IndexesCount; i0++)
+                        for (byte i1 = (byte)(i0 + 1); i1 < IndexesCount; i1++)
+                            for (byte i2 = (byte)(i1 + 1); i2 < IndexesCount; i2++)
+                                for (byte i3 = (byte)(i2 + 1); i3 < IndexesCount; i3++)
+                                    for (byte i4 = (byte)(i3 + 1); i4 < IndexesCount; i4++)
+                                    {
+                                        r[0] = i0; r[1] = i1; r[2] = i2; r[3] = i3; r[4] = i4;
+                                        yield return r;
+                                    }
+                }
+                else if (simplexesCountInGroup == 6)
+                {
+                    for (byte i0 = 0; i0 < IndexesCount; i0++)
+                        for (byte i1 = (byte)(i0 + 1); i1 < IndexesCount; i1++)
+                            for (byte i2 = (byte)(i1 + 1); i2 < IndexesCount; i2++)
+                                for (byte i3 = (byte)(i2 + 1); i3 < IndexesCount; i3++)
+                                    for (byte i4 = (byte)(i3 + 1); i4 < IndexesCount; i4++)
+                                        for (byte i5 = (byte)(i4 + 1); i5 < IndexesCount; i5++)
+                                        {
+                                            r[0] = i0; r[1] = i1; r[2] = i2; r[3] = i3; r[4] = i4; r[5] = i5;
+                                            yield return r;
+                                        }
+                }
+                else if (simplexesCountInGroup == 7)
+                {
+                    for (byte i0 = 0; i0 < IndexesCount; i0++)
+                        for (byte i1 = (byte)(i0 + 1); i1 < IndexesCount; i1++)
+                            for (byte i2 = (byte)(i1 + 1); i2 < IndexesCount; i2++)
+                                for (byte i3 = (byte)(i2 + 1); i3 < IndexesCount; i3++)
+                                    for (byte i4 = (byte)(i3 + 1); i4 < IndexesCount; i4++)
+                                        for (byte i5 = (byte)(i4 + 1); i5 < IndexesCount; i5++)
+                                            for (byte i6 = (byte)(i5 + 1); i6 < IndexesCount; i6++)
+                                            {
+                                                r[0] = i0; r[1] = i1; r[2] = i2; r[3] = i3; r[4] = i4; r[5] = i5; r[6] = i6;
+                                                yield return r;
+                                            }
+                }
+                else if (simplexesCountInGroup == 8)
+                {
+                    for (byte i0 = 0; i0 < IndexesCount; i0++)
+                        for (byte i1 = (byte)(i0 + 1); i1 < IndexesCount; i1++)
+                            for (byte i2 = (byte)(i1 + 1); i2 < IndexesCount; i2++)
+                                for (byte i3 = (byte)(i2 + 1); i3 < IndexesCount; i3++)
+                                    for (byte i4 = (byte)(i3 + 1); i4 < IndexesCount; i4++)
+                                        for (byte i5 = (byte)(i4 + 1); i5 < IndexesCount; i5++)
+                                            for (byte i6 = (byte)(i5 + 1); i6 < IndexesCount; i6++)
+                                                for (byte i7 = (byte)(i6 + 1); i7 < IndexesCount; i7++)
+                                                {
+                                                    r[0] = i0; r[1] = i1; r[2] = i2; r[3] = i3; r[4] = i4; r[5] = i5; r[6] = i6; r[7] = i7;
+                                                    yield return r;
+                                                }
+                }
+                else throw new NotImplementedException();
             }
             else throw new NotImplementedException(); // todo 8D
 

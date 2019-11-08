@@ -15,18 +15,31 @@ namespace Dcomms.Sandbox
 {
     public class DrpTester2 : IDisposable
     {
-        const int NumberOfPeers = 300;
-        const int NumberOfDimensions = 2;
-        const int MinDesiredNumberOfNeighbors = 6;
-        const int SoftMaxDesiredNumberOfNeighbors = 8;
-        const int AbsoluteMaxDesiredNumberOfNeighbors = 12;
-        const int MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 60;///===============================================================
-        const double NeighborhoodExtensionMinIntervalS = 0.5;///===========================================================
-                       
-        const int NumberOfEPs = 10;
-        const int EpAbsoluteMaxDesiredNumberOfNeighbors = 13;
-        const int EpSoftMaxDesiredNumberOfNeighbors = 11;
-        const int EpMinDesiredNumberOfNeighbors = 8;
+        //const int NumberOfPeers = 300;
+        //const int NumberOfDimensions = 2;
+        //const int MinDesiredNumberOfNeighbors = 6;
+        //const int SoftMaxDesiredNumberOfNeighbors = 8;
+        //const int AbsoluteMaxDesiredNumberOfNeighbors = 12;
+        //const int MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 60;
+        //const double NeighborhoodExtensionMinIntervalS = 0.5;
+        //const int NumberOfEPs = 10;
+        //const int EpAbsoluteMaxDesiredNumberOfNeighbors = 13;
+        //const int EpSoftMaxDesiredNumberOfNeighbors = 11;
+        //const int EpMinDesiredNumberOfNeighbors = 8;
+
+
+        const int NumberOfPeers = 10;
+        const int NumberOfDimensions = 8;
+        const int MinDesiredNumberOfNeighbors = 12;
+        const int SoftMaxDesiredNumberOfNeighbors = 14;
+        const int AbsoluteMaxDesiredNumberOfNeighbors = 18;
+        const int MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 60;
+        const double NeighborhoodExtensionMinIntervalS = 0.5;
+        const int NumberOfEPs = 25;
+        const int EpAbsoluteMaxDesiredNumberOfNeighbors = 40;
+        const int EpSoftMaxDesiredNumberOfNeighbors = 30;
+        const int EpMinDesiredNumberOfNeighbors = 13;
+        const int NumberOfPeersToStartMessagesTest = 8;
 
 
         const int EpLocalPort = 6789;
@@ -99,7 +112,7 @@ namespace Dcomms.Sandbox
                 EmitAllPeers(AttentionLevel.guiActivity, $"{x} is connected with {x.LocalDrpPeer.ConnectedNeighbors.Count} neighbors, enough to continue with other peers");
                 if (index < NumberOfPeers)
                     xList_BeginCreate(index + 1);
-                if (index > 20) BeginTestInvitesIfNotStartedAlready();
+                if (index > NumberOfPeersToStartMessagesTest) BeginTestInvitesIfNotStartedAlready();
             }
             else
             {

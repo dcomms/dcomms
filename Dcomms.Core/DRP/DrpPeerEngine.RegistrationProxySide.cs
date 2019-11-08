@@ -101,7 +101,7 @@ namespace Dcomms.DRP
                 }
                 catch (RequestRejectedException reqExc)
                 {
-                    logger.WriteToLog_higherLevelDetail($"got response={reqExc.ResponseCode} from destination {destinationPeer}. will try another neighbor..");
+                    logger.WriteToLog_higherLevelDetail($"got response={reqExc.ResponseCode} from destination {destinationPeer}");
                     if (reqExc.ResponseCode == ResponseOrFailureCode.failure_numberOfHopsRemainingReachedZero)
                     {
                         await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_numberOfHopsRemainingReachedZero);
@@ -113,6 +113,11 @@ namespace Dcomms.DRP
                         logger.WriteToLog_needsAttention($"sourcePeer={routedRequest.ReceivedFromNeighborNullable} is disposed during proxying 35346232");
                         return false;
                     }
+                    if (reqExc.ResponseCode == ResponseOrFailureCode.failure_routeIsUnavailable)
+                    {
+                        req.NumberOfHopsRemaining++; // roll back previous decrement for a new trial
+                    }
+
                     return true; // will retry
                 }
                 catch (Exception reqExc)
