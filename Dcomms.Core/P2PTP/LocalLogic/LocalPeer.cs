@@ -127,7 +127,7 @@ namespace Dcomms.P2PTP.LocalLogic
        
         public void ReinitializeByGui()
         {
-            Manager.InvokeInManagerThread(Manager.Reinitialize);
+            Manager.InvokeInManagerThread(Manager.Reinitialize, "ReinitializeByGui1234");
         }
        
         /// <summary>
@@ -155,7 +155,7 @@ namespace Dcomms.P2PTP.LocalLogic
         {
             WriteToLog(extension.ExtensionId, message);
         }
-        void ILocalPeer.InvokeInManagerThread(Action a) => Manager?.InvokeInManagerThread(a);
+        void ILocalPeer.InvokeInManagerThread(Action a) => Manager?.InvokeInManagerThread(a, "ILocalPeer.InvokeInManagerThread23423");
     }
 
     internal static class LogModules

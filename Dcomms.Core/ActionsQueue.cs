@@ -11,18 +11,25 @@ namespace Dcomms
     {
         bool _isDisposing;
         readonly Action<Exception> _onException;
-        public ActionsQueue(Action<Exception> onException)
+        readonly ExecutionTimeStatsCollector _etsc;
+        public ActionsQueue(Action<Exception> onException, ExecutionTimeStatsCollector etsc)
         {
             if (onException == null) throw new ArgumentNullException(nameof(onException));
             _onException = onException;
+            _etsc = etsc;
         }
-        readonly Queue<Action> _queue = new Queue<Action>(); // locked
-        public void Enqueue(Action a) // external thread (receiver thread) // must be very fast lock
+        class QueuedAction
+        {
+            public Action A;
+            public string ActionVisibleId;
+        }
+        readonly Queue<QueuedAction> _queue = new Queue<QueuedAction>(); // locked
+        public void Enqueue(Action a, string actionVisibleId) // external thread (receiver thread) // must be very fast lock
         {
             lock (_queue)
             {
                 if (_queue.Count > 5000) throw new InsufficientResourcesException();
-                _queue.Enqueue(a);
+                _queue.Enqueue(new QueuedAction { A = a, ActionVisibleId = actionVisibleId });
             }
         }
         public int Count
@@ -33,13 +40,13 @@ namespace Dcomms
                     return _queue.Count;
             }
         }
-        public Task<bool> EnqueueAsync()
+        public Task<bool> EnqueueAsync(string actionVisibleId)
         {
             var tcs = new TaskCompletionSource<bool>();
             Enqueue(() =>
             {
                 tcs.SetResult(true);
-            });
+            }, actionVisibleId);
             return tcs.Task;
         }
         public void ExecuteQueued()
@@ -47,7 +54,7 @@ namespace Dcomms
             var x = Thread.CurrentThread.ManagedThreadId;
             for (; ; )
             {
-                Action a;
+                QueuedAction a;
                 lock (_queue)
                 {
                     a = _queue.Count != 0 ? _queue.Dequeue() : null;
@@ -57,7 +64,10 @@ namespace Dcomms
 
                 try
                 {
-                    a();
+                    var sw = Stopwatch.StartNew();
+                    a.A();
+                    sw.Stop();
+                    _etsc.OnMeasuredExecutionTime(a.ActionVisibleId, sw.Elapsed.TotalMilliseconds);
                 }
                 catch (Exception exc)
                 {
@@ -78,7 +88,7 @@ namespace Dcomms
         #region delayed events
         static readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         private static TimeSpan Time => _stopwatch.Elapsed;
-        public void EnqueueDelayed(TimeSpan delay, Action a) // is executed only engine thread
+        public void EnqueueDelayed(TimeSpan delay, Action a, string actionVisibleId) // is executed only engine thread
         {
             //if (delay.TotalMinutes > 10)
             //{
@@ -91,7 +101,7 @@ namespace Dcomms
             var eventsSortedByDueTime = _delayedActionsSortedByDueTime[eventsSortedByDueTimeIndex]; 
             // select one of linked lists (queues), sequentially.   using of only 1 linked list is slow
             var t = Time + delay;
-            var e = new DelayedAction(a, t);
+            var e = new DelayedAction(a, actionVisibleId, t);
 
             // linkedlist example:  100sec   102sec  104sec   108sec
             //      inserting:           105sec     108sec    109sec     99sec
@@ -111,22 +121,24 @@ namespace Dcomms
 
             eventsSortedByDueTime.AddFirst(e);
         }
-        public Task<bool> WaitAsync(TimeSpan delay) // is executed only engine thread
+        public Task<bool> WaitAsync(TimeSpan delay, string actionVisibleId) // is executed only engine thread
         {
             var tcs = new TaskCompletionSource<bool>();
             EnqueueDelayed(delay, () =>
             {
                 tcs.SetResult(true);
-            });
+            }, actionVisibleId);
             return tcs.Task;
         }
                         
         private class DelayedAction
         {
             public readonly Action EventHandler;
+            public readonly string ActionVisibleId;
             public readonly TimeSpan DueTime;
-            public DelayedAction(Action eventHandler, TimeSpan dueTime)
+            public DelayedAction(Action eventHandler, string actionVisibleId, TimeSpan dueTime)
             {
+                ActionVisibleId = actionVisibleId;
                 this.EventHandler = eventHandler;
                 this.DueTime = dueTime;
             }
@@ -162,7 +174,10 @@ namespace Dcomms
                     // execute item
                     try
                     {
+                        var sw = Stopwatch.StartNew();
                         e.EventHandler();
+                        sw.Stop();
+                        _etsc.OnMeasuredExecutionTime(e.ActionVisibleId, sw.Elapsed.TotalMilliseconds);
                     }
                     catch (Exception exc)
                     {
@@ -175,7 +190,9 @@ namespace Dcomms
                 }
             }
         }
-        private int _eventsSortedByDueTimeCounter = 0;    
+        private int _eventsSortedByDueTimeCounter = 0;
         #endregion
+
+
     }
 }

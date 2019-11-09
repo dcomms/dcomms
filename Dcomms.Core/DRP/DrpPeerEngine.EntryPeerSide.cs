@@ -179,7 +179,7 @@ namespace Dcomms.DRP
             EngineThreadQueue.Enqueue(() =>
             {
                 _ = ProcessRegisterReqAtoEpPacket2Async(requesterEndpoint, req, reqReceivedAtUtc);
-            });
+            }, "ProcessRegisterReqAtoEpPacket2Async436");
         }
         async Task ProcessRegisterReqAtoEpPacket2Async(IPEndPoint requesterEndpoint, RegisterRequestPacket req, DateTime reqReceivedTimeUtc)
         {

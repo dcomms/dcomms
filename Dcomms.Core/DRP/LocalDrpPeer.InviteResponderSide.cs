@@ -108,13 +108,13 @@ namespace Dcomms.DRP
 
                     var ack1UdpData = ack1.Encode_SetP2pFields(routedRequest.ReceivedFromNeighborNullable);
                     logger.WriteToLog_detail($"sending ACK1 to source peer, awaiting for NPACK");
-                    _ = routedRequest.ReceivedFromNeighborNullable.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack1UdpData, ack1.ReqP2pSeq16, ack1.GetSignedFieldsForNeighborHMAC);
+                    _ = routedRequest.ReceivedFromNeighborNullable.SendUdpRequestAsync_Retransmit_WaitForNPACK("ack1 1450", ack1UdpData, ack1.ReqP2pSeq16, ack1.GetSignedFieldsForNeighborHMAC);
                     // not waiting for NPACK, wait for ACK2
                     #endregion
 
                     // wait for ACK2
                     logger.WriteToLog_detail($"waiting for ACK2");
-                    var ack2UdpData = await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, routedRequest.ReceivedFromNeighborNullable.RemoteEndpoint,
+                    var ack2UdpData = await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 23467789", null, routedRequest.ReceivedFromNeighborNullable.RemoteEndpoint,
                         InviteAck2Packet.GetScanner(logger, req, routedRequest.ReceivedFromNeighborNullable));
                     logger.WriteToLog_detail($"received ACK2");
                     var ack2 = InviteAck2Packet.Decode(ack2UdpData);
@@ -155,7 +155,7 @@ namespace Dcomms.DRP
                     var cfmUdpData = cfm.Encode_SetP2pFields(routedRequest.ReceivedFromNeighborNullable);
 
                     logger.WriteToLog_detail($"sending CFM to source peer, waiting for NPACK");
-                    await routedRequest.ReceivedFromNeighborNullable.SendUdpRequestAsync_Retransmit_WaitForNPACK(cfmUdpData, cfm.ReqP2pSeq16, cfm.GetSignedFieldsForNeighborHMAC);
+                    await routedRequest.ReceivedFromNeighborNullable.SendUdpRequestAsync_Retransmit_WaitForNPACK("cvm 1234589", cfmUdpData, cfm.ReqP2pSeq16, cfm.GetSignedFieldsForNeighborHMAC);
                     logger.WriteToLog_detail($"received NPACK to CFM");
 
                     session.DeriveSharedPingPongHmacKey(req, ack1, ack2, cfm);

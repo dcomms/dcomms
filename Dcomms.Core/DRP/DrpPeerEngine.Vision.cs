@@ -303,6 +303,31 @@ namespace Dcomms.DRP
         //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide) <= AttentionLevel.mediumPain)
         //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_inv_responderSide, AttentionLevel.mediumPain, $"exception while accepting invite: {exc}", req, localPeer);
         //}
+
+
+
+
+        DateTime? _lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain = null;
+        DateTime? _lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain = null;
+        void OnMeasuredEngineThreadQueueDelay(DateTime dtUtc, double delayMs)
+        {
+            if (delayMs > 100)
+            {
+                if (_lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain == null || (dtUtc - _lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain.Value).TotalMilliseconds > 10000)
+                {
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_engineThread, AttentionLevel.lightPain, $"high delay in engine thread queue: {delayMs}ms. {ETSC.PeakExecutionTimeStats}");
+                    _lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain = dtUtc;
+                }
+            }
+            if (delayMs > 500)
+            {
+                if (_lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain == null || (dtUtc - _lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain.Value).TotalMilliseconds > 10000)
+                {
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_engineThread, AttentionLevel.mediumPain, $"high delay in engine thread queue: {delayMs}ms. {ETSC.PeakExecutionTimeStats}");
+                    _lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain = dtUtc;
+                }
+            }
+        }
     }
 
 

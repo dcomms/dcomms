@@ -20,13 +20,13 @@ namespace Dcomms.DRP
         LinkedList<PendingLowLevelUdpRequest> _pendingLowLevelUdpRequests = new LinkedList<PendingLowLevelUdpRequest>(); 
 
         /// <param name="waitNhaFromNeighborNullable">is used to verify NPACK.NeighborHMAC</param>
-        internal async Task<NeighborPeerAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, 
+        internal async Task<NeighborPeerAckPacket> OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(string completionActionVisibleId, byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, 
             RequestP2pSequenceNumber16 reqP2pSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
             var npaScanner = NeighborPeerAckPacket.GetScanner(reqP2pSeq16, waitNhaFromNeighborNullable, npaRequestFieldsForNeighborHmacNullable);
             if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"waiting for NPACK, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} npaSeq={reqP2pSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
-                     new PendingLowLevelUdpRequest(responderEndpoint,
+                     new PendingLowLevelUdpRequest(completionActionVisibleId, responderEndpoint,
                          npaScanner, 
                          DateTimeNowUtc, Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
                          requestPacketDataNullable,                      
@@ -48,10 +48,10 @@ namespace Dcomms.DRP
             return nextHopResponsePacket;
         }
 
-        internal async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, double? expirationTimeoutS = null)
+        internal async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(string completionActionVisibleId, byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, double? expirationTimeoutS = null)
         {
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
-                     new PendingLowLevelUdpRequest(responderEndpoint,
+                     new PendingLowLevelUdpRequest(completionActionVisibleId, responderEndpoint,
                          responseScanner, DateTimeNowUtc, expirationTimeoutS ?? Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
                          requestPacketDataNullable,
                          Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
@@ -113,9 +113,10 @@ namespace Dcomms.DRP
                     var nextItem = item.Next;
                     _pendingLowLevelUdpRequests.Remove(item);
                     
-                    WriteToLog_udp_lightPain($"timer expired, removed pending request {request}");                   
+                    WriteToLog_udp_lightPain($"timer expired, removed pending request {request}");
 
-                    request.TaskCompletionSource.SetResult(null);
+                    using (var tr = CreateTracker(request.CompletionActionVisibleId))
+                        request.TaskCompletionSource.SetResult(null);                   
 
                     if (_CancelPendingRequest_WasInvoked)
                     {
@@ -143,6 +144,8 @@ namespace Dcomms.DRP
         /// </returns>
         bool PendingUdpRequests_ProcessPacket(IPEndPoint responderEndpoint, byte[] udpData, DateTime receivedAtUtc)
         {
+            using var tracker = CreateTracker("PendingUdpRequests_ProcessPacket");
+
             // todo optimize tis by storing pending requests indexed
             for (var item = _pendingLowLevelUdpRequests.First; item != null; item = item.Next)
             {
@@ -162,13 +165,15 @@ namespace Dcomms.DRP
                     {
                         _pendingLowLevelUdpRequests.Remove(item);
                         request.ResponseReceivedAtUtc = receivedAtUtc;
-                        request.TaskCompletionSource.SetResult(udpData);
+                        tracker.Dispose();
+                        using (var tr2 = CreateTracker(request.CompletionActionVisibleId))
+                            request.TaskCompletionSource.SetResult(udpData);
                         return true;
                     }
                 }
                 catch (Exception exc)
                 {
-                    HandleExceptionInReceiverThread(exc);
+                    HandleExceptionInEngineThread(exc);
                 }
             }
 
@@ -210,8 +215,7 @@ namespace Dcomms.DRP
             if (_respondersToRetransmittedRequests.Count > 200)
                 WriteToLog_udp_lightPain($"_respondersToRetransmittedRequests.Count={_respondersToRetransmittedRequests.Count}");
         }
-
-
+        
         bool RespondersToRetransmittedRequests_ProcessPacket(IPEndPoint requesterEndpoint, byte[] udpData)
         {
             var key = new RequestKey(udpData, requesterEndpoint);
@@ -224,7 +228,6 @@ namespace Dcomms.DRP
             }
             else return false;
         }
-
         void RespondersToRetransmittedRequests_OnTimer100ms(DateTime timeNowUTC)
         {
             for (var item = _respondersToRetransmittedRequestsOldestFirst.First; item != null;)
@@ -256,13 +259,15 @@ namespace Dcomms.DRP
         public DateTime ExpirationTimeUTC;
         public DateTime? NextRetransmissionTimeUTC; // is null when no need to retransmit request packet during the waiting
         public TaskCompletionSource<byte[]> TaskCompletionSource = new TaskCompletionSource<byte[]>();
+        public readonly string CompletionActionVisibleId;
         public DateTime? ResponseReceivedAtUtc;
         double? _currentRetransmissionTimeoutS;
         readonly double _expirationTimeoutS;
-        public PendingLowLevelUdpRequest(IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, DateTime timeUtc,
+        public PendingLowLevelUdpRequest(string completionActionVisibleId, IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, DateTime timeUtc,
             double expirationTimeoutS,
             byte[] requestPacketDataNullable = null, double? initialRetransmissionTimeoutS = null, double? retransmissionTimeoutIncrement = null)
         {
+            CompletionActionVisibleId = completionActionVisibleId;
             _retransmissionTimeoutIncrement = retransmissionTimeoutIncrement;
             ExpirationTimeUTC = timeUtc.AddSeconds(expirationTimeoutS);
             _currentRetransmissionTimeoutS = initialRetransmissionTimeoutS;

@@ -147,16 +147,16 @@ namespace Dcomms.DRP
                     if (routedRequest.ReceivedFromNeighborNullable == null)
                     {   // wait for ACK2, retransmitting ACK1
                         logger.WriteToLog_detail($"sending ACK1, waiting for ACK2");
-                        ack2UdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(ack1UdpData, routedRequest.ReceivedFromEndpoint, ack2Scanner);
+                        ack2UdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 33469", ack1UdpData, routedRequest.ReceivedFromEndpoint, ack2Scanner);
                     }
                     else
                     {   // retransmit ACK1 until NPACK (via P2P); at same time wait for ACK
                         logger.WriteToLog_detail($"sending ACK1, awaiting for NPACK");
-                        _ = OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack1UdpData, routedRequest.ReceivedFromEndpoint,
+                        _ = OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("ack1 423087", ack1UdpData, routedRequest.ReceivedFromEndpoint,
                             ack1.ReqP2pSeq16, routedRequest.ReceivedFromNeighborNullable, ack1.GetSignedFieldsForNeighborHMAC);
                         // not waiting for NPACK, wait for ACK
                         logger.WriteToLog_detail($"waiting for ACK2");                        
-                        ack2UdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, routedRequest.ReceivedFromEndpoint, ack2Scanner);                
+                        ack2UdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 46051", null, routedRequest.ReceivedFromEndpoint, ack2Scanner);                
                     }
 
                     logger.WriteToLog_detail($"received ACK2");
@@ -172,7 +172,7 @@ namespace Dcomms.DRP
                     #region send ping, verify pong
                     var ping = newConnectionToNeighbor.CreatePing(true, false, acceptAt.ConnectedNeighborsBusySectorIds, acceptAt.AnotherNeighborToSameSectorExists(newConnectionToNeighbor));
                     
-                    var pendingPingRequest = new PendingLowLevelUdpRequest(newConnectionToNeighbor.RemoteEndpoint,
+                    var pendingPingRequest = new PendingLowLevelUdpRequest("pendingPingRequest 693", newConnectionToNeighbor.RemoteEndpoint,
                                     PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, ping.PingRequestId32), DateTimeNowUtc,
                                     Configuration.InitialPingRequests_ExpirationTimeoutS,
                                     ping.Encode(),
@@ -212,7 +212,7 @@ namespace Dcomms.DRP
             {
                 var regCfmScanner = RegisterConfirmationPacket.GetScanner(logger, sourcePeer, req);
                 logger.WriteToLog_detail($"waiting for CFM");
-                var regCfmUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, requesterEndpoint, regCfmScanner, Configuration.CfmTimoutS);
+                var regCfmUdpPayload = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("cfm 123575", null, requesterEndpoint, regCfmScanner, Configuration.CfmTimoutS);
                 logger.WriteToLog_detail($"received CFM");
                 var registerCfmPacket = RegisterConfirmationPacket.DecodeAndOptionallyVerify(regCfmUdpPayload, req, newConnectionToNeighbor);
                 logger.WriteToLog_detail($"verified CFM");

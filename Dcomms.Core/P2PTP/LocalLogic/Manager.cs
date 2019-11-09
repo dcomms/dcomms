@@ -20,9 +20,9 @@ namespace Dcomms.P2PTP.LocalLogic
         /// is executed by manager thread
         /// </summary>
         readonly ActionsQueue _actionsQueue;
-        internal void InvokeInManagerThread(Action a)
+        internal void InvokeInManagerThread(Action a, string actionVisibleId)
         {
-            _actionsQueue.Enqueue(a);
+            _actionsQueue.Enqueue(a, actionVisibleId);
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace Dcomms.P2PTP.LocalLogic
         {
             _localPeer = localPeer;
             localPeer.Manager = this;
-            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(LogModules.GeneralManager, exc));
+            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(LogModules.GeneralManager, exc), new ExecutionTimeStatsCollector());
 
             if (_localPeer.Configuration.Coordinators != null)
             {      
@@ -219,7 +219,7 @@ namespace Dcomms.P2PTP.LocalLogic
                         ProcessReceivedHello_SetupRequestFromNewPeer(helloPacket, remoteEndpoint, socket, null, packetReceivedTimestamp32);
                     }
                 }
-            });
+            }, "ProcessReceivedHello634569");
         }
 
         bool RemoteVersionIsAcceptableForNewConnection(PeerHelloPacket remoteHello)
@@ -611,7 +611,7 @@ namespace Dcomms.P2PTP.LocalLogic
                 }
                 else
                     _localPeer.Firewall.OnUnauthenticatedReceivedPacket(remoteEndpoint);               
-            }); 
+            }, "ProcessReceivedSharedPeers5670"); 
         }
         void ProcessReceivedPeersList(ConnectedPeer connectedPeer, PeersListPacketIpv4 peersListPacket, IPEndPoint remoteEndpoint)
         {
@@ -673,7 +673,7 @@ namespace Dcomms.P2PTP.LocalLogic
                     if (stream.Extensions.TryGetValue(extension, out var streamExtension))
                         streamExtension.OnReceivedSignalingPacket(reader);
                 }
-            });
+            }, "ProcessReceivedExtensionSignalingPacket3458");
         }
     }
 }

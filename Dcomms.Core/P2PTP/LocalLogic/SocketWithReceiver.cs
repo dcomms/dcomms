@@ -34,7 +34,7 @@ namespace Dcomms.P2PTP.LocalLogic
         public SocketWithReceiver(LocalPeer localPeer, UdpClient udpSocket)
         {
             _localPeer = localPeer;
-            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(LogModules.GeneralManager, exc));
+            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(LogModules.GeneralManager, exc), new ExecutionTimeStatsCollector());
             UdpSocket = udpSocket;
 
             _thread = new Thread(ThreadEntry);
@@ -60,7 +60,7 @@ namespace Dcomms.P2PTP.LocalLogic
                 }
                 else
                     _streams.Remove(stream.StreamId);
-            });
+            }, "OnCreatedDestroyedStream5259");
         }
 
         IirFilterCounter _pps = new IirFilterCounter(TimeSpan.TicksPerMillisecond * 100, TimeSpan.TicksPerSecond);

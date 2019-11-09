@@ -209,7 +209,7 @@ namespace Dcomms.DRP
                     }
                     catch (RequestRejectedException exc)
                     {
-                        Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"failed to extend neighbors for {this}: {exc}", null, null);
+                        Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"failed to extend neighbors for {this}: {exc.Message}", null, null);
                     }
                     catch (Exception exc)
                     {
@@ -279,7 +279,7 @@ namespace Dcomms.DRP
                 Engine.WriteToLog_p2p_higherLevelDetail(worstNeighbor, $"destroying worst P2P connection with neighbor. neighbors count = {ConnectedNeighbors.Count}", null);
                 var ping = worstNeighbor.CreatePing(false, true, 0, false);
 
-                var pendingPingRequest = new PendingLowLevelUdpRequest(worstNeighbor.RemoteEndpoint,
+                var pendingPingRequest = new PendingLowLevelUdpRequest("pendingPingRequest 351", worstNeighbor.RemoteEndpoint,
                                 PongPacket.GetScanner(worstNeighbor.LocalNeighborToken32, ping.PingRequestId32), Engine.DateTimeNowUtc,
                                 Engine.Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
                                 ping.Encode(),
@@ -296,7 +296,7 @@ namespace Dcomms.DRP
                         Engine.WriteToLog_p2p_higherLevelDetail(worstNeighbor, $"destroying worst P2P connection after teardown state timeout", null);
                         worstNeighbor.Dispose();
                     }
-                });
+                }, "estroying worst P2P connection 2146");
             }
         }
 
@@ -366,7 +366,7 @@ namespace Dcomms.DRP
                 {
                     Engine.HandleGeneralException("BeginConnectToEPs failed", exc);
                 }
-            });
+            }, "BeginConnectToEPs4695");
 
         }
     }

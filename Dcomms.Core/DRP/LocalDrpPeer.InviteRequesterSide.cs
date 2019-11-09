@@ -46,7 +46,7 @@ namespace Dcomms.DRP
                     logger?.WriteToLog_mediumPain($"sending INVITE failed: {exc}");
                     cb?.Invoke(exc);
                 }
-            });
+            }, "BeginSendShortSingleMessage6342");
         }
 
 
@@ -91,10 +91,10 @@ namespace Dcomms.DRP
                     logger.WriteToLog_detail($"sending {req}, waiting for NPACK");
 
                     var sentRequest = new SentRequest(Engine, logger, destinationPeer.RemoteEndpoint, destinationPeer, reqUdpData, req.ReqP2pSeq16, InviteAck1Packet.GetScanner(logger, req, destinationPeer));
-                    var ack1UdpData = await sentRequest.SendRequestAsync();
+                    var ack1UdpData = await sentRequest.SendRequestAsync("ack1 4146");
                                        
                     #region wait for ACK1
-                    await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(reqUdpData, req.ReqP2pSeq16, req.GetSignedFieldsForNeighborHMAC);
+                    await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK("ack1 26892", reqUdpData, req.ReqP2pSeq16, req.GetSignedFieldsForNeighborHMAC);
                
                     // NeighborHMAC and NeighborToken32 are already verified by scanner
                     ack1 = InviteAck1Packet.Decode(ack1UdpData);
@@ -163,13 +163,13 @@ namespace Dcomms.DRP
                 var ack2UdpData = ack2.Encode_SetP2pFields(destinationPeer);
 
                 logger.WriteToLog_detail($"sending ACK2, waiting for NPACK");
-                await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2UdpData, ack2.ReqP2pSeq16, ack2.GetSignedFieldsForNeighborHMAC);
+                await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK("ack2 234575672", ack2UdpData, ack2.ReqP2pSeq16, ack2.GetSignedFieldsForNeighborHMAC);
                 logger.WriteToLog_detail($"received NPACK");
                 #endregion
 
                 #region wait for CFM
                 logger.WriteToLog_detail($"waiting for CFM");
-                var cfmUdpData = await Engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
+                var cfmUdpData = await Engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest("cfm 1235695", destinationPeer.RemoteEndpoint,
                                 InviteConfirmationPacket.GetScanner(logger, req, destinationPeer),
                                 Engine.DateTimeNowUtc, Engine.Configuration.CfmTimoutS
                                 ));

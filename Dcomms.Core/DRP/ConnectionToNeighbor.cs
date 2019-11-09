@@ -391,7 +391,7 @@ namespace Dcomms.DRP
             {
                 _engine.WriteToLog_p2p_detail(this, $"removing neighborToken16={LocalNeighborToken32.Token16.ToString("X4")} from table", null);
                 _engine.ConnectedPeersByToken16[LocalNeighborToken32.Token16] = null;   
-            });    
+            }, "removing neighborToken16 234523");    
         }
 
         #region ping pong
@@ -545,7 +545,7 @@ namespace Dcomms.DRP
                             _engine.WriteToLog_p2p_higherLevelDetail(this, "destroying P2P connection after teardown state timeout", null);
                             this.Dispose();
                         }
-                    });
+                    }, "destroying P2P connection after teardown 23458");
                 }
             }
             catch (Exception exc)
@@ -647,10 +647,10 @@ namespace Dcomms.DRP
         {
             _engine.SendPacket(udpPayload, RemoteEndpoint);
         }
-        internal async Task SendUdpRequestAsync_Retransmit_WaitForNPACK(byte[] requestUdpData, RequestP2pSequenceNumber16 reqP2pSeq16, 
+        internal async Task SendUdpRequestAsync_Retransmit_WaitForNPACK(string completionActionVisibleId, byte[] requestUdpData, RequestP2pSequenceNumber16 reqP2pSeq16, 
             Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
-            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(requestUdpData, RemoteEndpoint, reqP2pSeq16, this, npaRequestFieldsForNeighborHmacNullable);
+            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(completionActionVisibleId, requestUdpData, RemoteEndpoint, reqP2pSeq16, this, npaRequestFieldsForNeighborHmacNullable);
         }
                
         internal void GetResponderRegistrationConfirmationSignatureFields(BinaryWriter w)

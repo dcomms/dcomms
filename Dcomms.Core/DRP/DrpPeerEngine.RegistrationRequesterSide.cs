@@ -26,7 +26,7 @@ namespace Dcomms.DRP
             {               
                 var r = await BeginRegister2(registrationConfiguration, drpPeerApp);
                 cb?.Invoke(r);
-            });            
+            }, "BeginRegister792");            
         }
 
         public void BeginCreateLocalPeer(LocalDrpPeerConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp, Action<LocalDrpPeer> cb = null)
@@ -35,7 +35,7 @@ namespace Dcomms.DRP
             {
                 var r = await CreateLocalPeerAsync(registrationConfiguration, drpPeerApp);
                 if (cb != null) cb(r);
-            });
+            }, "CreateLocalPeerAsync24807");
 
         }
 
@@ -55,7 +55,7 @@ namespace Dcomms.DRP
 
                 localDrpPeer.PublicIpApiProviderResponse = new IPAddress(localPublicIp);
                 WriteToLog_drpGeneral_detail($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse} ({(int)sw.Elapsed.TotalMilliseconds}ms)");
-                await EngineThreadQueue.EnqueueAsync();
+                await EngineThreadQueue.EnqueueAsync("resolved local public IP 3518");
                 WriteToLog_drpGeneral_detail($"@engine thread");
             }
             else
@@ -122,7 +122,7 @@ namespace Dcomms.DRP
                     // send register pow1 request
                     WriteToLog_reg_requesterSide_detail($"PoW1 took {(int)pow1SW.Elapsed.TotalMilliseconds}ms. sending PoW1 request", null, null);
                     var rpPow1ResponsePacketData = await SendUdpRequestAsync_Retransmit(
-                                new PendingLowLevelUdpRequest(epEndpoint,
+                                new PendingLowLevelUdpRequest("rpPow1 469",  epEndpoint,
                                     RegisterPow1ResponsePacket.GetScanner(registerPow1RequestPacket.Pow1RequestId),
                                     DateTimeNowUtc,
                                     Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
@@ -182,7 +182,7 @@ namespace Dcomms.DRP
                   //  var reqSW = Stopwatch.StartNew();
                     #region wait for ACK1
                     var sentRequest = new SentRequest(this, logger, epEndpoint, null, req.Encode_OptionallySignNeighborHMAC(null), req.ReqP2pSeq16, RegisterAck1Packet.GetScanner(logger, req));
-                    var ack1UdpData = await sentRequest.SendRequestAsync();
+                    var ack1UdpData = await sentRequest.SendRequestAsync("reg req ack1 367097");
 
                     var ack1 = RegisterAck1Packet.DecodeAndOptionallyVerify(logger, ack1UdpData, req, newConnectionToNeighbor);
                     logger.WriteToLog_detail($"verified ACK1. RequesterEndpoint={ack1.RequesterEndpoint}");
@@ -224,14 +224,14 @@ namespace Dcomms.DRP
 
                     logger.WriteToLog_detail($"sending ACK2 (in response to ACK1), waiting for NPACK");
                     RespondToRequestAndRetransmissions(ack1UdpData, ack2.Encode_OptionallySignNeighborHMAC(null), epEndpoint);
-                    await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(null, epEndpoint, ack2.ReqP2pSeq16);
+                    await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("ack2 46873", null, epEndpoint, ack2.ReqP2pSeq16);
                     #endregion
 
                     var neighborWaitTimeMs = reqToAck1TimeMs * 0.5 - 250; if (neighborWaitTimeMs < 0) neighborWaitTimeMs = 0;
                     if (neighborWaitTimeMs > 20)
                     {
                         logger.WriteToLog_detail($"awaiting {(int)neighborWaitTimeMs}ms before PING...");
-                        await EngineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(neighborWaitTimeMs)); // wait until the ACK2 reaches neighbor N via peers
+                        await EngineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(neighborWaitTimeMs), "before PING 34589"); // wait until the ACK2 reaches neighbor N via peers
                         logger.WriteToLog_detail($"... awaiting is complete");
                     }
 
@@ -239,7 +239,7 @@ namespace Dcomms.DRP
 
                     #region send ping request directly to neighbor N, retransmit               
                     var pingRequest = newConnectionToNeighbor.CreatePing(true, false, localDrpPeer.ConnectedNeighborsBusySectorIds, localDrpPeer.AnotherNeighborToSameSectorExists(newConnectionToNeighbor));
-                    pendingPingRequest = new PendingLowLevelUdpRequest(newConnectionToNeighbor.RemoteEndpoint,
+                    pendingPingRequest = new PendingLowLevelUdpRequest("pingRequest 3850", newConnectionToNeighbor.RemoteEndpoint,
                                     PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, pingRequest.PingRequestId32),
                                     DateTimeNowUtc,
                                     Configuration.InitialPingRequests_ExpirationTimeoutS,
@@ -281,7 +281,7 @@ namespace Dcomms.DRP
                         w => newConnectionToNeighbor.GetRequesterRegistrationConfirmationSignatureFields(w, cfm.ResponderRegistrationConfirmationSignature),
                         localDrpPeer.Configuration.LocalPeerRegistrationPrivateKey);
                     logger.WriteToLog_detail($"sending CFM, waiting for NPACK");
-                    await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(cfm.Encode_OptionallySignNeighborHMAC(null), epEndpoint, cfm.ReqP2pSeq16);
+                    await OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("cfm 32107", cfm.Encode_OptionallySignNeighborHMAC(null), epEndpoint, cfm.ReqP2pSeq16);
                     logger.WriteToLog_detail($"received NPACK to CFM");
                 }
                 catch (Exception exc)

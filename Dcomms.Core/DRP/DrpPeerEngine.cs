@@ -36,6 +36,8 @@ namespace Dcomms.DRP
         Thread _receiverThread;
         UdpClient _socket;
         internal ActionsQueue EngineThreadQueue;
+        public readonly ExecutionTimeStatsCollector ETSC = new ExecutionTimeStatsCollector();
+        public ExecutionTimeTracker CreateTracker(string actionVisibleId) => new ExecutionTimeTracker(ETSC, actionVisibleId);
         readonly Random _insecureRandom;
         internal Random InsecureRandom => _insecureRandom;
         Dictionary<RegistrationId, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationId, LocalDrpPeer>(); // accessed only by engine thread     
@@ -71,7 +73,7 @@ namespace Dcomms.DRP
             VSIC = new VectorSectorIndexCalculator(NumberOfDimensions);
             Initialize(configuration);
             _seq16Counter_AtoEP = (ushort)_insecureRandom.Next(ushort.MaxValue);
-            EngineThreadQueue = new ActionsQueue(exc => HandleExceptionInEngineThread(exc));
+            EngineThreadQueue = new ActionsQueue(exc => HandleExceptionInEngineThread(exc), ETSC);
 
             _socket = new UdpClient(configuration.LocalPort ?? 0);
             _receiverThread = new Thread(ReceiverThreadEntry);
@@ -142,6 +144,8 @@ namespace Dcomms.DRP
 
             EngineThreadQueue.Enqueue(() =>
             {
+                var delayMs = (DateTimeNowUtc - receivedAtUtc).TotalMilliseconds;
+                OnMeasuredEngineThreadQueueDelay(receivedAtUtc, delayMs);
                 if (RespondersToRetransmittedRequests_ProcessPacket(remoteEndpoint, udpData)) return;
                 if (PendingUdpRequests_ProcessPacket(remoteEndpoint, udpData, receivedAtUtc)) return;
 
@@ -228,7 +232,7 @@ namespace Dcomms.DRP
                         }
                         break;                  
                 }
-            });
+            }, $"ProcRecv {packetType}");
         }
         #endregion
 

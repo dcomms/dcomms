@@ -71,7 +71,7 @@ namespace Dcomms.DRP
                 {
                     var sentRequest = new SentRequest(Engine, logger, destinationPeer.RemoteEndpoint, destinationPeer, reqUdpData,
                         req.ReqP2pSeq16, InviteAck1Packet.GetScanner(logger, req, destinationPeer));
-                    ack1UdpData = await sentRequest.SendRequestAsync();
+                    ack1UdpData = await sentRequest.SendRequestAsync("inv proxy ack1 3457");
                 }               
                 catch (RequestRejectedException reqExc)
                 {
@@ -112,12 +112,12 @@ namespace Dcomms.DRP
                 var ack1UdpDataTx = ack1.Encode_SetP2pFields(routedRequest.ReceivedFromNeighborNullable);
 
                 logger.WriteToLog_detail($"sending ACK1, awaiting for NPACK");
-                _ = Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(ack1UdpDataTx, routedRequest.ReceivedFromEndpoint,
+                _ = Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("ack1 13536", ack1UdpDataTx, routedRequest.ReceivedFromEndpoint,
                     ack1.ReqP2pSeq16, routedRequest.ReceivedFromNeighborNullable, ack1.GetSignedFieldsForNeighborHMAC);
                 // not waiting for NPACK, wait for ACK1
                 logger.WriteToLog_detail($"waiting for ACK2");
 
-                var ack2UdpData = await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(null, routedRequest.ReceivedFromEndpoint, 
+                var ack2UdpData = await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 2346892", null, routedRequest.ReceivedFromEndpoint, 
                     InviteAck2Packet.GetScanner(logger, req, routedRequest.ReceivedFromNeighborNullable));
                 logger.WriteToLog_detail($"received ACK2");
                 var ack2 = InviteAck2Packet.Decode(ack2UdpData);
@@ -132,13 +132,13 @@ namespace Dcomms.DRP
                 // wait for NPACK
                 var ack2UdpDataTx = ack2.Encode_SetP2pFields(destinationPeer);
                 logger.WriteToLog_detail($"sending ACK2 to responder");
-                await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK(ack2UdpDataTx,
+                await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK("ack2 5344530", ack2UdpDataTx,
                     ack2.ReqP2pSeq16, ack2.GetSignedFieldsForNeighborHMAC);
                 logger.WriteToLog_detail($"received NPACK to ACK2 from destination peer");
 
                 // wait for CFM from responder
                 logger.WriteToLog_detail($"waiting for CFM from responder");
-                var cfmUdpData = await Engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest(destinationPeer.RemoteEndpoint,
+                var cfmUdpData = await Engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest("cfm 12358", destinationPeer.RemoteEndpoint,
                                 InviteConfirmationPacket.GetScanner(logger, req, destinationPeer),
                                     Engine.DateTimeNowUtc, Engine.Configuration.CfmTimoutS
                                 ));
@@ -154,7 +154,7 @@ namespace Dcomms.DRP
                 var cfmUdpDataTx = cfm.Encode_SetP2pFields(routedRequest.ReceivedFromNeighborNullable);
 
                 logger.WriteToLog_detail($"sending CFM to requester, waiting for NPACK");
-                await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(cfmUdpDataTx, routedRequest.ReceivedFromEndpoint,
+                await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("cfm 23468", cfmUdpDataTx, routedRequest.ReceivedFromEndpoint,
                     cfm.ReqP2pSeq16, routedRequest.ReceivedFromNeighborNullable, cfm.GetSignedFieldsForNeighborHMAC);
                 logger.WriteToLog_detail($"received NPACK to CFM from source peer");
             }

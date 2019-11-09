@@ -28,18 +28,18 @@ namespace Dcomms.Sandbox
         //const int EpMinDesiredNumberOfNeighbors = 8;
 
 
-        const int NumberOfPeers = 10;
+        const int NumberOfPeers = 100;
         const int NumberOfDimensions = 8;
         const int MinDesiredNumberOfNeighbors = 12;
         const int SoftMaxDesiredNumberOfNeighbors = 14;
         const int AbsoluteMaxDesiredNumberOfNeighbors = 18;
         const int MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 60;
-        const double NeighborhoodExtensionMinIntervalS = 0.5;
+        const double NeighborhoodExtensionMinIntervalS = 0.2;
         const int NumberOfEPs = 25;
         const int EpAbsoluteMaxDesiredNumberOfNeighbors = 40;
         const int EpSoftMaxDesiredNumberOfNeighbors = 30;
         const int EpMinDesiredNumberOfNeighbors = 13;
-        const int NumberOfPeersToStartMessagesTest = 8;
+        const int NumberOfPeersToStartMessagesTest = 20;
 
 
         const int EpLocalPort = 6789;
@@ -102,7 +102,7 @@ namespace Dcomms.Sandbox
                 x.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(1), () =>
                 {
                     xList_AfterEpRegistration_ContinueIfConnectedToNeighbors(xDrpTesterPeerApp, index);
-                });
+                }, "waiting for connection with neighbors 234580");
             });
         }
         void xList_AfterEpRegistration_ContinueIfConnectedToNeighbors(DrpTesterPeerApp x, int index)
@@ -120,7 +120,7 @@ namespace Dcomms.Sandbox
                 x.DrpPeerEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(1), () =>
                 {
                     xList_AfterEpRegistration_ContinueIfConnectedToNeighbors(x, index);
-                });
+                }, "xList_AfterEpRegistration_ContinueIfConnectedToNeighbors2345");
             }
         }
 
