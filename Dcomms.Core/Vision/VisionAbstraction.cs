@@ -1,6 +1,7 @@
 ﻿using Dcomms.CCP;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace Dcomms.Vision
@@ -52,6 +53,10 @@ namespace Dcomms.Vision
     /// </summary>
     public abstract class VisionChannel
     {
+        readonly Stopwatch _sw = Stopwatch.StartNew();
+        readonly DateTime _started = DateTime.Now;
+        public DateTime TimeNow => _started + _sw.Elapsed;
+
         public virtual AttentionLevel GetAttentionTo(string visionChannelSourceId, string moduleName) => AttentionLevel.deepDetail;
         public abstract void Emit(string visionChannelSourceId, string moduleName, AttentionLevel level, string message);
         public virtual void Emit(string visionChannelSourceId, string moduleName, double value, double? lightPainThresholdL, double? mediumPainThresholdL)

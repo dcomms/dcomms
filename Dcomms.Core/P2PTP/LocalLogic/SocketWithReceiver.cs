@@ -34,7 +34,7 @@ namespace Dcomms.P2PTP.LocalLogic
         public SocketWithReceiver(LocalPeer localPeer, UdpClient udpSocket)
         {
             _localPeer = localPeer;
-            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(LogModules.GeneralManager, exc), new ExecutionTimeStatsCollector());
+            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(LogModules.GeneralManager, exc), new ExecutionTimeStatsCollector(null));
             UdpSocket = udpSocket;
 
             _thread = new Thread(ThreadEntry);

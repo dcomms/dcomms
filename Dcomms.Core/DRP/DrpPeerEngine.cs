@@ -36,8 +36,21 @@ namespace Dcomms.DRP
         Thread _receiverThread;
         UdpClient _socket;
         internal ActionsQueue EngineThreadQueue;
-        public readonly ExecutionTimeStatsCollector ETSC = new ExecutionTimeStatsCollector();
-        public ExecutionTimeTracker CreateTracker(string actionVisibleId) => new ExecutionTimeTracker(ETSC, actionVisibleId);
+        public readonly ExecutionTimeStatsCollector ETSC;
+        public ExecutionTimeTracker CreateTracker(string actionVisibleId)
+        {
+            Action<string> wtl = null;
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general) <= AttentionLevel.deepDetail)
+            {
+                wtl = (msg) =>
+                {
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general, AttentionLevel.deepDetail, msg);
+                };               
+            }
+
+
+            return  new ExecutionTimeTracker(ETSC, actionVisibleId, wtl);
+        }
         readonly Random _insecureRandom;
         internal Random InsecureRandom => _insecureRandom;
         Dictionary<RegistrationId, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationId, LocalDrpPeer>(); // accessed only by engine thread     
@@ -66,6 +79,7 @@ namespace Dcomms.DRP
         public int NumberOfDimensions => Configuration.SandboxModeOnly_NumberOfDimensions;
         public DrpPeerEngine(DrpPeerEngineConfiguration configuration)
         {
+            ETSC = new ExecutionTimeStatsCollector(() => configuration.VisionChannel.TimeNow);
             configuration.VisionChannel?.RegisterVisibleModule(configuration.VisionChannelSourceId, "DrpPeerEngine", this);
 
             _insecureRandom = configuration.InsecureRandomSeed.HasValue ? new Random(configuration.InsecureRandomSeed.Value) : new Random();

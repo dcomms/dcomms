@@ -49,21 +49,14 @@ namespace Dcomms.DRP
         public async Task<byte[]> SendRequestAsync(string completionActionVisibleId)
         {
             // wait for NPACK (-accepted or -failure)
-            _logger.WriteToLog_detail($">> SendRequestAsync() _requestUdpData= {MiscProcedures.GetArrayHashCodeString(_requestUdpData)}");
-            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(completionActionVisibleId+"_after_npack", _requestUdpData, _destinationEndpoint, _sentReqP2pSeq16);
-            var tr2 = _engine.CreateTracker(completionActionVisibleId + "_after_npack2");
-            _logger.WriteToLog_detail($"@SendRequestAsync() received NPACK");
-
-            var ack1Task = WaitForAck1Async(completionActionVisibleId);
-            var failureTask = WaitForFailureAsync(completionActionVisibleId);
-            tr2.Dispose();
-
+            _logger.WriteToLog_detail($"{completionActionVisibleId} >> SendRequestAsync() _requestUdpData={MiscProcedures.GetArrayHashCodeString(_requestUdpData)}");
+            await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(completionActionVisibleId + "_first_npack", _requestUdpData, _destinationEndpoint, _sentReqP2pSeq16);
+          
             // wait for ACK1 OR FAILURE
             await Task.WhenAny(
-                ack1Task,
-                failureTask
+                WaitForAck1Async(completionActionVisibleId + "_ack1"),
+                WaitForFailureAsync(completionActionVisibleId + "_failure")
                 );
-            using var tr3 = _engine.CreateTracker(completionActionVisibleId + "_after_npack3");
             if (_pendingAck1Request != null)
             {
                 _engine.CancelPendingRequest(_pendingAck1Request);
@@ -111,14 +104,17 @@ namespace Dcomms.DRP
             }
             else throw new InvalidOperationException();         
         }
+
         bool _waitForAck1Completed;
         PendingLowLevelUdpRequest _pendingAck1Request;
         async Task WaitForAck1Async(string completionActionVisibleId)
         {
+            var tr1 = _engine.CreateTracker("WaitForAck1Async");
             _logger.WriteToLog_detail($"waiting for ACK1");
             _pendingAck1Request = new PendingLowLevelUdpRequest(completionActionVisibleId, _destinationEndpoint,
                             _ack1Scanner, _engine.DateTimeNowUtc, _engine.Configuration.Ack1TimoutS
                             );
+            tr1.Dispose();
             Ack1UdpData = await _engine.WaitForUdpResponseAsync(_pendingAck1Request);
             _pendingAck1Request = null;
             _waitForAck1Completed = true;
@@ -129,11 +125,13 @@ namespace Dcomms.DRP
         bool _waitForFailureCompleted;
         async Task WaitForFailureAsync(string completionActionVisibleId)
         {
+            var tr1 = _engine.CreateTracker("WaitForFailureAsync");
             var failureScanner = FailurePacket.GetScanner(_logger, _sentReqP2pSeq16, _destinationNeighborNullable); // the scanner verifies neighborHMAC
             _logger.WriteToLog_detail($"waiting for FAILURE");
             _pendingFailureRequest = new PendingLowLevelUdpRequest(completionActionVisibleId, _destinationEndpoint,
                             failureScanner, _engine.DateTimeNowUtc, _engine.Configuration.Ack1TimoutS
                             );
+            tr1.Dispose();
             _failureUdpData = await _engine.WaitForUdpResponseAsync(_pendingFailureRequest);
             _pendingFailureRequest = null;
             _waitForFailureCompleted = true;

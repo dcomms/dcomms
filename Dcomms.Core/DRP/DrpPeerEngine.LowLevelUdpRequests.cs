@@ -43,11 +43,12 @@ namespace Dcomms.DRP
             var nextHopResponsePacket = new NeighborPeerAckPacket(nextHopResponsePacketData);
             if (nextHopResponsePacket.ResponseCode != ResponseOrFailureCode.accepted)
             {
+                if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"got NPACK with {nextHopResponsePacket.ResponseCode} throwing exception");
                 throw new RequestRejectedException(nextHopResponsePacket.ResponseCode);
             }
             return nextHopResponsePacket;
         }
-
+        
         internal async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(string completionActionVisibleId, byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, double? expirationTimeoutS = null)
         {
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
@@ -146,7 +147,7 @@ namespace Dcomms.DRP
         {
             using var tracker = CreateTracker("PendingUdpRequests_ProcessPacket");
 
-            // todo optimize tis by storing pending requests indexed
+            // todo optimize this by storing pending requests indexed
             for (var item = _pendingLowLevelUdpRequests.First; item != null; item = item.Next)
             {
                 var request = item.Value;

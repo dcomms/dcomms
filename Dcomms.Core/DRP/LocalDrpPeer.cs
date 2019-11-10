@@ -91,18 +91,21 @@ namespace Dcomms.DRP
             {
                 if (routedRequest.ReceivedFromNeighborNullable != null && connectedPeer == routedRequest.ReceivedFromNeighborNullable)
                 {
-                    routedRequest.Logger.WriteToLog_detail($"skipping routing back to source peer {connectedPeer}");
+                    if (routedRequest.Logger.WriteToLog_deepDetail2_enabled)
+                        routedRequest.Logger.WriteToLog_deepDetail2($"skipping routing back to source peer {connectedPeer}");
                     continue;
                 }
                 if (routedRequest.TriedNeighbors.Contains(connectedPeer))
                 {
-                    routedRequest.Logger.WriteToLog_detail($"skipping routing to previously tried peer {connectedPeer}");
+                    if (routedRequest.Logger.WriteToLog_deepDetail2_enabled)
+                        routedRequest.Logger.WriteToLog_deepDetail2($"skipping routing to previously tried peer {connectedPeer}");
                     continue;
                 }
 
                 if (routedRequest.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
                 {
-                    routedRequest.Logger.WriteToLog_detail($"skipping routing to peer with same regID {connectedPeer}");
+                    if (routedRequest.Logger.WriteToLog_deepDetail2_enabled)
+                        routedRequest.Logger.WriteToLog_deepDetail2($"skipping routing to peer with same regID {connectedPeer}");
                     continue;
                 }
 
@@ -133,9 +136,9 @@ namespace Dcomms.DRP
         {
             if (this.Configuration.LocalPeerRegistrationId.Equals(destinationRegId) == true) return;
             var diff = RegistrationId.GetDifferenceVector(this.Configuration.LocalPeerRegistrationId, destinationRegId, CryptoLibrary, Engine.Configuration.SandboxModeOnly_NumberOfDimensions);                
-            TestDirection(logger, diff);
+            _ = TestDirection(logger, diff);
         }
-        void TestDirection(Logger logger, double[] vectorFromThisToDestination)
+        async Task TestDirection(Logger logger, double[] vectorFromThisToDestination, int iteration = 0)
         {
             // are all vectors along directionVector?
             bool neighbor_along_destinationVector_exists = false;
@@ -159,10 +162,27 @@ namespace Dcomms.DRP
             }
             if (neighbor_along_destinationVector_exists == false)
             {
-                logger.WriteToLog_lightPain_EmitListOfPeers($"no neighbors to destination {MiscProcedures.VectorToString(vectorFromThisToDestination)}", this);
+                if (iteration < 4)
+                {
+                    if (ConnectedNeighbors.Count < _configuration.AbsoluteMaxNumberOfNeighbors)
+                    {                    
+                        logger.WriteToLog_higherLevelDetail_EmitListOfPeers($"no neighbors to destination {MiscProcedures.VectorToString(vectorFromThisToDestination)}, sending REGISTER request... iteration={iteration}", this);
+                        
+                        // try to fix the pain: connect to neighbors at empty direction
+                        await ConnectToNewNeighborAsync(Engine.DateTimeNowUtc, true, vectorFromThisToDestination);
+                        if (iteration >= 2)
+                            await Engine.EngineThreadQueue.WaitAsync(TimeSpan.FromSeconds(10), "fixing empty direction 1237");
 
-                // try to fix the pain: connect to neighbors at empty direction
-                _ = ConnectToNewNeighborAsync(Engine.DateTimeNowUtc, true, vectorFromThisToDestination);
+                        await TestDirection(logger, vectorFromThisToDestination, iteration + 1);
+                    }
+                    else
+                        logger.WriteToLog_lightPain_EmitListOfPeers($"no neighbors to destination {MiscProcedures.VectorToString(vectorFromThisToDestination)} after {iteration} iterations. {ConnectedNeighbors.Count} connected neighbors already", this);
+
+                }
+                else
+                { // pain is not fixed 
+                    logger.WriteToLog_lightPain_EmitListOfPeers($"no neighbors to destination {MiscProcedures.VectorToString(vectorFromThisToDestination)} after {iteration} iterations. {ConnectedNeighbors.Count} connected neighbors", this);
+                }
             }
         }
 
@@ -301,21 +321,20 @@ namespace Dcomms.DRP
         }
 
 
-        void TestDirections(DateTime timeNowUtc)
+        async Task TestDirections(DateTime timeNowUtc)
         {
             if (ConnectedNeighborsCanBeUsedForNewRequests.Count() >= _configuration.MinDesiredNumberOfNeighbors)
             { // enough neighbors
-                if (_latestEmptyDirectionsTestTimeUtc == null || timeNowUtc > _latestEmptyDirectionsTestTimeUtc.Value.AddSeconds(20))
+                if (_latestEmptyDirectionsTestTimeUtc == null || timeNowUtc > _latestEmptyDirectionsTestTimeUtc.Value.AddSeconds(_configuration.TestDirectionsMinIntervalS))
                 {
                     _latestEmptyDirectionsTestTimeUtc = timeNowUtc;
-
-
+                    
                     var logger = new Logger(Engine, this, null, DrpPeerEngine.VisionChannelModuleName_p2p);
 
                     var numberOfDimensions = Engine.Configuration.SandboxModeOnly_NumberOfDimensions;
                     var vsic = new VectorSectorIndexCalculator(numberOfDimensions);
                     foreach (var directionVector in vsic.EnumerateDirections())
-                        TestDirection(logger, directionVector);
+                        await TestDirection(logger, directionVector);
 
                 }
             }
@@ -328,7 +347,7 @@ namespace Dcomms.DRP
             {
                 _ = ConnectToNewNeighborAsync(timeNowUtc, false, null);
                 NeighborsApoptosisProcedure(timeNowUtc);
-                TestDirections(timeNowUtc);
+                _ = TestDirections(timeNowUtc);
             }
             catch (Exception exc)
             {
@@ -384,6 +403,7 @@ namespace Dcomms.DRP
         public int? SoftMaxNumberOfNeighbors;// = 13; 
         public int? AbsoluteMaxNumberOfNeighbors;// = 20;
         public double? MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS;// = 30;
+        public double TestDirectionsMinIntervalS = 30;
 
         public static LocalDrpPeerConfiguration CreateWithNewKeypair(ICryptoLibrary cryptoLibrary)
         {

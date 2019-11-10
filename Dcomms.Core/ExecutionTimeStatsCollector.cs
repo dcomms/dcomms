@@ -8,10 +8,17 @@ namespace Dcomms
 {
     public class ExecutionTimeStatsCollector
     {
+        Func<DateTime> _getTimeNow;
+        public ExecutionTimeStatsCollector(Func<DateTime> getTimeNow)
+        {
+            _getTimeNow = getTimeNow;
+        }
+
         class PeakDelay
         {
             public string ActionVisibleId;
             public double PeakExecutionTimeMs;
+            public DateTime MeasurementTime;
         }
         Dictionary<string, PeakDelay> _peakDelays = new Dictionary<string, PeakDelay>(); // locked
             
@@ -31,6 +38,7 @@ namespace Dcomms
             if (executionTimeMs > pd.PeakExecutionTimeMs)
             {
                 pd.PeakExecutionTimeMs = executionTimeMs;
+                pd.MeasurementTime = _getTimeNow();
             }
         }
      //   string _peakExecutionTimeActionId;
@@ -43,9 +51,9 @@ namespace Dcomms
                 r.Append("peak delays:");
                 lock (_peakDelays)
                 {
-                    var pds = _peakDelays.Values.OrderByDescending(x=>x.PeakExecutionTimeMs).Take(5).ToList();
+                    var pds = _peakDelays.Values.OrderByDescending(x=>x.PeakExecutionTimeMs).Take(7).ToList();
                     foreach (var pd in pds)
-                        r.Append($"\r\n{pd.ActionVisibleId}: {pd.PeakExecutionTimeMs}ms");
+                        r.Append($"\r\n{pd.ActionVisibleId}: {pd.PeakExecutionTimeMs}ms at {pd.MeasurementTime.ToString("HH:mm:ss.fff")}");
                 }
                 return r.ToString();
             }
@@ -56,11 +64,15 @@ namespace Dcomms
         Stopwatch _sw;
         readonly ExecutionTimeStatsCollector _etsc;
         readonly string _actionVisibleId;
-        public ExecutionTimeTracker(ExecutionTimeStatsCollector etsc, string actionVisibleId)
+        readonly Action<string> _writeToLog;
+        public ExecutionTimeTracker(ExecutionTimeStatsCollector etsc, string actionVisibleId, Action<string> writeToLog)
         {
+            _writeToLog = writeToLog;
             _actionVisibleId = actionVisibleId;
             _etsc = etsc;
             _sw = Stopwatch.StartNew();
+
+            _writeToLog?.Invoke($"started tracker {actionVisibleId}");
         }
         public void Dispose()
         {
@@ -68,6 +80,7 @@ namespace Dcomms
             {
                 _sw.Stop();
                 _etsc.OnMeasuredExecutionTime(_actionVisibleId, _sw.Elapsed.TotalMilliseconds);
+                _writeToLog?.Invoke($"stopped tracker {_actionVisibleId}: {_sw.Elapsed.TotalMilliseconds}ms");
                 _sw = null;
             }
         }

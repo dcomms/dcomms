@@ -82,11 +82,13 @@ namespace Dcomms.DRP
                 {
                     var sentRequest = new SentRequest(this, logger, destinationPeer.RemoteEndpoint, destinationPeer, req.Encode_OptionallySignNeighborHMAC(destinationPeer),
                         req.ReqP2pSeq16, RegisterAck1Packet.GetScanner(logger, req, destinationPeer));
-                
+
                     // send (proxy) REQ to responder. wait for NPACK, verify NPACK.senderHMAC, retransmit REQ
                     // wait for ACK1 from destination peer
                     // verify NeighborHMAC
+                    // var ack1R = await sentRequest.SendRequestAsync_NoExc("ack1 34601"); ////////////////////////////////// new method
                     ack1UdpData = await sentRequest.SendRequestAsync("ack1 34601");
+                  //  logger.WriteToLog_detail("got ACK1 result");
 
                     if (routedRequest.ReceivedFromNeighborNullable?.IsDisposed == true)
                     {
@@ -98,10 +100,19 @@ namespace Dcomms.DRP
                         logger.WriteToLog_needsAttention($"destinationPeer={destinationPeer} is disposed during proxying 52460");
                         return false;
                     }
+
+                    //if (ack1R.ResponseCode != ResponseOrFailureCode.accepted)
+                    //{
+                    //    logger.WriteToLog_higherLevelDetail($"got response={ack1R.ResponseCode} from destination {destinationPeer}");
+                    //    if (ack1R.ResponseCode == ResponseOrFailureCode.failure_routeIsUnavailable)
+                    //        req.NumberOfHopsRemaining++; // roll back previous decrement for a new trial                      
+                    //    return true; // will retry
+                    //}
+                    //ack1UdpData = ack1R.UdpData;
                 }
                 catch (RequestRejectedException reqExc)
                 {
-                    logger.WriteToLog_higherLevelDetail($"got response={reqExc.ResponseCode} from destination {destinationPeer}");
+                    logger.WriteToLog_higherLevelDetail($"got exception: response={reqExc.ResponseCode} from destination {destinationPeer}");
                     if (reqExc.ResponseCode == ResponseOrFailureCode.failure_numberOfHopsRemainingReachedZero)
                     {
                         await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_numberOfHopsRemainingReachedZero);

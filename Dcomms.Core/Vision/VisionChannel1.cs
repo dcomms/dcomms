@@ -92,12 +92,9 @@ namespace Dcomms.Vision
         public LinkedList<LogMessage> _logMessagesNewestFirst = new LinkedList<LogMessage>(); // locked
         public bool EnableNewLogMessages { get; set; } = true;
         public int LogMessagesMaxCount { get; set; } = 2000000;
-
-        readonly Stopwatch _sw = Stopwatch.StartNew();
-        readonly DateTime _started = DateTime.Now;
-
+        
         public event PropertyChangedEventHandler PropertyChanged;
-        DateTime TimeNow => _started + _sw.Elapsed;
+
         public override void Emit(string sourceId, string moduleName, AttentionLevel level, string message)
         {
             if (!EnableNewLogMessages) return;
