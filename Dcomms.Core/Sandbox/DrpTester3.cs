@@ -47,8 +47,8 @@ namespace Dcomms.Sandbox
         }
 
         public string VisionChannelSourceIdPrefix { get; set; } = "L_";
-        public int NumberOfLocalInterconnectedEpEngines { get; set; } = 0;
-        public int NumberOfUserApps { get; set; } = 0;
+        public int NumberOfLocalInterconnectedEpEngines { get; set; } = 25;
+        public int NumberOfUserApps { get; set; } = 50;
 
         public bool Initialized { get; private set; }
 
@@ -87,7 +87,7 @@ namespace Dcomms.Sandbox
 
             Initialize.Execute(null);
         });
-        public ICommand InitializeUser => new DelegateCommand(() =>
+        public ICommand InitializeUsers => new DelegateCommand(() =>
         {
             RemoteEpEndPoints = new[] { new IPEndPoint(IPAddress.Parse("195.154.173.208"), 12000) };
             RaisePropertyChanged(() => RemoteEpEndPointsString);

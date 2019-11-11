@@ -58,35 +58,29 @@
                     <ColumnDefinition Width="Auto" MinWidth="190"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Text="number of engines/sockets:" />
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <TextBox MinWidth="50" Text="{Binding DrpTester3.NumberOfEngines, Mode=TwoWay}" />
-                    <Button Command="{Binding DrpTester3.IncreaseNumberOfEngines}" Content="increase" />
-                    
-                    <CheckBox x:Name="increaseNumberOfEnginesOnTimer" Content="increase on timer" />
-                </StackPanel>
+               
+              
 
-                <TextBlock Grid.Row="1" Text="number of local peers per engine:" />
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpTester3.NumberOfLocalPeersToRegisterPerEngine, Mode=TwoWay}" />
+                <TextBlock Grid.Row="0" Text="VisionChannelSourceIdPrefix:" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DrpTester3.VisionChannelSourceIdPrefix, Mode=TwoWay}" MinWidth="50"/>
+                
+                <TextBlock Grid.Row="1" Text="NumberOfLocalInterconnectedEpEngines:" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpTester3.NumberOfLocalInterconnectedEpEngines, Mode=TwoWay}" MinWidth="50" />
 
-                <TextBlock Grid.Row="2" Text="number of neighbors to keep:" />
-                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
-                    <TextBox  MinWidth="50" Text="{Binding DrpTester3.NumberOfNeighborsToKeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    <Button Command="{Binding DrpTester3.IncreaseNumberOfNeighborsToKeep}" Content="increase" />
-                </StackPanel>
+                <TextBlock Grid.Row="2" Text="NumberOfUserApps:" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DrpTester3.NumberOfUserApps, Mode=TwoWay}" MinWidth="50" />
 
                 <TextBlock Grid.Row="3" Text="local UDP ports range start:" />
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpTester3.LocalPortNullable, Mode=TwoWay}" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpTester3.LocalInterconnectedEpEnginesBasePort, Mode=TwoWay}" />
 
-                <TextBlock Grid.Row="4" Text="entry peers:" />
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpTester3.EpEndPointsString, Mode=TwoWay}" />
+                <TextBlock Grid.Row="4" Text="remote EPs:" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpTester3.RemoteEpEndPointsString, Mode=TwoWay}" />
 
 
                 <StackPanel Orientation="Horizontal" Grid.Row="5" Visibility="{Binding DrpTester3.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
-
                     <Button Content="Initialize" Margin="3" Command="{Binding DrpTester3.Initialize}" />
                     <Button Content="Initialize EP host" Margin="3" Command="{Binding DrpTester3.InitializeEpHost}" />
-                    <Button Content="Initialize user" Margin="3" Command="{Binding DrpTester3.InitializeUser}"   />
+                    <Button Content="Initialize users" Margin="3" Command="{Binding DrpTester3.InitializeUsers}"   />
                 </StackPanel>
             </Grid>
             <Grid Visibility="{Binding DrpDistanceTesterVisible, Converter={StaticResource BoolToVisibilityConverter}}">
