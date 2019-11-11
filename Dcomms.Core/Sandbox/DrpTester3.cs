@@ -1,4 +1,5 @@
-﻿using Dcomms.DRP;
+﻿using Dcomms.DMP;
+using Dcomms.DRP;
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
@@ -46,7 +47,7 @@ namespace Dcomms.Sandbox
             }
         }
 
-        public string VisionChannelSourceIdPrefix { get; set; } = "L_";
+        public string VisionChannelSourceIdPrefix { get; set; } = "";
         public int NumberOfLocalInterconnectedEpEngines { get; set; } = 25;
         public int NumberOfUserApps { get; set; } = 50;
 
@@ -119,7 +120,7 @@ namespace Dcomms.Sandbox
         {
             if (localEpIndex >= NumberOfLocalInterconnectedEpEngines)
             { // continue
-                _visionChannel.Emit("", DrpTesterVisionChannelModuleName,
+                _visionChannel.EmitListOfPeers("", DrpTesterVisionChannelModuleName,
                     AttentionLevel.guiActivity, $"connected all EPs");
 
                 foreach (var ep2 in _localEpApps)
@@ -203,11 +204,11 @@ namespace Dcomms.Sandbox
             localDrpPeerConfiguration.EntryPeerEndpoints = epEndpoints.ToArray();
 
             var userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration);
-
+            _userApps.Add(userApp);
             if (epEndpoints.Count == 0) throw new Exception("no endpoints for users to register");
            
             var sw = Stopwatch.StartNew();
-            _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registering...");
+            _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registering (adding first neighbor)... via {epEndpoints.Count} EPs");
             userEngine.BeginRegister(localDrpPeerConfiguration, userApp, (localDrpPeer) =>
             {
                 userApp.LocalDrpPeer = localDrpPeer;
@@ -224,14 +225,14 @@ namespace Dcomms.Sandbox
         {
             if (userApp.LocalDrpPeer.ConnectedNeighbors.Count >= userApp.LocalDrpPeer.Configuration.MinDesiredNumberOfNeighbors)
             {
-                _visionChannel.Emit(userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, 
+                _visionChannel.EmitListOfPeers(userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, 
                     $"{userApp} is connected with {userApp.LocalDrpPeer.ConnectedNeighbors.Count} neighbors, enough to continue to create more users");
                 BeginCreateUserAppOrContinue(userIndex + 1);
             }
             else
             {
                 _visionChannel.Emit(userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
-                    $"{userApp} is connected with {userApp.LocalDrpPeer.ConnectedNeighbors.Count} neighbors, not enough to continue with other peers");
+                    $"{userApp} is connected with {userApp.LocalDrpPeer.ConnectedNeighbors.Count} neighbors, not enough to continue with more users");
                 userApp.DrpPeerEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(1), () =>
                 {
                     userEngine_AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(userApp, userIndex);
@@ -241,7 +242,51 @@ namespace Dcomms.Sandbox
 
         void BeginTestMessages()
         {
+            var contactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
+            foreach (var u in _userApps)
+                contactBookUsersByRegId.Add(u.LocalDrpPeer.Configuration.LocalPeerRegistrationId, u.UserId);
+            foreach (var u in _userApps)
+                u.ContactBookUsersByRegId = contactBookUsersByRegId;
 
+            BeginTestMessage(new MessagesTest());
+        }
+        class MessagesTest
+        {
+            public int SentCount = 0;
+            public int SuccessfulCount = 0;
+        }
+
+        void BeginTestMessage(MessagesTest test)
+        {
+            var peer1 = _userApps[test.SentCount++ % _userApps.Count];
+
+        _retry:
+            var peer2 = _userApps[_insecureRandom.Next(_userApps.Count)];
+            if (peer1 == peer2) goto _retry;
+
+            _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+                    $"testing message #{test.SentCount} from {peer1} to {peer2}");
+
+            var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
+
+            var text = $"test{_insecureRandom.Next()}-{_insecureRandom.Next()}_from_{peer1}_to_{peer2}";
+            peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, (exc) =>
+            {
+                if (peer2.LatestReceivedTextMessage == text)
+                {
+                    test.SuccessfulCount++;
+                    _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                        AttentionLevel.guiActivity, $"successfully tested message from {peer1} to {peer2}. success rate = {test.SuccessfulCount * 100 / test.SentCount}% " +
+                        $"({test.SuccessfulCount}/{test.SentCount})");
+                }
+                else
+                {
+                    _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                       AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{text}");
+                }
+
+                BeginTestMessage(test);            
+            });
         }
 
 
