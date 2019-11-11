@@ -204,7 +204,6 @@ namespace Dcomms.Sandbox
                 epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
                 epLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = null;
                 epLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = null;
-                epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
                 epLocalDrpPeerConfig.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = null;
                 _epList.Add(new DrpTesterPeerApp(ep, epLocalDrpPeerConfig));
             }

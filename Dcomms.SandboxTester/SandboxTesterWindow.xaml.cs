@@ -27,7 +27,6 @@ namespace Dcomms.SandboxTester
 
         readonly SandboxTester1 _tester;
 
-        Timer _timer;
         Timer _refreshVisionChannelUiTimer;
         public SandboxTesterMainWindow()
         {
@@ -46,16 +45,7 @@ namespace Dcomms.SandboxTester
                 });
             }, null, 0, 100);
 
-            _timer = new Timer((o) =>
-            {
-                this.Dispatcher.Invoke(() =>
-                {
-                    if (increaseNumberOfEnginesOnTimer.IsChecked == true)
-                    {
-                        _tester.DrpTester3.IncreaseNumberOfEngines.Execute(null);
-                    }
-                });
-            }, null, 0, 3000);
+          
 
             VisionChannel.DisplayPeersDelegate = (text, peersList, mode) =>
             {
@@ -80,7 +70,6 @@ namespace Dcomms.SandboxTester
         private void CryptographyTesterMainWindow_Closed(object sender, EventArgs e)
         {
             _refreshVisionChannelUiTimer.Dispose();
-            _timer.Dispose();
             _tester.Dispose();
         }
     }

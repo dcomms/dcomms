@@ -319,7 +319,7 @@ namespace Dcomms.DRP
                     _lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain = dtUtc;
                 }
             }
-            if (delayMs > 500)
+            if (delayMs > 2000)
             {
                 if (_lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain == null || (dtUtc - _lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain.Value).TotalMilliseconds > 10000)
                 {

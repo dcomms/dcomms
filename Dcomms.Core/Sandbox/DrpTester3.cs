@@ -12,21 +12,30 @@ namespace Dcomms.Sandbox
 {
     public class DrpTester3 : BaseNotify, IDisposable
     {
+        const int EpAbsoluteMaxDesiredNumberOfNeighbors = 40;
+        const int EpSoftMaxDesiredNumberOfNeighbors = 30;
+        const int EpMinDesiredNumberOfNeighbors = 13;
+
+
+
+
+
+
         const string DrpTesterVisionChannelModuleName = "drpTester3";
-        public ushort? LocalPortNullable { get; set; }
+        public ushort LocalInterconnectedEpEnginesBasePort { get; set; } = 12000;
         
-        IPEndPoint[] EpEndPoints = new IPEndPoint[0];
-        public string EpEndPointsString
+        IPEndPoint[] RemoteEpEndPoints = new IPEndPoint[0];
+        public string RemoteEpEndPointsString
         {
             get
             {
-                if (EpEndPoints == null) return "";
-                return String.Join(";", EpEndPoints.Select(x => x.ToString()));
+                if (RemoteEpEndPoints == null) return "";
+                return String.Join(";", RemoteEpEndPoints.Select(x => x.ToString()));
             }
             set
             {
-                if (String.IsNullOrEmpty(value)) EpEndPoints = null;
-                else EpEndPoints = (from valueStr in value.Split(';')
+                if (String.IsNullOrEmpty(value)) RemoteEpEndPoints = null;
+                else RemoteEpEndPoints = (from valueStr in value.Split(';')
                                      let pos = valueStr.IndexOf(':')
                                      where pos != -1
                                      select new IPEndPoint(
@@ -37,47 +46,25 @@ namespace Dcomms.Sandbox
             }
         }
 
-        public int? NumberOfEngines  { get; set; }
-
-        public ICommand IncreaseNumberOfEngines => new DelegateCommand(() =>
-        {
-            AddEngine();
-            NumberOfEngines = (NumberOfEngines ?? 0) + 1;
-            RaisePropertyChanged(() => NumberOfEngines);
-        });
-
-        public int NumberOfLocalPeersToRegisterPerEngine { get; set; } = 1;
-        int? _numberOfNeighborsToKeep;
-        public string NumberOfNeighborsToKeep
-        {
-            get => $"{_numberOfNeighborsToKeep}";
-            set
-            {
-                _numberOfNeighborsToKeep = String.IsNullOrEmpty(value) ? (int?)null : int.Parse(value);
-                foreach (var a in _apps)
-                    if (a.LocalDrpPeer != null)
-                        a.LocalDrpPeer.Configuration.MinDesiredNumberOfNeighbors = _numberOfNeighborsToKeep;
-                RaisePropertyChanged(() => NumberOfNeighborsToKeep);
-            }
-        }
-
-        public ICommand IncreaseNumberOfNeighborsToKeep => new DelegateCommand(() =>
-        {
-            NumberOfNeighborsToKeep = ((_numberOfNeighborsToKeep ?? 0) + 1).ToString();
-        });
+        public string VisionChannelSourceIdPrefix { get; set; } = "L_";
+        public int NumberOfLocalInterconnectedEpEngines { get; set; } = 0;
+        public int NumberOfUserApps { get; set; } = 0;
 
         public bool Initialized { get; private set; }
 
         readonly Random _insecureRandom = new Random();
-        readonly List<DrpTesterPeerApp> _apps = new List<DrpTesterPeerApp>();
-        readonly List<DrpPeerEngine> _engines = new List<DrpPeerEngine>();
+        readonly List<DrpTesterPeerApp> _localEpApps = new List<DrpTesterPeerApp>();
+        readonly List<DrpTesterPeerApp> _userApps = new List<DrpTesterPeerApp>();
 
         IEnumerable<IVisiblePeer> VisiblePeers
         {
             get
             {
-                foreach (var x in _engines)
-                    foreach (var p in x.VisibleLocalPeers)
+                foreach (var ep in _localEpApps)
+                    foreach (var p in ep.DrpPeerEngine.VisibleLocalPeers)
+                        yield return p;
+                foreach (var u in _userApps)
+                    foreach (var p in u.DrpPeerEngine.VisibleLocalPeers)
                         yield return p;
             }
         }
@@ -91,32 +78,25 @@ namespace Dcomms.Sandbox
 
         public ICommand InitializeEpHost => new DelegateCommand(() =>
         {
-            LocalPortNullable = 12000;
-            RaisePropertyChanged(() => LocalPortNullable);
-
-            NumberOfEngines = 1;
-            RaisePropertyChanged(() => NumberOfEngines);
-            NumberOfLocalPeersToRegisterPerEngine = 1;
-            RaisePropertyChanged(() => NumberOfLocalPeersToRegisterPerEngine);
+            NumberOfLocalInterconnectedEpEngines = 25;
+            RaisePropertyChanged(() => NumberOfLocalInterconnectedEpEngines);
+            NumberOfUserApps = 0;
+            RaisePropertyChanged(() => NumberOfUserApps);
+            RemoteEpEndPointsString = "";
+            RaisePropertyChanged(() => RemoteEpEndPointsString);
 
             Initialize.Execute(null);
         });
         public ICommand InitializeUser => new DelegateCommand(() =>
         {
-            EpEndPoints = new[] { new IPEndPoint(IPAddress.Parse("195.154.173.208"), 12000) };
-            RaisePropertyChanged(() => EpEndPointsString);
-
-            if (NumberOfEngines == null)
-            {
-                NumberOfEngines = 1;
-                RaisePropertyChanged(() => NumberOfEngines);
-            }
-
-           
-            NumberOfLocalPeersToRegisterPerEngine = 1;
-            RaisePropertyChanged(() => NumberOfLocalPeersToRegisterPerEngine);
+            RemoteEpEndPoints = new[] { new IPEndPoint(IPAddress.Parse("195.154.173.208"), 12000) };
+            RaisePropertyChanged(() => RemoteEpEndPointsString);
             
-
+            NumberOfLocalInterconnectedEpEngines = 0;
+            RaisePropertyChanged(() => NumberOfLocalInterconnectedEpEngines);
+            NumberOfUserApps = 50;
+            RaisePropertyChanged(() => NumberOfUserApps);
+            
             Initialize.Execute(null);
         });
         
@@ -124,63 +104,154 @@ namespace Dcomms.Sandbox
         public ICommand Initialize => new DelegateCommand(() =>
         {
             if (Initialized) throw new InvalidOperationException();
-
-            for (int engineIndex = 0; engineIndex < NumberOfEngines; engineIndex++)
-            {
-                AddEngine();
-            }
-
             Initialized = true;
             RaisePropertyChanged(() => Initialized);
+
+            // create EPs
+            //    interconnect EPs
+            // create user apps one by one
+            //    connect user app to remote EP (if address specified)
+            BeginCreateLocalEpOrContinue(0);         
+
         });
-        void AddEngine()
+
+        void BeginCreateLocalEpOrContinue(int localEpIndex)
         {
-            var engine = new DrpPeerEngine(new DrpPeerEngineConfiguration
+            if (localEpIndex >= NumberOfLocalInterconnectedEpEngines)
+            { // continue
+                _visionChannel.Emit("", DrpTesterVisionChannelModuleName,
+                    AttentionLevel.guiActivity, $"connected all EPs");
+
+                foreach (var ep2 in _localEpApps)
+                {
+                    ep2.DrpPeerRegistrationConfiguration.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = null;
+                    ep2.DrpPeerRegistrationConfiguration.AbsoluteMaxNumberOfNeighbors = EpAbsoluteMaxDesiredNumberOfNeighbors;
+                    ep2.DrpPeerRegistrationConfiguration.SoftMaxNumberOfNeighbors = EpSoftMaxDesiredNumberOfNeighbors;
+                    ep2.DrpPeerRegistrationConfiguration.MinDesiredNumberOfNeighbors = EpMinDesiredNumberOfNeighbors;
+                }
+
+                BeginCreateUserAppOrContinue(0);
+                return;
+            }
+
+
+            var epEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 InsecureRandomSeed = _insecureRandom.Next(),
-                LocalPort = (ushort?)(LocalPortNullable + _engines.Count),
+                LocalPort = (ushort)(LocalInterconnectedEpEnginesBasePort + localEpIndex),
                 VisionChannel = _visionChannel,
-                VisionChannelSourceId = $"E{_engines.Count}",
-                SandboxModeOnly_DisablePoW = true,
-                SandboxModeOnly_EnableInsecureLogs = true
-            });
-            _engines.Add(engine);
-            for (int localPeerIndex = 0; localPeerIndex < NumberOfLocalPeersToRegisterPerEngine; localPeerIndex++)
-            {
-                var localDrpPeerConfiguration = LocalDrpPeerConfiguration.CreateWithNewKeypair(engine.CryptoLibrary); 
-                localDrpPeerConfiguration.MinDesiredNumberOfNeighbors = _numberOfNeighborsToKeep;
-                localDrpPeerConfiguration.EntryPeerEndpoints = EpEndPoints;
-                   
-                var app = new DrpTesterPeerApp(engine, localDrpPeerConfiguration);
+                VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}EP{localEpIndex}",
+            }); ;
+            var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(epEngine.CryptoLibrary);
+            epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
+            epLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = null;
+            epLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = null;
+            epLocalDrpPeerConfig.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = null;
+            var epApp = new DrpTesterPeerApp(epEngine, epLocalDrpPeerConfig);
 
-                if (EpEndPoints.Length != 0)
-                { // connect to remote EPs
-                       
-                    var sw = Stopwatch.StartNew();
-                    _visionChannel.Emit(engine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                        AttentionLevel.guiActivity, $"registering...");
-                    engine.BeginRegister(localDrpPeerConfiguration, app, (localDrpPeer) =>
+            epEngine.BeginCreateLocalPeer(epLocalDrpPeerConfig, epApp, (localDrpPeer) =>
+            {
+                epApp.LocalDrpPeer = localDrpPeer;
+                
+                var connectToEpsList = _localEpApps.ToList();
+                _localEpApps.Add(epApp);
+                _visionChannel.Emit(epEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                    AttentionLevel.guiActivity, $"created local EP #{localEpIndex}/{NumberOfLocalInterconnectedEpEngines}");
+
+                if (connectToEpsList.Count != 0)
+                {
+                    _visionChannel.Emit(epEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                        AttentionLevel.guiActivity, $"connecting with {connectToEpsList.Count} other EPs...");
+
+                    var connectToEpEndpoints = new List<IPEndPoint>();
+                    foreach (var connectToEp in connectToEpsList)
+                        connectToEpEndpoints.Add(                            
+                                new IPEndPoint(connectToEp.LocalDrpPeer.PublicIpApiProviderResponse, 
+                                    connectToEp.DrpPeerEngine.Configuration.LocalPort.Value));
+                    
+                    epApp.LocalDrpPeer.BeginConnectToEPs(connectToEpEndpoints.ToArray(), () =>
                     {
-                        app.LocalDrpPeer = localDrpPeer;
-                        _visionChannel.Emit(engine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
+                        BeginCreateLocalEpOrContinue(localEpIndex + 1);
                     });
                 }
                 else
-                { // EP host mode                   
-                    engine.BeginCreateLocalPeer(localDrpPeerConfiguration, app, (localDrpPeer) =>
-                    {
-                        app.LocalDrpPeer = localDrpPeer;
-                    });
+                {
+                    BeginCreateLocalEpOrContinue(localEpIndex + 1);
                 }
-                _apps.Add(app);
-            }
+            });
 
         }
 
+        void BeginCreateUserAppOrContinue(int userIndex)
+        {
+            if (userIndex >= NumberOfUserApps)
+            {
+                BeginTestMessages();
+                return;
+            }
+
+            var userEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
+            {
+                InsecureRandomSeed = _insecureRandom.Next(),
+                VisionChannel = _visionChannel,
+                VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}U{userIndex}",
+            });
+            var localDrpPeerConfiguration = LocalDrpPeerConfiguration.CreateWithNewKeypair(userEngine.CryptoLibrary);
+
+            var epEndpoints = RemoteEpEndPoints.ToList();
+            epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPort.Value)));
+            localDrpPeerConfiguration.EntryPeerEndpoints = epEndpoints.ToArray();
+
+            var userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration);
+
+            if (epEndpoints.Count == 0) throw new Exception("no endpoints for users to register");
+           
+            var sw = Stopwatch.StartNew();
+            _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registering...");
+            userEngine.BeginRegister(localDrpPeerConfiguration, userApp, (localDrpPeer) =>
+            {
+                userApp.LocalDrpPeer = localDrpPeer;
+                _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
+
+                // wait until number of neighbors reaches minimum
+                userEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(1), () =>
+                {
+                    userEngine_AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(userApp, userIndex);
+                }, "waiting for connection with neighbors 324155");
+            });           
+        }
+        void userEngine_AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(DrpTesterPeerApp userApp, int userIndex)
+        {
+            if (userApp.LocalDrpPeer.ConnectedNeighbors.Count >= userApp.LocalDrpPeer.Configuration.MinDesiredNumberOfNeighbors)
+            {
+                _visionChannel.Emit(userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, 
+                    $"{userApp} is connected with {userApp.LocalDrpPeer.ConnectedNeighbors.Count} neighbors, enough to continue to create more users");
+                BeginCreateUserAppOrContinue(userIndex + 1);
+            }
+            else
+            {
+                _visionChannel.Emit(userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+                    $"{userApp} is connected with {userApp.LocalDrpPeer.ConnectedNeighbors.Count} neighbors, not enough to continue with other peers");
+                userApp.DrpPeerEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(1), () =>
+                {
+                    userEngine_AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(userApp, userIndex);
+                }, "userEngine_AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors4644");
+            }
+        }
+
+        void BeginTestMessages()
+        {
+
+        }
+
+
+
         public void Dispose()
         {
-            foreach (var e in _engines)
-               e.Dispose();
+            foreach (var ep in _localEpApps)
+                ep.DrpPeerEngine.Dispose();
+            foreach (var u in _userApps)
+                u.DrpPeerEngine.Dispose();
         }
     }
 }

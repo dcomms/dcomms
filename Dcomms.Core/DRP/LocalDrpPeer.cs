@@ -399,9 +399,9 @@ namespace Dcomms.DRP
         public IPEndPoint[] EntryPeerEndpoints; // in case when local peer IP = entry peer IP, it is skipped
         public RegistrationId LocalPeerRegistrationId { get; private set; }
         public RegistrationPrivateKey LocalPeerRegistrationPrivateKey { get; private set; }
-        public int? MinDesiredNumberOfNeighbors;// = 12;
-        public int? SoftMaxNumberOfNeighbors;// = 13; 
-        public int? AbsoluteMaxNumberOfNeighbors;// = 20;
+        public int? MinDesiredNumberOfNeighbors = 12;
+        public int? SoftMaxNumberOfNeighbors = 14; 
+        public int? AbsoluteMaxNumberOfNeighbors = 18;
         public double? MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS;// = 30;
         public double TestDirectionsMinIntervalS = 30;
 

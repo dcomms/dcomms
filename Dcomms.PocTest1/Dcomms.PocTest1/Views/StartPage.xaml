@@ -11,8 +11,7 @@
                
                 <StackLayout Orientation="Horizontal">
                     <Label Text="Neighbors to keep:" VerticalOptions="Center" /><!--Text="{Binding DrpTester3.NumberOfNeighborsToKeep, Mode=TwoWay}"-->
-                    <Entry WidthRequest="60" x:Name="numberOfNeighbors"  TextChanged="NumberOfNeighbors_TextChanged"/>
-                    <Button x:Name="increaseNumberOfNeighbors" Text="increase"  Clicked="IncreaseNumberOfNeighbors_Clicked"/>
+            
                 </StackLayout>
 
                 <Button Text="Start" Command="{Binding DrpTester3.InitializeUser}" IsVisible="{Binding DrpTester3.Initialized, Converter={StaticResource OppositeConverter}}" />

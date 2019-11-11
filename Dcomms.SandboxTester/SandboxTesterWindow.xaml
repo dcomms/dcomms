@@ -301,7 +301,13 @@
                         <DataGrid Grid.Row="1" ItemsSource="{Binding DisplayedVisibleModules}" AutoGenerateColumns="False" >
                             <DataGrid.Columns>                          
                                 <DataGridTextColumn Header="Path" Binding="{Binding Path, Mode=OneTime}" />
-                                <DataGridTextColumn Header="Status" Binding="{Binding Status, Mode=OneTime}" />
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status, Mode=OneTime}" MaxWidth="800" >
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style>
+                                            <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>  
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
