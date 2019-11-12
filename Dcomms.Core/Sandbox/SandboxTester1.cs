@@ -199,13 +199,21 @@ namespace Dcomms.Sandbox
         public bool DrpTester2IsCreated => DrpTester2 != null;
 
         public DrpTester3 DrpTester3 { get; private set; }
-        public bool DrpTester3Visible => DrpTester3 != null;
+        public bool DrpTester3IsCreated => DrpTester3 != null;
         public DelegateCommand CreateDrpTester3 => new DelegateCommand(() =>
         {
             if (DrpTester3 != null) throw new InvalidOperationException();
             DrpTester3 = new DrpTester3(_visionChannel);
             RaisePropertyChanged(() => DrpTester3);
-            RaisePropertyChanged(() => DrpTester3Visible);
+            RaisePropertyChanged(() => DrpTester3IsCreated);
+        });
+        public DelegateCommand DestroyDrpTester3 => new DelegateCommand(() =>
+        {
+            if (DrpTester3 == null) throw new InvalidOperationException();
+            DrpTester3.Dispose();
+            DrpTester3 = null;
+            RaisePropertyChanged(() => DrpTester3);
+            RaisePropertyChanged(() => DrpTester3IsCreated);
         });
 
         public DrpTester4 DrpDistanceTester { get; private set; }

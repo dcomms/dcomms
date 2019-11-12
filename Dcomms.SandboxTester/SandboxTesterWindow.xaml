@@ -34,7 +34,11 @@
 
                 <Button Command="{Binding CreateDrpTester2}" Content="CreateDrpTester2(localhost)" Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
                 <Button Command="{Binding DestroyDrpTester2}" Content="DestroyDrpTester2"  Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityConverter}}" />
-                <Button Command="{Binding CreateDrpTester3}" Content="CreateDrpTester3" />
+                <Button Command="{Binding CreateDrpTester3}" Content="CreateDrpTester3" Visibility="{Binding DrpTester3IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
+                <Button Command="{Binding DestroyDrpTester3}" Content="DestroyDrpTester3" Visibility="{Binding DrpTester3IsCreated, Converter={StaticResource BoolToVisibilityConverter}}"  />
+
+
+
                 <Button Command="{Binding CreateDrpDistanceTester}" Content="CreateDrpTester4(distance)" />
             </StackPanel>
         </StackPanel>
@@ -44,7 +48,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <Grid Visibility="{Binding DrpTester3Visible, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid Visibility="{Binding DrpTester3IsCreated, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />

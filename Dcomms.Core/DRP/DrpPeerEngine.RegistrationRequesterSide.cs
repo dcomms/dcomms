@@ -72,25 +72,28 @@ namespace Dcomms.DRP
             var localDrpPeer = await CreateLocalPeerAsync(registrationConfiguration, user);
             if (registrationConfiguration.EntryPeerEndpoints.Length != 0)
             {
-                foreach (var epEndpoint in registrationConfiguration.EntryPeerEndpoints) // try to connect to entry peers, one by one
+                for (; ;)
                 {
+                    var epIndex = _insecureRandom.Next(registrationConfiguration.EntryPeerEndpoints.Length);
+                    var epEndpoint = registrationConfiguration.EntryPeerEndpoints[epIndex];
+               
                    // if (MiscProcedures.EqualByteArrays(epEndpoint.Address.GetAddressBytes(), localDrpPeer.LocalPublicIpAddressForRegistration.GetAddressBytes()) == true)
                   //  {
                   //      logger.WriteToLog_detail($"not connecting to EP {epEndpoint}: same IP address as local public IP");
                   //  }
                    // else
                   //  {
-                        try
-                        {
-                            if (await RegisterAsync(localDrpPeer, epEndpoint, 0, 20, null) == null)
-                                continue;
+                    try
+                    {
+                        if (await RegisterAsync(localDrpPeer, epEndpoint, 0, 20, null) != null)
+                            break;
 
-                            //  on error or timeout try next entry server
-                        }
-                        catch (Exception exc)
-                        {
-                            HandleExceptionWhileConnectingToEP(epEndpoint, exc);
-                        }
+                        //  on error or timeout try next entry peer
+                    }
+                    catch (Exception exc)
+                    {
+                        HandleExceptionWhileConnectingToEP(epEndpoint, exc);
+                    }
                   //  }
                 }
 

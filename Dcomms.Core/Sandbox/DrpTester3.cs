@@ -276,13 +276,14 @@ namespace Dcomms.Sandbox
                 {
                     test.SuccessfulCount++;
                     _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                        AttentionLevel.guiActivity, $"successfully tested message from {peer1} to {peer2}. success rate = {test.SuccessfulCount * 100 / test.SentCount}% " +
-                        $"({test.SuccessfulCount}/{test.SentCount})");
+                        AttentionLevel.guiActivity, $"successfully tested message from {peer1} to {peer2}. " +
+                        $"success rate = {test.SuccessfulCount * 100 / test.SentCount}% ({test.SuccessfulCount}/{test.SentCount})");
                 }
                 else
                 {
                     _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                       AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{text}");
+                       AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{text}. " +
+                        $"success rate = {test.SuccessfulCount * 100 / test.SentCount}% ({test.SuccessfulCount}/{test.SentCount})");
                 }
 
                 BeginTestMessage(test);            
