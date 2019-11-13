@@ -226,7 +226,7 @@ namespace Dcomms.DRP
 
                 SharedAuthKeyForNeighborHMAC = _engine.CryptoLibrary.GetHashSHA256(ms.ToArray()); // here SHA256 is used as KDF, together with common fields from packets, including both ECDH public keys and timestamp
 
-                _engine.WriteToLog_p2p_detail(this, $"initialized P2P stream: SharedAuthKeyForHMAC={MiscProcedures.ByteArrayToString(SharedAuthKeyForNeighborHMAC)}", req);
+                if (_engine.WriteToLog_p2p_detail_enabled) _engine.WriteToLog_p2p_detail2(this, $"initialized P2P stream: SharedAuthKeyForHMAC={MiscProcedures.ByteArrayToString(SharedAuthKeyForNeighborHMAC)}", req);
                 //Encryptor = cryptoLibrary.CreateAesEncyptor(iv, aesKey);
                 //Decryptor = cryptoLibrary.CreateAesDecyptor(iv, aesKey);
             }
@@ -367,7 +367,7 @@ namespace Dcomms.DRP
             
             engine.Configuration.VisionChannel?.RegisterVisibleModule(engine.Configuration.VisionChannelSourceId, VisibleModulePath, this);
 
-            engine.WriteToLog_p2p_detail(this, $"created p2p connection: remoteRegistrationId={remoteRegistrationId}, LocalNeighborToken32={LocalNeighborToken32}, LocalNeighborToken16={LocalNeighborToken32.Token16.ToString("X4")}", null);
+            if (_engine.WriteToLog_p2p_detail_enabled) _engine.WriteToLog_p2p_detail2(this, $"created p2p connection: remoteRegistrationId={remoteRegistrationId}, LocalNeighborToken32={LocalNeighborToken32}, LocalNeighborToken16={LocalNeighborToken32.Token16.ToString("X4")}", null);
 
         }
         string VisibleModulePath => $"{_localDrpPeer}{Vision.VisionChannel.PathSeparator}{this.LocalNeighborToken32}";
@@ -385,11 +385,11 @@ namespace Dcomms.DRP
             _localDrpPeer.ConnectedNeighbors.Remove(this);
             _engine.Configuration.VisionChannel?.UnregisterVisibleModule(_engine.Configuration.VisionChannelSourceId, VisibleModulePath);
 
-            _engine.WriteToLog_p2p_detail(this, $"disposed connection to neighbor: neighborToken16={LocalNeighborToken32.Token16.ToString("X4")}", null);
+            _engine.WriteToLog_p2p_higherLevelDetail(this, $"disposed connection to neighbor: neighborToken16={LocalNeighborToken32.Token16.ToString("X4")}", null);
 
             _engine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(10), () =>
             {
-                _engine.WriteToLog_p2p_detail(this, $"removing neighborToken16={LocalNeighborToken32.Token16.ToString("X4")} from table", null);
+                if (_engine.WriteToLog_p2p_detail_enabled) _engine.WriteToLog_p2p_detail2(this, $"removing neighborToken16={LocalNeighborToken32.Token16.ToString("X4")} from table", null);
                 _engine.ConnectedPeersByToken16[LocalNeighborToken32.Token16] = null;   
             }, "removing neighborToken16 234523");    
         }
@@ -459,19 +459,19 @@ namespace Dcomms.DRP
         {
             _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket = responseReceivedAtUTC;
             _latestReceivedPong = pong;
-            _engine.WriteToLog_p2p_detail(this, "verified pong", null);
+            if (_engine.WriteToLog_p2p_detail_enabled) _engine.WriteToLog_p2p_detail2(this, "verified pong", null);
           
             if (requestResponseDelay.HasValue)
                 OnMeasuredRequestResponseDelay(requestResponseDelay.Value);
         }
         void OnMeasuredRequestResponseDelay(TimeSpan requestResponseDelay)
         {
-            _engine.WriteToLog_p2p_detail(this, $"measured RTT: {(int)requestResponseDelay.TotalMilliseconds}ms", null);
+            if (_engine.WriteToLog_p2p_detail_enabled) _engine.WriteToLog_p2p_detail2(this, $"measured RTT: {(int)requestResponseDelay.TotalMilliseconds}ms", null);
             _latestPingPongDelay_RTT = requestResponseDelay;
         }
         internal void OnReceivedPong(IPEndPoint remoteEndpoint, byte[] udpData, DateTime receivedAtUtc) // engine thread
         {
-            _engine.WriteToLog_p2p_detail(this, "received PONG", null);
+            if (_engine.WriteToLog_p2p_detail_enabled) _engine.WriteToLog_p2p_detail2(this, "received PONG", null);
             if (_disposed) return;
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
             {
@@ -498,15 +498,15 @@ namespace Dcomms.DRP
         }
         internal void OnReceivedPing(IPEndPoint remoteEndpoint, byte[] udpData) // engine thread
         {
-            _engine.WriteToLog_p2p_detail(this, "received PING", null);
+            if (_engine.WriteToLog_p2p_detail_enabled) _engine.WriteToLog_p2p_detail2(this, "received PING", null);
             if (_disposed)
             {
-                _engine.WriteToLog_p2p_detail(this, "ignoring PING: connection is disposed", null);
+                if (_engine.WriteToLog_p2p_detail_enabled) _engine.WriteToLog_p2p_detail2(this, "ignoring PING: connection is disposed", null);
                 return;
             }
             if (this.RemoteEndpoint == null)
             {
-                _engine.WriteToLog_p2p_detail(this, "ignoring PING: correct remote endpoint is unknown yet", null);
+                if (_engine.WriteToLog_p2p_detail_enabled) _engine.WriteToLog_p2p_detail2(this, "ignoring PING: correct remote endpoint is unknown yet", null);
                 return;
             }
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)

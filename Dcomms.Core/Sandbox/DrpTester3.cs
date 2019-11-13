@@ -259,6 +259,21 @@ namespace Dcomms.Sandbox
         {
             public int SentCount = 0;
             public int SuccessfulCount = 0;
+
+            double _delaysSumMs = 0;
+            public double MaxDelayMs;
+            public DateTime MaxDelayTime;
+            public double AvgDelayMs => _delaysSumMs / SuccessfulCount;
+            public void OnSuccessfullyDelivered(double delayMs, DateTime now)
+            {
+                SuccessfulCount++;
+                _delaysSumMs += delayMs;
+                if (delayMs > MaxDelayMs)
+                {
+                    MaxDelayMs = delayMs;
+                    MaxDelayTime = now;
+                }
+            }
         }
 
         void BeginTestMessage(MessagesTest test)
@@ -275,24 +290,41 @@ namespace Dcomms.Sandbox
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
 
             var text = $"test{_insecureRandom.Next()}-{_insecureRandom.Next()}_from_{peer1}_to_{peer2}";
+            var sw = Stopwatch.StartNew();
             peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, (exc) =>
             {
-                if (peer2.LatestReceivedTextMessage == text)
+                BeginVerifyReceivedMessage(test, peer1, peer2, text, sw, Stopwatch.StartNew());
+            });
+        }
+
+        void BeginVerifyReceivedMessage(MessagesTest test, DrpTesterPeerApp peer1, DrpTesterPeerApp peer2, string sentText, Stopwatch sw, Stopwatch afterCompletionSw)
+        {
+            if (peer2.LatestReceivedTextMessage == sentText)
+            {
+                sw.Stop();
+                test.OnSuccessfullyDelivered(sw.Elapsed.TotalMilliseconds, _visionChannel.TimeNow);
+                _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                    AttentionLevel.guiActivity, $"successfully tested message from {peer1} to {peer2} in {sw.Elapsed.TotalMilliseconds}ms. " +
+                    $"success rate = {test.SuccessfulCount * 100 / test.SentCount}% ({test.SuccessfulCount}/{test.SentCount}) " +
+                    $"delay avg={test.AvgDelayMs}ms  max={test.MaxDelayMs} at {test.MaxDelayTime.ToString("HH:mm:ss.fff")}");
+            }
+            else
+            { // try to wait for 1 sec   in case when sender-side callback is invoked BEFORE receiver-side callback
+                if (afterCompletionSw.Elapsed.TotalMilliseconds < 1000)
                 {
-                    test.SuccessfulCount++;
-                    _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                        AttentionLevel.guiActivity, $"successfully tested message from {peer1} to {peer2}. " +
-                        $"success rate = {test.SuccessfulCount * 100 / test.SentCount}% ({test.SuccessfulCount}/{test.SentCount})");
-                }
-                else
-                {
-                    _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                       AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{text}. " +
-                        $"success rate = {test.SuccessfulCount * 100 / test.SentCount}% ({test.SuccessfulCount}/{test.SentCount})");
+                    peer2.DrpPeerEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromMilliseconds(10), () =>
+                    {
+                        BeginVerifyReceivedMessage(test, peer1, peer2, sentText, sw, afterCompletionSw);
+                    }, "verifyMsg 247");
+                    return;
                 }
 
-                BeginTestMessage(test);            
-            });
+                _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                    AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{sentText}. " +
+                    $"success rate = {test.SuccessfulCount * 100 / test.SentCount}% ({test.SuccessfulCount}/{test.SentCount})");
+            }
+
+            BeginTestMessage(test); 
         }
 
 

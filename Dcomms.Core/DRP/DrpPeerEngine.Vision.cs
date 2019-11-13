@@ -29,13 +29,19 @@ namespace Dcomms.DRP
         internal const string VisionChannelModuleName_routing = "routing";
         const string VisionChannelModuleName_udp = "udp";
         internal const string VisionChannelModuleName_attacks = "attacks";
+        internal bool WriteToLog_p2p_detail_enabled => Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p) <= AttentionLevel.detail;
         internal void WriteToLog_p2p_detail(ConnectionToNeighbor connectionToNeighbor, string message, object req)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p) <= AttentionLevel.detail)
+            if (WriteToLog_p2p_detail_enabled)
                 Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p, AttentionLevel.detail,
                     $"[{connectionToNeighbor}] {message}", req, connectionToNeighbor.LocalDrpPeer);
         }
-      
+        internal void WriteToLog_p2p_detail2(ConnectionToNeighbor connectionToNeighbor, string message, object req)
+        {
+             Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p, AttentionLevel.detail,
+                    $"[{connectionToNeighbor}] {message}", req, connectionToNeighbor.LocalDrpPeer);
+        }
+
         internal void WriteToLog_p2p_needsAttention(ConnectionToNeighbor connectionToNeighbor, string message, object req)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_p2p) <= AttentionLevel.needsAttention)
@@ -84,38 +90,28 @@ namespace Dcomms.DRP
         internal bool WriteToLog_udp_deepDetail_enabled => Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_udp) <= AttentionLevel.deepDetail;
         internal void WriteToLog_udp_deepDetail(string message)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_udp) <= AttentionLevel.deepDetail)
+            if (WriteToLog_udp_deepDetail_enabled)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_udp, AttentionLevel.deepDetail, message);
+        }
+        internal void WriteToLog_udp_deepDetail2(string message)
+        {
+            Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_udp, AttentionLevel.deepDetail, message);
         }
         internal void WriteToLog_udp_lightPain(string message)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_udp) <= AttentionLevel.lightPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_udp, AttentionLevel.lightPain, message);
         }
-        //internal void WriteToLog_reg_proxySide_detail(string message, object req, IVisiblePeer localPeer)
-        //{
-        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.detail)
-        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.detail, message, req, localPeer);
-        //}
-        //internal void WriteToLog_reg_proxySide_higherLevelDetail(string message, object req, IVisiblePeer localPeer)
-        //{
-        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.higherLevelDetail)
-        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.higherLevelDetail, message, req, localPeer);
-        //}
-        //internal void WriteToLog_reg_proxySide_needsAttention(string message, object req, IVisiblePeer localPeer)
-        //{
-        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.needsAttention)
-        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.needsAttention, message, req, localPeer);
-        //}
-        //internal void WriteToLog_reg_proxySide_lightPain(string message, object req, IVisiblePeer localPeer)
-        //{
-        //    if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide) <= AttentionLevel.lightPain)
-        //        Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_proxySide, AttentionLevel.lightPain, message, req, localPeer);
-        //}
+
+        bool WriteToLog_receiver_detail_enabled => Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_receiverThread) <= AttentionLevel.detail;
         void WriteToLog_receiver_detail(string message)
         {
-            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_receiverThread) <= AttentionLevel.detail)
+            if (WriteToLog_receiver_detail_enabled)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_receiverThread, AttentionLevel.detail, message);
+        }
+        void WriteToLog_receiver_detail2(string message)
+        {
+             Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_receiverThread, AttentionLevel.detail, message);
         }
         void WriteToLog_receiver_lightPain(string message)
         {
@@ -311,7 +307,7 @@ namespace Dcomms.DRP
         DateTime? _lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain = null;
         void OnMeasuredEngineThreadQueueDelay(DateTime dtUtc, double delayMs)
         {
-            if (delayMs > 100)
+            if (delayMs > 200)
             {
                 if (_lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain == null || (dtUtc - _lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain.Value).TotalMilliseconds > 10000)
                 {
