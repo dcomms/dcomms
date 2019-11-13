@@ -33,9 +33,11 @@ namespace Dcomms.DRP
         public Int64 Timestamp64 => MiscProcedures.DateTimeToInt64ticks(DateTimeNowUtc);
         bool _disposing;
         Thread _engineThread;
+        Thread _powThread;
         Thread _receiverThread;
         UdpClient _socket;
         internal ActionsQueue EngineThreadQueue;
+        ActionsQueue PowThreadQueue;
         public readonly ExecutionTimeStatsCollector ETSC;
         public ExecutionTimeTracker CreateTracker(string actionVisibleId)
         {
@@ -88,6 +90,7 @@ namespace Dcomms.DRP
             Initialize(configuration);
             _seq16Counter_AtoEP = (ushort)_insecureRandom.Next(ushort.MaxValue);
             EngineThreadQueue = new ActionsQueue(exc => HandleExceptionInEngineThread(exc), ETSC);
+            PowThreadQueue = new ActionsQueue(exc => HandleGeneralException("error in PoW thread:", exc), null);
 
             _socket = new UdpClient(configuration.LocalPort ?? 0);
             _receiverThread = new Thread(ReceiverThreadEntry);
@@ -98,6 +101,11 @@ namespace Dcomms.DRP
             _engineThread = new Thread(EngineThreadEntry);
             _engineThread.Name = "DRP engine";
             _engineThread.Start();
+
+            _powThread = new Thread(PowThreadEntry);
+            _powThread.Priority = ThreadPriority.Lowest;
+            _powThread.Name = "PoW";
+            _powThread.Start();
         }
         partial void Initialize(DrpPeerEngineConfiguration configuration);
         public void Dispose()
@@ -106,6 +114,8 @@ namespace Dcomms.DRP
             _disposing = true;
             EngineThreadQueue.Dispose();
             _engineThread.Join();
+            PowThreadQueue.Dispose();
+            _powThread.Join();
             _socket.Close();
             _socket.Dispose();
             _receiverThread.Join();
@@ -304,6 +314,23 @@ namespace Dcomms.DRP
             RespondersToRetransmittedRequests_OnTimer100ms(timeNowUTC);
         }
         #endregion
+
+
+        void PowThreadEntry()
+        {
+            while (!_disposing)
+            {
+                try
+                {
+                    PowThreadQueue.ExecuteQueued();
+                }
+                catch (Exception exc)
+                {
+                    HandleGeneralException("error in PoW thread: ", exc);
+                }
+                Thread.Sleep(10);
+            }
+        }
 
         internal bool ValidateReceivedReqTimestamp32S(uint receivedReqTimestamp32S)
         {

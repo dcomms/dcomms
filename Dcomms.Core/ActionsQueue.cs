@@ -11,12 +11,12 @@ namespace Dcomms
     {
         bool _isDisposing;
         readonly Action<Exception> _onException;
-        readonly ExecutionTimeStatsCollector _etsc;
-        public ActionsQueue(Action<Exception> onException, ExecutionTimeStatsCollector etsc)
+        readonly ExecutionTimeStatsCollector _etscNullable;
+        public ActionsQueue(Action<Exception> onException, ExecutionTimeStatsCollector etscNullable)
         {
             if (onException == null) throw new ArgumentNullException(nameof(onException));
             _onException = onException;
-            _etsc = etsc;
+            _etscNullable = etscNullable;
         }
         class QueuedAction
         {
@@ -67,7 +67,7 @@ namespace Dcomms
                     var sw = Stopwatch.StartNew();
                     a.A();
                     sw.Stop();
-                    _etsc.OnMeasuredExecutionTime(a.ActionVisibleId, sw.Elapsed.TotalMilliseconds);
+                    _etscNullable?.OnMeasuredExecutionTime(a.ActionVisibleId, sw.Elapsed.TotalMilliseconds);
                 }
                 catch (Exception exc)
                 {
@@ -177,7 +177,7 @@ namespace Dcomms
                         var sw = Stopwatch.StartNew();
                         e.EventHandler();
                         sw.Stop();
-                        _etsc.OnMeasuredExecutionTime(e.ActionVisibleId, sw.Elapsed.TotalMilliseconds);
+                        _etscNullable?.OnMeasuredExecutionTime(e.ActionVisibleId, sw.Elapsed.TotalMilliseconds);
                     }
                     catch (Exception exc)
                     {

@@ -110,6 +110,7 @@ namespace Dcomms.DRP
         /// <returns>null if registration failed with timeout or some error code</returns>
         public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint, uint minimalDistanceToNeighbor, byte numberofHops, double[] directionVectorNullable) // engine thread
         {
+            var regSW = Stopwatch.StartNew();
             WriteToLog_reg_requesterSide_higherLevelDetail($"connecting via EntryPeer {epEndpoint}", null, null);
             localDrpPeer.CurrentRegistrationOperationsCount++;
             try
@@ -120,9 +121,15 @@ namespace Dcomms.DRP
                 {
                     WriteToLog_reg_requesterSide_detail($"generating PoW1 request", null,  null);
                     var pow1SW = Stopwatch.StartNew();
+
+                    await PowThreadQueue.EnqueueAsync("pow1 6318");
+                    WriteToLog_reg_requesterSide_detail($"generating PoW1 request @pow thread", null, null);                  
                     var registerPow1RequestPacket = GenerateRegisterPow1RequestPacket(localDrpPeer.PublicIpApiProviderResponse.GetAddressBytes(), Timestamp32S);
+                    await EngineThreadQueue.EnqueueAsync("pow1 234709");
+                    WriteToLog_reg_requesterSide_detail($"generated PoW1 request @engine thread", null, null);
 
                     // send register pow1 request
+                    if (pow1SW.Elapsed.TotalMilliseconds > 2000) WriteToLog_reg_requesterSide_lightPain($"PoW1 took {(int)pow1SW.Elapsed.TotalMilliseconds}ms", null, null);
                     WriteToLog_reg_requesterSide_detail($"PoW1 took {(int)pow1SW.Elapsed.TotalMilliseconds}ms. sending PoW1 request", null, null);
                     var rpPow1ResponsePacketData = await SendUdpRequestAsync_Retransmit(
                                 new PendingLowLevelUdpRequest("rpPow1 469",  epEndpoint,
@@ -166,12 +173,16 @@ namespace Dcomms.DRP
                     var pow2SW = Stopwatch.StartNew();
                     if (!Configuration.SandboxModeOnly_DisablePoW)
                     {
-                        logger.WriteToLog_detail($"calculating PoW2");
+                        await PowThreadQueue.EnqueueAsync("pow2 23465");
+                        logger.WriteToLog_detail($"calculating PoW2 @pow thread");
                         GenerateRegisterReqPow2(req, pow1ResponsePacket.ProofOfWork2Request);
+                        await EngineThreadQueue.EnqueueAsync("pow2 2496");
+                        logger.WriteToLog_detail($"calculated PoW2 @engine thread");
                     }
                     else
                         req.ProofOfWork2 = new byte[64];
                     pow2SW.Stop();
+                    if (pow2SW.Elapsed.TotalMilliseconds > 2000) logger.WriteToLog_lightPain($"PoW2 took {(int)pow2SW.Elapsed.TotalMilliseconds}ms");
 
                     req.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         w => req.GetSharedSignedFields(w, false),
@@ -292,6 +303,10 @@ namespace Dcomms.DRP
                     logger.WriteToLog_mediumPain($"... registration confirmation request failed: {exc}");
                 }
                 #endregion
+
+                regSW.Stop();
+                if (regSW.Elapsed.TotalMilliseconds > 5000) logger.WriteToLog_lightPain($"registration is completed in {(int)regSW.Elapsed.TotalMilliseconds}ms");
+                else logger.WriteToLog_higherLevelDetail($"registration is completed in {(int)regSW.Elapsed.TotalMilliseconds}ms"); ;
 
                 return newConnectionToNeighbor;
             }
