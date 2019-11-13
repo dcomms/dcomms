@@ -104,7 +104,9 @@ namespace Dcomms.DMP
         /// </summary>
         public List<byte[]> ed25519privateKeys; 
 
-        public static void CreateUserId(int numberOfKeyPairs, byte requiredSignaturesCount, ICryptoLibrary cryptoLibrary, 
+        public static void CreateUserId(int numberOfKeyPairs, byte requiredSignaturesCount,
+            TimeSpan maxCertificateDuration,
+            ICryptoLibrary cryptoLibrary, 
             out UserRootPrivateKeys privateKeys, out UserId publicKeys)
         {
             if (numberOfKeyPairs <= 0 || numberOfKeyPairs > 3) throw new ArgumentException(); // the UDP packets can go over 1000 bytes to transfer a big UsersCertificate
@@ -112,7 +114,7 @@ namespace Dcomms.DMP
             privateKeys.ed25519privateKeys = new List<byte[]>();
             publicKeys = new UserId();
             publicKeys.MinimalRequiredRootSignaturesCountInCertificate = requiredSignaturesCount;
-            publicKeys.MaxCertificateDuration = TimeSpan.FromDays(30);
+            publicKeys.MaxCertificateDuration = maxCertificateDuration;
             publicKeys.RootPublicKeys = new List<byte[]>();
 
             for (int i = 0; i < numberOfKeyPairs; i++)

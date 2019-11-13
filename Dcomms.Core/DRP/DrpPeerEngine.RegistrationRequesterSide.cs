@@ -129,7 +129,7 @@ namespace Dcomms.DRP
                     WriteToLog_reg_requesterSide_detail($"generated PoW1 request @engine thread", null, null);
 
                     // send register pow1 request
-                    if (pow1SW.Elapsed.TotalMilliseconds > 2000) WriteToLog_reg_requesterSide_lightPain($"PoW1 took {(int)pow1SW.Elapsed.TotalMilliseconds}ms", null, null);
+                    if (pow1SW.Elapsed.TotalMilliseconds > 3000) WriteToLog_reg_requesterSide_lightPain($"PoW1 took {(int)pow1SW.Elapsed.TotalMilliseconds}ms", null, null);
                     WriteToLog_reg_requesterSide_detail($"PoW1 took {(int)pow1SW.Elapsed.TotalMilliseconds}ms. sending PoW1 request", null, null);
                     var rpPow1ResponsePacketData = await SendUdpRequestAsync_Retransmit(
                                 new PendingLowLevelUdpRequest("rpPow1 469",  epEndpoint,
@@ -182,7 +182,7 @@ namespace Dcomms.DRP
                     else
                         req.ProofOfWork2 = new byte[64];
                     pow2SW.Stop();
-                    if (pow2SW.Elapsed.TotalMilliseconds > 2000) logger.WriteToLog_lightPain($"PoW2 took {(int)pow2SW.Elapsed.TotalMilliseconds}ms");
+                    if (pow2SW.Elapsed.TotalMilliseconds > 3000) logger.WriteToLog_lightPain($"PoW2 took {(int)pow2SW.Elapsed.TotalMilliseconds}ms");
 
                     req.RequesterSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         w => req.GetSharedSignedFields(w, false),

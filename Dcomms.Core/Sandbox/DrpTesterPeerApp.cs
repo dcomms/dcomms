@@ -22,8 +22,8 @@ namespace Dcomms.Sandbox
         {
             DrpPeerRegistrationConfiguration = drpPeerRegistrationConfiguration;
             DrpPeerEngine = drpPeerEngine;
-            UserRootPrivateKeys.CreateUserId(3, 2, DrpPeerEngine.CryptoLibrary, out UserRootPrivateKeys, out UserId);
-            UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
+            UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(365*11), DrpPeerEngine.CryptoLibrary, out UserRootPrivateKeys, out UserId);
+            UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddYears(10));
         }
         public string LatestReceivedTextMessage { get; private set; }
         public void OnReceivedShortSingleMessage(string message)
