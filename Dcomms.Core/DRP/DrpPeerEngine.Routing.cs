@@ -122,11 +122,11 @@ namespace Dcomms.DRP
                 {
                     var distanceToNeighbor = req.RequesterRegistrationId.GetDistanceTo(_cryptoLibrary, neighbor.RemoteRegistrationId, NumberOfDimensions);
                     distancesToNeighbors.Add(distanceToNeighbor);
-                    logger.WriteToLog_detail($"distanceToNeighbor={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor} (req.min={req.MinimalDistanceToNeighbor})");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"distanceToNeighbor={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor} (req.min={req.MinimalDistanceToNeighbor})");
                     if (distanceToNeighbor.IsLessThan(req.MinimalDistanceToNeighbor))
                     {
                         // skip: this is too close than requested
-                        logger.WriteToLog_detail($"skipping connection to {neighbor}: distance={distanceToNeighbor} is less than requested={req.MinimalDistanceToNeighbor}");
+                        if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"skipping connection to {neighbor}: distance={distanceToNeighbor} is less than requested={req.MinimalDistanceToNeighbor}");
                         continue;
                     }
                 }
@@ -140,7 +140,7 @@ namespace Dcomms.DRP
                     requestedDirectionMulResults.Add(mulResult);
                     if (mulResult < 0)
                     {
-                        logger.WriteToLog_detail($"skipping connection to {neighbor}: direction from requester to neighbor does not match requested vector");
+                        if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"skipping connection to {neighbor}: direction from requester to neighbor does not match requested vector");
                         continue;
                     }
                 }
@@ -149,8 +149,8 @@ namespace Dcomms.DRP
                 var p2pConnectionValue_withNeighbor = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds,
                     neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0, NumberOfDimensions, false, false, false);
                 
-                if (logger.WriteToLog_deepDetail2_enabled)
-                    logger.WriteToLog_deepDetail2($"p2pConnectionValue_withNeighbor={p2pConnectionValue_withNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor}");
+                if (logger.WriteToLog_deepDetail_enabled)
+                    logger.WriteToLog_deepDetail($"p2pConnectionValue_withNeighbor={p2pConnectionValue_withNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor}");
 
                 if (maxP2pConnectionValue == null || maxP2pConnectionValue < p2pConnectionValue_withNeighbor)
                 {
@@ -165,13 +165,13 @@ namespace Dcomms.DRP
                 if (req.MinimalDistanceToNeighbor != 0)
                 {
                     // special case: we are inside the "minDistance" hypersphere: move away from the requester, proxy to most distant neighbor
-                    logger.WriteToLog_detail($"special case: move away from the requester, proxy to most distant neighbor");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"special case: move away from the requester, proxy to most distant neighbor");
                     RegistrationIdDistance maxDistance = null;
                     for (int i = 0; i < connectedNeighborsForRouting.Count; i++)
                     {
                         var neighbor = connectedNeighborsForRouting[i];
                         var distanceToNeighbor = distancesToNeighbors[i];
-                        logger.WriteToLog_detail($"distanceToConnectedPeer={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor} (req.min={req.MinimalDistanceToNeighbor})");
+                        if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"distanceToConnectedPeer={distanceToNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor} (req.min={req.MinimalDistanceToNeighbor})");
                         if (maxDistance == null || distanceToNeighbor.IsGreaterThan(maxDistance))
                         {
                             maxDistance = distanceToNeighbor;
@@ -182,13 +182,13 @@ namespace Dcomms.DRP
                 }
                 if (req.DirectionVectorNullable != null)
                 {
-                    logger.WriteToLog_detail($"special case: move towards the specified direction");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"special case: move towards the specified direction");
                     double? maxMulResult = null;
                     for (int i = 0; i < connectedNeighborsForRouting.Count; i++)
                     {
                         var neighbor = connectedNeighborsForRouting[i];
                         var mulResult = requestedDirectionMulResults[i];
-                        logger.WriteToLog_detail($"mulResult={mulResult} for {neighbor}");
+                        if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"mulResult={mulResult} for {neighbor}");
                         if (maxMulResult == null || mulResult > maxMulResult)
                         {
                             maxMulResult = mulResult;
@@ -202,21 +202,21 @@ namespace Dcomms.DRP
             // dont connect to local peer if already connected
             if (localDrpPeer.Configuration.LocalPeerRegistrationId.Equals(req.RequesterRegistrationId) == true)
             {
-                logger.WriteToLog_detail($"not accepting request at local peer: it has same regID {req.RequesterRegistrationId}");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"not accepting request at local peer: it has same regID {req.RequesterRegistrationId}");
             }
             else if (localDrpPeer.ConnectedNeighbors.Any(x => x.RemoteRegistrationId.Equals(req.RequesterRegistrationId)) == true)
             {
-                logger.WriteToLog_detail($"not accepting request at local peer: already connected to {req.RequesterRegistrationId}");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"not accepting request at local peer: already connected to {req.RequesterRegistrationId}");
             }
             else if (localDrpPeer.ConnectedNeighbors.Count > localDrpPeer.Configuration.AbsoluteMaxNumberOfNeighbors)
             {
-                logger.WriteToLog_detail($"not accepting request at local peer: already too many neighbors ({localDrpPeer.ConnectedNeighbors.Count})");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"not accepting request at local peer: already too many neighbors ({localDrpPeer.ConnectedNeighbors.Count})");
             }
             else
             {
                 var p2pConnectionValue_withLocalPeer = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds,
                     localDrpPeer.Configuration.LocalPeerRegistrationId, localDrpPeer.ConnectedNeighborsBusySectorIds, NumberOfDimensions, false, false, false);
-                logger.WriteToLog_detail($"p2pConnectionValue_withLocalPeer={p2pConnectionValue_withLocalPeer} from REGISTER REQ {req.RequesterRegistrationId} to {localDrpPeer.Configuration.LocalPeerRegistrationId}");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"p2pConnectionValue_withLocalPeer={p2pConnectionValue_withLocalPeer} from REGISTER REQ {req.RequesterRegistrationId} to {localDrpPeer.Configuration.LocalPeerRegistrationId}");
                 if (maxP2pConnectionValue == null || p2pConnectionValue_withLocalPeer > maxP2pConnectionValue)
                 {
                     maxP2pConnectionValue = p2pConnectionValue_withLocalPeer;
@@ -225,7 +225,7 @@ namespace Dcomms.DRP
                 }
             }
 
-            logger.WriteToLog_detail($"<< RouteRegistrationRequest_LocalDrpPeerIteration() proxyTo={proxyToDestinationPeer}, acceptAt={acceptAt}");
+            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"<< RouteRegistrationRequest_LocalDrpPeerIteration() proxyTo={proxyToDestinationPeer}, acceptAt={acceptAt}");
 
         }
 

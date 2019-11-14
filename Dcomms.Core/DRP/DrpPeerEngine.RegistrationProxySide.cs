@@ -70,11 +70,11 @@ namespace Dcomms.DRP
             try
             {
                 // send NPACK to source peer
-                logger.WriteToLog_detail($"sending NPACK to REQ source peer (delay={(int)(DateTimeNowUtc - routedRequest.ReqReceivedTimeUtc.Value).TotalMilliseconds}ms)");                
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to REQ source peer (delay={(int)(DateTimeNowUtc - routedRequest.ReqReceivedTimeUtc.Value).TotalMilliseconds}ms)");                
                 routedRequest.SendNeighborPeerAck_accepted_IfNotAlreadyReplied();                
                                 
                 if (req.NumberOfRandomHopsRemaining >= 1) req.NumberOfRandomHopsRemaining--;
-                logger.WriteToLog_detail($"decremented number of hops in {req}: NumberOfHopsRemaining={req.NumberOfHopsRemaining}, NumberOfRandomHopsRemaining={req.NumberOfRandomHopsRemaining}");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"decremented number of hops in {req}: NumberOfHopsRemaining={req.NumberOfHopsRemaining}, NumberOfRandomHopsRemaining={req.NumberOfRandomHopsRemaining}");
 
                 req.ReqP2pSeq16 = destinationPeer.GetNewRequestP2pSeq16_P2P();
                 byte[] ack1UdpData;
@@ -88,7 +88,7 @@ namespace Dcomms.DRP
                     // verify NeighborHMAC
                     // var ack1R = await sentRequest.SendRequestAsync_NoExc("ack1 34601"); ////////////////////////////////// new method
                     ack1UdpData = await sentRequest.SendRequestAsync("ack1 34601");
-                  //  logger.WriteToLog_detail("got ACK1 result");
+                  //  if (logger.WriteToLog_detail2_enabled) logger.WriteToLog_detail("got ACK1 result");
 
                     if (routedRequest.ReceivedFromNeighborNullable?.IsDisposed == true)
                     {
@@ -144,7 +144,7 @@ namespace Dcomms.DRP
 
                 var tr1 = CreateTracker("ack1 34601 2");
                 var ack1 = RegisterAck1Packet.DecodeAndOptionallyVerify(logger, ack1UdpData, req, null);
-                logger.WriteToLog_detail($"verified ACK1 from destination");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"verified ACK1 from destination");
 
                 // respond with NPACK
                 SendNeighborPeerAckResponseToRegisterAck1(ack1, destinationPeer);
@@ -167,20 +167,20 @@ namespace Dcomms.DRP
                 byte[] ack2UdpData;
                 if (routedRequest.ReceivedFromNeighborNullable == null)
                 {   // A-EP mode: wait for ACK2, retransmitting ACK1
-                    logger.WriteToLog_detail($"sending ACK1, waiting for ACK2");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending ACK1, waiting for ACK2");
                     ack2UdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 12368", ack1UdpDataTx, routedRequest.ReceivedFromEndpoint, ack2Scanner);
                 }
                 else
                 {   // P2P mode: retransmit ACK1 until NPACK (via P2P); at same time wait for ACK2
-                   logger.WriteToLog_detail($"sending ACK1, awaiting for NPACK");
+                   if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending ACK1, awaiting for NPACK");
                     _ = OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("ack1 3686", ack1UdpDataTx, routedRequest.ReceivedFromEndpoint,
                         ack1.ReqP2pSeq16, routedRequest.ReceivedFromNeighborNullable, ack1.GetSignedFieldsForNeighborHMAC);
                     // not waiting for NPACK, wait for ACK2
-                    logger.WriteToLog_detail($"waiting for ACK2");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"waiting for ACK2");
                     ack2UdpData = await OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 345209", null, routedRequest.ReceivedFromEndpoint, ack2Scanner);
                 }
 
-                logger.WriteToLog_detail($"received ACK2");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received ACK2");
                 if (routedRequest.ReceivedFromNeighborNullable?.IsDisposed == true)
                 {
                    logger.WriteToLog_needsAttention($"sourcePeer={routedRequest.ReceivedFromNeighborNullable} is disposed during proxying 2345135");
@@ -194,7 +194,7 @@ namespace Dcomms.DRP
                 var ack2 = RegisterAck2Packet.Decode_OptionallyVerify_InitializeP2pStreamAtResponder(logger, ack2UdpData, null, null, null);
 
                 // send NPACK to source peer
-                logger.WriteToLog_detail($"sending NPACK to ACK2 to source peer");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to ACK2 to source peer");
                 SendNeighborPeerAckResponseToRegisterAck2(ack2, routedRequest.ReceivedFromEndpoint, routedRequest.ReceivedFromNeighborNullable);
 
                 // send ACK2 to destination peer

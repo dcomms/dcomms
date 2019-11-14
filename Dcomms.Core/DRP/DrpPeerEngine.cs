@@ -150,7 +150,7 @@ namespace Dcomms.DRP
         {
             var packetType = (PacketTypes)udpData[0];
             if (WriteToLog_receiver_detail_enabled) 
-                WriteToLog_receiver_detail2($"received packet {packetType} from {remoteEndpoint} ({udpData.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpData)})");
+                WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint} ({udpData.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpData)})");
             if (packetType == PacketTypes.RegisterPow1Request)
             {
                 ProcessRegisterPow1RequestPacket(remoteEndpoint, udpData);
@@ -181,14 +181,14 @@ namespace Dcomms.DRP
                             var neighborToken16 = PingPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             if (WriteToLog_receiver_detail_enabled)
-                                WriteToLog_receiver_detail2($"got connectedPeer={connectedPeer} by neighborToken16={neighborToken16.ToString("X4")} to process ping udp data {MiscProcedures.ByteArrayToString(udpData)}");
+                                WriteToLog_receiver_detail($"got connectedPeer={connectedPeer} by neighborToken16={neighborToken16.ToString("X4")} to process ping udp data {MiscProcedures.ByteArrayToString(udpData)}");
                            
                             if (connectedPeer != null)
                             {
                                 if (connectedPeer.IsDisposed)
                                 {
                                     if (WriteToLog_receiver_detail_enabled)
-                                        WriteToLog_receiver_detail2($"connectedPeer={connectedPeer} is disposed, being removed from table");
+                                        WriteToLog_receiver_detail($"connectedPeer={connectedPeer} is disposed, being removed from table");
                                     return;
                                 }
                                 connectedPeer.OnReceivedPing(remoteEndpoint, udpData);
@@ -206,7 +206,7 @@ namespace Dcomms.DRP
                                 if (connectedPeer.IsDisposed)
                                 {
                                     if (WriteToLog_receiver_detail_enabled)
-                                        WriteToLog_receiver_detail2($"connectedPeer={connectedPeer} is disposed, being removed from table");
+                                        WriteToLog_receiver_detail($"connectedPeer={connectedPeer} is disposed, being removed from table");
                                     return;
                                 }
                                 connectedPeer.OnReceivedPong(remoteEndpoint, udpData, receivedAtUtc);
@@ -350,7 +350,7 @@ namespace Dcomms.DRP
 
     public interface IDrpRegisteredPeerApp 
     {
-        void OnReceivedShortSingleMessage(string messageText);
+        void OnReceivedShortSingleMessage(string messageText, InviteRequestPacket req);
         /// <summary>
         /// searches for a known user in local contact book
         /// </summary>

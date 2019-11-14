@@ -91,21 +91,21 @@ namespace Dcomms.DRP
             {
                 if (routedRequest.ReceivedFromNeighborNullable != null && connectedPeer == routedRequest.ReceivedFromNeighborNullable)
                 {
-                    if (routedRequest.Logger.WriteToLog_deepDetail2_enabled)
-                        routedRequest.Logger.WriteToLog_deepDetail2($"skipping routing back to source peer {connectedPeer}");
+                    if (routedRequest.Logger.WriteToLog_deepDetail_enabled)
+                        routedRequest.Logger.WriteToLog_deepDetail($"skipping routing back to source peer {connectedPeer}");
                     continue;
                 }
                 if (routedRequest.TriedNeighbors.Contains(connectedPeer))
                 {
-                    if (routedRequest.Logger.WriteToLog_deepDetail2_enabled)
-                        routedRequest.Logger.WriteToLog_deepDetail2($"skipping routing to previously tried peer {connectedPeer}");
+                    if (routedRequest.Logger.WriteToLog_deepDetail_enabled)
+                        routedRequest.Logger.WriteToLog_deepDetail($"skipping routing to previously tried peer {connectedPeer}");
                     continue;
                 }
 
                 if (routedRequest.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
                 {
-                    if (routedRequest.Logger.WriteToLog_deepDetail2_enabled)
-                        routedRequest.Logger.WriteToLog_deepDetail2($"skipping routing to peer with same regID {connectedPeer}");
+                    if (routedRequest.Logger.WriteToLog_deepDetail_enabled)
+                        routedRequest.Logger.WriteToLog_deepDetail($"skipping routing to peer with same regID {connectedPeer}");
                     continue;
                 }
 

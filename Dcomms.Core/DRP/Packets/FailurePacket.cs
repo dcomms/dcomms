@@ -103,7 +103,7 @@ namespace Dcomms.DRP.Packets
         /// </param>
         public static LowLevelUdpResponseScanner GetScanner(Logger logger, RequestP2pSequenceNumber16 reqP2pSeq16, ConnectionToNeighbor connectionToNeighborNullable = null)
         {
-            logger.WriteToLog_detail($">> FailurePacket.GetScanner() reqP2pSeq16={reqP2pSeq16}");
+            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($">> FailurePacket.GetScanner() reqP2pSeq16={reqP2pSeq16}");
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.Failure);
             w.Write((byte)0);
@@ -121,7 +121,7 @@ namespace Dcomms.DRP.Packets
             {
                 r.OptionalFilter = (responseData) =>
                 {
-                    logger.WriteToLog_detail($"filtering FAILURE @scanner: hash={MiscProcedures.GetArrayHashCodeString(responseData)}");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"filtering FAILURE @scanner: hash={MiscProcedures.GetArrayHashCodeString(responseData)}");
                     if (connectionToNeighborNullable.IsDisposed)
                     {
                         logger.WriteToLog_needsAttention("ignoring FAILURE: connection is disposed");

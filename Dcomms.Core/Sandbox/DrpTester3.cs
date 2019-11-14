@@ -1,5 +1,6 @@
 ﻿using Dcomms.DMP;
 using Dcomms.DRP;
+using Dcomms.DRP.Packets;
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
@@ -257,14 +258,28 @@ namespace Dcomms.Sandbox
         }
         class MessagesTest
         {
-            public int SentCount = 0;
-            public int SuccessfulCount = 0;
+            int _sentCount = 0;
+            public int OnSent()
+            {
+                return _sentCount++;
+            }
+            int SuccessfulCount = 0;
 
             double _delaysSumMs = 0;
-            public double MaxDelayMs;
-            public DateTime MaxDelayTime;
-            public double AvgDelayMs => _delaysSumMs / SuccessfulCount;
-            public void OnSuccessfullyDelivered(double delayMs, DateTime now)
+            double MaxDelayMs;
+            DateTime MaxDelayTime;
+            double AvgDelayMs => _delaysSumMs / SuccessfulCount;
+
+            double _numberOfHopsRemainingSum;
+            double AvgNumberOfHopsRemaining => _numberOfHopsRemainingSum / SuccessfulCount;
+            int MinNumberOfHopsRemaining = InviteRequestPacket.MaxNumberOfHopsRemaining;
+            DateTime MinNumberOfHopsRemainingTime;
+
+            public string Report => $"success rate = {(double)SuccessfulCount * 100 / _sentCount}% ({SuccessfulCount}/{_sentCount}) " +
+                    $"delay: avg={AvgDelayMs}ms  max={MaxDelayMs} at {MaxDelayTime.ToString("HH:mm:ss.fff")}" +
+                    $"nHopsRemaining: avg={AvgNumberOfHopsRemaining}ms  min={MinNumberOfHopsRemaining} at {MinNumberOfHopsRemainingTime.ToString("HH:mm:ss.fff")}";
+
+            public void OnSuccessfullyDelivered(double delayMs, DateTime now, InviteRequestPacket req)
             {
                 SuccessfulCount++;
                 _delaysSumMs += delayMs;
@@ -273,19 +288,28 @@ namespace Dcomms.Sandbox
                     MaxDelayMs = delayMs;
                     MaxDelayTime = now;
                 }
+
+                _numberOfHopsRemainingSum += req.NumberOfHopsRemaining;
+
+                if (req.NumberOfHopsRemaining < MinNumberOfHopsRemaining)
+                {
+                    MinNumberOfHopsRemaining = req.NumberOfHopsRemaining;
+                    MinNumberOfHopsRemainingTime = now;
+                }
             }
         }
 
         void BeginTestMessage(MessagesTest test)
         {
-            var peer1 = _userApps[test.SentCount++ % _userApps.Count];
+            int c = test.OnSent();
+            var peer1 = _userApps[c % _userApps.Count];
 
         _retry:
             var peer2 = _userApps[_insecureRandom.Next(_userApps.Count)];
             if (peer1 == peer2) goto _retry;
 
             _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
-                    $"testing message #{test.SentCount} from {peer1} to {peer2}");
+                    $"testing message #{c} from {peer1} to {peer2}");
 
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
 
@@ -302,11 +326,9 @@ namespace Dcomms.Sandbox
             if (peer2.LatestReceivedTextMessage == sentText)
             {
                 sw.Stop();
-                test.OnSuccessfullyDelivered(sw.Elapsed.TotalMilliseconds, _visionChannel.TimeNow);
+                test.OnSuccessfullyDelivered(sw.Elapsed.TotalMilliseconds, _visionChannel.TimeNow, peer2.LatestReceivedTextMessage_req);
                 _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                    AttentionLevel.guiActivity, $"successfully tested message from {peer1} to {peer2} in {sw.Elapsed.TotalMilliseconds}ms. " +
-                    $"success rate = {test.SuccessfulCount * 100 / test.SentCount}% ({test.SuccessfulCount}/{test.SentCount}) " +
-                    $"delay avg={test.AvgDelayMs}ms  max={test.MaxDelayMs} at {test.MaxDelayTime.ToString("HH:mm:ss.fff")}");
+                    AttentionLevel.guiActivity, $"successfully tested message from {peer1} to {peer2} in {sw.Elapsed.TotalMilliseconds}ms. {test.Report}");
             }
             else
             { // try to wait for 1 sec   in case when sender-side callback is invoked BEFORE receiver-side callback
@@ -320,8 +342,7 @@ namespace Dcomms.Sandbox
                 }
 
                 _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                    AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{sentText}. " +
-                    $"success rate = {test.SuccessfulCount * 100 / test.SentCount}% ({test.SuccessfulCount}/{test.SentCount})");
+                    AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{sentText}. {test.Report}");
             }
 
             BeginTestMessage(test); 

@@ -71,7 +71,8 @@ namespace Dcomms.DRP
                 if (magic16 != Magic16_responderToRequester) throw new BrokenCipherException();
             }
             
-            logger.WriteToLog_detail($"decrypted remote responder endpoint={RemoteEndpoint}, remoteNeighborToken={RemoteNeighborToken32} from ACK1");
+            if (logger.WriteToLog_detail_enabled)
+            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"decrypted remote responder endpoint={RemoteEndpoint}, remoteNeighborToken={RemoteNeighborToken32} from ACK1");
             
         }
         const ushort Magic16_responderToRequester = 0x60C1; // is used to validate decrypted data
@@ -112,7 +113,7 @@ namespace Dcomms.DRP
             PacketProcedures.EncodeIPEndPoint(wRxParameters, localResponderEndpoint); // max 19
             LocalNeighborToken32.Encode(wRxParameters); // +4   max 23
 
-            logger.WriteToLog_detail($"encrypting local responder endpoint={localResponderEndpoint}, localNeighborToken={LocalNeighborToken32} into ACK1");
+            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"encrypting local responder endpoint={localResponderEndpoint}, localNeighborToken={LocalNeighborToken32} into ACK1");
 
             wRxParameters.Write(Magic16_responderToRequester);    // +2 max 25
             var bytesRemaining = RegisterAck1Packet.ToResponderTxParametersEncryptedLength - (int)msRxParameters.Length;
@@ -157,7 +158,7 @@ namespace Dcomms.DRP
                 if (magic16 != Magic16_ipv4_requesterToResponder) throw new BrokenCipherException();
             }
 
-            logger.WriteToLog_detail($"decrypted remote requester endpoint={RemoteEndpoint}, remoteNeighborToken={RemoteNeighborToken32} from ACK2");
+            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"decrypted remote requester endpoint={RemoteEndpoint}, remoteNeighborToken={RemoteNeighborToken32} from ACK2");
 
             InitializeP2pStream(req, ack1, ack2);            
         }
@@ -186,7 +187,7 @@ namespace Dcomms.DRP
             PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
             PacketProcedures.EncodeIPEndPoint(wRxParameters, LocalEndpoint); // max 19
             LocalNeighborToken32.Encode(wRxParameters); // +4 max 23
-            logger.WriteToLog_detail($"encrypting local requester endpoint={LocalEndpoint}, localNeighborToken={LocalNeighborToken32} into ACK2");
+            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"encrypting local requester endpoint={LocalEndpoint}, localNeighborToken={LocalNeighborToken32} into ACK2");
             wRxParameters.Write(Magic16_ipv4_requesterToResponder); // +2 max 25
             var bytesRemaining = RegisterAck2Packet.ToRequesterTxParametersEncryptedLength - (int)msRxParameters.Length;
             wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));      
@@ -597,7 +598,7 @@ namespace Dcomms.DRP
                 // we got REQ from this instance neighbor
                 var req = InviteRequestPacket.Decode_VerifyNeighborHMAC(udpData, this);
                 var logger = new Logger(Engine, LocalDrpPeer, req, DrpPeerEngine.VisionChannelModuleName_inv);
-                logger.WriteToLog_detail($"{this} received {req}");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"{this} received {req}");
                 // NeighborToken32 and NeighborHMAC are verified at this time
 
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
@@ -631,7 +632,7 @@ namespace Dcomms.DRP
                     if (needToRerouteToAnotherNeighbor)
                     {
                         routedRequest.TriedNeighbors.Add(destinationPeer);
-                        logger.WriteToLog_detail($"retrying to proxy invite to another neighbor on error. already tried {routedRequest.TriedNeighbors.Count}");             
+                        if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"retrying to proxy invite to another neighbor on error. already tried {routedRequest.TriedNeighbors.Count}");             
                         goto _retry;
                     }
 

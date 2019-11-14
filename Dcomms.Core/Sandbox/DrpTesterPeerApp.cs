@@ -1,5 +1,6 @@
 ﻿using Dcomms.DMP;
 using Dcomms.DRP;
+using Dcomms.DRP.Packets;
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
@@ -26,10 +27,12 @@ namespace Dcomms.Sandbox
             UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddYears(1));
         }
         public string LatestReceivedTextMessage { get; private set; }
-        public void OnReceivedShortSingleMessage(string message)
+        public InviteRequestPacket LatestReceivedTextMessage_req;
+        public void OnReceivedShortSingleMessage(string message, InviteRequestPacket req)
         {
             DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.guiActivity,
                 $"received message: {message}");
+            LatestReceivedTextMessage_req = req;
             LatestReceivedTextMessage = message;
         }
         public Dictionary<RegistrationId, UserId> ContactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();

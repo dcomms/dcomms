@@ -27,7 +27,7 @@ namespace Dcomms.DRP
             var req = routedRequest.InviteReq;
             var logger = routedRequest.Logger;
             logger.ModuleName = DrpPeerEngine.VisionChannelModuleName_inv_proxySide;         
-            logger.WriteToLog_detail($"proxying {req}");
+            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"proxying {req}");
 
             if (!routedRequest.CheckedRecentUniqueProxiedRequests)
             {
@@ -55,11 +55,11 @@ namespace Dcomms.DRP
             try
             {
                 // send NPACK to REQ
-                logger.WriteToLog_detail($"sending NPACK to REQ source peer");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to REQ source peer");
                 routedRequest.SendNeighborPeerAck_accepted_IfNotAlreadyReplied();
 
                 req.NumberOfHopsRemaining--;
-                logger.WriteToLog_detail($"decremented number of hops in {req}: NumberOfHopsRemaining={req.NumberOfHopsRemaining}");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"decremented number of hops in {req}: NumberOfHopsRemaining={req.NumberOfHopsRemaining}");
                 
                 // send (proxy) REQ to responder. wait for NPACK, verify NPACK.senderHMAC, retransmit REQ   
                 var reqUdpData = req.Encode_SetP2pFields(destinationPeer);
@@ -103,7 +103,7 @@ namespace Dcomms.DRP
 
 
                 var ack1 = InviteAck1Packet.Decode(ack1UdpData);
-                logger.WriteToLog_detail($"verified ACK1 from responder");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"verified ACK1 from responder");
                 // respond with NPACK to ACk1
                 SendNeighborPeerAckResponseToAck1(ack1, destinationPeer);
                 #endregion
@@ -111,33 +111,33 @@ namespace Dcomms.DRP
                 #region send ACK1 to requester, wait for NPACK and ACK2
                 var ack1UdpDataTx = ack1.Encode_SetP2pFields(routedRequest.ReceivedFromNeighborNullable);
 
-                logger.WriteToLog_detail($"sending ACK1, awaiting for NPACK");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending ACK1, awaiting for NPACK");
                 _ = Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("ack1 13536", ack1UdpDataTx, routedRequest.ReceivedFromEndpoint,
                     ack1.ReqP2pSeq16, routedRequest.ReceivedFromNeighborNullable, ack1.GetSignedFieldsForNeighborHMAC);
                 // not waiting for NPACK, wait for ACK1
-                logger.WriteToLog_detail($"waiting for ACK2");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"waiting for ACK2");
 
                 var ack2UdpData = await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 2346892", null, routedRequest.ReceivedFromEndpoint, 
                     InviteAck2Packet.GetScanner(logger, req, routedRequest.ReceivedFromNeighborNullable));
-                logger.WriteToLog_detail($"received ACK2");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received ACK2");
                 var ack2 = InviteAck2Packet.Decode(ack2UdpData);
                 #endregion
 
                 // send NPACK to ACK2
-                logger.WriteToLog_detail($"sending NPACK to ACK2 to source peer");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to ACK2 to source peer");
                 SendNeighborPeerAckResponseToAck2(ack2, routedRequest.ReceivedFromNeighborNullable);
 
                 // send ACK2 to responder
                 // put ACK2.ReqP2pSeq16, sendertoken32, senderHMAC  
                 // wait for NPACK
                 var ack2UdpDataTx = ack2.Encode_SetP2pFields(destinationPeer);
-                logger.WriteToLog_detail($"sending ACK2 to responder");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending ACK2 to responder");
                 await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK("ack2 5344530", ack2UdpDataTx,
                     ack2.ReqP2pSeq16, ack2.GetSignedFieldsForNeighborHMAC);
-                logger.WriteToLog_detail($"received NPACK to ACK2 from destination peer");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received NPACK to ACK2 from destination peer");
 
                 // wait for CFM from responder
-                logger.WriteToLog_detail($"waiting for CFM from responder");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"waiting for CFM from responder");
                 var cfmUdpData = await Engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest("cfm 12358", destinationPeer.RemoteEndpoint,
                                 InviteConfirmationPacket.GetScanner(logger, req, destinationPeer),
                                     Engine.DateTimeNowUtc, Engine.Configuration.CfmTimoutS
@@ -145,7 +145,7 @@ namespace Dcomms.DRP
                 if (cfmUdpData == null) throw new DrpTimeoutException("Did not receive CFM on timeout");
                 var cfm = InviteConfirmationPacket.Decode(cfmUdpData);
                 // todo verify signature, update RDRs and QoS
-                logger.WriteToLog_detail($"verified CFM from responder");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"verified CFM from responder");
 
                 // respond NPACK to CFM to destination peer
                 SendNeighborPeerAckResponseToCfm(cfm, destinationPeer);
@@ -153,10 +153,10 @@ namespace Dcomms.DRP
                 // send CFM to requester
                 var cfmUdpDataTx = cfm.Encode_SetP2pFields(routedRequest.ReceivedFromNeighborNullable);
 
-                logger.WriteToLog_detail($"sending CFM to requester, waiting for NPACK");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending CFM to requester, waiting for NPACK");
                 await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("cfm 23468", cfmUdpDataTx, routedRequest.ReceivedFromEndpoint,
                     cfm.ReqP2pSeq16, routedRequest.ReceivedFromNeighborNullable, cfm.GetSignedFieldsForNeighborHMAC);
-                logger.WriteToLog_detail($"received NPACK to CFM from source peer");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received NPACK to CFM from source peer");
             }
             catch (Exception exc)
             {

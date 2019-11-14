@@ -20,7 +20,7 @@ namespace Dcomms.DRP
             var logger = routedRequest.Logger;
             logger.ModuleName = DrpPeerEngine.VisionChannelModuleName_inv_responderSide;
 
-            logger.WriteToLog_detail($"accepting {req} from sourcePeer={routedRequest.ReceivedFromNeighborNullable}");
+            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"accepting {req} from sourcePeer={routedRequest.ReceivedFromNeighborNullable}");
             
             // check if regID exists in contact book, get userID from the local contact book
             // ignore the REQ packet if no such user in contacts
@@ -33,12 +33,12 @@ namespace Dcomms.DRP
 
             if (autoReceiveShortSingleMessage == false)
             {
-                logger.WriteToLog_detail($"ignored invite: autoReceiveShortSingleMessage = false, other session types are not implemented");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"ignored invite: autoReceiveShortSingleMessage = false, other session types are not implemented");
                 return;
             }
 
 
-            logger.WriteToLog_detail($"resolved user {remoteRequesterUserIdFromLocalContactBook} by requester regID={req.RequesterRegistrationId}");
+            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"resolved user {remoteRequesterUserIdFromLocalContactBook} by requester regID={req.RequesterRegistrationId}");
 
             if (!Engine.RecentUniquePublicEcdhKeys.Filter(req.RequesterEcdhePublicKey.Ecdh25519PublicKey))
             {
@@ -60,7 +60,7 @@ namespace Dcomms.DRP
             try
             {
                 // send NPACK to REQ
-                logger.WriteToLog_detail($"sending NPACK to REQ source peer");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to REQ source peer");
                 routedRequest.SendNeighborPeerAck_accepted_IfNotAlreadyReplied();
 
                 var session = new InviteSession(this);
@@ -74,7 +74,7 @@ namespace Dcomms.DRP
                         DirectChannelEndPoint = routedRequest.ReceivedFromNeighborNullable.LocalEndpoint,
                         DirectChannelToken32 = session.LocalDirectChannelToken32
                     };
-                    logger.WriteToLog_detail($"responding with local session {session.LocalSessionDescription}");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"responding with local session {session.LocalSessionDescription}");
 
                     session.LocalSessionDescription.UserCertificate = localUserCertificateWithPrivateKey;
 
@@ -107,16 +107,16 @@ namespace Dcomms.DRP
                     );
 
                     var ack1UdpData = ack1.Encode_SetP2pFields(routedRequest.ReceivedFromNeighborNullable);
-                    logger.WriteToLog_detail($"sending ACK1 to source peer, awaiting for NPACK");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending ACK1 to source peer, awaiting for NPACK");
                     _ = routedRequest.ReceivedFromNeighborNullable.SendUdpRequestAsync_Retransmit_WaitForNPACK("ack1 1450", ack1UdpData, ack1.ReqP2pSeq16, ack1.GetSignedFieldsForNeighborHMAC);
                     // not waiting for NPACK, wait for ACK2
                     #endregion
 
                     // wait for ACK2
-                    logger.WriteToLog_detail($"waiting for ACK2");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"waiting for ACK2");
                     var ack2UdpData = await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 23467789", null, routedRequest.ReceivedFromNeighborNullable.RemoteEndpoint,
                         InviteAck2Packet.GetScanner(logger, req, routedRequest.ReceivedFromNeighborNullable));
-                    logger.WriteToLog_detail($"received ACK2");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received ACK2");
                     var ack2 = InviteAck2Packet.Decode(ack2UdpData);
                     if (!ack2.RequesterRegistrationSignature.Verify(Engine.CryptoLibrary, w =>
                         {
@@ -136,7 +136,7 @@ namespace Dcomms.DRP
 
 
                     // send NPACK to ACK2
-                    logger.WriteToLog_detail($"sending NPACK to ACK2 to source peer");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to ACK2 to source peer");
                     SendNeighborPeerAckResponseToAck2(ack2, routedRequest.ReceivedFromNeighborNullable);
                     
                     // send CFM with signature
@@ -154,9 +154,9 @@ namespace Dcomms.DRP
                         }, this.Configuration.LocalPeerRegistrationPrivateKey);
                     var cfmUdpData = cfm.Encode_SetP2pFields(routedRequest.ReceivedFromNeighborNullable);
 
-                    logger.WriteToLog_detail($"sending CFM to source peer, waiting for NPACK");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending CFM to source peer, waiting for NPACK");
                     await routedRequest.ReceivedFromNeighborNullable.SendUdpRequestAsync_Retransmit_WaitForNPACK("cvm 1234589", cfmUdpData, cfm.ReqP2pSeq16, cfm.GetSignedFieldsForNeighborHMAC);
-                    logger.WriteToLog_detail($"received NPACK to CFM");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received NPACK to CFM");
 
                     session.DeriveSharedPingPongHmacKey(req, ack1, ack2, cfm);
 
@@ -171,7 +171,7 @@ namespace Dcomms.DRP
 
                 if (autoReceiveShortSingleMessage == true)
                 {
-                    _ = ReceiveShortSingleMessageAsync(session);
+                    _ = ReceiveShortSingleMessageAsync(session, req);
                 }
                 else
                     session.Dispose(); // todo implement other things
@@ -187,7 +187,7 @@ namespace Dcomms.DRP
         }
                      
 
-        async Task ReceiveShortSingleMessageAsync(InviteSession session)
+        async Task ReceiveShortSingleMessageAsync(InviteSession session, InviteRequestPacket req)
         {
             string receivedMessage;
             try
@@ -200,7 +200,7 @@ namespace Dcomms.DRP
             }
 
             // call app
-            _drpPeerApp.OnReceivedShortSingleMessage(receivedMessage);
+            _drpPeerApp.OnReceivedShortSingleMessage(receivedMessage, req);
         }
     }
 }

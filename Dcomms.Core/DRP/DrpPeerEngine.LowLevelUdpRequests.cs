@@ -24,7 +24,7 @@ namespace Dcomms.DRP
             RequestP2pSequenceNumber16 reqP2pSeq16, ConnectionToNeighbor waitNhaFromNeighborNullable = null, Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
             var npaScanner = NeighborPeerAckPacket.GetScanner(reqP2pSeq16, waitNhaFromNeighborNullable, npaRequestFieldsForNeighborHmacNullable);
-            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail2($"waiting for NPACK, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} npaSeq={reqP2pSeq16}");
+            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"waiting for NPACK, scanner: {MiscProcedures.ByteArrayToString(npaScanner.ResponseFirstBytes)} npaSeq={reqP2pSeq16}");
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(completionActionVisibleId, responderEndpoint,
                          npaScanner, 
@@ -43,7 +43,7 @@ namespace Dcomms.DRP
             var nextHopResponsePacket = new NeighborPeerAckPacket(nextHopResponsePacketData);
             if (nextHopResponsePacket.ResponseCode != ResponseOrFailureCode.accepted)
             {
-                if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail2($"got NPACK with {nextHopResponsePacket.ResponseCode} throwing exception");
+                if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"got NPACK with {nextHopResponsePacket.ResponseCode} throwing exception");
                 throw new RequestRejectedException(nextHopResponsePacket.ResponseCode);
             }
             return nextHopResponsePacket;
@@ -78,12 +78,12 @@ namespace Dcomms.DRP
         {
             if (udpPayload.Length > 548)
                 throw new ArgumentException("Transmitted UDP packet size is too big to bypass internet safely without fragmentation");
-            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail2($"sending packet {(PacketTypes)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpPayload)})");
+            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"sending packet {(PacketTypes)udpPayload[0]} to {remoteEndpoint} ({udpPayload.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpPayload)})");
             _socket.Send(udpPayload, udpPayload.Length, remoteEndpoint);
         }
         internal async Task<byte[]> WaitForUdpResponseAsync(PendingLowLevelUdpRequest request)
         {
-            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail2($"waiting for response to {request}");
+            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"waiting for response to {request}");
             _pendingLowLevelUdpRequests.AddLast(request);
             if (_pendingLowLevelUdpRequests.Count > 20)
                 WriteToLog_udp_lightPain($"_pendingLowLevelUdpRequests.Count={_pendingLowLevelUdpRequests.Count}");
@@ -95,7 +95,7 @@ namespace Dcomms.DRP
         internal void CancelPendingRequest(PendingLowLevelUdpRequest request)
         {
             _CancelPendingRequest_WasInvoked = true;
-            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail2($"cancelled {request}");
+            if (WriteToLog_udp_deepDetail_enabled) WriteToLog_udp_deepDetail($"cancelled {request}");
             _pendingLowLevelUdpRequests.Remove(request);
         }
 
@@ -128,7 +128,8 @@ namespace Dcomms.DRP
                 }
                 else if (request.RequestPacketDataNullable != null && timeNowUTC > request.NextRetransmissionTimeUTC)
                 {          
-                    if (request.RetransmissionsCount < 2) WriteToLog_udp_detail($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");
+                    if (request.RetransmissionsCount < 2)
+                        if (WriteToLog_udp_detail_enabled) WriteToLog_udp_detail($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");
                     else WriteToLog_udp_lightPain($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");
                     request.OnRetransmitted();
                     SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);  
@@ -153,7 +154,7 @@ namespace Dcomms.DRP
                 var request = item.Value;
 
                 if (WriteToLog_udp_deepDetail_enabled)
-                    WriteToLog_udp_deepDetail2($"matching to pending request... responderEndpoint={responderEndpoint}, " +
+                    WriteToLog_udp_deepDetail($"matching to pending request... responderEndpoint={responderEndpoint}, " +
                         $"udpData={MiscProcedures.ByteArrayToString(udpData)} ({(PacketTypes)udpData[0]}) " +
                         $"hash={MiscProcedures.GetArrayHashCodeString(udpData)}, " +
                         $"request={request}" 
@@ -223,7 +224,7 @@ namespace Dcomms.DRP
             if (_respondersToRetransmittedRequests.TryGetValue(key, out var responder))
             {
                 if (WriteToLog_udp_deepDetail_enabled)
-                    WriteToLog_udp_deepDetail2($"responding {(PacketTypes)responder.ResponseUdpPayloadData[0]} to retransmitted request {(PacketTypes)udpData[0]} (hash={MiscProcedures.GetArrayHashCodeString(udpData)})");
+                    WriteToLog_udp_deepDetail($"responding {(PacketTypes)responder.ResponseUdpPayloadData[0]} to retransmitted request {(PacketTypes)udpData[0]} (hash={MiscProcedures.GetArrayHashCodeString(udpData)})");
                 SendPacket(responder.ResponseUdpPayloadData, requesterEndpoint);
                 return true;
             }
@@ -310,7 +311,7 @@ namespace Dcomms.DRP
             if (!MiscProcedures.EqualByteArrayHeader(ResponseFirstBytes, udpData, IgnoredByteAtOffset1))
             {
                 if (engine.WriteToLog_udp_deepDetail_enabled)
-                    engine.WriteToLog_udp_deepDetail2($"packet does not match to ResponseFirstBytes={MiscProcedures.ByteArrayToString(ResponseFirstBytes)} ({(PacketTypes)ResponseFirstBytes[0]}) udpData={MiscProcedures.ByteArrayToString(udpData)} ({(PacketTypes)udpData[0]})"
+                    engine.WriteToLog_udp_deepDetail($"packet does not match to ResponseFirstBytes={MiscProcedures.ByteArrayToString(ResponseFirstBytes)} ({(PacketTypes)ResponseFirstBytes[0]}) udpData={MiscProcedures.ByteArrayToString(udpData)} ({(PacketTypes)udpData[0]})"
                         );
                 return false;
             }

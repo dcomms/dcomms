@@ -48,14 +48,14 @@ namespace Dcomms.DRP
                     var reqToAck1Stopwatch = Stopwatch.StartNew();
                     
                     #region wait for ACK1, respond with NPACK
-                    logger.WriteToLog_detail($"sending {req}, waiting for NPACK. ReqP2pSeq16={req.ReqP2pSeq16}");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending {req}, waiting for NPACK. ReqP2pSeq16={req.ReqP2pSeq16}");
 
                     var sentRequest = new SentRequest(Engine, logger, this.RemoteEndpoint, this, req.Encode_OptionallySignNeighborHMAC(this),
                         req.ReqP2pSeq16, RegisterAck1Packet.GetScanner(logger, req, this));
                     var ack1UdpData = await sentRequest.SendRequestAsync("reg req ack1 42084");
 
                     var ack1 = RegisterAck1Packet.DecodeAndOptionallyVerify(logger, ack1UdpData, req, newConnectionToNeighbor);
-                    logger.WriteToLog_detail($"verified ACK1, sending NPACK to ACK1");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"verified ACK1, sending NPACK to ACK1");
 
                     _engine.SendNeighborPeerAckResponseToRegisterAck1(ack1, this);
                     #endregion                 
@@ -76,7 +76,7 @@ namespace Dcomms.DRP
                     newConnectionToNeighbor.RemoteRegistrationId = ack1.ResponderRegistrationId;
                     reqToAck1Stopwatch.Stop();
                     var reqToAck1TimeMs = reqToAck1Stopwatch.Elapsed.TotalMilliseconds;
-                    logger.WriteToLog_detail($"measured REQ-ACK1 RTT = {(int)reqToAck1TimeMs}ms");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"measured REQ-ACK1 RTT = {(int)reqToAck1TimeMs}ms");
 
                     #region send ACK2, encode local IP
                     var ack2 = new RegisterAck2Packet
@@ -96,7 +96,7 @@ namespace Dcomms.DRP
                         _localDrpPeer.Configuration.LocalPeerRegistrationPrivateKey
                      );
 
-                    logger.WriteToLog_detail($"sending ACK2 (in response to ACK1), waiting for NPACK");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending ACK2 (in response to ACK1), waiting for NPACK");
                     await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("ack2 1235739", ack2.Encode_OptionallySignNeighborHMAC(this), this.RemoteEndpoint, ack2.ReqP2pSeq16);
                     #endregion
 
@@ -131,7 +131,7 @@ namespace Dcomms.DRP
                                     _engine.Configuration.InitialPingRequests_RetransmissionTimeoutIncrement
                                 );
 
-                    logger.WriteToLog_detail($"sending PING, waiting for PONG");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending PING, waiting for PONG");
                     var pongPacketData = await _engine.SendUdpRequestAsync_Retransmit(pendingPingRequest);
                     if (pongPacketData == null) throw new DrpTimeoutException();
                     if (newConnectionToNeighbor.IsDisposed)
@@ -148,7 +148,7 @@ namespace Dcomms.DRP
                     pong = PongPacket.DecodeAndVerify(_engine.CryptoLibrary,
                         pongPacketData, pingRequest, newConnectionToNeighbor,
                         true);
-                    logger.WriteToLog_detail($"verified PONG");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"verified PONG");
                     newConnectionToNeighbor.OnReceivedVerifiedPong(pong, pendingPingRequest.ResponseReceivedAtUtc.Value,
                         pendingPingRequest.ResponseReceivedAtUtc.Value - pendingPingRequest.InitialTxTimeUTC.Value);
                     #endregion
@@ -183,9 +183,9 @@ namespace Dcomms.DRP
                     cfm.RequesterRegistrationConfirmationSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
                         w => newConnectionToNeighbor.GetRequesterRegistrationConfirmationSignatureFields(w, cfm.ResponderRegistrationConfirmationSignature),
                         _localDrpPeer.Configuration.LocalPeerRegistrationPrivateKey);
-                    logger.WriteToLog_detail($"sending CFM, waiting for NPACK");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending CFM, waiting for NPACK");
                     await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("cfm 14478", cfm.Encode_OptionallySignNeighborHMAC(this), this.RemoteEndpoint, cfm.ReqP2pSeq16);
-                    logger.WriteToLog_detail($"received NPACK to CFM");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received NPACK to CFM");
                 }
                 catch (Exception exc)
                 {  // we ingnore exceptions here, just wite warning to log.  the connection is alive already, as direct ping channel to neighbor is set up 
