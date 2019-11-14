@@ -19,11 +19,12 @@ namespace Dcomms
             public string ActionVisibleId;
             public double PeakExecutionTimeMs;
             public DateTime MeasurementTime;
+            public string Details { get; set; }
         }
         Dictionary<string, PeakDelay> _peakDelays = new Dictionary<string, PeakDelay>(); // locked
             
         /// <param name="actionVisibleId">must be a selected from finite set of constant values, otherwise it will cause a memory leak</param>
-        public void OnMeasuredExecutionTime(string actionVisibleId, double executionTimeMs)
+        public bool OnMeasuredExecutionTime(string actionVisibleId, double executionTimeMs, string details = null)
         {
             PeakDelay pd;
             lock (_peakDelays)
@@ -39,7 +40,10 @@ namespace Dcomms
             {
                 pd.PeakExecutionTimeMs = executionTimeMs;
                 pd.MeasurementTime = _getTimeNow();
+                pd.Details = details;
+                return true;
             }
+            return false;
         }
      //   string _peakExecutionTimeActionId;
     //    double? _peakExecutionTimeMs;
@@ -53,7 +57,7 @@ namespace Dcomms
                 {
                     var pds = _peakDelays.Values.OrderByDescending(x=>x.PeakExecutionTimeMs).Take(7).ToList();
                     foreach (var pd in pds)
-                        r.Append($"\r\n{pd.ActionVisibleId}: {pd.PeakExecutionTimeMs}ms at {pd.MeasurementTime.ToString("HH:mm:ss.fff")}");
+                        r.Append($"\r\n{pd.ActionVisibleId}: {pd.PeakExecutionTimeMs}ms at {pd.MeasurementTime.ToString("HH:mm:ss.fff")} {pd.Details}");
                 }
                 return r.ToString();
             }
@@ -65,9 +69,12 @@ namespace Dcomms
         readonly ExecutionTimeStatsCollector _etsc;
         readonly string _actionVisibleId;
         readonly Action<string> _writeToLog;
-        public ExecutionTimeTracker(ExecutionTimeStatsCollector etsc, string actionVisibleId, Action<string> writeToLog)
+        readonly Action<string> _writeToLogNewMaximum;
+        public string Details;
+        public ExecutionTimeTracker(ExecutionTimeStatsCollector etsc, string actionVisibleId, Action<string> writeToLog, Action<string> writeToLogNewMaximum)
         {
             _writeToLog = writeToLog;
+            _writeToLogNewMaximum = writeToLogNewMaximum;
             _actionVisibleId = actionVisibleId;
             _etsc = etsc;
             _sw = Stopwatch.StartNew();
@@ -79,8 +86,9 @@ namespace Dcomms
             if (_sw != null)
             {
                 _sw.Stop();
-                _etsc.OnMeasuredExecutionTime(_actionVisibleId, _sw.Elapsed.TotalMilliseconds);
-                _writeToLog?.Invoke($"stopped tracker {_actionVisibleId}: {_sw.Elapsed.TotalMilliseconds}ms");
+                var newMaximum = _etsc.OnMeasuredExecutionTime(_actionVisibleId, _sw.Elapsed.TotalMilliseconds, Details);
+                var wtl = newMaximum ? _writeToLogNewMaximum : _writeToLog;
+                wtl?.Invoke($"stopped tracker {_actionVisibleId}: {_sw.Elapsed.TotalMilliseconds}ms {Details}");
                 _sw = null;
             }
         }

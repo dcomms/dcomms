@@ -60,25 +60,38 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" MinWidth="190"/>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" MinWidth="190"/>
                 </Grid.ColumnDefinitions>
 
                
               
-
-                <TextBlock Grid.Row="0" Text="VisionChannelSourceIdPrefix:" />
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DrpTester3.VisionChannelSourceIdPrefix, Mode=TwoWay}" MinWidth="50"/>
                 
-                <TextBlock Grid.Row="1" Text="NumberOfLocalInterconnectedEpEngines:" />
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpTester3.NumberOfLocalInterconnectedEpEngines, Mode=TwoWay}" MinWidth="50" />
+                <TextBlock Grid.Row="0" Text="local EPs:" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DrpTester3.NumberOfLocalInterconnectedEpEngines, Mode=TwoWay}" MinWidth="50" />
 
-                <TextBlock Grid.Row="2" Text="NumberOfUserApps:" />
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DrpTester3.NumberOfUserApps, Mode=TwoWay}" MinWidth="50" />
+                <TextBlock Grid.Row="1" Text="users:" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpTester3.NumberOfUserApps, Mode=TwoWay}" MinWidth="50" />
 
-                <TextBlock Grid.Row="3" Text="local UDP ports range start:" />
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpTester3.LocalInterconnectedEpEnginesBasePort, Mode=TwoWay}" />
+                <TextBlock Grid.Row="2" Text="temp peers:" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DrpTester3.NumberOfTempPeers, Mode=TwoWay}" MinWidth="50" />
 
-                <TextBlock Grid.Row="4" Text="remote EPs:" />
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpTester3.RemoteEpEndPointsString, Mode=TwoWay}" />
+                <TextBlock Grid.Row="3" Text="temp peers worker period (s):" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpTester3.TempPeersWorkerPeriodS, Mode=TwoWay}" MinWidth="50" />
+
+
+
+
+
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="VisionChannelSourceIdPrefix:" />
+                <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding DrpTester3.VisionChannelSourceIdPrefix, Mode=TwoWay}" MinWidth="50"/>
+
+
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="local UDP ports range start:" />
+                <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding DrpTester3.LocalInterconnectedEpEnginesBasePort, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="remote EPs:" />
+                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpTester3.RemoteEpEndPointsString, Mode=TwoWay}" />
 
 
                 <StackPanel Orientation="Horizontal" Grid.Row="5" Visibility="{Binding DrpTester3.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
@@ -178,13 +191,16 @@
 
                                 <Button Content="clear" Command="{Binding ClearLogMessages}" />
 
-                                <TextBlock Text="max count: " />
-                                <TextBox MinWidth="50" Text="{Binding LogMessagesMaxCount, Mode=TwoWay}" />
                                 <TextBlock Text="display: " />
                                 <TextBox MinWidth="35" Text="{Binding DisplayedLogMessagesMaxCount, Mode=TwoWay}" />
                                 
 
                                 <CheckBox IsChecked="{Binding EnableNewLogMessages, Mode=TwoWay}" Content="enable new" />
+                                
+                                <TextBlock Text="until RAM (MB): " />
+                                <TextBox MinWidth="50" Text="{Binding EnableNewLogMessagesUntilProcessRamSizeMB, Mode=TwoWay}" />
+                                
+                                
                                 <TextBlock Text="Filter:" />
 
 

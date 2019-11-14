@@ -16,12 +16,7 @@ namespace Dcomms.Sandbox
     {
         const int EpAbsoluteMaxDesiredNumberOfNeighbors = 40;
         const int EpSoftMaxDesiredNumberOfNeighbors = 30;
-        const int EpMinDesiredNumberOfNeighbors = 13;
-
-
-
-
-
+        const int EpMinDesiredNumberOfNeighbors = 13;        
 
         const string DrpTesterVisionChannelModuleName = "drpTester3";
         public ushort LocalInterconnectedEpEnginesBasePort { get; set; } = 12000;
@@ -49,14 +44,18 @@ namespace Dcomms.Sandbox
         }
 
         public string VisionChannelSourceIdPrefix { get; set; } = "";
-        public int NumberOfLocalInterconnectedEpEngines { get; set; } = 25;
+        public int NumberOfLocalInterconnectedEpEngines { get; set; } = 17;
         public int NumberOfUserApps { get; set; } = 50;
+        public int NumberOfTempPeers { get; set; } = 20;
+        public int TempPeersWorkerPeriodS { get; set; } = 15;
+        int _createdTempPeersCount;
 
         public bool Initialized { get; private set; }
 
         readonly Random _insecureRandom = new Random();
         readonly List<DrpTesterPeerApp> _localEpApps = new List<DrpTesterPeerApp>();
         readonly List<DrpTesterPeerApp> _userApps = new List<DrpTesterPeerApp>();
+        readonly List<DrpTesterPeerApp> _tempApps = new List<DrpTesterPeerApp>();
 
         IEnumerable<IVisiblePeer> VisiblePeers
         {
@@ -67,6 +66,9 @@ namespace Dcomms.Sandbox
                         yield return p;
                 foreach (var u in _userApps)
                     foreach (var p in u.DrpPeerEngine.VisibleLocalPeers)
+                        yield return p;
+                foreach (var t in _tempApps)
+                    foreach (var p in t.DrpPeerEngine.VisibleLocalPeers)
                         yield return p;
             }
         }
@@ -101,8 +103,6 @@ namespace Dcomms.Sandbox
             
             Initialize.Execute(null);
         });
-        
-
         public ICommand Initialize => new DelegateCommand(() =>
         {
             if (Initialized) throw new InvalidOperationException();
@@ -189,6 +189,7 @@ namespace Dcomms.Sandbox
             if (userIndex >= NumberOfUserApps)
             {
                 BeginTestMessages();
+                BeginTestTemporaryPeers();
                 return;
             }
 
@@ -246,6 +247,7 @@ namespace Dcomms.Sandbox
             }
         }
 
+        #region messages test
         void BeginTestMessages()
         {
             var contactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
@@ -320,7 +322,6 @@ namespace Dcomms.Sandbox
                 BeginVerifyReceivedMessage(test, peer1, peer2, text, sw, Stopwatch.StartNew());
             });
         }
-
         void BeginVerifyReceivedMessage(MessagesTest test, DrpTesterPeerApp peer1, DrpTesterPeerApp peer2, string sentText, Stopwatch sw, Stopwatch afterCompletionSw)
         {
             if (peer2.LatestReceivedTextMessage == sentText)
@@ -347,8 +348,63 @@ namespace Dcomms.Sandbox
 
             BeginTestMessage(test); 
         }
+        #endregion
 
 
+        void BeginTestTemporaryPeers()
+        {
+            if (_tempApps.Count < NumberOfTempPeers)
+            {
+                var tempPeerEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
+                {
+                    InsecureRandomSeed = _insecureRandom.Next(),
+                    VisionChannel = _visionChannel,
+                    VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}T{_createdTempPeersCount++}",
+                });
+                var localDrpPeerConfiguration = LocalDrpPeerConfiguration.CreateWithNewKeypair(tempPeerEngine.CryptoLibrary);
+
+                var epEndpoints = RemoteEpEndPoints.ToList();
+                epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPort.Value)));
+                localDrpPeerConfiguration.EntryPeerEndpoints = epEndpoints.ToArray();
+
+                var tempPeerApp = new DrpTesterPeerApp(tempPeerEngine, localDrpPeerConfiguration);
+                _tempApps.Add(tempPeerApp);
+                if (epEndpoints.Count == 0) throw new Exception("no endpoints for users to register");
+
+                var sw = Stopwatch.StartNew();
+                _visionChannel.Emit(tempPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, 
+                    $"registering (adding first neighbor)... via {epEndpoints.Count} EPs");
+                tempPeerEngine.BeginRegister(localDrpPeerConfiguration, tempPeerApp, (localDrpPeer) =>
+                {
+                    tempPeerApp.LocalDrpPeer = localDrpPeer;
+                    _visionChannel.Emit(tempPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, 
+                        $"registration complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
+                    TestTemporaryPeers_Wait();                  
+                });
+            }
+            else if (_tempApps.Count > 0)
+            {
+                // destroy a random temp peer
+                var removeAtIndex = _insecureRandom.Next(_tempApps.Count);
+                var tempPeerApp = _tempApps[removeAtIndex];
+                _tempApps.RemoveAt(removeAtIndex);
+
+                _visionChannel.Emit(tempPeerApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
+                    $"destroying a random temp peer");
+                tempPeerApp.DrpPeerEngine.Dispose();
+
+                TestTemporaryPeers_Wait();
+            }
+
+        }
+        void TestTemporaryPeers_Wait()
+        {
+            var a = _localEpApps.FirstOrDefault() ?? _userApps.First();
+            a.DrpPeerEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(TempPeersWorkerPeriodS), () =>
+            {
+                BeginTestTemporaryPeers();
+            }, "TestTemporaryPeers_Wait 24694");
+        }
 
         public void Dispose()
         {
@@ -356,6 +412,8 @@ namespace Dcomms.Sandbox
                 ep.DrpPeerEngine.Dispose();
             foreach (var u in _userApps)
                 u.DrpPeerEngine.Dispose();
+            foreach (var t in _tempApps)
+                t.DrpPeerEngine.Dispose();
         }
     }
 }

@@ -472,6 +472,7 @@ namespace Dcomms.DRP
         }
         internal void OnReceivedPong(IPEndPoint remoteEndpoint, byte[] udpData, DateTime receivedAtUtc) // engine thread
         {
+            using var tr = _engine.CreateTracker("conn.OnRecvPong");
             if (_engine.WriteToLog_p2p_detail_enabled) _engine.WriteToLog_p2p_detail2(this, "received PONG", null);
             if (_disposed) return;
             if (remoteEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -499,6 +500,7 @@ namespace Dcomms.DRP
         }
         internal void OnReceivedPing(IPEndPoint remoteEndpoint, byte[] udpData) // engine thread
         {
+            using var tr = _engine.CreateTracker("conn.OnRecvPing");
             if (_engine.WriteToLog_p2p_detail_enabled) _engine.WriteToLog_p2p_detail2(this, "received PING", null);
             if (_disposed)
             {

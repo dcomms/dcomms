@@ -91,7 +91,7 @@ namespace Dcomms.Vision
 
         public LinkedList<LogMessage> _logMessagesNewestFirst = new LinkedList<LogMessage>(); // locked
         public bool EnableNewLogMessages { get; set; } = true;
-        public int LogMessagesMaxCount { get; set; } = 2000000;
+        public int EnableNewLogMessagesUntilProcessRamSizeMB { get; set; } = 16000;
         
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -110,8 +110,6 @@ namespace Dcomms.Vision
             lock (_logMessagesNewestFirst)
             {
                 _logMessagesNewestFirst.AddFirst(msg);
-                while (_logMessagesNewestFirst.Count > LogMessagesMaxCount)
-                    _logMessagesNewestFirst.RemoveLast();
             }
 
             if (_maxEmittedAttentionLevelLogMessage == null || msg.AttentionLevel >= _maxEmittedAttentionLevelLogMessage.AttentionLevel)
@@ -137,8 +135,6 @@ namespace Dcomms.Vision
             lock (_logMessagesNewestFirst)
             {
                 _logMessagesNewestFirst.AddFirst(msg);
-                while (_logMessagesNewestFirst.Count > LogMessagesMaxCount)
-                    _logMessagesNewestFirst.RemoveLast();
             }
 
             if (_maxEmittedAttentionLevelLogMessage == null || msg.AttentionLevel >= _maxEmittedAttentionLevelLogMessage.AttentionLevel)
@@ -169,8 +165,6 @@ namespace Dcomms.Vision
             lock (_logMessagesNewestFirst)
             {
                 _logMessagesNewestFirst.AddFirst(msg);
-                while (_logMessagesNewestFirst.Count > LogMessagesMaxCount)
-                    _logMessagesNewestFirst.RemoveLast();
             }
             if (_maxEmittedAttentionLevelLogMessage == null || msg.AttentionLevel >= _maxEmittedAttentionLevelLogMessage.AttentionLevel)
             {
@@ -199,6 +193,39 @@ namespace Dcomms.Vision
                 PropertyChanged(this, new PropertyChangedEventArgs("RefreshDisplayedLogMessagesButtonColor"));
                 PropertyChanged(this, new PropertyChangedEventArgs("MaxEmittedAttentionLevelLogMessage"));
             }
+
+            
+            try
+            {
+                /*
+                    sometimes it generates exception:
+                    error in SIP Tester: 'WPF GUI thread' failed: System.Reflection.TargetInvocationException: 
+                    Exception has been thrown by the target of an invocation. ---> 
+                    System.InvalidOperationException: Couldn't get process information from performance counter. ---> 
+                    System.ComponentModel.Win32Exception: Unknown error (0xc0000017)     
+                    --- End of inner exception stack trace ---     
+                    at System.Diagnostics.NtProcessInfoHelper.GetProcessInfos()  
+                    at System.Diagnostics.ProcessManager.GetProcessInfos(String machineName)  
+                    at System.Diagnostics.Process.EnsureState(State state)     
+                    at System.Diagnostics.Process.get_PagedMemorySize64() 
+                */
+                var consumedMemoryMb = Process.GetCurrentProcess().PagedMemorySize64 / 1024 / 1024;
+               
+                if (consumedMemoryMb > EnableNewLogMessagesUntilProcessRamSizeMB)
+                {
+                    // clean 5% of oldest log messages
+                    lock (_logMessagesNewestFirst)
+                    {
+                        int numberToDelete = _logMessagesNewestFirst.Count / 20;
+                        for (int i = 0; i < numberToDelete; i++)
+                            _logMessagesNewestFirst.RemoveLast();
+                    }
+                }
+               
+            }
+            catch (Exception)
+            {/// intentionally ignore
+			}
         }
 
 

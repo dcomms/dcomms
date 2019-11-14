@@ -42,16 +42,24 @@ namespace Dcomms.DRP
         public ExecutionTimeTracker CreateTracker(string actionVisibleId)
         {
             Action<string> wtl = null;
+            Action<string> wtlNewMaximum = null;
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general) <= AttentionLevel.deepDetail)
             {
                 wtl = (msg) =>
                 {
                     Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general, AttentionLevel.deepDetail, msg);
-                };               
+                };
+            }
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general) <= AttentionLevel.higherLevelDetail)
+            {
+                wtlNewMaximum = (msg) =>
+                {
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general, AttentionLevel.higherLevelDetail, msg);
+                };
             }
 
 
-            return  new ExecutionTimeTracker(ETSC, actionVisibleId, wtl);
+            return  new ExecutionTimeTracker(ETSC, actionVisibleId, wtl, wtlNewMaximum);
         }
         readonly Random _insecureRandom;
         internal Random InsecureRandom => _insecureRandom;

@@ -318,18 +318,19 @@ namespace Dcomms.DRP
         /// <returns>bytes of IP address</returns>
         async Task<byte[]> SendPublicIpAddressApiRequestAsync(string url)
         {
+            string result = "";
             try
             {
                 var httpClient = new HttpClient();
                 httpClient.Timeout = TimeSpan.FromSeconds(3);
                 var response = await httpClient.GetAsync(url);
-                var result = await response.Content.ReadAsStringAsync();
+                result = await response.Content.ReadAsStringAsync();
                 var ipAddress = IPAddress.Parse(result);
                 return ipAddress.GetAddressBytes();
             }
             catch (Exception exc)
             {
-                HandleGeneralException($"public IP address API request to {url} failed", exc);
+                HandleGeneralException($"public IP address API request to {url} failed. result: {result}", exc);
                 return null;
             }
         }

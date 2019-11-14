@@ -147,6 +147,7 @@ namespace Dcomms.DRP
         bool PendingUdpRequests_ProcessPacket(IPEndPoint responderEndpoint, byte[] udpData, DateTime receivedAtUtc)
         {
             using var tracker = CreateTracker("PendingUdpRequests_ProcessPacket");
+            tracker.Details = $"count={_pendingLowLevelUdpRequests.Count}";
 
             // todo optimize this by storing pending requests indexed
             for (var item = _pendingLowLevelUdpRequests.First; item != null; item = item.Next)
@@ -165,6 +166,7 @@ namespace Dcomms.DRP
                 {
                     if (request.ResponderEndpoint.Equals(responderEndpoint) && request.ResponseScanner.Scan(this, udpData))
                     {
+                        tracker.Details += $"; completed {request.CompletionActionVisibleId}";
                         _pendingLowLevelUdpRequests.Remove(item);
                         request.ResponseReceivedAtUtc = receivedAtUtc;
                         tracker.Dispose();

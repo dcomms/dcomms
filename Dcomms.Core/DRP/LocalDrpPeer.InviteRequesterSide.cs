@@ -66,7 +66,7 @@ namespace Dcomms.DRP
             {
                 var req = new InviteRequestPacket
                 {
-                    NumberOfHopsRemaining = 10,
+                    NumberOfHopsRemaining = InviteRequestPacket.MaxNumberOfHopsRemaining,
                     RequesterEcdhePublicKey = new EcdhPublicKey(session.LocalInviteAckEcdhePublicKey),
                     RequesterRegistrationId = this.Configuration.LocalPeerRegistrationId,
                     ResponderRegistrationId = responderRegistrationId,
