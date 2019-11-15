@@ -37,7 +37,6 @@ namespace Dcomms.SUBT
         {
             LocalPeer.WriteToLog(this, message);
         }
-      //  internal void SignalErrorToDeveloper(o)
 
         public string ExtensionId => ExtensionIdPrefixes.SUBT;
         public byte[] PayloadPacketHeader => PacketHeaders.SubtPayload;
@@ -111,19 +110,7 @@ namespace Dcomms.SUBT
             LimitHigh(ref remoteTargetBandwidth, SubtLogicConfiguration.MaxLocalTxBandwidthPerStream);
             return remoteTargetBandwidth;
         }
-        //static bool StreamIsGoodForSubt(SubtConnectedPeerStream s, long now64)
-        //{
-        //    if (s.StreamIsIdleCached == true) return false;
-        //    if (s.LatestRemoteStatus == null) return false;
-
-        //    if (s.SubtConnectedPeer.Type != ConnectedPeerType.toConfiguredServer)
-        //    {
-        //        if (s.GetLifetime(now64) < SubtLogicConfiguration.MinimumUser2UserStreamLifetimeBeforeUsage)
-        //            return false;
-        //    }
-        //    return true;
-        //}
-  
+       
 
         /// <summary>
         /// implements micro-adjustments according to differential equations
@@ -223,178 +210,7 @@ namespace Dcomms.SUBT
                     }
             }
             #endregion
-
-
-
-
-            /*
-             * old code
-            float totalAssignedTxBandwidth = 0;
-            foreach (var cp in ConnectedPeers)
-                foreach (var s in cp.Streams)
-                    s.TargetTxBandwidth0 = 0;
-            
-            if (LocalPeer.Configuration.RoleAsSharedPassive)
-            {
-                foreach (var cp in ConnectedPeers)
-                    foreach (var s in cp.Streams)
-                        if (s.LatestRemoteStatus?.IhavePassiveRole == false)                       
-                        {
-                            s.TargetTxBandwidth0 = LimitSubtRemoteStatusPacketRemoteBandwidth(s.LatestRemoteStatus?.StatelessTargetTxBandwidth ?? 0);
-                            var bw = LimitSubtRemoteStatusPacketRemoteBandwidth(s.LatestRemoteStatus?.TargetTxBandwidth ?? 0);
-                            totalAssignedTxBandwidth += bw;
-                            if (totalAssignedTxBandwidth > SubtLogicConfiguration.MaxLocalTxBandwidthPerPeer)
-                            {
-                                s.TargetTxBandwidth = 0; // limit max total BW
-                                s.StatelessTargetTxBandwidth = 0;
-                            }
-                            else
-                                s.TargetTxBandwidth = bw;
-                        }                   
-                return;
-            }
-
-            var now64 = LocalPeer.Time64;
-            var connectedPeers = (from cp in ConnectedPeers
-                                  orderby cp.Type == ConnectedPeerType.toConfiguredServer ? 0 : 1
-                                  select new 
-                                  {
-                                      cp,
-                                      streams = cp.Streams.OrderBy(x => x.StreamId.Id).Where(x => StreamIsGoodForSubt(x, now64)).ToArray()
-                                  } 
-                ).Where(cp => cp.streams.Length != 0).ToArray();
-
-            #region stateless bandwidth distribution      
-            var statelessTargetTxBandwidthRemaining = Configuration.BandwidthTarget;
-            LimitHigh(ref statelessTargetTxBandwidthRemaining, SubtLogicConfiguration.MaxLocalTxBandwidthPerPeer);
-            int numberOfStreams = 0;
-
-            // initial distribution of SubtLogicConfiguration.PerStreamMinRecommendedBandwidth per peer
-            foreach (var cp in connectedPeers)
-            {
-                numberOfStreams += cp.streams.Length;
-                var s = cp.streams[0];
-                
-
-                var bw = Math.Min(statelessTargetTxBandwidthRemaining, SubtLogicConfiguration.PerStreamMinRecommendedBandwidth);
-                s.StatelessTargetTxBandwidth =  bw;
-                statelessTargetTxBandwidthRemaining -= bw;
-                if (statelessTargetTxBandwidthRemaining <= 0) break;
-            }
-
-            // initial distribution of SubtLogicConfiguration.PerStreamMinRecommendedBandwidth per extra streams
-            if (statelessTargetTxBandwidthRemaining > 0)
-            {
-                foreach (var cp in connectedPeers)
-                    for (int si = 1; si < cp.streams.Length; si++)
-                    {
-                        var s = cp.streams[si];
-                        var bw = Math.Min(statelessTargetTxBandwidthRemaining, SubtLogicConfiguration.PerStreamMinRecommendedBandwidth);
-                        s.StatelessTargetTxBandwidth = bw;
-                        statelessTargetTxBandwidthRemaining -= bw;
-                        if (statelessTargetTxBandwidthRemaining <= 0) break;
-                    }
-            }
-
-            // distribute remaining bandwidth between all streams
-            if (statelessTargetTxBandwidthRemaining > 0)
-            {
-                var statelessTargetTxBandwidthRemainingPerStream = statelessTargetTxBandwidthRemaining / numberOfStreams;
-                foreach (var cp in connectedPeers)
-                    foreach (var s in cp.streams)
-                    {
-                        s.StatelessTargetTxBandwidth += statelessTargetTxBandwidthRemainingPerStream;
-                    }
-            }
-            #endregion
-
-            foreach (var cp in connectedPeers)
-                foreach (var s in cp.streams)
-                    AdjustTargetTxBandwidth_100msApprox(s);       
-                    */
         }
-
-        ///// <summary>
-        ///// main procedure with differential equation
-        ///// </summary>
-        //void AdjustTargetTxBandwidth_100msApprox(SubtConnectedPeerStream s)
-        //{
-        //    var remoteStatus = s.LatestRemoteStatus;
-        //    if (remoteStatus != null)
-        //    {
-
-        //        // inputs: 
-        //        //remoteStatus.StatelessTargetTxBandwidth
-        //        //remoteStatus.RecentRxBandwidth
-        //        //s.TargetTxBandwidth
-        //        //s.StatelessTargetTxBandwidth
-
-        //        // output:
-        //       // s.TargetTxBandwidth
-
-
-        //        //xxxxxxxxxxxxxx
-        //       // var currentTxBwMultiplier = 1.0f;
-
-        //        //if (s.LatestRemoteStatus.IwantToIncreaseBandwidthUntilHighPacketLoss) // for user: this flag is set from local configuration; for passiveShared: this flag is reflected passively
-        //        //{
-        //        //    #region meet with max possible bandwidth (and acceptable packet loss)
-        //        //    var recentPacketLoss = Math.Max(s.LatestRemoteStatus.RecentRxPacketLoss, s.RecentPacketLoss); // max of losses in both directions between peers
-
-        //        //    if (float.IsNaN(recentPacketLoss) || recentPacketLoss < 0.01f)
-        //        //        currentTxBwMultiplier *= 1.4f; // quickly grow bw in the beginning of the test to reach max bandwidth faster
-        //        //    else
-        //        //    {
-        //        //        const float acceptableLoss = 0.03f;
-        //        //        UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, recentPacketLoss, acceptableLoss);
-        //        //    }
-        //        //    #endregion
-        //        //}                           
-
-        //        if (LocalPeer.Configuration.RoleAsUser)
-        //        {
-        //            UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, currentLocalPeerTargetTxBandwidth, localPeerBandwidthTargetConfigured, 4);
-
-        //            var recentPacketLoss = Math.Max(s.LatestRemoteStatus.RecentRxPacketLoss, s.RecentPacketLoss); // max of losses in both directions between peers
-        //            const float acceptableLoss = 0.03f;
-        //            if (recentPacketLoss > acceptableLoss)
-        //            {
-        //                UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, recentPacketLoss, acceptableLoss);
-        //            }
-        //        }
-
-        //        //#region meet with average for all streams
-        //        //if (streamsTargetTxBandwidthAverage > 0)
-        //        //{
-        //        //    UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, s.TargetTxBandwidth, streamsTargetTxBandwidthAverage, 
-        //        //        1);
-        //        //}
-        //        //#endregion           
-
-        //        #region meet with RX bandwidth (make symmetric)  
-        //        if (s.LatestRemoteStatus.IhavePassiveRole == false)
-        //            if (s.RecentRxBandwidth > 0.0f)
-        //                UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, s.TargetTxBandwidth, s.RecentRxBandwidth);
-        //        #endregion
-
-        //        if (s.TargetTxBandwidth > SubtLogicConfiguration.PerStreamSoftTxBandwidthLimit)
-        //        { // soft limit
-        //            UpdateTxBandwidth_100msApprox(ref currentTxBwMultiplier, s.TargetTxBandwidth, SubtLogicConfiguration.PerStreamSoftTxBandwidthLimit);
-        //            WriteToLog($"stream {s} target TX bandwidth reached soft limit");
-        //        }
-
-        //        if (s.TargetTxBandwidth > SubtLogicConfiguration.PerStreamHardTxBandwidthLimit && currentTxBwMultiplier > 1)
-        //        { // hard limit
-        //            currentTxBwMultiplier = 1;
-        //            WriteToLog($"stream {s} target TX bandwidth reached hard limit");
-        //        }
-
-        //        s.TargetTxBandwidth *= currentTxBwMultiplier;   // 1024 * 200
-        //        s.TargetTxBandwidthLatestMultiplier = currentTxBwMultiplier;
-
-
-        //    }
-        //}
         #endregion
 
 
