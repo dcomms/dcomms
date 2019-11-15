@@ -31,7 +31,7 @@ namespace Dcomms.SUBT
         {
             _threadName = threadName;
             _localPeer = localPeer;
-            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(exc));
+            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(exc), null);
             _thread = new Thread(ThreadEntry);
             _thread.Name = threadName;
             _thread.Start();
@@ -93,7 +93,7 @@ namespace Dcomms.SUBT
                         _streams.Add(stream.StreamId, stream); // todo why does it insert duplicate keys sometimes?
                 }
                 else _streams.Remove(stream.StreamId);
-            });
+            }, "subtsender2462");
 
         }
     }

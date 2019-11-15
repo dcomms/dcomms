@@ -274,10 +274,10 @@ namespace Dcomms.SUBT.GUI
             }
         });
 
-        ActionsQueue _guiThreadQueue = new ActionsQueue(e => CstApp.HandleException(e));
+        ActionsQueue _guiThreadQueue = new ActionsQueue(e => CstApp.HandleException(e), null);
         internal void BeginInvokeInGuiThread(Action a)
         {
-            _guiThreadQueue.Enqueue(a);
+            _guiThreadQueue.Enqueue(a, "cstapp1412");
         }
         private void Timer_Tick_50ms()
         {

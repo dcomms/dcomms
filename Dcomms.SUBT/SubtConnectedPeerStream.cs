@@ -1,4 +1,4 @@
-﻿using Dcomms.P2PTP;
+﻿ using Dcomms.P2PTP;
 using Dcomms.DSP;
 using Dcomms.P2PTP.Extensibility;
 using Dcomms.P2PTP.LocalLogic;
@@ -33,9 +33,6 @@ namespace Dcomms.SUBT
             _txSequence = (ushort)subtLocalPeer.LocalPeer.Random.Next(ushort.MaxValue);
             _rxMeasurement = new RxMeasurement(subtLocalPeer, this);
            
-         //   if (subtLocalPeer.LocalPeer.Configuration.RoleAsUser)
-        //        TargetTxBandwidth =  SubtLogicConfiguration.BandwidthForStreams_UserInitial;
-
             _senderThread = subtLocalPeer.SenderThreadForNewStream;
             _senderThread.OnCreatedDestroyedStream(this, true);
         }
@@ -326,8 +323,8 @@ namespace Dcomms.SUBT
                 {                    
                     var data = new SubtRemoteStatusPacket(_rxMeasurement.RecentBandwidth, _rxMeasurement.RecentPacketLoss,
                             this.RecentTxBandwidth,                         
-                            SubtLocalPeer.LocalPeer.Configuration.RoleAsSharedPassive,
-                            false, false)
+                            SubtLocalPeer.LocalPeer.Configuration.RoleAsSharedPassive
+                            )
                         .Encode(this);
                     _stream.SendPacket(data, data.Length);
                 }

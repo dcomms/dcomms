@@ -1,6 +1,5 @@
 ﻿using Dcomms.Cryptography;
 using Dcomms.DRP.Packets;
-using Dcomms.DSP;
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
@@ -305,7 +304,7 @@ namespace Dcomms.DRP
         }
 
         // IirFilterCounter RxInviteRateRps;
-        IirFilterCounter RxRegisterRateRps;
+      //  IirFilterCounter RxRegisterRateRps;
 
         PingPacket _latestPingSent;
         DateTime? _latestPingSentTime;
@@ -696,7 +695,7 @@ namespace Dcomms.DRP
        
     class ConnectedDrpPeerRating
     {
-        IirFilterAverage PingRttMs;
+        //IirFilterAverage PingRttMs;
         TimeSpan Age => throw new NotImplementedException();
         float RecentRegisterRequestsSuccessRate => throw new NotImplementedException(); // target of sybil-looped-traffic attack
         float RecentInviteRequestsSuccessRate => throw new NotImplementedException(); // target of sybil-looped-traffic attack

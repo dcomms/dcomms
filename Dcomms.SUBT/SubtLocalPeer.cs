@@ -153,11 +153,49 @@ namespace Dcomms.SUBT
                             s.TargetTxBandwidth = LimitSubtRemoteStatusPacketRemoteBandwidth(s.LatestRemoteStatus?.RecentTxBandwidth ?? 0);
                             totalAssignedTxBandwidth += s.TargetTxBandwidth;
                             if (totalAssignedTxBandwidth > SubtLogicConfiguration.MaxLocalTxBandwidthPerPeer)
-                                s.TargetTxBandwidth = 0; // limit max total BW                                               
+                                s.TargetTxBandwidth = 0; // limit max total BW           // todo pain signal here                                    
+                        }
+                        else
+                        {
+                            s.TargetTxBandwidth = 0;
                         }
                 return;
             }
             
+
+            #region stateless bandwidth distribution      
+            var targetTxBandwidthRemaining = Configuration.BandwidthTarget;
+            LimitHigh(ref targetTxBandwidthRemaining, SubtLogicConfiguration.MaxLocalTxBandwidthPerPeer);
+            DistributeTargetTxBandwidthOverUserP2pConnections(ref targetTxBandwidthRemaining);
+            DistributeTargetTxBandwidthOverPassivePeers(targetTxBandwidthRemaining);
+            #endregion
+        }
+        void DistributeTargetTxBandwidthOverUserP2pConnections(ref float targetTxBandwidthRemaining)
+        {
+
+            var u2uConnectedPeers = (from cp in ConnectedPeers                                        
+                                         select new
+                                         {
+                                             cp,
+                                             streams = cp.Streams
+                                                  .Where(x => x.LatestRemoteStatus?.IhavePassiveRole == false && DistributeTargetTxBandwidthOverUserP2pConnections_SelectStream(x))
+                                                  .ToArray()
+                                         }
+                ).Where(cp => cp.streams.Length != 0).ToArray();
+
+            // 
+
+
+        }
+        bool DistributeTargetTxBandwidthOverUserP2pConnections_SelectStream(SubtConnectedPeerStream stream)
+        {
+            // true if any mutual bandwidth is confirmed by both sides
+            return stream.RecentRttConsideringP2ptp?.TotalMilliseconds < 100;
+        
+        }
+
+        void DistributeTargetTxBandwidthOverPassivePeers(float targetTxBandwidthRemaining)
+        {
             var passiveConnectedPeers = (from cp in ConnectedPeers
                                   orderby cp.Type == ConnectedPeerType.toConfiguredServer ? 0 : 1
                                   select new
@@ -168,9 +206,6 @@ namespace Dcomms.SUBT
                                   }
                 ).Where(cp => cp.streams.Length != 0).ToArray();
 
-            #region stateless bandwidth distribution      
-            var targetTxBandwidthRemaining = Configuration.BandwidthTarget;
-            LimitHigh(ref targetTxBandwidthRemaining, SubtLogicConfiguration.MaxLocalTxBandwidthPerPeer);
             int numberOfStreams = 0;
 
             // initial distribution of SubtLogicConfiguration.PerStreamMinRecommendedBandwidth per peer
@@ -209,7 +244,7 @@ namespace Dcomms.SUBT
                         s.TargetTxBandwidth += statelessTargetTxBandwidthRemainingPerStream;
                     }
             }
-            #endregion
+
         }
         #endregion
 

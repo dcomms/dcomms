@@ -17,8 +17,6 @@ namespace Dcomms.SUBT.SUBTP
         public readonly float _recentRxPacketLoss;  // 0..1
         public readonly float RecentTxBandwidth; // actual transmitted bandwidth // per connected peer (all connected streams between peers)
         public readonly bool IhavePassiveRole; // no own-set TX bandwidth target
-        public readonly bool IwantToIncreaseBandwidth;
-        public readonly bool IwantToDecreaseBandwidth;
 
         static float LimitPacketLoss(float loss)
         {
@@ -26,14 +24,12 @@ namespace Dcomms.SUBT.SUBTP
             else if (loss < 0) loss = 0;
             return loss;
         }
-        public SubtRemoteStatusPacket(float recentRxBandwidth, float recentRxPacketLoss, float recentTxBandwidth, bool ihavePassiveRole, bool iwantToIncreaseBandwidth, bool iwantToDecreaseBandwidth)
+        public SubtRemoteStatusPacket(float recentRxBandwidth, float recentRxPacketLoss, float recentTxBandwidth, bool ihavePassiveRole)
         {
             RecentRxBandwidth = recentRxBandwidth;
             _recentRxPacketLoss = LimitPacketLoss(recentRxPacketLoss);
             RecentTxBandwidth = recentTxBandwidth;
             IhavePassiveRole = ihavePassiveRole;
-            IwantToIncreaseBandwidth = iwantToIncreaseBandwidth;
-            IwantToDecreaseBandwidth = iwantToDecreaseBandwidth;
         }
         public override string ToString()
         {
@@ -49,9 +45,6 @@ namespace Dcomms.SUBT.SUBTP
             RecentTxBandwidth = reader.ReadSingle();
             var flags = reader.ReadByte();
             IhavePassiveRole = (flags & 0x02) != 0;
-            IwantToIncreaseBandwidth = (flags & 0x04) != 0;
-            IwantToDecreaseBandwidth = (flags & 0x08) != 0;
-
         }
         public byte[] Encode(SubtConnectedPeerStream connectedStream)
         {
@@ -64,8 +57,6 @@ namespace Dcomms.SUBT.SUBTP
             writer.Write(RecentTxBandwidth);
             byte flags = 0;
             if (IhavePassiveRole) flags |= 0x02;
-            if (IwantToIncreaseBandwidth) flags |= 0x04;
-            if (IwantToDecreaseBandwidth) flags |= 0x08;
             writer.Write(flags);
             
             return ms.ToArray();

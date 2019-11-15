@@ -21,8 +21,8 @@ namespace StarTrinity.CST
             _cstApp = new CstApp(this);
             this.BindingContext = _cstApp;
 
-#if DEBUG || true
-            cryptographyTesterPage.BindingContext = new Dcomms.CryptographyTester1(
+#if DEBUG// || true
+            cryptographyTesterPage.BindingContext = new Dcomms.Sandbox.SandboxTester1(
                 new SimplestVisionChannel((msg)=>
                     {
                         cryptographyTesterOutput.Text = msg;
