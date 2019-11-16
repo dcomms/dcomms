@@ -47,7 +47,7 @@ namespace Dcomms.P2PTP.LocalLogic
         {
             _localPeer = localPeer;
             localPeer.Manager = this;
-            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(LogModules.GeneralManager, exc), new ExecutionTimeStatsCollector(null));
+            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(LogModules.GeneralManager, exc), new ExecutionTimeStatsCollector(() => localPeer.DateTimeNow));
 
             if (_localPeer.Configuration.Coordinators != null)
             {      

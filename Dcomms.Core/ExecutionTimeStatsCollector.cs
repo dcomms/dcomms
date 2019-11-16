@@ -11,6 +11,7 @@ namespace Dcomms
         Func<DateTime> _getTimeNow;
         public ExecutionTimeStatsCollector(Func<DateTime> getTimeNow)
         {
+            if (getTimeNow == null) throw new ArgumentNullException();
             _getTimeNow = getTimeNow;
         }
 
