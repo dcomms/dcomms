@@ -219,6 +219,7 @@ namespace Dcomms.SUBT
                 if (float.IsNaN(value)) throw new ArgumentException(nameof(value));
                 if (value > 100000000) throw new ArgumentException(nameof(value));
 
+                if (_targetTxBandwidth == value) return;
                 _targetTxBandwidth = value;
 
                 _recentTxBandwidth.OutputPerUnit = value;
@@ -245,10 +246,11 @@ namespace Dcomms.SUBT
             ;
 
         internal bool TxIsEnabled => (Stream.RemotePeerRoleIsUser || SubtLocalPeer.LocalPeer.Configuration.RoleAsUser);
-        internal void SendPayloadPacketsIfNeeded_10ms() // sender thread
+        internal void SendPacketsIfNeeded_10ms() // sender thread
         {
             var timeNow32 = SubtLocalPeer.LocalPeer.Time32;
             SendStatusIfNeeded(timeNow32);
+            RetransmitBandwidthAdjustmentRequestIfNeeded(timeNow32);
 
             lock (_rxBwBeforeJB)
                 _rxBwBeforeJB.OnTimeObserved(timeNow32);
@@ -311,25 +313,30 @@ namespace Dcomms.SUBT
 
         #region send status/measurements
         uint? _lastTimeSentStatus = null;
-        void SendStatusIfNeeded(uint timestamp32)
+        void SendStatusIfNeeded(uint timestamp32) // sender thread
         {
             if (_lastTimeSentStatus == null ||
                 MiscProcedures.TimeStamp1IsLess(_lastTimeSentStatus.Value + SubtLogicConfiguration.SubtRemoteStatusPacketTransmissionIntervalTicks, timestamp32)
                 )
             {
-                _lastTimeSentStatus = timestamp32;
-                var remotePeerId = SubtConnectedPeer.RemotePeerId;
-                if (remotePeerId != null)
-                {                    
-                    var data = new SubtRemoteStatusPacket(_rxMeasurement.RecentBandwidth, _rxMeasurement.RecentPacketLoss,
-                            this.RecentTxBandwidth,                         
-                            SubtLocalPeer.LocalPeer.Configuration.RoleAsSharedPassive
-                            )
-                        .Encode(this);
-                    _stream.SendPacket(data, data.Length);
-                }
+                SendStatus(timestamp32);
             }
-        }       
+        }   
+        void SendStatus(uint timestamp32)
+        {
+            _lastTimeSentStatus = timestamp32;
+            var remotePeerId = SubtConnectedPeer.RemotePeerId;
+            if (remotePeerId != null)
+            {                    
+                var data = new SubtRemoteStatusPacket(_rxMeasurement.RecentBandwidth, _rxMeasurement.RecentPacketLoss,
+                        this.RecentTxBandwidth,                         
+                        SubtLocalPeer.LocalPeer.Configuration.RoleAsSharedPassive,
+                        SubtLocalPeer.ImHealthyAndReadyFor100kbpsU2uSymbiosis
+                        )
+                    .Encode(this);
+                _stream.SendPacket(data, data.Length);
+            }
+        }
         #endregion
 
         //internal void SendAdjustmentSignal(float relativeAdjustmentRequest, float absoluteAdjustmentRequest)
@@ -344,10 +351,6 @@ namespace Dcomms.SUBT
             LatestRemoteStatus?.RecentRxPacketLoss.PacketLossToString();
         void IConnectedPeerStreamExtension.OnReceivedSignalingPacket(BinaryReader reader) // manager thread
         {
-            // 1 request of adjustment
-            // 2 confirmation of adjustment
-            // 3 measurements report
-
             var subtPacketType = (SubtPacketType)reader.ReadByte();
 
             switch (subtPacketType)
@@ -361,14 +364,35 @@ namespace Dcomms.SUBT
                     if (_rxBwBeforeJB.OutputPerUnit > p.RecentTxBandwidth * 5)
                         EmitPainToDeveloper($"_rxBwBeforeJB.OutputPerUnit={_rxBwBeforeJB.OutputPerUnit} > p.RecentTxBandwidth={p.RecentTxBandwidth}");
 
+                    if (PendingAdjustmentRequestPacket != null)
+                    { // we got response from remote peer
+                        PendingAdjustmentRequestPacket = null;
+                        //  adjust local tx BW, according to remote BW. check what is responded 
+                        this.TargetTxBandwidth = Math.Min(p.RecentTxBandwidth, MaxTxBandwidthToAcceptFromRemoteSide);
+                    }
                     break;
-                //case SubtPacketType.AdjustmentSignal:
-                //    var adj = new SubtPacketAdjustmentSignal(reader);
-                // //   SubtLocalPeer.WriteToLog($"received adjustment packet: {adj}");
-                //    SubtConnectedPeer.LatestReceivedAdjustmentSignal = adj;
-                //    break;
+                case SubtPacketType.AdjustmentRequest:
+                    var adj = new AdjustmentRequestPacket(reader);
+                    SubtLocalPeer.WriteToLog($"received adjustment packet: {adj}");
+                    if (adj.RequestedTxBandwidthAtRemotePeer > this.TargetTxBandwidth)
+                    { // increase
+                        if (SubtLocalPeer.ImHealthyAndReadyFor100kbpsU2uSymbiosis)
+                        {
+                            // check requested BW
+                            this.TargetTxBandwidth = Math.Min(adj.RequestedTxBandwidthAtRemotePeer, MaxTxBandwidthToAcceptFromRemoteSide);                           
+                        }
+                    }
+                    else // decrease
+                    {
+                        this.TargetTxBandwidth = adj.RequestedTxBandwidthAtRemotePeer;
+                    }
+
+                    // respond with status
+                    SendStatus(SubtLocalPeer.LocalPeer.Time32);
+                    break;
             }
         }
+        float MaxTxBandwidthToAcceptFromRemoteSide => SubtLocalPeer.LatestMeasurement?.RxTxMinBandwidth * 0.2f ?? 0;
 
         void EmitPainToDeveloper(string message)
         {//todo
@@ -378,6 +402,29 @@ namespace Dcomms.SUBT
         public void OnDestroyed()
         {
             _senderThread.OnCreatedDestroyedStream(this, false);
+        }
+
+        internal byte[] PendingAdjustmentRequestPacket; // is not null if request is not responded yet, and is retransmitted
+        public void SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(float requestedTxBandwidthAtRemotePeer)
+        {
+            var remotePeerId = SubtConnectedPeer.RemotePeerId;
+            if (remotePeerId != null)
+            {
+                PendingAdjustmentRequestPacket = new AdjustmentRequestPacket(requestedTxBandwidthAtRemotePeer).Encode(this);
+                _stream.SendPacket(PendingAdjustmentRequestPacket, PendingAdjustmentRequestPacket.Length);
+            }
+        }
+        uint? _lastTimeSentBandwidthAdjustmentRequest = null;
+        void RetransmitBandwidthAdjustmentRequestIfNeeded(uint timestamp32) // sender thread
+        {
+            var p = PendingAdjustmentRequestPacket; // save it to this (sender) thread
+            if (p != null && _lastTimeSentBandwidthAdjustmentRequest != null &&
+                MiscProcedures.TimeStamp1IsLess(_lastTimeSentBandwidthAdjustmentRequest.Value + SubtLogicConfiguration.SubtAdjustmentRequestTransmissionIntervalTicks, timestamp32)
+                )
+            {
+                _lastTimeSentBandwidthAdjustmentRequest = timestamp32;
+                _stream.SendPacket(p, p.Length);
+            }
         }
     }
 }

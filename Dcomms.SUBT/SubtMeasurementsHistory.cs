@@ -111,33 +111,23 @@ namespace Dcomms.SUBT
             float? averageRxLossG = null;
             foreach (var connectedPeer in subtLocalPeer.ConnectedPeers)
             {
-                AverageSingle averageTxLoss = new AverageSingle();
-                AverageSingle averageRxLoss = new AverageSingle();
+                connectedPeer.GetStreamsAveragePacketLoss(out var averageRxLossAverage, out var averageTxLossAverage);
+                               
                 foreach (var s in connectedPeer.Streams)
                 {
                     rxBandwidth += s.RecentRxBandwidth;
-
                     var rtt = s.RecentRttConsideringP2ptp;
                     if (bestRttToPeers == null || rtt < bestRttToPeers.Value)
                         bestRttToPeers = rtt;
-
                     var st = s.LatestRemoteStatus;
                     if (st != null)
-                    {
-                        confirmedTxBandwidth += st.RecentRxBandwidth;
-                        if (st.RecentRxBandwidth > SubtLogicConfiguration.MinBandwidthPerStreamForPacketLossMeasurement)
-                            averageTxLoss.Input(st.RecentRxPacketLoss);
-                    }
-                    if (s.RecentRxBandwidth > SubtLogicConfiguration.MinBandwidthPerStreamForPacketLossMeasurement)
-                        averageRxLoss.Input(s.RecentPacketLoss);
+                        confirmedTxBandwidth += st.RecentRxBandwidth;                  
                 }
-                var averageRxLossAverage = averageRxLoss.Average;
                 if (averageRxLossAverage.HasValue)
                 {
                     if (averageRxLossG == null || averageRxLossAverage.Value < averageRxLossG.Value)
                         averageRxLossG = averageRxLossAverage;
                 }
-                var averageTxLossAverage = averageTxLoss.Average;
                 if (averageTxLossAverage.HasValue)
                 {
                     if (averageTxLossG == null || averageTxLossAverage.Value < averageTxLossG.Value)
@@ -165,13 +155,13 @@ namespace Dcomms.SUBT
 
         DateTime? _initializedTime;
         DateTime? _lastTimeMeasured;
-        internal void MeasureIfNeeded(SubtLocalPeer subtLocalPeer) // manager thread
+        internal SubtMeasurement MeasureIfNeeded(SubtLocalPeer subtLocalPeer) // manager thread
         {
             try
             {
                 var now = subtLocalPeer.LocalPeer.DateTimeNowUtc;
-                if (_initializedTime == null) return;
-                if (now < _initializedTime.Value.AddTicks(SubtLogicConfiguration.MeasurementInitializationTimeTicks)) return;
+                if (_initializedTime == null) return null;
+                if (now < _initializedTime.Value.AddTicks(SubtLogicConfiguration.MeasurementInitializationTimeTicks)) return null;
                                
                 if (_lastTimeMeasured == null || _lastTimeMeasured.Value.AddTicks(SubtLogicConfiguration.MeasurementsIntervalTicks) < now)
                 {
@@ -188,12 +178,14 @@ namespace Dcomms.SUBT
                     }
 
                     OnMeasured?.Invoke(m);
+                    return m;
                 }
             }
             catch (Exception exc)
             {
                 subtLocalPeer.HandleException(exc);
             }
+            return null;
         }
 
         public event Action<SubtMeasurement> OnMeasured;
@@ -220,6 +212,9 @@ namespace Dcomms.SUBT
         public float TxBandwidth { get; set; } // upload
         public System.Drawing.Color TxBandwidthColor => TxBandwidth.BandwidthToColor(TargetBandwidth);
         public string TxBandwidthString => TxBandwidth.BandwidthToString(TargetBandwidth);
+
+        public float RxTxMinBandwidth => RxBandwidth < TxBandwidth ? RxBandwidth : TxBandwidth;
+
         public TimeSpan? BestRttToPeers { get; set; }
         public System.Drawing.Color BestRttToPeersColor => BestRttToPeers.RttToColor();
         public string BestRttToPeersString => MiscProcedures.TimeSpanToString(BestRttToPeers);

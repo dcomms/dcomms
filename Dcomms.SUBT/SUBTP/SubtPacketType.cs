@@ -13,7 +13,7 @@ namespace Dcomms.SUBT.SUBTP
     {
         RemoteStatus = 1,
         RttRequestResponse = 2,
-    
+        AdjustmentRequest = 5
         // others are reserved
     }
 }

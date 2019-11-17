@@ -17,6 +17,7 @@ namespace Dcomms.SUBT.SUBTP
         public readonly float _recentRxPacketLoss;  // 0..1
         public readonly float RecentTxBandwidth; // actual transmitted bandwidth // per connected peer (all connected streams between peers)
         public readonly bool IhavePassiveRole; // no own-set TX bandwidth target
+        public readonly bool ImHealthyAndReadyFor100kbpsU2uSymbiosis;
 
         static float LimitPacketLoss(float loss)
         {
@@ -24,12 +25,13 @@ namespace Dcomms.SUBT.SUBTP
             else if (loss < 0) loss = 0;
             return loss;
         }
-        public SubtRemoteStatusPacket(float recentRxBandwidth, float recentRxPacketLoss, float recentTxBandwidth, bool ihavePassiveRole)
+        public SubtRemoteStatusPacket(float recentRxBandwidth, float recentRxPacketLoss, float recentTxBandwidth, bool ihavePassiveRole, bool imHealthyAndReadyFor100kbpsU2uSymbiosis)
         {
             RecentRxBandwidth = recentRxBandwidth;
             _recentRxPacketLoss = LimitPacketLoss(recentRxPacketLoss);
             RecentTxBandwidth = recentTxBandwidth;
             IhavePassiveRole = ihavePassiveRole;
+            ImHealthyAndReadyFor100kbpsU2uSymbiosis = imHealthyAndReadyFor100kbpsU2uSymbiosis;
         }
         public override string ToString()
         {
@@ -45,6 +47,7 @@ namespace Dcomms.SUBT.SUBTP
             RecentTxBandwidth = reader.ReadSingle();
             var flags = reader.ReadByte();
             IhavePassiveRole = (flags & 0x02) != 0;
+            ImHealthyAndReadyFor100kbpsU2uSymbiosis = (flags & 0x04) != 0;
         }
         public byte[] Encode(SubtConnectedPeerStream connectedStream)
         {
@@ -57,6 +60,7 @@ namespace Dcomms.SUBT.SUBTP
             writer.Write(RecentTxBandwidth);
             byte flags = 0;
             if (IhavePassiveRole) flags |= 0x02;
+            if (ImHealthyAndReadyFor100kbpsU2uSymbiosis) flags |= 0x04;
             writer.Write(flags);
             
             return ms.ToArray();

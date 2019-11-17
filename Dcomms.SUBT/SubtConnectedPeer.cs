@@ -49,8 +49,7 @@ namespace Dcomms.SUBT
             get { return Streams.Sum(x => x.TargetTxBandwidth); }          
         }
         public string TargetTxBandwidthString => TargetTxBandwidth.BandwidthToString();
-
-
+        
         public float RecentTxBandwidth => Streams.Sum(x => x.RecentTxBandwidth);
         public string RecentTxBandwidthString => RecentTxBandwidth.BandwidthToString();
 
@@ -83,6 +82,35 @@ namespace Dcomms.SUBT
             }
         }
         public bool StreamsExpanded { get; set; }
-
+        
+        public void GetStreamsAveragePacketLoss(out float? averageRxLossAverage, out float? averageTxLossAverage)
+        {
+            AverageSingle averageTxLoss = new AverageSingle();
+            AverageSingle averageRxLoss = new AverageSingle();
+            foreach (var s in Streams)
+            {
+                var st = s.LatestRemoteStatus;
+                if (st != null)
+                {
+                    if (st.RecentRxBandwidth > SubtLogicConfiguration.MinBandwidthPerStreamForPacketLossMeasurement)
+                        averageTxLoss.Input(st.RecentRxPacketLoss);
+                }
+                if (s.RecentRxBandwidth > SubtLogicConfiguration.MinBandwidthPerStreamForPacketLossMeasurement)
+                    averageRxLoss.Input(s.RecentPacketLoss);
+            }
+            averageRxLossAverage = averageRxLoss.Average;
+            averageTxLossAverage = averageTxLoss.Average;
+        }
+        public float? StreamsAveragePacketLoss
+        {
+            get
+            {
+                float? r = null;
+                GetStreamsAveragePacketLoss(out var averageRxLossAverage, out var averageTxLossAverage);
+                if (r == null || averageRxLossAverage < r) r = averageRxLossAverage;
+                if (r == null || averageTxLossAverage < r) r = averageTxLossAverage;
+                return r;
+            }
+        }
     }
 }

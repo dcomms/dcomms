@@ -68,8 +68,13 @@ namespace Dcomms.SUBT
 
         public void OnTimer100msApprox() // manager thread
         {
-            AdjustStreamsTargetTxBandwidth_100msApprox();
-            MeasurementsHistory.MeasureIfNeeded(this);
+            var measurement = MeasurementsHistory.MeasureIfNeeded(this);
+            if (measurement != null)
+            {
+                LatestMeasurement = measurement;
+                IsHealthyForU2uSymbiosis_Update(measurement);
+            }
+            AdjustStreamsTargetTxBandwidth_InitiateAdjustmentRequestsIfNeeded_100msApprox();
         }
       
         #region SUBT symbiosis logic
@@ -116,7 +121,7 @@ namespace Dcomms.SUBT
         /// implements micro-adjustments according to differential equations
         /// main fuzzy logic of the distributed system is here
         /// </summary>
-        void AdjustStreamsTargetTxBandwidth_100msApprox()
+        void AdjustStreamsTargetTxBandwidth_InitiateAdjustmentRequestsIfNeeded_100msApprox()
         {
             /*
              if this is passive peer: passively reflect bw  within limits (TargetTxBandwidth = remote RecentTxBandwidth)  (mirror bandwidth)
@@ -163,35 +168,115 @@ namespace Dcomms.SUBT
             }
             
 
-            #region stateless bandwidth distribution      
             var targetTxBandwidthRemaining = Configuration.BandwidthTarget;
             LimitHigh(ref targetTxBandwidthRemaining, SubtLogicConfiguration.MaxLocalTxBandwidthPerPeer);
-            DistributeTargetTxBandwidthOverUserP2pConnections(ref targetTxBandwidthRemaining);
-            DistributeTargetTxBandwidthOverPassivePeers(targetTxBandwidthRemaining);
-            #endregion
-        }
-        void DistributeTargetTxBandwidthOverUserP2pConnections(ref float targetTxBandwidthRemaining)
-        {
+            DistributeTargetTxBandwidthOverUserP2pConnections_InitiateAdjustmentRequestsIfNeeded(ref targetTxBandwidthRemaining);
 
+            _latest_targetTxBandwidthRemaining_ForPassivePeers = targetTxBandwidthRemaining;
+
+            DistributeTargetTxBandwidthOverPassivePeers(targetTxBandwidthRemaining);
+        }
+
+        DateTime? _lastTimeInitiatedAdjustmentRequests;
+        void DistributeTargetTxBandwidthOverUserP2pConnections_InitiateAdjustmentRequestsIfNeeded(ref float targetTxBandwidthRemaining)
+        {
+            var minVersionDate = new DateTime(2019, 11, 17); // before this version user peers are unable for symbiosis
             var u2uConnectedPeers = (from cp in ConnectedPeers                                        
                                          select new
                                          {
                                              cp,
                                              streams = cp.Streams
-                                                  .Where(x => x.LatestRemoteStatus?.IhavePassiveRole == false && DistributeTargetTxBandwidthOverUserP2pConnections_SelectStream(x))
+                                                  .Where(x => x.LatestRemoteStatus?.IhavePassiveRole == false && x.StreamIsIdleCached == false)
                                                   .ToArray()
                                          }
-                ).Where(cp => cp.streams.Length != 0).ToArray();
-
-            // 
+                ).Where(cp => cp.streams.Length != 0 && cp.cp.RemoteLibraryVersion > minVersionDate).ToArray();
 
 
-        }
-        bool DistributeTargetTxBandwidthOverUserP2pConnections_SelectStream(SubtConnectedPeerStream stream)
-        {
-            // true if any mutual bandwidth is confirmed by both sides
-            return stream.RecentRttConsideringP2ptp?.TotalMilliseconds < 100;
-        
+            foreach (var cp in u2uConnectedPeers)
+                foreach (var s in cp.streams)
+                {
+                    targetTxBandwidthRemaining -= s.TargetTxBandwidth;
+                }
+
+            #region initiate adjustment requests
+            var dt = LocalPeer.DateTimeNowUtc;
+            if (_lastTimeInitiatedAdjustmentRequests == null || (dt - _lastTimeInitiatedAdjustmentRequests.Value).TotalSeconds > 2)
+            {
+                // every 2 secs:
+                if (targetTxBandwidthRemaining > 100000)
+                {
+                    // try to send 100kbps adjustment request to a random user peer who is ready for this, and which has TargetTxBandwidth = 0 (via all streams)
+                    var u2uConnectedPeers1 = (from cp in u2uConnectedPeers
+                                              let streams = cp.streams
+                                                      .Where(x => x.LatestRemoteStatus?.ImHealthyAndReadyFor100kbpsU2uSymbiosis == true && x.TargetTxBandwidth == 0)
+                                                      .ToArray()
+                                             select new
+                                             {
+                                                 cp.cp,
+                                                 streams,
+                                                 streamsTargetBandwidth = streams.Sum(x => x.TargetTxBandwidth)
+                                             }
+                        ).Where(cp => cp.streams.Length != 0 && cp.streamsTargetBandwidth == 0).ToArray();
+                    if (u2uConnectedPeers1.Length != 0)
+                    {
+                        var cp2 = u2uConnectedPeers1[LocalPeer.Random.Next(u2uConnectedPeers1.Length)];
+                        var stream = cp2.streams[LocalPeer.Random.Next(cp2.streams.Length)];
+                        stream.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(stream.TargetTxBandwidth +100000);
+                    }
+                    else 
+                    {
+                        // if not found: try to send   TargetTxBandwidth+100kbps request  to a random user peer who is ready for this and has a MINIMAL TargetTxBandwidth (via all streams)
+                        //      AND if packet loss is less than 1%
+
+                        var u2uConnectedPeers2 = (from cp in u2uConnectedPeers
+                                                  let streams = cp.streams
+                                                          .Where(x => x.LatestRemoteStatus?.ImHealthyAndReadyFor100kbpsU2uSymbiosis == true)
+                                                          .ToArray()
+                                                  select new
+                                                  {
+                                                      cp.cp,
+                                                      streams,
+                                                      streamsTargetBandwidth = streams.Sum(x => x.TargetTxBandwidth)
+                                                  }                                                   
+                            ).Where(x => x.streams.Length != 0 && x.cp.StreamsAveragePacketLoss < 0.01).OrderBy(x => x.streamsTargetBandwidth).ToArray();
+                        if (u2uConnectedPeers2.Length != 0)
+                        {
+                            var stream = u2uConnectedPeers2[0].streams.OrderBy(x => x.TargetTxBandwidth).First();
+                            stream.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(stream.TargetTxBandwidth + 100000);
+                        }                      
+                    }    
+                }
+                else if (targetTxBandwidthRemaining < -30000)
+                {
+                    // send -100kbps adjustment request to a random user peer which has MAXIMAL TargetTxBandwidth
+                    var u2uConnectedPeer_withMaxBandwidth = (from cp in u2uConnectedPeers
+                                              let streams = cp.streams
+                                              select new
+                                              {
+                                                  cp.cp,
+                                                  cp.streams,
+                                                  streamsTargetBandwidth = cp.streams.Sum(x => x.TargetTxBandwidth)
+                                              }
+                          ).Where(x => x.streams.Length != 0).OrderByDescending(x => x.streamsTargetBandwidth).FirstOrDefault();
+                    if (u2uConnectedPeer_withMaxBandwidth != null)
+                    {
+                        var stream = u2uConnectedPeer_withMaxBandwidth.streams.OrderByDescending(x => x.TargetTxBandwidth).First(); // select stream with MAXIMAL bandwidth
+                        stream.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(Math.Max(0, stream.TargetTxBandwidth - 100000));
+                    }
+                }
+
+
+                //   decrement BW of U2U streams with bad packet loss:   -10kbps
+                foreach (var cp in u2uConnectedPeers)
+                    foreach (var s in cp.streams)
+                        if (s.PendingAdjustmentRequestPacket == null && s.TargetTxBandwidth > 0 && (s.RecentPacketLoss > 0.05 || s.LatestRemoteStatus?.RecentRxPacketLoss > 0.05))
+                        {
+                            s.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(Math.Max(0, s.TargetTxBandwidth - 10000));
+                        }
+                
+
+            }
+            #endregion
         }
 
         void DistributeTargetTxBandwidthOverPassivePeers(float targetTxBandwidthRemaining)
@@ -207,13 +292,17 @@ namespace Dcomms.SUBT
                 ).Where(cp => cp.streams.Length != 0).ToArray();
 
             int numberOfStreams = 0;
+            foreach (var passiveConnectedPeer in passiveConnectedPeers)
+            {
+                numberOfStreams += passiveConnectedPeer.streams.Length;
+                foreach (var s in passiveConnectedPeer.streams)
+                    s.TargetTxBandwidth = 0;               
+            }
 
             // initial distribution of SubtLogicConfiguration.PerStreamMinRecommendedBandwidth per peer
-            foreach (var cp in passiveConnectedPeers)
+            foreach (var passiveConnectedPeer in passiveConnectedPeers)
             {
-                numberOfStreams += cp.streams.Length;
-                var s = cp.streams[0];
-                
+                var s = passiveConnectedPeer.streams[0];                
                 var bw = Math.Min(targetTxBandwidthRemaining, SubtLogicConfiguration.PerStreamMinRecommendedBandwidth);
                 s.TargetTxBandwidth = bw;
                 targetTxBandwidthRemaining -= bw;
@@ -223,10 +312,10 @@ namespace Dcomms.SUBT
             // initial distribution of SubtLogicConfiguration.PerStreamMinRecommendedBandwidth per extra streams
             if (targetTxBandwidthRemaining > 0)
             {
-                foreach (var cp in passiveConnectedPeers)
-                    for (int si = 1; si < cp.streams.Length; si++)
+                foreach (var passiveConnectedPeer in passiveConnectedPeers)
+                    for (int si = 1; si < passiveConnectedPeer.streams.Length; si++)
                     {
-                        var s = cp.streams[si];
+                        var s = passiveConnectedPeer.streams[si];
                         var bw = Math.Min(targetTxBandwidthRemaining, SubtLogicConfiguration.PerStreamMinRecommendedBandwidth);
                         s.TargetTxBandwidth = bw;
                         targetTxBandwidthRemaining -= bw;
@@ -246,6 +335,47 @@ namespace Dcomms.SUBT
             }
 
         }
+
+        float _latest_targetTxBandwidthRemaining_ForPassivePeers;
+        bool _isHealthyForU2uSymbiosis; // is set to true when it is healthy for some long time
+        DateTime? _healthySinceUtc;
+        void IsHealthyForU2uSymbiosis_Update(SubtMeasurement measurement)
+        {
+            if (!LocalPeer.Configuration.RoleAsUser) return;
+
+            var isHealthyNow = (measurement.RxBandwidth > Configuration.BandwidthTarget * 0.9 &&
+                measurement.TxBandwidth > Configuration.BandwidthTarget * 0.9 && Configuration.BandwidthTarget > 100000 &&
+                measurement.RxPacketLoss < 0.05 && measurement.TxPacketLoss < 0.05
+                );
+            if (isHealthyNow)
+            {
+                var dt = LocalPeer.DateTimeNowUtc;
+                if (_healthySinceUtc == null) _healthySinceUtc = dt;
+                else
+                {
+                    if ((dt - _healthySinceUtc.Value).TotalSeconds > 30)
+                    {
+                        _isHealthyForU2uSymbiosis = true;
+                    }
+                }
+            }
+            else
+            {
+                _healthySinceUtc = null;
+                _isHealthyForU2uSymbiosis = false;
+            }
+        }
+        public bool ImHealthyAndReadyFor100kbpsU2uSymbiosis
+        {
+            get // sender thread
+            {
+                if (!_isHealthyForU2uSymbiosis) return false;
+                if (_latest_targetTxBandwidthRemaining_ForPassivePeers <= 100000) return false;
+
+                return true;
+            }
+        }
+
         #endregion
 
 
@@ -265,6 +395,7 @@ namespace Dcomms.SUBT
         }
 
         public SubtMeasurementsHistory MeasurementsHistory { get; private set; } = new SubtMeasurementsHistory();
+        internal SubtMeasurement LatestMeasurement { get; private set; }
     }
 
 }

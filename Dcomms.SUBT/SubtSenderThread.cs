@@ -59,7 +59,7 @@ namespace Dcomms.SUBT
                             Debugger.Break();
 
                         previousTs32 = unchecked(previousTs32 + period32);
-                        foreach (var stream in _streams.Values) stream.SendPayloadPacketsIfNeeded_10ms();
+                        foreach (var stream in _streams.Values) stream.SendPacketsIfNeeded_10ms();
                         counter++;
                         if (counter % 10 == 0)
                             foreach (var stream in _streams.Values) stream.SendPayloadPacketsIfNeeded_100ms();
