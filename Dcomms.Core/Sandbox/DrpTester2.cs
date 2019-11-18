@@ -86,7 +86,7 @@ namespace Dcomms.Sandbox
 
             EmitAllPeers(AttentionLevel.guiActivity, $"creating peer index {index}...");
 
-            var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(x.CryptoLibrary);
+            var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(x.CryptoLibrary, NumberOfDimensions);
             xLocalDrpPeerConfig.EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) };
             xLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = MinDesiredNumberOfNeighbors;
             xLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = SoftMaxDesiredNumberOfNeighbors;
@@ -200,7 +200,7 @@ namespace Dcomms.Sandbox
                     SandboxModeOnly_EnableInsecureLogs = true,
                     SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
                 }); ;
-                var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(ep.CryptoLibrary);
+                var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(ep.CryptoLibrary, NumberOfDimensions);
                 epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
                 epLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = null;
                 epLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = null;

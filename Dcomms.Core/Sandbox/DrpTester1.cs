@@ -38,7 +38,7 @@ namespace Dcomms.Sandbox
                 ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
                 SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
             });
-            var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(_ep.CryptoLibrary);
+            var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(_ep.CryptoLibrary, NumberOfDimensions);
           
             _ep.BeginCreateLocalPeer(epLocalDrpPeerConfig, new DrpTesterPeerApp(_ep, epLocalDrpPeerConfig), (rpLocalPeer) =>
             {   
@@ -50,7 +50,7 @@ namespace Dcomms.Sandbox
                     VisionChannelSourceId = "A",
                     SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
                 });
-                var aLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(_a.CryptoLibrary);
+                var aLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(_a.CryptoLibrary, NumberOfDimensions);
                 aLocalDrpPeerConfig.EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) };
                               
                 _x = new DrpPeerEngine(new DrpPeerEngineConfiguration
@@ -63,7 +63,7 @@ namespace Dcomms.Sandbox
                 });
 
             _retryx:
-                var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(_x.CryptoLibrary);
+                var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(_x.CryptoLibrary, NumberOfDimensions);
                 var distance_eptoa = epLocalDrpPeerConfig.LocalPeerRegistrationId.GetDistanceTo(_x.CryptoLibrary, aLocalDrpPeerConfig.LocalPeerRegistrationId, NumberOfDimensions);
                 var distance_xtoa = xLocalDrpPeerConfig.LocalPeerRegistrationId.GetDistanceTo(_x.CryptoLibrary, aLocalDrpPeerConfig.LocalPeerRegistrationId, NumberOfDimensions);
                 if (distance_xtoa.IsGreaterThan(distance_eptoa)) goto _retryx;
@@ -80,7 +80,7 @@ namespace Dcomms.Sandbox
 
 
             _retryn:
-                var nLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(_n.CryptoLibrary);               
+                var nLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(_n.CryptoLibrary, NumberOfDimensions);               
                 var distance_ntoa = nLocalDrpPeerConfig.LocalPeerRegistrationId.GetDistanceTo(_n.CryptoLibrary, aLocalDrpPeerConfig.LocalPeerRegistrationId, NumberOfDimensions);
                 if (distance_ntoa.IsGreaterThan(distance_xtoa)) goto _retryn;
                 nLocalDrpPeerConfig.EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) };

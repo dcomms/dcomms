@@ -39,6 +39,9 @@ namespace Dcomms.DRP
 
         }
 
+        static DateTime? _latestPublicIpAddressResponseTimeUTC;
+        static IPAddress _latestPublicIpAddressResponse;
+
         async Task<LocalDrpPeer> CreateLocalPeerAsync(LocalDrpPeerConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp)
         {
             if (registrationConfiguration.LocalPeerRegistrationId == null) throw new ArgumentNullException();
@@ -46,17 +49,28 @@ namespace Dcomms.DRP
 
             if (Configuration.ForcedPublicIpApiProviderResponse == null)
             {
-                WriteToLog_drpGeneral_detail($"resolving local public IP...");
-                var sw = Stopwatch.StartNew();
-                var localPublicIp = await SendPublicIpAddressApiRequestAsync("http://api.ipify.org/");
-                if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://ip.seeip.org/");
-                if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://bot.whatismyipaddress.com");
-                if (localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
+                var nowUTC = DateTimeNowUtc;
+                if (_latestPublicIpAddressResponseTimeUTC == null || nowUTC - _latestPublicIpAddressResponseTimeUTC.Value > TimeSpan.FromSeconds(10))
+                {
+                    WriteToLog_drpGeneral_detail($"resolving local public IP...");
+                    var sw = Stopwatch.StartNew();
+                    var localPublicIp = await SendPublicIpAddressApiRequestAsync("http://api.ipify.org/");
+                    if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://ip.seeip.org/");
+                    if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://bot.whatismyipaddress.com");
+                    if (localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
 
-                localDrpPeer.PublicIpApiProviderResponse = new IPAddress(localPublicIp);
-                WriteToLog_drpGeneral_detail($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse} ({(int)sw.Elapsed.TotalMilliseconds}ms)");
-                await EngineThreadQueue.EnqueueAsync("resolved local public IP 3518");
-                WriteToLog_drpGeneral_detail($"@engine thread");
+                    localDrpPeer.PublicIpApiProviderResponse = new IPAddress(localPublicIp);
+                    _latestPublicIpAddressResponse = localDrpPeer.PublicIpApiProviderResponse;
+                    _latestPublicIpAddressResponseTimeUTC = nowUTC;
+                    WriteToLog_drpGeneral_detail($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse} ({(int)sw.Elapsed.TotalMilliseconds}ms)");
+                    await EngineThreadQueue.EnqueueAsync("resolved local public IP 3518");
+                    WriteToLog_drpGeneral_detail($"@engine thread");
+                }
+                else
+                {
+                    WriteToLog_drpGeneral_detail($"using cached local public IP address {_latestPublicIpAddressResponse}");
+                    localDrpPeer.PublicIpApiProviderResponse = _latestPublicIpAddressResponse;
+                }
             }
             else
                 localDrpPeer.PublicIpApiProviderResponse = Configuration.ForcedPublicIpApiProviderResponse;

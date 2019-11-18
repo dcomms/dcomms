@@ -402,17 +402,24 @@ namespace Dcomms.DRP
         public int? MinDesiredNumberOfNeighbors = 12;
         public int? SoftMaxNumberOfNeighbors = 14; 
         public int? AbsoluteMaxNumberOfNeighbors = 18;
-        public double? MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS;// = 30;
+        public double? MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 120;
         public double TestDirectionsMinIntervalS = 30;
 
-        public static LocalDrpPeerConfiguration CreateWithNewKeypair(ICryptoLibrary cryptoLibrary)
+        public static LocalDrpPeerConfiguration CreateWithNewKeypair(ICryptoLibrary cryptoLibrary, int numberOfDimensions)
         {
             var privatekey = new RegistrationPrivateKey { ed25519privateKey = cryptoLibrary.GeneratePrivateKeyEd25519() };
-            return new LocalDrpPeerConfiguration
+            var r = new LocalDrpPeerConfiguration
             {
                 LocalPeerRegistrationPrivateKey = privatekey,
                 LocalPeerRegistrationId = new RegistrationId(cryptoLibrary.GetPublicKeyEd25519(privatekey.ed25519privateKey))
             };
+            if (numberOfDimensions == 2)
+            {
+                r.MinDesiredNumberOfNeighbors = 5;
+                r.SoftMaxNumberOfNeighbors = 7;
+                r.AbsoluteMaxNumberOfNeighbors = 10;
+            }
+            return r;
         }
     }
 }
