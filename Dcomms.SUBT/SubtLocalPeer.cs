@@ -76,7 +76,7 @@ namespace Dcomms.SUBT
             }
             AdjustStreamsTargetTxBandwidth_InitiateAdjustmentRequestsIfNeeded_100msApprox();
         }
-      
+
         #region SUBT symbiosis logic
         public IEnumerable<SubtConnectedPeer> ConnectedPeers
         {
@@ -84,12 +84,13 @@ namespace Dcomms.SUBT
             {
                 var connectedPeers = LocalPeer.ConnectedPeers;
                 if (connectedPeers != null)
-                foreach (var cp in connectedPeers)
-                    if (cp.Extensions.TryGetValue(this, out var cpx))
-                        yield return (SubtConnectedPeer)cpx;               
+                    foreach (var cp in connectedPeers)
+                        if (cp.Extensions.TryGetValue(this, out var cpx))
+                            yield return (SubtConnectedPeer)cpx;
             }
         }
-      
+        public IEnumerable<SubtConnectedPeer> ConnectedPeersForGui => ConnectedPeers.OrderByDescending(x => x.TargetTxBandwidth);
+     
         ///// <param name="currentDependentMeasuredValue">some measurement (M) that depends on the TX bandwidth (T), and dM/dT > 0</param>
         ///// <param name="targetDependentMeasuredValue">target value for the dependent measurement (M)</param>
         //void UpdateTxBandwidth_100msApprox(ref float currentTxBwMultiplier, float currentDependentMeasuredValue, float targetDependentMeasuredValue, float speedCoefficient = 1.0f)
@@ -199,16 +200,20 @@ namespace Dcomms.SUBT
                 }
 
             #region initiate adjustment requests
-            var dt = LocalPeer.DateTimeNowUtc;
-            if (_lastTimeInitiatedAdjustmentRequests == null || (dt - _lastTimeInitiatedAdjustmentRequests.Value).TotalSeconds > 2)
+            var dtNowUTC = LocalPeer.DateTimeNowUtc;
+            if (_lastTimeInitiatedAdjustmentRequests == null || (dtNowUTC - _lastTimeInitiatedAdjustmentRequests.Value).TotalSeconds > 2)
             {
+                _lastTimeInitiatedAdjustmentRequests = dtNowUTC;
+
                 // every 2 secs:
                 if (targetTxBandwidthRemaining > 100000)
                 {
                     // try to send 100kbps adjustment request to a random user peer who is ready for this, and which has TargetTxBandwidth = 0 (via all streams)
                     var u2uConnectedPeers1 = (from cp in u2uConnectedPeers
                                               let streams = cp.streams
-                                                      .Where(x => x.LatestRemoteStatus?.ImHealthyAndReadyFor100kbpsU2uSymbiosis == true && x.TargetTxBandwidth == 0)
+                                                      .Where(x => x.LatestRemoteStatus?.ImHealthyAndReadyFor100kbpsU2uSymbiosis == true && x.TargetTxBandwidth == 0
+                                                            && x.NotReceivedAdjustmentRequestFromRemoteSideRecently(dtNowUTC)                                                      
+                                                      )
                                                       .ToArray()
                                              select new
                                              {
@@ -220,8 +225,12 @@ namespace Dcomms.SUBT
                     if (u2uConnectedPeers1.Length != 0)
                     {
                         var cp2 = u2uConnectedPeers1[LocalPeer.Random.Next(u2uConnectedPeers1.Length)];
-                        var stream = cp2.streams[LocalPeer.Random.Next(cp2.streams.Length)];
-                        stream.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(stream.TargetTxBandwidth +100000);
+                        if (!cp2.streams.Any(s => s.PendingAdjustmentRequestPacketData != null))
+                        {
+                            var stream = cp2.streams[LocalPeer.Random.Next(cp2.streams.Length)];
+                            WriteToLog($"first-time incrementing bandwidth via {stream}");
+                            stream.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(stream.TargetTxBandwidth + 100000);
+                        }
                     }
                     else 
                     {
@@ -230,7 +239,7 @@ namespace Dcomms.SUBT
 
                         var u2uConnectedPeers2 = (from cp in u2uConnectedPeers
                                                   let streams = cp.streams
-                                                          .Where(x => x.LatestRemoteStatus?.ImHealthyAndReadyFor100kbpsU2uSymbiosis == true)
+                                                          .Where(x => x.LatestRemoteStatus?.ImHealthyAndReadyFor100kbpsU2uSymbiosis == true && x.NotReceivedAdjustmentRequestFromRemoteSideRecently(dtNowUTC))
                                                           .ToArray()
                                                   select new
                                                   {
@@ -242,6 +251,7 @@ namespace Dcomms.SUBT
                         if (u2uConnectedPeers2.Length != 0)
                         {
                             var stream = u2uConnectedPeers2[0].streams.OrderBy(x => x.TargetTxBandwidth).First();
+                            WriteToLog($"further incrementing bandwidth via {stream}");
                             stream.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(stream.TargetTxBandwidth + 100000);
                         }                      
                     }    
@@ -250,7 +260,7 @@ namespace Dcomms.SUBT
                 {
                     // send -100kbps adjustment request to a random user peer which has MAXIMAL TargetTxBandwidth
                     var u2uConnectedPeer_withMaxBandwidth = (from cp in u2uConnectedPeers
-                                              let streams = cp.streams
+                                              let streams = cp.streams.Where(x => x.NotReceivedAdjustmentRequestFromRemoteSideRecently(dtNowUTC)).ToArray()
                                               select new
                                               {
                                                   cp.cp,
@@ -261,20 +271,23 @@ namespace Dcomms.SUBT
                     if (u2uConnectedPeer_withMaxBandwidth != null)
                     {
                         var stream = u2uConnectedPeer_withMaxBandwidth.streams.OrderByDescending(x => x.TargetTxBandwidth).First(); // select stream with MAXIMAL bandwidth
-                        stream.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(Math.Max(0, stream.TargetTxBandwidth - 100000));
+                        var reqBw = Math.Max(0, stream.TargetTxBandwidth - 100000);
+                        if (reqBw < 10000) reqBw = 0;
+                        WriteToLog($"decrementing bandwidth via {stream}: low user-set target BW");
+                        stream.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(reqBw);
                     }
                 }
-
 
                 //   decrement BW of U2U streams with bad packet loss:   -10kbps
                 foreach (var cp in u2uConnectedPeers)
                     foreach (var s in cp.streams)
-                        if (s.PendingAdjustmentRequestPacket == null && s.TargetTxBandwidth > 0 && (s.RecentPacketLoss > 0.05 || s.LatestRemoteStatus?.RecentRxPacketLoss > 0.05))
+                        if (s.PendingAdjustmentRequestPacketData == null && s.TargetTxBandwidth > 0 && (s.RecentPacketLoss > 0.05 || s.LatestRemoteStatus?.RecentRxPacketLoss > 0.05))
                         {
-                            s.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(Math.Max(0, s.TargetTxBandwidth - 10000));
+                            var reqBw = Math.Max(0, s.TargetTxBandwidth - 10000);
+                            if (reqBw < 10000) reqBw = 0;
+                            WriteToLog($"decrementing bandwidth via {s}: low quality");
+                            s.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(reqBw);
                         }
-                
-
             }
             #endregion
         }

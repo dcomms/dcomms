@@ -13,9 +13,11 @@ namespace Dcomms.SUBT.SUBTP
     internal class SubtRemoteStatusPacket
     {
         public readonly float RecentRxBandwidth; // per stream
+
         public float RecentRxPacketLoss => _recentRxPacketLoss; // per stream // 0..1
         public readonly float _recentRxPacketLoss;  // 0..1
-        public readonly float RecentTxBandwidth; // actual transmitted bandwidth // per connected peer (all connected streams between peers)
+        public readonly float RecentTxBandwidth; // actual transmitted bandwidth // per stream
+
         public readonly bool IhavePassiveRole; // no own-set TX bandwidth target
         public readonly bool ImHealthyAndReadyFor100kbpsU2uSymbiosis;
 
@@ -36,7 +38,8 @@ namespace Dcomms.SUBT.SUBTP
         public override string ToString()
         {
             var sb = new StringBuilder();
-            sb.AppendFormat("rxBwS={0};rxLossS={1:0.0}%;txBwP={2};passive={3}", RecentRxBandwidth.BandwidthToString(), RecentRxPacketLoss * 100, RecentTxBandwidth.BandwidthToString(), IhavePassiveRole);          
+            sb.AppendFormat("rxBw={0};rxLoss={1:0.0}%;txBw={2};passive={3}",
+                RecentRxBandwidth.BandwidthToString(), RecentRxPacketLoss * 100, RecentTxBandwidth.BandwidthToString(), IhavePassiveRole);          
             return sb.ToString();
         }
 
@@ -47,7 +50,7 @@ namespace Dcomms.SUBT.SUBTP
             RecentTxBandwidth = reader.ReadSingle();
             var flags = reader.ReadByte();
             IhavePassiveRole = (flags & 0x02) != 0;
-            ImHealthyAndReadyFor100kbpsU2uSymbiosis = (flags & 0x04) != 0;
+            ImHealthyAndReadyFor100kbpsU2uSymbiosis = (flags & 0x04) != 0;           
         }
         public byte[] Encode(SubtConnectedPeerStream connectedStream)
         {
@@ -62,7 +65,6 @@ namespace Dcomms.SUBT.SUBTP
             if (IhavePassiveRole) flags |= 0x02;
             if (ImHealthyAndReadyFor100kbpsU2uSymbiosis) flags |= 0x04;
             writer.Write(flags);
-            
             return ms.ToArray();
         }
     }

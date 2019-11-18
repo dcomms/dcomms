@@ -11,7 +11,7 @@
                 <TextBlock Text="{Binding SubtLocalPeer.ConnectedPeers.Count}" />
                 <TextBlock Text="connected peers" />
             </StackPanel>
-            <ItemsControl ItemsSource="{Binding SubtLocalPeer.ConnectedPeers}" >
+            <ItemsControl ItemsSource="{Binding SubtLocalPeer.ConnectedPeersForGui}" >
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border  Background="#EEEEEE" Margin="1"  BorderBrush="#DDDDDD"  BorderThickness="1">
