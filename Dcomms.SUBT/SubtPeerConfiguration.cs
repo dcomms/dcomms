@@ -12,7 +12,13 @@ namespace Dcomms.SUBT
         /// </summary>
         public float BandwidthTarget { get; set; }
         public int SenderThreadsCount { get; set; } = 4;
-        public float Speed100ms { get; set; } = 0.005f;
-        public float Speed100msLimit { get; set; } = 0.03f;
+
+
+        public float MaxLocalTxBandwidth = 1024 * 1024 * 100;
+        public float MaxLocalTxBandwidthMbps
+        {
+            get => MaxLocalTxBandwidth / 1024 / 1024;
+            set { MaxLocalTxBandwidth = value * 1024 * 1024; }
+        }
     }
 }

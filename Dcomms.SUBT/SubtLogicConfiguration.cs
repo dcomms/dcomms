@@ -28,7 +28,7 @@ namespace Dcomms.SUBT
         internal const float MinBandwidthPerStreamForPacketLossMeasurement = 1024 * 10;
 
         internal const float PerStreamMinRecommendedBandwidth = 1024 * 60;
-        internal const float MaxLocalTxBandwidthPerPeer = 1024 * 1024 * 100;
+
         internal const float MaxLocalTxBandwidthPerStream = 1024 * 1024 * 1;
       //  internal const long MinimumUser2UserStreamLifetimeBeforeUsage = TimeSpan.TicksPerMinute * 10;
     }

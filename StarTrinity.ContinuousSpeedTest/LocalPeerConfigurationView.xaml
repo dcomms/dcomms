@@ -65,12 +65,9 @@
         <TextBlock Grid.Row="6" Text="Sender threads count:" />
         <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding SubtLocalPeerConfiguration.SenderThreadsCount}" IsEnabled="{Binding Initialized, Converter={StaticResource OppositeConverter}}" />
 
-        <TextBlock Grid.Row="7" Text="100ms speed constant:" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
-        <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding SubtLocalPeerConfiguration.Speed100ms}" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+        <TextBlock Grid.Row="7" Text="Max bandwidth:" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
+        <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding SubtLocalPeerConfiguration.MaxLocalTxBandwidthMbps}" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}" />
 
-        <TextBlock Grid.Row="8" Text="100ms speed limit:" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}" />
-        <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding SubtLocalPeerConfiguration.Speed100msLimit}" Visibility="{Binding DeveloperMode, Converter={StaticResource BoolToVisibilityConverter}}" />
-       
 
         <TextBlock Grid.Row="9" Text="Developer mode:" />
         <CheckBox Grid.Row="9" Grid.Column="1" IsChecked="{Binding DeveloperMode}" />

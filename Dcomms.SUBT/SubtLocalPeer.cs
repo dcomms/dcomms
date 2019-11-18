@@ -89,7 +89,7 @@ namespace Dcomms.SUBT
                             yield return (SubtConnectedPeer)cpx;
             }
         }
-        public IEnumerable<SubtConnectedPeer> ConnectedPeersForGui => ConnectedPeers.OrderByDescending(x => x.TargetTxBandwidth);
+        public IEnumerable<SubtConnectedPeer> ConnectedPeersForGui => ConnectedPeers.OrderByDescending(x => x.TargetTxBandwidth).ThenByDescending(x => x.RemoteLibraryVersion);
      
         ///// <param name="currentDependentMeasuredValue">some measurement (M) that depends on the TX bandwidth (T), and dM/dT > 0</param>
         ///// <param name="targetDependentMeasuredValue">target value for the dependent measurement (M)</param>
@@ -158,7 +158,7 @@ namespace Dcomms.SUBT
                         {
                             s.TargetTxBandwidth = LimitSubtRemoteStatusPacketRemoteBandwidth(s.LatestRemoteStatus?.RecentTxBandwidth ?? 0);
                             totalAssignedTxBandwidth += s.TargetTxBandwidth;
-                            if (totalAssignedTxBandwidth > SubtLogicConfiguration.MaxLocalTxBandwidthPerPeer)
+                            if (totalAssignedTxBandwidth > Configuration.MaxLocalTxBandwidth)
                                 s.TargetTxBandwidth = 0; // limit max total BW           // todo pain signal here                                    
                         }
                         else
@@ -170,7 +170,7 @@ namespace Dcomms.SUBT
             
 
             var targetTxBandwidthRemaining = Configuration.BandwidthTarget;
-            LimitHigh(ref targetTxBandwidthRemaining, SubtLogicConfiguration.MaxLocalTxBandwidthPerPeer);
+            LimitHigh(ref targetTxBandwidthRemaining, Configuration.MaxLocalTxBandwidth);
             DistributeTargetTxBandwidthOverUserP2pConnections_InitiateAdjustmentRequestsIfNeeded(ref targetTxBandwidthRemaining);
 
             _latest_targetTxBandwidthRemaining_ForPassivePeers = targetTxBandwidthRemaining;
