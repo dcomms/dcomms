@@ -325,12 +325,13 @@ namespace Dcomms.DRP
                 httpClient.Timeout = TimeSpan.FromSeconds(3);
                 var response = await httpClient.GetAsync(url);
                 result = await response.Content.ReadAsStringAsync();
+                result = result.Trim();
                 var ipAddress = IPAddress.Parse(result);
                 return ipAddress.GetAddressBytes();
             }
             catch (Exception exc)
             {
-                HandleGeneralException($"public IP address API request to {url} failed. result: {result}", exc);
+                HandleGeneralException($"public IP address API request to {url} failed. result: '{result}'", exc);
                 return null;
             }
         }

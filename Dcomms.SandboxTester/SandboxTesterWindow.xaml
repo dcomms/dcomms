@@ -86,13 +86,15 @@
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="VisionChannelSourceIdPrefix:" />
                 <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding DrpTester3.VisionChannelSourceIdPrefix, Mode=TwoWay}" MinWidth="50"/>
 
-
                 <TextBlock Grid.Row="1" Grid.Column="2" Text="local UDP ports range start:" />
                 <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding DrpTester3.LocalInterconnectedEpEnginesBasePort, Mode=TwoWay}" />
 
                 <TextBlock Grid.Row="2" Grid.Column="2" Text="remote EPs:" />
                 <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpTester3.RemoteEpEndPointsString, Mode=TwoWay}" />
 
+                <TextBlock Grid.Row="3" Grid.Column="2" Text="num of dimensions:" />
+                <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding DrpTester3.NumberOfDimensions, Mode=TwoWay}" />
+                
 
                 <StackPanel Orientation="Horizontal" Grid.Row="5" Visibility="{Binding DrpTester3.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
                     <Button Content="Initialize" Margin="3" Command="{Binding DrpTester3.Initialize}" />

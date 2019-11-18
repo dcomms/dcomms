@@ -44,6 +44,7 @@ namespace Dcomms.Sandbox
         }
 
         public string VisionChannelSourceIdPrefix { get; set; } = "";
+        public int NumberOfDimensions { get; set; } = 8;
         public int NumberOfLocalInterconnectedEpEngines { get; set; } = 17;
         public int NumberOfUserApps { get; set; } = 50;
         public int NumberOfTempPeers { get; set; } = 20;
@@ -143,6 +144,7 @@ namespace Dcomms.Sandbox
                 LocalPort = (ushort)(LocalInterconnectedEpEnginesBasePort + localEpIndex),
                 VisionChannel = _visionChannel,
                 VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}EP{localEpIndex}",
+                SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
             }); ;
             var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(epEngine.CryptoLibrary);
             epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
@@ -198,6 +200,7 @@ namespace Dcomms.Sandbox
                 InsecureRandomSeed = _insecureRandom.Next(),
                 VisionChannel = _visionChannel,
                 VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}U{userIndex}",
+                SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
             });
             var localDrpPeerConfiguration = LocalDrpPeerConfiguration.CreateWithNewKeypair(userEngine.CryptoLibrary);
 
@@ -360,6 +363,7 @@ namespace Dcomms.Sandbox
                     InsecureRandomSeed = _insecureRandom.Next(),
                     VisionChannel = _visionChannel,
                     VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}T{_createdTempPeersCount++}",
+                    SandboxModeOnly_NumberOfDimensions = NumberOfDimensions,
                 });
                 var localDrpPeerConfiguration = LocalDrpPeerConfiguration.CreateWithNewKeypair(tempPeerEngine.CryptoLibrary);
 
