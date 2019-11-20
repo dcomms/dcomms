@@ -54,7 +54,14 @@ namespace Dcomms.DRP
             engine.Configuration.VisionChannel?.RegisterVisibleModule(engine.Configuration.VisionChannelSourceId, this.ToString(), this);
         }
         public List<ConnectionToNeighbor> ConnectedNeighbors = new List<ConnectionToNeighbor>();
-        public IEnumerable<ConnectionToNeighbor> ConnectedNeighborsCanBeUsedForNewRequests => ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests);
+        public IEnumerable<ConnectionToNeighbor> ConnectedNeighborsCanBeUsedForNewRequests
+        {
+            get
+            {
+                var now = Engine.DateTimeNowUtc;
+                return ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests(now));
+            }
+        }
         public ushort ConnectedNeighborsBusySectorIds
         {
             get
@@ -78,6 +85,7 @@ namespace Dcomms.DRP
         float[] IVisiblePeer.VectorValues => RegistrationIdDistance.GetVectorValues(CryptoLibrary, _configuration.LocalPeerRegistrationId, Engine.NumberOfDimensions).Select(x => (float)x).ToArray();
         bool IVisiblePeer.Highlighted => false;
         string IVisiblePeer.Name => Engine.Configuration.VisionChannelSourceId;
+        
         IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => ConnectedNeighborsCanBeUsedForNewRequests;
         string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer)
         {
@@ -112,8 +120,7 @@ namespace Dcomms.DRP
                 yield return connectedPeer;
             }
         }
-
-
+        
         public void AddToConnectedNeighbors(ConnectionToNeighbor newConnectedNeighbor, RegisterRequestPacket req)
         {
             newConnectedNeighbor.OnP2pInitialized();
@@ -128,10 +135,7 @@ namespace Dcomms.DRP
 
         }
         public override string ToString() => $"localDrpPeer{_configuration.LocalPeerRegistrationId}";
-
-
-
-
+ 
         internal void TestDirection(Logger logger, RegistrationId destinationRegId)
         {
             if (this.Configuration.LocalPeerRegistrationId.Equals(destinationRegId) == true) return;
@@ -189,9 +193,11 @@ namespace Dcomms.DRP
         #region on timer 
         DateTime? _latestConnectToNewNeighborOperationStartTimeUtc;
         DateTime? _latestEmptyDirectionsTestTimeUtc;
+        int _neighborhoodExtensionFailuresCountInArow = 0;
         async Task ConnectToNewNeighborAsync(DateTime timeNowUtc, bool connectAnyway, double[] directionVectorNullable)
-        {           
-            if (connectAnyway || ConnectedNeighborsCanBeUsedForNewRequests.Count() < _configuration.MinDesiredNumberOfNeighbors)
+        {
+            var connectedNeighborsForNewRequests = ConnectedNeighborsCanBeUsedForNewRequests.ToList();
+            if (connectAnyway || connectedNeighborsForNewRequests.Count < _configuration.MinDesiredNumberOfNeighbors)
             {
                 if (connectAnyway || (CurrentRegistrationOperationsCount == 0) ||
                     timeNowUtc > _latestConnectToNewNeighborOperationStartTimeUtc + TimeSpan.FromSeconds(Engine.Configuration.NeighborhoodExtensionMaxRetryIntervalS))
@@ -200,44 +206,48 @@ namespace Dcomms.DRP
                     {
                         if ((timeNowUtc - _latestConnectToNewNeighborOperationStartTimeUtc.Value).TotalSeconds < Engine.Configuration.NeighborhoodExtensionMinIntervalS)
                             return;
+                        Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood: {connectedNeighborsForNewRequests.Count} neighbors now", null, null);
                     }
-
                     _latestConnectToNewNeighborOperationStartTimeUtc = timeNowUtc;
 
                     try
                     {
-                        //    extend neighbors via ep (3% probability)  or via existing neighbors --- increase mindistance, from 1
-                        var connectedNeighborsForRequest = ConnectedNeighborsCanBeUsedForNewRequests.ToList();
-                        if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.01 || connectedNeighborsForRequest.Count == 0))
+                        // extend neighbors via ep (3% probability)  or via existing neighbors --- increase mindistance, from 1                       
+                        if (this.Configuration.EntryPeerEndpoints != null && (Engine.InsecureRandom.NextDouble() < 0.01 || connectedNeighborsForNewRequests.Count == 0))
                         {
                             var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
-                            Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({connectedNeighborsForRequest.Count} connected operable neighbors now)", null, null);
+                            Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({connectedNeighborsForNewRequests.Count} connected operable neighbors now)", null, null);
                             await Engine.RegisterAsync(this, epEndpoint, 0, RegisterRequestPacket.MaxNumberOfHopsRemaining, directionVectorNullable);
                         }
                         else
                         {
-                            if (connectedNeighborsForRequest.Count != 0)
+                            if (connectedNeighborsForNewRequests.Count != 0)
                             {
-                                var neighborToSendRegister = connectedNeighborsForRequest[Engine.InsecureRandom.Next(connectedNeighborsForRequest.Count)];
-                                Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({connectedNeighborsForRequest.Count} connected operable neighbors now)", null, null);
+                                var neighborToSendRegister = connectedNeighborsForNewRequests[Engine.InsecureRandom.Next(connectedNeighborsForNewRequests.Count)];
+                                Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({connectedNeighborsForNewRequests.Count} connected operable neighbors now)", null, null);
                                 await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, RegisterRequestPacket.MaxNumberOfHopsRemaining,
                                     (byte)Engine.InsecureRandom.Next(10),
                                     directionVectorNullable
                                     );
+                                _neighborhoodExtensionFailuresCountInArow = 0;
                             }
                         }
                     }
                     catch (RequestRejectedException exc)
                     {
-                        Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"failed to extend neighbors for {this}: {exc.Message}", null, null);
+                        _neighborhoodExtensionFailuresCountInArow++;
+                        var msg = $"failed to extend neighbors for {this}: {exc.Message}\r\n{_neighborhoodExtensionFailuresCountInArow} failures in a row";
+                        if (_neighborhoodExtensionFailuresCountInArow < 3) Engine.WriteToLog_reg_requesterSide_higherLevelDetail(msg, null, null);
+                        else if (_neighborhoodExtensionFailuresCountInArow < 5) Engine.WriteToLog_reg_requesterSide_lightPain(msg, null, null);
+                        else Engine.WriteToLog_reg_requesterSide_mediumPain(msg, null, null);
                     }
                     catch (Exception exc)
                     {
-                        Engine.WriteToLog_reg_requesterSide_mediumPain($"failed to extend neighbors for {this}: {exc}", null, null);
+                        _neighborhoodExtensionFailuresCountInArow++;
+                        Engine.WriteToLog_reg_requesterSide_mediumPain($"failed to extend neighbors for {this}: {exc}\r\n{_neighborhoodExtensionFailuresCountInArow} failures in a row", null, null);
                     }
                 }
-            }               
-          
+            }           
         }
 
         DateTime? _lastTimeDetroyedWorstNeighborUtc;

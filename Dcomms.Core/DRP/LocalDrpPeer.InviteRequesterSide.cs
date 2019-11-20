@@ -75,6 +75,7 @@ namespace Dcomms.DRP
                 var logger = new Logger(Engine, this, req, DrpPeerEngine.VisionChannelModuleName_inv_requesterSide);
                 loggerCb?.Invoke(logger);
                 Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"generated unique ECDH key {req.RequesterEcdhePublicKey}");                
                 req.RequesterRegistrationSignature = RegistrationSignature.Sign(Engine.CryptoLibrary, req.GetSharedSignedFields, this.Configuration.LocalPeerRegistrationPrivateKey);
 
                 this.TestDirection(logger, req.ResponderRegistrationId);

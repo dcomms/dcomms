@@ -27,7 +27,7 @@ namespace Dcomms.DRP
             var req = routedRequest.InviteReq;
             var logger = routedRequest.Logger;
             logger.ModuleName = DrpPeerEngine.VisionChannelModuleName_inv_proxySide;         
-            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"proxying {req}");
+            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"proxying {req} to {destinationPeer}");
 
             if (!routedRequest.CheckedRecentUniqueProxiedRequests)
             {
@@ -88,6 +88,16 @@ namespace Dcomms.DRP
                         logger.WriteToLog_needsAttention($"sourcePeer={routedRequest.ReceivedFromNeighborNullable} is disposed during proxying 75675");
                         return false;
                     }
+                    if (reqExc.ResponseCode == ResponseOrFailureCode.failure_routeIsUnavailable)
+                    {
+                        req.NumberOfHopsRemaining++; // roll back previous decrement for a new trial
+                    }
+                    return true; // will retry
+                }
+                catch (DrpTimeoutException)
+                {
+                    logger.WriteToLog_higherLevelDetail($"got timeout error when requesting {destinationPeer}");
+                    req.NumberOfHopsRemaining++; // roll back previous decrement for a new trial
                     return true; // will retry
                 }
                 catch (Exception reqExc)

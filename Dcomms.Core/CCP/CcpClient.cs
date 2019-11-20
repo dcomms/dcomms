@@ -85,9 +85,10 @@ namespace Dcomms.CCP
             try
             {
                 State = CcpClientState.RequestingLocalPublicIp;
-                _localPublicIp = await SendPublicApiRequestAsync("http://api.ipify.org/");
-                if (_localPublicIp == null) _localPublicIp = await SendPublicApiRequestAsync("http://ip.seeip.org/");
+                _localPublicIp = await SendPublicApiRequestAsync("http://ip.seeip.org/");
+                if (_localPublicIp == null) _localPublicIp = await SendPublicApiRequestAsync("http://api.ipify.org/");
                 if (_localPublicIp == null) _localPublicIp = await SendPublicApiRequestAsync("http://bot.whatismyipaddress.com");
+
                 if (_localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
 
                 CreateCcpTransport();

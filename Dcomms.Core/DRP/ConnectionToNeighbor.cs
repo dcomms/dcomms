@@ -306,15 +306,23 @@ namespace Dcomms.DRP
         // IirFilterCounter RxInviteRateRps;
       //  IirFilterCounter RxRegisterRateRps;
 
-        PingPacket _latestPingSent;
-        DateTime? _latestPingSentTime;
+        PingPacket _latestPingSentUnreplied; // is set to null when gets replied
+        DateTime? _latestPingSentTimeUTC;
         PingPacket _latestPingReceived;// float MaxTxInviteRateRps, MaxTxRegiserRateRps; // sent by remote peer via ping
         public ushort? RemoteNeighborsBusySectorIds => _latestPingReceived?.RequesterNeighborsBusySectorIds;
         
         public bool? Remote_AnotherNeighborToSameSectorExists => _latestPingReceived?.Requester_AnotherNeighborToSameSectorExists;
 
         public bool PingReceived => _latestPingReceived != null;
-        public bool CanBeUsedForNewRequests => PingReceived == true && IsInTeardownState == false;
+        public bool CanBeUsedForNewRequests(DateTime nowUTC)
+        {
+            if (_latestPingSentUnreplied != null && _latestPingSentTimeUTC != null)
+            {
+                if ((nowUTC - _latestPingSentTimeUTC.Value).TotalSeconds > (_latestPingPongDelay_RTT ?? TimeSpan.FromSeconds(0.2)).TotalSeconds * 2)
+                    return false;
+            }
+            return PingReceived == true && IsInTeardownState == false;
+        }
 
         PongPacket _latestReceivedPong;
         TimeSpan? _latestPingPongDelay_RTT;
@@ -452,8 +460,8 @@ namespace Dcomms.DRP
         {
             var pingRequestPacket = CreatePing(false, false, _localDrpPeer.ConnectedNeighborsBusySectorIds, _localDrpPeer.AnotherNeighborToSameSectorExists(this));
             SendPacket(pingRequestPacket.Encode());
-            _latestPingSent = pingRequestPacket;
-            _latestPingSentTime = _engine.DateTimeNowUtc;
+            _latestPingSentUnreplied = pingRequestPacket;
+            _latestPingSentTimeUTC = _engine.DateTimeNowUtc;
         }
         internal void OnReceivedVerifiedPong(PongPacket pong, DateTime responseReceivedAtUTC, TimeSpan? requestResponseDelay)
         {
@@ -484,11 +492,12 @@ namespace Dcomms.DRP
                 var pong = PongPacket.DecodeAndVerify(_engine.CryptoLibrary, udpData, null, this, false);
                 OnReceivedVerifiedPong(pong, receivedAtUtc, null);
 
-                if (_latestPingSent?.PingRequestId32 == pong.PingRequestId32)
+                if (_latestPingSentUnreplied?.PingRequestId32 == pong.PingRequestId32)
                 {
+                    _latestPingSentUnreplied = null;
                     //  we have multiple previously sent ping requests; and 1 most recent one
                     //  if pong.PingRequestId32   matches to most recently sent ping request ->   update RTT stats
-                    OnMeasuredRequestResponseDelay(receivedAtUtc - _latestPingSentTime.Value);
+                    OnMeasuredRequestResponseDelay(receivedAtUtc - _latestPingSentTimeUTC.Value);
                 }
                 // else it is out-of-sequence ping response
             }
@@ -585,7 +594,6 @@ namespace Dcomms.DRP
                 _engine.HandleGeneralException($"Exception while processing REGISTER REQ in {this}", exc); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
-
         internal async Task OnReceivedInviteReq(IPEndPoint requesterEndpoint, byte[] udpData, DateTime reqReceivedTimeUtc)
         {
             if (_disposed) return;
@@ -662,8 +670,7 @@ namespace Dcomms.DRP
         internal void GetRequesterRegistrationConfirmationSignatureFields(BinaryWriter w, RegistrationSignature responderRegistrationConfirmationSignature)
         {
             RegisterConfirmationPacket.GetRequesterRegistrationConfirmationSignatureFields(w, responderRegistrationConfirmationSignature, _req, _ack1, _ack2);
-        }
-        
+        }        
     }
 
     /// <summary>

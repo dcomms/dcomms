@@ -131,6 +131,12 @@ namespace Dcomms.DRP
 
                     return true; // will retry
                 }
+                catch (DrpTimeoutException)
+                {
+                    logger.WriteToLog_higherLevelDetail($"got timeout error when requesting {destinationPeer}");
+                    req.NumberOfHopsRemaining++; // roll back previous decrement for a new trial
+                    return true; // will retry
+                }
                 catch (Exception reqExc)
                 {
                     logger.WriteToLog_mediumPain($"could not proxy REGISTER request: {reqExc}");

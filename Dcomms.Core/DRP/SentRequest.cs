@@ -49,7 +49,7 @@ namespace Dcomms.DRP
         public async Task<byte[]> SendRequestAsync(string completionActionVisibleId)
         {
             // wait for NPACK (-accepted or -failure)
-            _logger.WriteToLog_detail($"{completionActionVisibleId} >> SendRequestAsync() _requestUdpData={MiscProcedures.GetArrayHashCodeString(_requestUdpData)}");
+            _logger.WriteToLog_detail($"[{completionActionVisibleId}] >> SendRequestAsync() _requestUdpData={MiscProcedures.GetArrayHashCodeString(_requestUdpData)}");
             await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck(completionActionVisibleId + "_first_npack", _requestUdpData, _destinationEndpoint, _sentReqP2pSeq16);
           
             // wait for ACK1 OR FAILURE

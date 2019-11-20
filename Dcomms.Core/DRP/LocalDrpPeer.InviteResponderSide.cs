@@ -42,7 +42,7 @@ namespace Dcomms.DRP
 
             if (!Engine.RecentUniquePublicEcdhKeys.Filter(req.RequesterEcdhePublicKey.Ecdh25519PublicKey))
             {
-                logger.WriteToLog_mediumPain($"RequesterEcdhePublicKey is not unique, it has been recently processed");
+                logger.WriteToLog_mediumPain($"RequesterEcdhePublicKey {req.RequesterEcdhePublicKey} is not unique, it has been recently processed");
                 return;
             }
             if (!Engine.RecentUniqueInviteRequests.Filter(req.GetUniqueRequestIdFields)) 

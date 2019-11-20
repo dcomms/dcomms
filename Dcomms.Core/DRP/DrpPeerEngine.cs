@@ -113,10 +113,14 @@ namespace Dcomms.DRP
             _powThread.Priority = ThreadPriority.Lowest;
             _powThread.Name = "PoW";
             _powThread.Start();
+
+            WriteToLog_drpGeneral_higherLevelDetail("created DRP engine");
         }
         partial void Initialize(DrpPeerEngineConfiguration configuration);
         public void Dispose()
         {
+            WriteToLog_drpGeneral_higherLevelDetail("destroying DRP engine");
+
             if (_disposing) return;
             _disposing = true;
             EngineThreadQueue.Dispose();

@@ -14,9 +14,9 @@ namespace Dcomms.Sandbox
 {
     public class DrpTester3 : BaseNotify, IDisposable
     {
-        const int EpAbsoluteMaxDesiredNumberOfNeighbors = 40;
-        const int EpSoftMaxDesiredNumberOfNeighbors = 30;
-        const int EpMinDesiredNumberOfNeighbors = 13;        
+        int EpAbsoluteMaxDesiredNumberOfNeighbors => (NumberOfDimensions == 2) ? 20 : 40;
+        int EpSoftMaxDesiredNumberOfNeighbors => (NumberOfDimensions == 2) ? 10 : 30;
+        int EpMinDesiredNumberOfNeighbors => (NumberOfDimensions == 2) ? 6 : 13;        
 
         const string DrpTesterVisionChannelModuleName = "drpTester3";
         public ushort LocalInterconnectedEpEnginesBasePort { get; set; } = 12000;
@@ -281,8 +281,8 @@ namespace Dcomms.Sandbox
             DateTime MinNumberOfHopsRemainingTime;
 
             public string Report => $"success rate = {(double)SuccessfulCount * 100 / _sentCount}% ({SuccessfulCount}/{_sentCount}) " +
-                    $"delay: avg={AvgDelayMs}ms  max={MaxDelayMs} at {MaxDelayTime.ToString("HH:mm:ss.fff")}" +
-                    $"nHopsRemaining: avg={AvgNumberOfHopsRemaining}ms  min={MinNumberOfHopsRemaining} at {MinNumberOfHopsRemainingTime.ToString("HH:mm:ss.fff")}";
+                    $"delay: avg={AvgDelayMs}ms, max={MaxDelayMs} at {MaxDelayTime.ToString("HH:mm:ss.fff")}\r\n" +
+                    $"nHopsRemaining: avg={AvgNumberOfHopsRemaining}, min={MinNumberOfHopsRemaining} at {MinNumberOfHopsRemainingTime.ToString("HH:mm:ss.fff")}";
 
             public void OnSuccessfullyDelivered(double delayMs, DateTime now, InviteRequestPacket req)
             {
@@ -307,7 +307,8 @@ namespace Dcomms.Sandbox
         void BeginTestMessage(MessagesTest test)
         {
             int c = test.OnSent();
-            var peer1 = _userApps[c % _userApps.Count];
+            var userAppIndex = c % _userApps.Count;
+            var peer1 = _userApps[userAppIndex];
 
 _retry:
             var peer2 = _userApps[_insecureRandom.Next(_userApps.Count)];
@@ -315,6 +316,18 @@ _retry:
 
             _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
                     $"testing message #{c} from {peer1} to {peer2}");
+            if (userAppIndex == 0)
+            {
+                peer1.DrpPeerEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(1), () => // pause of 1 sec to avoid non-unique INVITE packet fields
+                {
+                    BeginTestMessage2(test, peer1, peer2);
+                }, "testmessage4946");
+            }
+            else
+                BeginTestMessage2(test, peer1, peer2);
+        }
+        void BeginTestMessage2(MessagesTest test, DrpTesterPeerApp peer1, DrpTesterPeerApp peer2)
+        {
 
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
 
@@ -324,6 +337,7 @@ _retry:
             {
                 BeginVerifyReceivedMessage(test, peer1, peer2, text, sw, Stopwatch.StartNew());
             });
+
         }
         void BeginVerifyReceivedMessage(MessagesTest test, DrpTesterPeerApp peer1, DrpTesterPeerApp peer2, string sentText, Stopwatch sw, Stopwatch afterCompletionSw)
         {
