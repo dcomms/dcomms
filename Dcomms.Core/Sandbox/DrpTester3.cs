@@ -253,6 +253,8 @@ namespace Dcomms.Sandbox
         #region messages test
         void BeginTestMessages()
         {
+            if (_userApps.Count < 2) return;
+
             var contactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
             foreach (var u in _userApps)
                 contactBookUsersByRegId.Add(u.LocalDrpPeer.Configuration.LocalPeerRegistrationId, u.UserId);
