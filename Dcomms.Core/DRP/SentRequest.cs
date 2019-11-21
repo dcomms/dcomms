@@ -71,13 +71,13 @@ namespace Dcomms.DRP
 
             if (_waitForAck1Completed)
             {
+                if (Ack1UdpData == null) ThrowTimeoutException(completionActionVisibleId);
                 _logger.WriteToLog_detail($"received ACK1");
-                if (Ack1UdpData == null) throw new DrpTimeoutException();
                 return Ack1UdpData;
             }
             else if (_waitForFailureCompleted)
             {
-                if (_failureUdpData == null) throw new DrpTimeoutException();
+                if (_failureUdpData == null) ThrowTimeoutException(completionActionVisibleId);
                 _logger.WriteToLog_detail($"received FAILURE");
                 var failure = FailurePacket.DecodeAndOptionallyVerify(_failureUdpData, _sentReqP2pSeq16);
                 
@@ -104,6 +104,11 @@ namespace Dcomms.DRP
             }
             else throw new InvalidOperationException();         
         }
+        void ThrowTimeoutException(string completionActionVisibleId)
+        {
+            throw new DrpTimeoutException($"{(PacketTypes)_requestUdpData[0]} request timeout ({_engine.Configuration.Ack1TimoutS}s)" +
+                $" from destination peer '{_destinationNeighborNullable}' completionAction='{completionActionVisibleId}'");
+        }
 
         bool _waitForAck1Completed;
         PendingLowLevelUdpRequest _pendingAck1Request;
@@ -118,7 +123,6 @@ namespace Dcomms.DRP
             Ack1UdpData = await _engine.WaitForUdpResponseAsync(_pendingAck1Request);
             _pendingAck1Request = null;
             _waitForAck1Completed = true;
-
         }
 
         PendingLowLevelUdpRequest _pendingFailureRequest;

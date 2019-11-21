@@ -14,6 +14,7 @@ namespace Dcomms.DRP
         /// </summary>
         internal async Task AcceptInviteRequestAsync(RoutedRequest routedRequest)
         {
+            if (routedRequest.ReceivedFromNeighborNullable == null) throw new ArgumentException();
             var req = routedRequest.InviteReq;
             if (!req.ResponderRegistrationId.Equals(this.Configuration.LocalPeerRegistrationId))
                 throw new ArgumentException();
@@ -114,7 +115,7 @@ namespace Dcomms.DRP
 
                     // wait for ACK2
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"waiting for ACK2");
-                    var ack2UdpData = await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 23467789", null, routedRequest.ReceivedFromNeighborNullable.RemoteEndpoint,
+                    var ack2UdpData = await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 23467789", routedRequest.ReceivedFromNeighborNullable.ToString(), null, routedRequest.ReceivedFromNeighborNullable.RemoteEndpoint,
                         InviteAck2Packet.GetScanner(logger, req, routedRequest.ReceivedFromNeighborNullable));
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received ACK2");
                     var ack2 = InviteAck2Packet.Decode(ack2UdpData);

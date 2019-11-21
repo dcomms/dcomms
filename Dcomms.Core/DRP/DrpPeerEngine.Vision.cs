@@ -141,6 +141,11 @@ namespace Dcomms.DRP
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general) <= AttentionLevel.higherLevelDetail)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general, AttentionLevel.higherLevelDetail, message);
         }
+        internal void WriteToLog_drpGeneral_needsAttention(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general) <= AttentionLevel.needsAttention)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general, AttentionLevel.needsAttention, message);
+        }
 
         internal void WriteToLog_dc_detail(string message)
         {

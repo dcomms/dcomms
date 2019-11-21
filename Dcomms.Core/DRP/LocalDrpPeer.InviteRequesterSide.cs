@@ -174,7 +174,7 @@ namespace Dcomms.DRP
                                 InviteConfirmationPacket.GetScanner(logger, req, destinationPeer),
                                 Engine.DateTimeNowUtc, Engine.Configuration.CfmTimoutS
                                 ));
-                if (cfmUdpData == null) throw new DrpTimeoutException();
+                if (cfmUdpData == null) throw new DrpTimeoutException($"did not get CFM at invite requester from destination peer {destinationPeer} (timeout={Engine.Configuration.CfmTimoutS}s)");
 
                 // NeighborHMAC and NeighborToken32 are already verified by scanner
                 var cfm = InviteConfirmationPacket.Decode(cfmUdpData);

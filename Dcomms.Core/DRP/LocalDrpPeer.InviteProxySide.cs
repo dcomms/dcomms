@@ -127,7 +127,9 @@ namespace Dcomms.DRP
                 // not waiting for NPACK, wait for ACK1
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"waiting for ACK2");
 
-                var ack2UdpData = await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 2346892", null, routedRequest.ReceivedFromEndpoint, 
+                var ack2UdpData = await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("ack2 2346892",
+                    routedRequest.ReceivedFromNeighborNullable?.ToString() ?? routedRequest.ReceivedFromEndpoint.ToString(), 
+                    null, routedRequest.ReceivedFromEndpoint, 
                     InviteAck2Packet.GetScanner(logger, req, routedRequest.ReceivedFromNeighborNullable));
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received ACK2");
                 var ack2 = InviteAck2Packet.Decode(ack2UdpData);
@@ -152,7 +154,7 @@ namespace Dcomms.DRP
                                 InviteConfirmationPacket.GetScanner(logger, req, destinationPeer),
                                     Engine.DateTimeNowUtc, Engine.Configuration.CfmTimoutS
                                 ));
-                if (cfmUdpData == null) throw new DrpTimeoutException("Did not receive CFM on timeout");
+                if (cfmUdpData == null) throw new DrpTimeoutException($"inv. proxy CFM response from destination peer {destinationPeer} (timeout={Engine.Configuration.CfmTimoutS}s)");
                 var cfm = InviteConfirmationPacket.Decode(cfmUdpData);
                 // todo verify signature, update RDRs and QoS
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"verified CFM from responder");
@@ -167,6 +169,10 @@ namespace Dcomms.DRP
                 await Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("cfm 23468", cfmUdpDataTx, routedRequest.ReceivedFromEndpoint,
                     cfm.ReqP2pSeq16, routedRequest.ReceivedFromNeighborNullable, cfm.GetSignedFieldsForNeighborHMAC);
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received NPACK to CFM from source peer");
+            }
+            catch (DrpTimeoutException exc)
+            {
+                logger.WriteToLog_lightPain($"could not proxy INVITE: {exc.Message}");
             }
             catch (Exception exc)
             {

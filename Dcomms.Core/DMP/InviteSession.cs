@@ -159,6 +159,7 @@ namespace Dcomms.DMP
         #region ping pong packets
         internal void OnReceivedDmpPing(IPEndPoint remoteEndpoint, byte[] udpData) // engine thread
         {
+            WriteToLog_detail($">> OnReceivedDmpPing(remoteEndpoint={remoteEndpoint})");
             if (!remoteEndpoint.Equals(RemoteSessionDescription.DirectChannelEndPoint))
                 throw new PossibleAttackException();
             if (SharedPingPongHmacKey == null)
@@ -211,7 +212,7 @@ namespace Dcomms.DMP
             var ping = CreatePing(true);
             var pingData = ping.Encode();
 
-            var pongUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("pong 3186", pingData, RemoteSessionDescription.DirectChannelEndPoint,
+            var pongUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("dmp pong 3186", "remote user",  pingData, RemoteSessionDescription.DirectChannelEndPoint,
                 DmpPongPacket.GetScanner(LocalDirectChannelToken32, ping.PingRequestId32, this)); // scanner also verifies HMAC
             var pong = DmpPongPacket.Decode(pongUdpData);
 
@@ -236,7 +237,7 @@ namespace Dcomms.DMP
 
             // send msgstart, wait for msgack
             var messageStartUdpData = messageStart.Encode();
-            var messageAckUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 4582", messageStartUdpData, RemoteSessionDescription.DirectChannelEndPoint,
+            var messageAckUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 4582", "remote user", messageStartUdpData, RemoteSessionDescription.DirectChannelEndPoint,
                 MessageAckPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.encryptionDecryptionCompleted) // scanner also verifies HMAC
                 );
             var messageAck = MessageAckPacket.Decode(messageAckUdpData);
@@ -259,7 +260,7 @@ namespace Dcomms.DMP
             var messagePartUdpData = messagePart.Encode();
 
             // wait for msgack status=finalSignatureVerified
-            await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgpart 3681", messagePartUdpData,
+            await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgpart 3681", "remote user", messagePartUdpData,
                 RemoteSessionDescription.DirectChannelEndPoint,
                 MessageAckPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.finalSignatureVerified) // scanner also verifies HMAC
                 );
@@ -270,7 +271,7 @@ namespace Dcomms.DMP
             var messageSession = new MessageSession();
 
             // wait for msgstart
-            var messageStartUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 480", null, RemoteSessionDescription.DirectChannelEndPoint,
+            var messageStartUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 480", "remote user", null, RemoteSessionDescription.DirectChannelEndPoint,
                 MessageStartPacket.GetScanner(LocalDirectChannelToken32, this) // scanner verifies MessageHMAC
                 );
             var messageStart = MessageStartPacket.Decode(messageStartUdpData);
@@ -293,7 +294,7 @@ namespace Dcomms.DMP
             _localDrpPeer.Engine.RespondToRequestAndRetransmissions(messageStart.DecodedUdpData, messageAckUdpData, RemoteSessionDescription.DirectChannelEndPoint);
 
             // wait for msgpart with status=encryptionDecryptionCompleted
-            var messagePartUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgpart 42486", null, 
+            var messagePartUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgpart 42486", "remote user", null, 
                 RemoteSessionDescription.DirectChannelEndPoint,
                 MessagePartPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.encryptionDecryptionCompleted)
                 // scanner verifies MessageHMAC

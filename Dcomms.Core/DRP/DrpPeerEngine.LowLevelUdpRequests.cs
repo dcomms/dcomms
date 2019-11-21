@@ -34,10 +34,11 @@ namespace Dcomms.DRP
                      ));
             if (nextHopResponsePacketData == null)
             {
-                string msg = $"Did not get NPACK response to DRP request ";
-                if (requestPacketDataNullable != null) msg += (PacketTypes)requestPacketDataNullable[0];
-                msg += " - timeout expired";
-                throw new DrpTimeoutException(msg);
+                string desc = "no NPACK response to DRP request '";
+                if (requestPacketDataNullable != null) desc += (PacketTypes)requestPacketDataNullable[0];
+                desc += $"' - timeout expired ({Configuration.UdpLowLevelRequests_ExpirationTimeoutS}s) completionAction={completionActionVisibleId}";
+                if (waitNhaFromNeighborNullable != null) desc += $", neighbor={waitNhaFromNeighborNullable}";
+                throw new DrpTimeoutException(desc);
             }
 
             var nextHopResponsePacket = new NeighborPeerAckPacket(nextHopResponsePacketData);
@@ -49,16 +50,23 @@ namespace Dcomms.DRP
             return nextHopResponsePacket;
         }
         
-        internal async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(string completionActionVisibleId, byte[] requestPacketDataNullable, IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, double? expirationTimeoutS = null)
+        internal async Task<byte[]> OptionallySendUdpRequestAsync_Retransmit_WaitForResponse(string completionActionVisibleId, string responderVisibleDescription, byte[] requestPacketDataNullable, 
+            IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, double? expirationTimeoutS = null)
         {
+            var timeoutS = expirationTimeoutS ?? Configuration.UdpLowLevelRequests_ExpirationTimeoutS;
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(completionActionVisibleId, responderEndpoint,
-                         responseScanner, DateTimeNowUtc, expirationTimeoutS ?? Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
+                         responseScanner, DateTimeNowUtc, timeoutS,
                          requestPacketDataNullable,
                          Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
                      ));
             if (nextHopResponsePacketData == null)
-                throw new DrpTimeoutException();
+            {
+                string desc = $"no response to DRP request from '{responderVisibleDescription}' '";
+                if (requestPacketDataNullable != null) desc += (PacketTypes)requestPacketDataNullable[0];
+                desc += $"' - timeout expired ({timeoutS}s) completionAction={completionActionVisibleId}";
+                throw new DrpTimeoutException(desc);
+            }
             return nextHopResponsePacketData;
         }
 

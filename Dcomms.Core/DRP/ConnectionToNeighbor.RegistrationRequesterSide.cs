@@ -133,7 +133,7 @@ namespace Dcomms.DRP
 
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending PING, waiting for PONG");
                     var pongPacketData = await _engine.SendUdpRequestAsync_Retransmit(pendingPingRequest);
-                    if (pongPacketData == null) throw new DrpTimeoutException();
+                    if (pongPacketData == null) throw new DrpTimeoutException($"reg. requester initial PING to {newConnectionToNeighbor} (timeout={_engine.Configuration.InitialPingRequests_ExpirationTimeoutS}s)");
                     if (newConnectionToNeighbor.IsDisposed)
                     {
                         logger.WriteToLog_needsAttention($"connection {newConnectionToNeighbor} is disposed during reg. request 548798");

@@ -57,6 +57,7 @@ namespace Dcomms.DRP
                     var localPublicIp = await SendPublicIpAddressApiRequestAsync("http://ip.seeip.org/");
                     if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://api.ipify.org/");
                     if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://bot.whatismyipaddress.com");
+                    if (localPublicIp == null) localPublicIp = _latestPublicIpAddressResponse.GetAddressBytes();
                     if (localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
 
                     localDrpPeer.PublicIpApiProviderResponse = new IPAddress(localPublicIp);
@@ -155,7 +156,7 @@ namespace Dcomms.DRP
                                     Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
                                 ));
                     //  wait for response, retransmit
-                    if (rpPow1ResponsePacketData == null) throw new DrpTimeoutException();
+                    if (rpPow1ResponsePacketData == null) throw new DrpTimeoutException($"pow1 request to EP '{epEndpoint}' (timeout={Configuration.UdpLowLevelRequests_ExpirationTimeoutS}s)"); ;
                     pow1ResponsePacket = new RegisterPow1ResponsePacket(rpPow1ResponsePacketData);
                     WriteToLog_reg_requesterSide_detail($"got PoW1 response with status={pow1ResponsePacket.StatusCode}", null, null);
                     if (pow1ResponsePacket.StatusCode != RegisterPow1ResponseStatusCode.succeeded_Pow2Challenge)
@@ -278,8 +279,8 @@ namespace Dcomms.DRP
 
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending PING neighborToken32={pingRequest.NeighborToken32}, waiting for PONG");
                     var pongPacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest);
-                    if (pongPacketData == null) throw new DrpTimeoutException();
-                    if (newConnectionToNeighbor.IsDisposed) throw new DrpTimeoutException(); // ping timeout already destroyed the connection, so PONG response here is too late
+                    if (pongPacketData == null) throw new DrpTimeoutException($"initial reg. requester PING to {newConnectionToNeighbor} (timeout={Configuration.InitialPingRequests_ExpirationTimeoutS}s)");
+                    if (newConnectionToNeighbor.IsDisposed) throw new ObjectDisposedException($"initial reg. requester PING to {newConnectionToNeighbor} (special case: connection is disposed)", (Exception)null); // ping timeout already destroyed the connection, so PONG response here is too late
                     pong = PongPacket.DecodeAndVerify(_cryptoLibrary,
                         pongPacketData, pingRequest, newConnectionToNeighbor,
                         true);
@@ -345,7 +346,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                HandleGeneralException($"public IP address API request to {url} failed. result: '{result}'", exc);
+                WriteToLog_drpGeneral_needsAttention($"public IP address API request to {url} failed. result: '{result}': {exc}");
                 return null;
             }
         }
