@@ -188,6 +188,10 @@ namespace Dcomms.DRP
                     await _engine.OptionallySendUdpRequestAsync_Retransmit_WaitForNeighborPeerAck("cfm 14478", cfm.Encode_OptionallySignNeighborHMAC(this), this.RemoteEndpoint, cfm.ReqP2pSeq16);
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received NPACK to CFM");
                 }
+                catch (DrpTimeoutException exc)
+                {  // we ingnore exceptions here, just wite warning to log.  the connection is alive already, as direct ping channel to neighbor is set up 
+                    logger.WriteToLog_needsAttention($"... registration confirmation request failed: {exc}");
+                }
                 catch (Exception exc)
                 {  // we ingnore exceptions here, just wite warning to log.  the connection is alive already, as direct ping channel to neighbor is set up 
                     logger.WriteToLog_mediumPain($"... registration confirmation request failed: {exc}");

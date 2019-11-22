@@ -165,7 +165,17 @@ namespace Dcomms.DRP
         }
         internal void HandleGeneralException(string prefix, Exception exc)
         {
-            if (exc is BadSignatureException) { WriteToLog_attacks_strongPain($"exception: {exc}"); return; }
+            if (exc is BadSignatureException)
+            {
+                WriteToLog_attacks_strongPain($"exception: {exc}"); 
+                return; 
+            }
+            if (exc is DrpTimeoutException)
+            {
+                if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, null) <= AttentionLevel.needsAttention)
+                    Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, null, AttentionLevel.needsAttention, $"{prefix}: {exc}");
+                return;
+            }
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, null) <= AttentionLevel.strongPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, null, AttentionLevel.strongPain, $"{prefix}: {exc}");
         }

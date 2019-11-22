@@ -63,17 +63,23 @@ namespace Dcomms.Sandbox
             get
             {
                 var r = new List<LocalDrpPeer>();
-                foreach (var ep in _localEpApps)
-                    foreach (var p in ep.DrpPeerEngine.VisibleLocalPeers)                   
-                        r.Add(p);
-                foreach (var u in _userApps)
-                    foreach (var p in u.DrpPeerEngine.VisibleLocalPeers)
-                        r.Add(p);
-                foreach (var t in _tempApps)
-                    foreach (var p in t.DrpPeerEngine.VisibleLocalPeers)
-                        r.Add(p);
-
-
+                try
+                {
+                    foreach (var ep in _localEpApps)
+                        foreach (var p in ep.DrpPeerEngine.VisibleLocalPeers)
+                            r.Add(p);
+                    foreach (var u in _userApps)
+                        foreach (var p in u.DrpPeerEngine.VisibleLocalPeers)
+                            r.Add(p);
+                    foreach (var t in _tempApps)
+                        foreach (var p in t.DrpPeerEngine.VisibleLocalPeers)
+                            r.Add(p);
+                }
+                catch (Exception exc)
+                {
+                    _visionChannel.Emit("", DrpTesterVisionChannelModuleName,
+                            AttentionLevel.mediumPain, $"error when getting visible peers: {exc}");
+                }
 
                 var existingRegIDs = new HashSet<RegistrationId>(r.Select(x => x.Configuration.LocalPeerRegistrationId));
                 foreach (var p in r)
@@ -299,7 +305,8 @@ namespace Dcomms.Sandbox
 
             public string Report => $"success rate = {(double)SuccessfulCount * 100 / _sentCount}% ({SuccessfulCount}/{_sentCount}) " +
                     $"delay: avg={AvgDelayMs}ms, max={MaxDelayMs} at {MaxDelayTime.ToString("dd-HH:mm:ss.fff")}\r\n" +
-                    $"nHopsRemaining: avg={AvgNumberOfHopsRemaining}, min={MinNumberOfHopsRemaining} at {MinNumberOfHopsRemainingTime.ToString("dd-HH:mm:ss.fff")}; last failure: {_lastFailureTime?.ToString("dd-HH:mm:ss.fff")}";
+                    $"nHopsRemaining: avg={AvgNumberOfHopsRemaining}, min={MinNumberOfHopsRemaining} at {MinNumberOfHopsRemainingTime.ToString("dd-HH:mm:ss.fff")}\r\n" +
+                $"failures: {_failedCount}; last: {_lastFailureTime?.ToString("dd-HH:mm:ss.fff")}";
 
             public void OnSuccessfullyDelivered(double delayMs, DateTime now, InviteRequestPacket req)
             {
@@ -399,13 +406,14 @@ _retry:
                     return;
                 }
                 var failedCount = test.OnFailed(_visionChannel.TimeNow);
-                if (failedCount > 10)
+                if (failedCount >= 1)
                 {
                     _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                               AttentionLevel.strongPain,
                               $"disposing the test: {failedCount} messages failed");
                                
-                        BeginDisposeOnFailure();
+                    BeginDisposeOnFailure();
+                    return;
                 }
             }
 

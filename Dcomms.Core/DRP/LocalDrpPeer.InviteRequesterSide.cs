@@ -64,6 +64,7 @@ namespace Dcomms.DRP
             var session = new InviteSession(this);
             try
             {
+_retry:
                 var req = new InviteRequestPacket
                 {
                     NumberOfHopsRemaining = InviteRequestPacket.MaxNumberOfHopsRemaining,
@@ -81,7 +82,6 @@ namespace Dcomms.DRP
 
                 this.TestDirection(logger, req.ResponderRegistrationId);
                 var routedRequest = new RoutedRequest(logger, null, null, null, req, null);
-            _retry:
 
                 // find best connected peer to send the request
                 var destinationPeer = Engine.RouteInviteRequest(this, routedRequest);

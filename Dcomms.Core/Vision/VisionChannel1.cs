@@ -91,7 +91,7 @@ namespace Dcomms.Vision
 
         public LinkedList<LogMessage> _logMessagesNewestFirst = new LinkedList<LogMessage>(); // locked
         public bool EnableNewLogMessages { get; set; } = true;
-        public int EnableNewLogMessagesUntilProcessRamSizeMB { get; set; } = 16000;
+        public int EnableNewLogMessagesUntilProcessRamSizeMB { get; set; } = 10000;
         
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -128,10 +128,18 @@ namespace Dcomms.Vision
                 SourceId = sourceId,
                 ModuleName = moduleName,
                 Message = message,
-                PeersList = peersList_RoutingPath ?? ClonedVisiblePeer.Clone(VisiblePeersDelegate(), selectedPeer),
+                
                 PeersListDisplayMode = peersList_RoutingPath != null ? VisiblePeersDisplayMode.routingPath : VisiblePeersDisplayMode.allPeers,
 
             };
+            try
+            {
+                msg.PeersList = peersList_RoutingPath ?? ClonedVisiblePeer.Clone(VisiblePeersDelegate(), selectedPeer);
+            }
+            catch // intentionally ignore
+            {
+            }
+
             lock (_logMessagesNewestFirst)
             {
                 _logMessagesNewestFirst.AddFirst(msg);
@@ -158,7 +166,14 @@ namespace Dcomms.Vision
 
             if (AttentionToRoutedPath && req != null)
             {
-                msg.RoutedPathPeer = ClonedVisiblePeer.Clone(localPeer);
+                try
+                {
+                    msg.RoutedPathPeer = ClonedVisiblePeer.Clone(localPeer);
+                }
+                catch // intentionally ignore
+                {
+
+                }
                 msg.RoutedPathReq = req;
             }
 
@@ -186,6 +201,7 @@ namespace Dcomms.Vision
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));
         });
 
+        int _msSinceLastCleaningMemory;
         public void UpdateGui_100ms()
         {
             if (PropertyChanged != null)
@@ -195,6 +211,7 @@ namespace Dcomms.Vision
             }
 
             
+            _msSinceLastCleaningMemory += 100;
             try
             {
                 /*
@@ -213,12 +230,16 @@ namespace Dcomms.Vision
                
                 if (consumedMemoryMb > EnableNewLogMessagesUntilProcessRamSizeMB)
                 {
-                    // clean 5% of oldest log messages
-                    lock (_logMessagesNewestFirst)
+                    if (_msSinceLastCleaningMemory > 10000)
                     {
-                        int numberToDelete = _logMessagesNewestFirst.Count / 20;
-                        for (int i = 0; i < numberToDelete; i++)
-                            _logMessagesNewestFirst.RemoveLast();
+                        _msSinceLastCleaningMemory = 0;
+                        // clean 5% of oldest log messages
+                        lock (_logMessagesNewestFirst)
+                        {
+                            int numberToDelete = _logMessagesNewestFirst.Count / 50;
+                            for (int i = 0; i < numberToDelete; i++)
+                                _logMessagesNewestFirst.RemoveLast();
+                        }
                     }
                 }
                
