@@ -22,7 +22,7 @@ namespace Dcomms.DRP.Packets
         public const byte Flags_ConnectionTeardown = 0b00000010;
         public const double ConnectionTeardownStateDurationS = 15;
         
-        public string VisionName { get; set; }
+        public string VisionName { get; set; } // goes into VisionChannel, for developer, to debug the system, see what happens
 
         /// <summary>
         /// flags, 1 is set if there is a connected neighbor in specific sector of the 8D regID space 

@@ -198,7 +198,11 @@ namespace Dcomms.DRP
                     throw exc;
                 }
             }
-			catch (Exception exc)
+            catch (DrpTimeoutException exc)
+            {
+                logger.WriteToLog_needsAttention($"could not accept REGISTER request: {exc}");
+            }
+            catch (Exception exc)
             {
                 logger.WriteToLog_mediumPain($"could not accept REGISTER request: {exc}");
             }

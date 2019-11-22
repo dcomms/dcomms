@@ -232,19 +232,19 @@ namespace Dcomms.DRP
                                 _neighborhoodExtensionFailuresCountInArow = 0;
                             }
                         }
-                    }
-                    catch (RequestRejectedException exc)
-                    {
-                        _neighborhoodExtensionFailuresCountInArow++;
-                        var msg = $"failed to extend neighbors for {this}: {exc.Message}\r\n{_neighborhoodExtensionFailuresCountInArow} failures in a row";
-                        if (_neighborhoodExtensionFailuresCountInArow < 3) Engine.WriteToLog_reg_requesterSide_higherLevelDetail(msg, null, null);
-                        else if (_neighborhoodExtensionFailuresCountInArow < 5) Engine.WriteToLog_reg_requesterSide_lightPain(msg, null, null);
-                        else Engine.WriteToLog_reg_requesterSide_mediumPain(msg, null, null);
-                    }
+                    }                  
                     catch (Exception exc)
                     {
                         _neighborhoodExtensionFailuresCountInArow++;
-                        Engine.WriteToLog_reg_requesterSide_mediumPain($"failed to extend neighbors for {this}: {exc}\r\n{_neighborhoodExtensionFailuresCountInArow} failures in a row", null, null);
+                        if (exc is RequestRejectedException || exc is DrpTimeoutException)
+                        {
+                            var msg = $"failed to extend neighbors for {this}: {exc.Message}\r\n{_neighborhoodExtensionFailuresCountInArow} failures in a row";
+                            if (_neighborhoodExtensionFailuresCountInArow < 3) Engine.WriteToLog_reg_requesterSide_higherLevelDetail(msg, null, null);
+                            else if (_neighborhoodExtensionFailuresCountInArow < 5) Engine.WriteToLog_reg_requesterSide_lightPain(msg, null, null);
+                            else Engine.WriteToLog_reg_requesterSide_mediumPain(msg, null, null);
+                        }
+                        else
+                            Engine.WriteToLog_reg_requesterSide_mediumPain($"failed to extend neighbors for {this}: {exc}\r\n{_neighborhoodExtensionFailuresCountInArow} failures in a row", null, null);
                     }
                 }
             }           

@@ -316,7 +316,7 @@ namespace Dcomms.Vision
                 }
             }
             public DateTime Time { get; set; }
-            public string TimeStr => Time.ToString("HH:mm:ss.fff");
+            public string TimeStr => Time.ToString("dd-HH:mm:ss.fff");
             public int ManagedThreadId { get; set; }
             public string ModuleName { get; set; }
             public string SourceId { get; set; }
@@ -375,7 +375,7 @@ namespace Dcomms.Vision
 _retry:
                     try
                     {
-                        sourcePeerNeighborPeers = sourcePeer.NeighborPeers.ToList();
+                        sourcePeerNeighborPeers = sourcePeer.NeighborPeers?.ToList();
                     }
                     catch (InvalidOperationException)
                     { // collection was modifid. retry 10 times
@@ -383,20 +383,21 @@ _retry:
                         else throw;
                     }
 
-                    foreach (var neighbor in sourcePeerNeighborPeers)
-                    {
-                        if (sourcePeersIndexes.TryGetValue(neighbor, out var neighborIndex))
-                        {                        
-                            clonedPeer.NeighborPeers.Add(r[neighborIndex]);
-                        }
-                        else
+                    if (sourcePeerNeighborPeers != null)
+                        foreach (var neighbor in sourcePeerNeighborPeers)
                         {
-                            clonedPeer.NeighborPeers.Add(new ClonedVisiblePeer
+                            if (sourcePeersIndexes.TryGetValue(neighbor, out var neighborIndex))
+                            {                        
+                                clonedPeer.NeighborPeers.Add(r[neighborIndex]);
+                            }
+                            else
                             {
-                                VectorValues = neighbor.VectorValues.ToArray()
-                            });
+                                clonedPeer.NeighborPeers.Add(new ClonedVisiblePeer
+                                {
+                                    VectorValues = neighbor.VectorValues.ToArray()
+                                });
+                            }
                         }
-                    }
                 }
 
                 return r.Cast<IVisiblePeer>().ToList();

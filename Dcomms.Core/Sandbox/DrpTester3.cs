@@ -62,15 +62,30 @@ namespace Dcomms.Sandbox
         {
             get
             {
+                var r = new List<LocalDrpPeer>();
                 foreach (var ep in _localEpApps)
-                    foreach (var p in ep.DrpPeerEngine.VisibleLocalPeers)
-                        yield return p;
+                    foreach (var p in ep.DrpPeerEngine.VisibleLocalPeers)                   
+                        r.Add(p);
                 foreach (var u in _userApps)
                     foreach (var p in u.DrpPeerEngine.VisibleLocalPeers)
-                        yield return p;
+                        r.Add(p);
                 foreach (var t in _tempApps)
                     foreach (var p in t.DrpPeerEngine.VisibleLocalPeers)
-                        yield return p;
+                        r.Add(p);
+
+
+
+                var existingRegIDs = new HashSet<RegistrationId>(r.Select(x => x.Configuration.LocalPeerRegistrationId));
+                foreach (var p in r)
+                {
+                    yield return p;
+                    foreach (var neighbor in p.ConnectedNeighborsCanBeUsedForNewRequests)
+                        if (!existingRegIDs.Contains(neighbor.RemoteRegistrationId))
+                        {
+                            existingRegIDs.Add(neighbor.RemoteRegistrationId);
+                            yield return neighbor;
+                        }
+                }
             }
         }
 
@@ -283,8 +298,8 @@ namespace Dcomms.Sandbox
             DateTime MinNumberOfHopsRemainingTime;
 
             public string Report => $"success rate = {(double)SuccessfulCount * 100 / _sentCount}% ({SuccessfulCount}/{_sentCount}) " +
-                    $"delay: avg={AvgDelayMs}ms, max={MaxDelayMs} at {MaxDelayTime.ToString("HH:mm:ss.fff")}\r\n" +
-                    $"nHopsRemaining: avg={AvgNumberOfHopsRemaining}, min={MinNumberOfHopsRemaining} at {MinNumberOfHopsRemainingTime.ToString("HH:mm:ss.fff")}";
+                    $"delay: avg={AvgDelayMs}ms, max={MaxDelayMs} at {MaxDelayTime.ToString("dd-HH:mm:ss.fff")}\r\n" +
+                    $"nHopsRemaining: avg={AvgNumberOfHopsRemaining}, min={MinNumberOfHopsRemaining} at {MinNumberOfHopsRemainingTime.ToString("dd-HH:mm:ss.fff")}; last failure: {_lastFailureTime?.ToString("dd-HH:mm:ss.fff")}";
 
             public void OnSuccessfullyDelivered(double delayMs, DateTime now, InviteRequestPacket req)
             {
@@ -303,6 +318,15 @@ namespace Dcomms.Sandbox
                     MinNumberOfHopsRemaining = req.NumberOfHopsRemaining;
                     MinNumberOfHopsRemainingTime = now;
                 }
+            }
+
+
+            DateTime? _lastFailureTime;
+            public int _failedCount;
+            public int OnFailed(DateTime now)
+            {
+                _lastFailureTime = now;
+                return ++_failedCount;
             }
         }
 
@@ -329,17 +353,20 @@ _retry:
                 BeginTestMessage2(test, peer1, peer2);
         }
         void BeginTestMessage2(MessagesTest test, DrpTesterPeerApp peer1, DrpTesterPeerApp peer2)
-        {
-
-            var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
-
+        {           
             var text = $"test{_insecureRandom.Next()}-{_insecureRandom.Next()}_from_{peer1}_to_{peer2}";
             var sw = Stopwatch.StartNew();
+
+            BeginTestMessage3(test, peer1, peer2, sw, text);
+        }
+
+        void BeginTestMessage3(MessagesTest test, DrpTesterPeerApp peer1, DrpTesterPeerApp peer2, Stopwatch sw, string text)
+        {
+            var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
             peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, (exc) =>
             {
                 BeginVerifyReceivedMessage(test, peer1, peer2, text, sw, Stopwatch.StartNew());
             });
-
         }
         void BeginVerifyReceivedMessage(MessagesTest test, DrpTesterPeerApp peer1, DrpTesterPeerApp peer2, string sentText, Stopwatch sw, Stopwatch afterCompletionSw)
         {
@@ -361,11 +388,28 @@ _retry:
                     return;
                 }
 
+                var swMs = sw.Elapsed.TotalMilliseconds;
+                var tryAgain = swMs < 15000;
                 _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                    AttentionLevel.mediumPain, $"test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{sentText}. {test.Report}");
+                   tryAgain ? AttentionLevel.mediumPain : AttentionLevel.strongPain,
+                   $"sw:{swMs}ms, test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{sentText}. {test.Report}. tryAgain={tryAgain}");
+                if (tryAgain)
+                {
+                    BeginTestMessage3(test, peer1, peer2, sw, sentText);
+                    return;
+                }
+                var failedCount = test.OnFailed(_visionChannel.TimeNow);
+                if (failedCount > 10)
+                {
+                    _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                              AttentionLevel.strongPain,
+                              $"disposing the test: {failedCount} messages failed");
+                               
+                        BeginDisposeOnFailure();
+                }
             }
 
-            BeginTestMessage(test); 
+            BeginTestMessage(test); // continue with next test message, =between another pair of users
         }
         #endregion
 
@@ -425,6 +469,19 @@ _retry:
                 BeginTestTemporaryPeers();
             }, "TestTemporaryPeers_Wait 24694");
         }
+
+        void BeginDisposeOnFailure() // if not alrady disposing
+        {
+            if (_disposingOnFailure) return;
+            _disposingOnFailure = true;
+
+            var a = new Action(() =>
+            {
+                Dispose();
+            });
+            a.BeginInvoke((ar) => a.EndInvoke(ar), null);
+        }
+        bool _disposingOnFailure;
 
         public void Dispose()
         {

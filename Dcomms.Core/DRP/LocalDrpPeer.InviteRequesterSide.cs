@@ -73,6 +73,7 @@ namespace Dcomms.DRP
                     ReqTimestamp32S = Engine.Timestamp32S,
                 };
                 var logger = new Logger(Engine, this, req, DrpPeerEngine.VisionChannelModuleName_inv_requesterSide);
+                session.Logger = logger;
                 loggerCb?.Invoke(logger);
                 Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"generated unique ECDH key {req.RequesterEcdhePublicKey}");                

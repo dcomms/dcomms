@@ -116,6 +116,7 @@ namespace Dcomms.DMP
         readonly LocalDrpPeer _localDrpPeer;
         internal readonly DirectChannelToken32 LocalDirectChannelToken32;
         bool _disposed;
+        public Logger Logger;
         public InviteSession(LocalDrpPeer localDrpPeer)
         {
             _localDrpPeer = localDrpPeer;
@@ -209,6 +210,7 @@ namespace Dcomms.DMP
 
         internal async Task SetupAEkeysAsync()
         {
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail(">> InviteSession.SetupAEkeysAsync()");
             var ping = CreatePing(true);
             var pingData = ping.Encode();
 
@@ -216,12 +218,16 @@ namespace Dcomms.DMP
                 DmpPongPacket.GetScanner(LocalDirectChannelToken32, ping.PingRequestId32, this)); // scanner also verifies HMAC
             var pong = DmpPongPacket.Decode(pongUdpData);
 
-            this.DeriveDirectChannelSharedDhSecretsAE(pong.PublicEcdheKeyA.Ecdh25519PublicKey, pong.PublicEcdheKeyE.Ecdh25519PublicKey);                      
+            this.DeriveDirectChannelSharedDhSecretsAE(pong.PublicEcdheKeyA.Ecdh25519PublicKey, pong.PublicEcdheKeyE.Ecdh25519PublicKey);
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("<< InviteSession.SetupAEkeysAsync()");
         }
 
 
         internal async Task SendShortSingleMessageAsync(string messageText, UserCertificate senderUserCertificateWithPrivateKeys)
         {
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail(">> InviteSession.SendShortSingleMessageAsync()");
+
+
             var messageSession = new MessageSession();
             var messageStart = new MessageStartPacket()
             {
@@ -237,7 +243,9 @@ namespace Dcomms.DMP
 
             // send msgstart, wait for msgack
             var messageStartUdpData = messageStart.Encode();
-            var messageAckUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 4582", "remote user", messageStartUdpData, RemoteSessionDescription.DirectChannelEndPoint,
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("sending MSGSTART and waiting for MSGACK");
+            var messageAckUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 4582", "remote user",
+                messageStartUdpData, RemoteSessionDescription.DirectChannelEndPoint,
                 MessageAckPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.encryptionDecryptionCompleted) // scanner also verifies HMAC
                 );
             var messageAck = MessageAckPacket.Decode(messageAckUdpData);
@@ -268,6 +276,8 @@ namespace Dcomms.DMP
 
         internal async Task<string> ReceiveShortSingleMessageAsync(UserCertificate senderUserCertificate)
         {
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail(">>InviteSession.ReceiveShortSingleMessageAsync()");
+                       
             var messageSession = new MessageSession();
 
             // wait for msgstart

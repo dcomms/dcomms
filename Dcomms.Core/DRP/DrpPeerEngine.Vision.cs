@@ -249,9 +249,9 @@ namespace Dcomms.DRP
         DateTime? _lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain = null;
         void OnMeasuredEngineThreadQueueDelay(DateTime dtUtc, double delayMs)
         {
-            if (delayMs > 200)
+            if (delayMs > 300)
             {
-                if (_lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain == null || (dtUtc - _lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain.Value).TotalMilliseconds > 10000)
+                if (_lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain == null || (dtUtc - _lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain.Value).TotalMilliseconds > 5000)
                 {
                     Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_engineThread, AttentionLevel.lightPain, $"high delay in engine thread queue: {delayMs}ms. {ETSC.PeakExecutionTimeStats}");
                     _lastTimeUtcEmittedHighEngineThreadQueueDelay_LightPain = dtUtc;
@@ -259,7 +259,7 @@ namespace Dcomms.DRP
             }
             if (delayMs > 2000)
             {
-                if (_lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain == null || (dtUtc - _lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain.Value).TotalMilliseconds > 10000)
+                if (_lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain == null || (dtUtc - _lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain.Value).TotalMilliseconds > 5000)
                 {
                     Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_engineThread, AttentionLevel.mediumPain, $"high delay in engine thread queue: {delayMs}ms. {ETSC.PeakExecutionTimeStats}");
                     _lastTimeUtcEmittedHighEngineThreadQueueDelay_MediumPain = dtUtc;

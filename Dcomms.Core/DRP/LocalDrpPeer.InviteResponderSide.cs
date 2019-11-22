@@ -64,7 +64,7 @@ namespace Dcomms.DRP
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to REQ source peer");
                 routedRequest.SendNeighborPeerAck_accepted_IfNotAlreadyReplied();
 
-                var session = new InviteSession(this);
+                var session = new InviteSession(this) { Logger = logger };
                 try
                 {
                     session.DeriveSharedInviteAckDhSecret(Engine.CryptoLibrary, req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
@@ -156,7 +156,7 @@ namespace Dcomms.DRP
                     var cfmUdpData = cfm.Encode_SetP2pFields(routedRequest.ReceivedFromNeighborNullable);
 
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending CFM to source peer, waiting for NPACK");
-                    await routedRequest.ReceivedFromNeighborNullable.SendUdpRequestAsync_Retransmit_WaitForNPACK("cvm 1234589", cfmUdpData, cfm.ReqP2pSeq16, cfm.GetSignedFieldsForNeighborHMAC);
+                    await routedRequest.ReceivedFromNeighborNullable.SendUdpRequestAsync_Retransmit_WaitForNPACK("cfm 49146", cfmUdpData, cfm.ReqP2pSeq16, cfm.GetSignedFieldsForNeighborHMAC);
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"received NPACK to CFM");
 
                     session.DeriveSharedPingPongHmacKey(req, ack1, ack2, cfm);
@@ -172,6 +172,7 @@ namespace Dcomms.DRP
 
                 if (autoReceiveShortSingleMessage == true)
                 {
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"autoReceiveShortSingleMessage=true: receiving message");
                     _ = ReceiveShortSingleMessageAsync(session, req);
                 }
                 else

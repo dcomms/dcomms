@@ -277,7 +277,7 @@ namespace Dcomms.DRP
                 }
             }
         }
-        public string RemoteVisionName { get; set; }
+        public string RemoteVisionName { get; set; } // comes from PING packet; goes to develper's VisionChannel
         /// <summary>
         /// specifies sector of directin vector from local peer to neighbor peer
         /// has only one bit set to 1
@@ -382,7 +382,7 @@ namespace Dcomms.DRP
 
         float[] IVisiblePeer.VectorValues => RegistrationIdDistance.GetVectorValues(_localDrpPeer.CryptoLibrary, _remoteRegistrationId, _engine.NumberOfDimensions).Select(x => (float)x).ToArray();
         bool IVisiblePeer.Highlighted => false;
-        string IVisiblePeer.Name => null;
+        string IVisiblePeer.Name => RemoteVisionName;
         IEnumerable<IVisiblePeer> IVisiblePeer.NeighborPeers => null;
         string IVisiblePeer.GetDistanceString(IVisiblePeer toThisPeer) => null;
 
@@ -432,7 +432,7 @@ namespace Dcomms.DRP
                 // remove timed out connected peers (neighbors)
                 if (timeNowUTC > _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket + _engine.Configuration.ConnectedPeersRemovalTimeout)
                 {
-                    _engine.WriteToLog_p2p_lightPain(this, "disposing connection to neighbor: ping response timer has expired", null);
+                    _engine.WriteToLog_p2p_higherLevelDetail(this, "disposing connection to neighbor: ping response timer has expired", null);
                     this.Dispose(); // remove dead connected peers (no reply to ping)
                     needToRestartLoop = true;
                     return;

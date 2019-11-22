@@ -63,7 +63,7 @@ namespace Dcomms.DRP
         readonly Random _insecureRandom;
         internal Random InsecureRandom => _insecureRandom;
         Dictionary<RegistrationId, LocalDrpPeer> LocalPeers = new Dictionary<RegistrationId, LocalDrpPeer>(); // accessed only by engine thread     
-        internal IEnumerable<IVisiblePeer> VisibleLocalPeers => LocalPeers.Values;
+        internal IEnumerable<LocalDrpPeer> VisibleLocalPeers => LocalPeers.Values;
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
         internal DMP.InviteSession[] InviteSessionsByToken16 = new DMP.InviteSession[ushort.MaxValue + 1];
                
@@ -269,7 +269,10 @@ namespace Dcomms.DRP
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid DcToken={dcToken16}");
                         }
-                        break;                  
+                        break;
+                    default:
+                        WriteToLog_receiver_detail($"packet {packetType} from {remoteEndpoint} is unhandled");
+                        break;
                 }
             }, $"ProcRecv {packetType}");
         }

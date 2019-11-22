@@ -31,7 +31,7 @@ namespace Dcomms.DRP
 
         public TimeSpan PendingRegisterRequestsTimeout = TimeSpan.FromSeconds(20);
 
-        public double UdpLowLevelRequests_ExpirationTimeoutS = 5;
+        public double UdpLowLevelRequests_ExpirationTimeoutS = 8;
         public double UdpLowLevelRequests_InitialRetransmissionTimeoutS = 0.35;
         public double UdpLowLevelRequests_RetransmissionTimeoutIncrement = 1.5;
 
