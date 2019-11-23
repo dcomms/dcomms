@@ -42,15 +42,15 @@ namespace Dcomms
 
             return true;
         }
-        public void AssertIsUnique(byte[] dataMustBeUnique)
+        public void AssertIsUnique(byte[] dataMustBeUnique, string dataDescription)
         {
             if (!Filter(dataMustBeUnique))
-                throw new NonUniquePacketFieldsException();
+                throw new NonUniquePacketFieldsException($"data is not unique: {dataDescription}");
         }
-        public void AssertIsUnique(Action<BinaryWriter> w)
+        public void AssertIsUnique(Action<BinaryWriter> w, string dataDescription)
         {
             if (!Filter(w))
-                throw new NonUniquePacketFieldsException();
+                throw new NonUniquePacketFieldsException($"data is not unique: {dataDescription}");
         }
     }
 }

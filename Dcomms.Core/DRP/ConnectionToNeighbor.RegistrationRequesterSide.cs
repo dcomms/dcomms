@@ -39,7 +39,7 @@ namespace Dcomms.DRP
                 var logger = new Logger(Engine, LocalDrpPeer, req, DrpPeerEngine.VisionChannelModuleName_reg_requesterSide);
                 try
                 {  
-                    _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+                    _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey, $"req.RequesterEcdhePublicKey {req}");
 
                     req.RequesterSignature = RegistrationSignature.Sign(_engine.CryptoLibrary,
                         w => req.GetSharedSignedFields(w, false),
@@ -71,7 +71,7 @@ namespace Dcomms.DRP
                         logger.WriteToLog_needsAttention($"connection {this} is disposed during reg. request 5345322345");
                         return;
                     }
-                    _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
+                    _engine.RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey, $"ack1.ResponderEcdhePublicKey from {newConnectionToNeighbor}");
 
                     newConnectionToNeighbor.LocalEndpoint = this.LocalEndpoint;
                     newConnectionToNeighbor.RemoteRegistrationId = ack1.ResponderRegistrationId;

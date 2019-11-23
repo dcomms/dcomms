@@ -183,7 +183,7 @@ namespace Dcomms.DRP
                 try
                 {
                     #region register REQ  PoW2  
-                    RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+                    RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey, $"req.RequesterEcdhePublicKey {req}");
 
                     var pow2SW = Stopwatch.StartNew();
                     if (!Configuration.SandboxModeOnly_DisablePoW)
@@ -225,7 +225,7 @@ namespace Dcomms.DRP
                         // MITM attack / EP sent local (requester) endpoint IP some bad IP address
                         throw new PossibleAttackException();
                     }
-                    RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
+                    RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey, $"ack1.ResponderEcdhePublicKey from {epEndpoint}");
 
                     newConnectionToNeighbor.LocalEndpoint = ack1.RequesterEndpoint;
                     newConnectionToNeighbor.RemoteRegistrationId = ack1.ResponderRegistrationId;

@@ -130,7 +130,7 @@ namespace Dcomms.DRP
                         ResponderRegistrationId = acceptAt.Configuration.LocalPeerRegistrationId,
                         ReqP2pSeq16 = GetNewNpaSeq16_AtoEP(),
                     };
-                    RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
+                    RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey, $"ack1.ResponderEcdhePublicKey");
                     ack1.ToResponderTxParametersEncrypted = newConnectionToNeighbor.Encrypt_ack1_ToResponderTxParametersEncrypted_AtResponder_DeriveSharedDhSecret(logger, req, ack1, routedRequest.ReceivedFromNeighborNullable);
                     ack1.ResponderSignature = RegistrationSignature.Sign(_cryptoLibrary,
                         (w2) =>

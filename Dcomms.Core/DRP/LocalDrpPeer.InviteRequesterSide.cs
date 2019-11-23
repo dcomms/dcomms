@@ -59,12 +59,14 @@ namespace Dcomms.DRP
         /// <param name="responderRegId">
         /// comes from local contact book
         /// </param>
+        /// <param name="loggerCb">may be invoked more than one time (in case of retrying)</param>
         public async Task<InviteSession> SendInviteAsync(UserCertificate requesterUserCertificate, RegistrationId responderRegistrationId, UserId responderUserId, SessionType sessionType, Action<Logger> loggerCb = null)
         {
-            var session = new InviteSession(this);
+            InviteSession session = null;
             try
             {
 _retry:
+                session = new InviteSession(this);
                 var req = new InviteRequestPacket
                 {
                     NumberOfHopsRemaining = InviteRequestPacket.MaxNumberOfHopsRemaining,
@@ -76,7 +78,7 @@ _retry:
                 var logger = new Logger(Engine, this, req, DrpPeerEngine.VisionChannelModuleName_inv_requesterSide);
                 session.Logger = logger;
                 loggerCb?.Invoke(logger);
-                Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
+                Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey, "req.RequesterEcdhePublicKey");
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"generated unique ECDH key {req.RequesterEcdhePublicKey}");                
                 req.RequesterRegistrationSignature = RegistrationSignature.Sign(Engine.CryptoLibrary, req.GetSharedSignedFields, this.Configuration.LocalPeerRegistrationPrivateKey);
 
@@ -95,12 +97,12 @@ _retry:
                     var sentRequest = new SentRequest(Engine, logger, destinationPeer.RemoteEndpoint, destinationPeer, reqUdpData, req.ReqP2pSeq16, InviteAck1Packet.GetScanner(logger, req, destinationPeer));
                     var ack1UdpData = await sentRequest.SendRequestAsync("ack1 4146");
                                        
-                    #region wait for ACK1
-                    await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK("ack1 26892", reqUdpData, req.ReqP2pSeq16, req.GetSignedFieldsForNeighborHMAC);
+                    #region process ACK1
+                  /////////////////////////////////////////////////////////////////////  await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK("ack1 26892", reqUdpData, req.ReqP2pSeq16, req.GetSignedFieldsForNeighborHMAC);
                
                     // NeighborHMAC and NeighborToken32 are already verified by scanner
                     ack1 = InviteAck1Packet.Decode(ack1UdpData);
-                    Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
+                    Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey, $"ack1.ResponderEcdhePublicKey");
                     if (!ack1.ResponderRegistrationSignature.Verify(Engine.CryptoLibrary, w =>
                         {
                             req.GetSharedSignedFields(w);
@@ -200,7 +202,7 @@ _retry:
             }
             catch
             {
-                session.Dispose();
+                session?.Dispose();
                 throw;
             }
         }

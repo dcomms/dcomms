@@ -11,7 +11,8 @@ namespace Dcomms
     }
     class PossibleAttackException : ApplicationException
     {
-
+        public PossibleAttackException() { }
+        public PossibleAttackException(string message): base(message) { }
     }
     class BrokenCipherException : PossibleAttackException // todo handle attacks that raise such exceptions
     {
@@ -40,7 +41,7 @@ namespace Dcomms
     }
     class NonUniquePacketFieldsException : PossibleAttackException
     {
-
+        public NonUniquePacketFieldsException(string message) : base(message) { }
     }
 
 
