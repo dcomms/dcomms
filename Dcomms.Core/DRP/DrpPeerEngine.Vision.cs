@@ -348,7 +348,13 @@ namespace Dcomms.DRP
                 _visionChannel.EmitPeerInRoutedPath(_visionChannelSourceId, ModuleName, AttentionLevel.mediumPain,
                     message, _req, _localPeer);
         }
-        
+        internal void WriteToLog_mediumPain_EmitListOfPeers(string message, IVisiblePeer selectedPeer = null)
+        {
+            if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, ModuleName) <= AttentionLevel.mediumPain)
+                _visionChannel.EmitListOfPeers(_visionChannelSourceId, ModuleName, AttentionLevel.mediumPain,
+                    message, null, selectedPeer);
+        }
+
         internal void WriteToLog_attacks(string message)
         {
             if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, DrpPeerEngine.VisionChannelModuleName_attacks) <= AttentionLevel.strongPain)

@@ -67,7 +67,19 @@ namespace Dcomms.DMP
         {
             return String.Join(";", RootPublicKeys.Select(x => MiscProcedures.ByteArrayToString(x)));
         }
-               
+
+        public string ToCsharpDeclaration
+        {
+            get
+            {
+                var r = "RootPublicKeys = new List<byte[]> {\r\n";
+                foreach (var x in RootPublicKeys)
+                    r += $"new byte[] {{ {MiscProcedures.ByteArrayToCsharpDeclaration(x)}}},\r\n";
+                r += "}";
+                return r;
+            }
+        }
+
         public void Encode(BinaryWriter writer)
         {
             writer.Write(Flags);
@@ -123,6 +135,18 @@ namespace Dcomms.DMP
                 var publicKey = cryptoLibrary.GetPublicKeyEd25519(privateKey);
                 privateKeys.ed25519privateKeys.Add(privateKey);
                 publicKeys.RootPublicKeys.Add(publicKey);
+            }
+        }
+
+        public string ToCsharpDeclaration
+        {
+            get
+            {
+                var r = "ed25519privateKeys = new List<byte[]> {\r\n";
+                foreach (var x in ed25519privateKeys)
+                    r += $"new byte[] {{ {MiscProcedures.ByteArrayToCsharpDeclaration(x)}}},\r\n";
+                r += "}";
+                return r;
             }
         }
     }

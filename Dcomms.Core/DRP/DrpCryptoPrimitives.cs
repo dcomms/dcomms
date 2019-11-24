@@ -46,10 +46,9 @@ namespace Dcomms.DRP
         {
             return MiscProcedures.GetArrayHashCode(Ed25519publicKey);
         }
-        public override string ToString()
-        {
-            return MiscProcedures.ByteArrayToString(Ed25519publicKey);
-        }
+        public override string ToString() => MiscProcedures.ByteArrayToString(Ed25519publicKey);     
+        public string ToCsharpDeclaration => MiscProcedures.ByteArrayToCsharpDeclaration(Ed25519publicKey);
+
         public RegistrationIdDistance GetDistanceTo(ICryptoLibrary cryptoLibrary, RegistrationId another, int numberOfDimensions) => new RegistrationIdDistance(cryptoLibrary, this, another, numberOfDimensions);
         public static double[] GetDifferenceVector(RegistrationId from, RegistrationId to, ICryptoLibrary cryptoLibrary, int numberOfDimensions)
         {
@@ -723,6 +722,7 @@ namespace Dcomms.DRP
     public class RegistrationPrivateKey
     {
         public byte[] ed25519privateKey;
+        public string ToCsharpDeclaration => MiscProcedures.ByteArrayToCsharpDeclaration(ed25519privateKey);
     }
     public class RegistrationSignature
     {

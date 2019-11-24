@@ -37,13 +37,10 @@
                 <Button Command="{Binding CreateDrpTester3}" Content="CreateDrpTester3" Visibility="{Binding DrpTester3IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
                 <Button Command="{Binding DestroyDrpTester3}" Content="DestroyDrpTester3" Visibility="{Binding DrpTester3IsCreated, Converter={StaticResource BoolToVisibilityConverter}}"  />
 
-
                 <Button Command="{Binding CreateDrpTester4}" Content="CreateDrpTester4(distance)" />
 
                 <Button Command="{Binding CreateDrpTester5}" Content="CreateDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
                 <Button Command="{Binding DestroyDrpTester5}" Content="DestroyDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityConverter}}"  />
-
-
             </StackPanel>
         </StackPanel>
 
@@ -111,8 +108,6 @@
 
                 <StackPanel Orientation="Horizontal" Grid.Row="5" Visibility="{Binding DrpTester3.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
                     <Button Content="Initialize" Margin="3" Command="{Binding DrpTester3.Initialize}" />
-                    <Button Content="Initialize EP host" Margin="3" Command="{Binding DrpTester3.InitializeEpHost}" />
-                    <Button Content="Initialize users" Margin="3" Command="{Binding DrpTester3.InitializeUsers}"   />
                 </StackPanel>
             </Grid>
             <Grid Visibility="{Binding DrpTester4IsCreated, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -194,11 +189,10 @@
                     <ColumnDefinition Width="Auto" MinWidth="190"/>
                 </Grid.ColumnDefinitions>
 
-
                 <TextBlock Grid.Row="0" Text="local user:" />
-                <ComboBox Grid.Row="0" Grid.Column="1"  />
+                <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding DrpTester5.PredefinedUsers}" DisplayMemberPath="Name"  SelectedItem="{Binding DrpTester5.LocalUser, Mode=TwoWay}" />
                 <TextBlock Grid.Row="1" Text="remote user:" />
-                <ComboBox Grid.Row="1" Grid.Column="1"  />
+                <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding DrpTester5.PredefinedUsers}" DisplayMemberPath="Name"  SelectedItem="{Binding DrpTester5.RemoteUser, Mode=TwoWay}"  />
 
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="VisionChannelSourceId:" />
                 <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding DrpTester5.VisionChannelSourceId, Mode=TwoWay}" MinWidth="50"/>

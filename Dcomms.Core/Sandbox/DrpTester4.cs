@@ -184,7 +184,7 @@ namespace Dcomms.Sandbox
                 tc.State = $"creating and connecting entry peers...";
                 for (int i = 0; i < tc.NumberOfEntryPeers; i++)
                 {
-                    var peerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(tc.CryptoLibrary, tc.NumberOfDimensions);
+                    var peerConfig = LocalDrpPeerConfiguration.Create(tc.CryptoLibrary, tc.NumberOfDimensions);
                     allPeers.Add(new Peer(tc, peerConfig.LocalPeerRegistrationId, i.ToString()));
                 }
                 for (int i = 0; i < tc.NumberOfEntryPeers; i++)
@@ -200,7 +200,7 @@ namespace Dcomms.Sandbox
 
                 for (int i = tc.NumberOfEntryPeers; i < tc.NumberOfPeers; i++)
                 {
-                    var peerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(tc.CryptoLibrary, tc.NumberOfDimensions);
+                    var peerConfig = LocalDrpPeerConfiguration.Create(tc.CryptoLibrary, tc.NumberOfDimensions);
                     var peer = new Peer(tc, peerConfig.LocalPeerRegistrationId, i.ToString());
                     allPeers.Add(peer);
                     tc.State = $"creating and connecting peers... peer {i}/{tc.NumberOfPeers}";
@@ -260,7 +260,7 @@ namespace Dcomms.Sandbox
                     for (int newTestedPeerI = 0; newTestedPeerI < tc.NewTestedPeersCount; newTestedPeerI++)
                     {
                         var newTestPeer = new Peer(tc,
-                            LocalDrpPeerConfiguration.CreateWithNewKeypair(tc.CryptoLibrary, tc.NumberOfDimensions).LocalPeerRegistrationId,
+                            LocalDrpPeerConfiguration.Create(tc.CryptoLibrary, tc.NumberOfDimensions).LocalPeerRegistrationId,
                             "test" + newTestedPeerI.ToString());
                         allPeers.Add(newTestPeer);
                         tc.State = $"creating and connecting test peer {newTestedPeerI}/{tc.NewTestedPeersCount}";

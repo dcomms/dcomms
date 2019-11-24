@@ -86,7 +86,7 @@ namespace Dcomms.Sandbox
 
             EmitAllPeers(AttentionLevel.guiActivity, $"creating peer index {index}...");
 
-            var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(x.CryptoLibrary, NumberOfDimensions);
+            var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.Create(x.CryptoLibrary, NumberOfDimensions);
             xLocalDrpPeerConfig.EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) };
             xLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = MinDesiredNumberOfNeighbors;
             xLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = SoftMaxDesiredNumberOfNeighbors;
@@ -200,7 +200,7 @@ namespace Dcomms.Sandbox
                     SandboxModeOnly_EnableInsecureLogs = true,
                     SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
                 }); ;
-                var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(ep.CryptoLibrary, NumberOfDimensions);
+                var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.Create(ep.CryptoLibrary, NumberOfDimensions);
                 epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
                 epLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = null;
                 epLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = null;
@@ -233,7 +233,7 @@ namespace Dcomms.Sandbox
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
 
             var text = $"test{_rnd.Next()}-{_rnd.Next()}_from_{peer1}_to_{peer2}";
-            peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, (exc) =>
+            peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, null, (exc) =>
             {
                 test.counter++;
                 

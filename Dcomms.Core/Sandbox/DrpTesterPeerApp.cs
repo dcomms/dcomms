@@ -10,6 +10,7 @@ namespace Dcomms.Sandbox
 {
     class DrpTesterPeerApp : IDrpRegisteredPeerApp
     {
+        public const string EchoTestPrefix = "echo";
         const string VisionChannelModuleName = "drpTesterApp";
         public readonly UserRootPrivateKeys UserRootPrivateKeys;
         public readonly UserId UserId;
@@ -40,6 +41,30 @@ namespace Dcomms.Sandbox
                 $"received message: {message}");
             LatestReceivedTextMessage_req = req;
             LatestReceivedTextMessage = message;
+
+            if (message.StartsWith(EchoTestPrefix))
+            {
+                DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.guiActivity,
+                    $"echoing message: {message}");
+                DrpPeerEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromMilliseconds(20), () =>
+                {
+                    var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId,
+                                UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
+
+                    LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, req.RequesterRegistrationId,
+                        ContactBookUsersByRegId[req.RequesterRegistrationId], message, TimeSpan.FromSeconds(60),
+                        (exc) =>
+                        {
+                            if (exc == null)
+                                DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.guiActivity,
+                                    $"successfully echoed message: {message}");
+                            else
+                                DrpPeerEngine.Configuration.VisionChannel.EmitListOfPeers(DrpPeerEngine.Configuration.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.strongPain,
+                                    $"could not send echoed message: {message}: {exc}");
+
+                        });
+                }, "echo 5096");                
+            }
         }
         public Dictionary<RegistrationId, UserId> ContactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
         public void OnReceivedInvite(RegistrationId remoteRegistrationId, out DMP.UserId remoteUserId, out DMP.UserCertificate localUserCertificateWithPrivateKey, out bool autoReceiveShortSingleMessage)

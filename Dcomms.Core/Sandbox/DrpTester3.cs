@@ -102,29 +102,6 @@ namespace Dcomms.Sandbox
             _visionChannel.VisiblePeersDelegate = () => { return VisiblePeers.ToList(); };
         }
 
-        public ICommand InitializeEpHost => new DelegateCommand(() =>
-        {
-            NumberOfLocalInterconnectedEpEngines = 25;
-            RaisePropertyChanged(() => NumberOfLocalInterconnectedEpEngines);
-            NumberOfUserApps = 0;
-            RaisePropertyChanged(() => NumberOfUserApps);
-            RemoteEpEndPointsString = "";
-            RaisePropertyChanged(() => RemoteEpEndPointsString);
-
-            Initialize.Execute(null);
-        });
-        public ICommand InitializeUsers => new DelegateCommand(() =>
-        {
-            RemoteEpEndPoints = new[] { new IPEndPoint(IPAddress.Parse("195.154.173.208"), 12000) };
-            RaisePropertyChanged(() => RemoteEpEndPointsString);
-            
-            NumberOfLocalInterconnectedEpEngines = 0;
-            RaisePropertyChanged(() => NumberOfLocalInterconnectedEpEngines);
-            NumberOfUserApps = 50;
-            RaisePropertyChanged(() => NumberOfUserApps);
-            
-            Initialize.Execute(null);
-        });
         public ICommand Initialize => new DelegateCommand(() =>
         {
             if (Initialized) throw new InvalidOperationException();
@@ -167,7 +144,7 @@ namespace Dcomms.Sandbox
                 VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}EP{localEpIndex}",
                 SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
             }); ;
-            var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.CreateWithNewKeypair(epEngine.CryptoLibrary, NumberOfDimensions);
+            var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.Create(epEngine.CryptoLibrary, NumberOfDimensions);
             epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
             epLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = null;
             epLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = null;
@@ -223,7 +200,7 @@ namespace Dcomms.Sandbox
                 VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}U{userIndex}",
                 SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
             });
-            var localDrpPeerConfiguration = LocalDrpPeerConfiguration.CreateWithNewKeypair(userEngine.CryptoLibrary, NumberOfDimensions);
+            var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
 
             var epEndpoints = RemoteEpEndPoints.ToList();
             epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPort.Value)));
@@ -370,7 +347,7 @@ _retry:
         void BeginTestMessage3(MessagesTest test, DrpTesterPeerApp peer1, DrpTesterPeerApp peer2, Stopwatch sw, string text)
         {
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
-            peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, (exc) =>
+            peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, null, (exc) =>
             {
                 BeginVerifyReceivedMessage(test, peer1, peer2, text, sw, Stopwatch.StartNew());
             });
@@ -433,7 +410,7 @@ _retry:
                     VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}T{_createdTempPeersCount++}",
                     SandboxModeOnly_NumberOfDimensions = NumberOfDimensions,
                 });
-                var localDrpPeerConfiguration = LocalDrpPeerConfiguration.CreateWithNewKeypair(tempPeerEngine.CryptoLibrary, NumberOfDimensions);
+                var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(tempPeerEngine.CryptoLibrary, NumberOfDimensions);
 
                 var epEndpoints = RemoteEpEndPoints.ToList();
                 epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPort.Value)));

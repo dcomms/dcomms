@@ -12,14 +12,17 @@ namespace Dcomms.DRP
     partial class LocalDrpPeer
     {
         public void BeginSendShortSingleMessage(UserCertificate requesterUserCertificate, RegistrationId responderRegistrationId, UserId responderUserId,            
-            string messageText, Action<Exception> cb)
+            string messageText, TimeSpan? retryOnFailureUntilThisTimeout, Action<Exception> cb)
         {
             Engine.EngineThreadQueue.Enqueue(async () =>
             {
+                var sw1 = Stopwatch.StartNew();
+
+_retry:
                 Logger logger = null;
                 try
                 {
-                    var sw = Stopwatch.StartNew();
+                    var sw2 = Stopwatch.StartNew();
                     var session = await SendInviteAsync(requesterUserCertificate, responderRegistrationId, responderUserId, SessionType.asyncShortSingleMessage, (logger2)=>
                     {
                         logger = logger2;
@@ -28,7 +31,7 @@ namespace Dcomms.DRP
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"invite session is ready to set up direct channel and send a message");
                     try
                     {
-                        if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"remote peer accepted invite session in {(int)sw.Elapsed.TotalMilliseconds}ms: {session.RemoteSessionDescription}");
+                        if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"remote peer accepted invite session in {(int)sw2.Elapsed.TotalMilliseconds}ms: {session.RemoteSessionDescription}");
 
                         await session.SetupAEkeysAsync();
 
@@ -43,13 +46,19 @@ namespace Dcomms.DRP
                 }
                 catch (Exception exc)
                 {
-                    logger?.WriteToLog_mediumPain($"sending INVITE failed: {exc}");
+                    var tryAgain = retryOnFailureUntilThisTimeout.HasValue && sw1.Elapsed < retryOnFailureUntilThisTimeout.Value;
+                    logger?.WriteToLog_mediumPain($"sending INVITE failed (tryAgain={tryAgain}): {exc}");
+                    logger?.WriteToLog_mediumPain_EmitListOfPeers($"sending INVITE failed (tryAgain={tryAgain}): {exc}");
+                    if (tryAgain)
+                    {
+                        logger?.WriteToLog_higherLevelDetail($"trying again to send message: sw1={sw1.Elapsed.TotalSeconds}s < retryOnFailureUntilThisTimeout={retryOnFailureUntilThisTimeout.Value.TotalSeconds}s");
+                        goto _retry;
+                    }
                     cb?.Invoke(exc);
                 }
             }, "BeginSendShortSingleMessage6342");
         }
-
-
+        
         /// <summary>
         /// sends INVITE, autenticates users, returns Session to be used to create direct cannel
         /// </summary>
