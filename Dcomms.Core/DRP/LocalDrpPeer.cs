@@ -415,13 +415,13 @@ namespace Dcomms.DRP
         public double? MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 120;
         public double TestDirectionsMinIntervalS = 30;
 
-        public static LocalDrpPeerConfiguration CreateWithNewKeypair(ICryptoLibrary cryptoLibrary, int numberOfDimensions)
+        public static LocalDrpPeerConfiguration CreateWithNewKeypair(ICryptoLibrary cryptoLibrary, int numberOfDimensions, byte[] ed25519privateKey = null, RegistrationId registrationId = null)
         {
-            var privatekey = new RegistrationPrivateKey { ed25519privateKey = cryptoLibrary.GeneratePrivateKeyEd25519() };
+            var privatekey = new RegistrationPrivateKey { ed25519privateKey = ed25519privateKey ?? cryptoLibrary.GeneratePrivateKeyEd25519() };
             var r = new LocalDrpPeerConfiguration
             {
                 LocalPeerRegistrationPrivateKey = privatekey,
-                LocalPeerRegistrationId = new RegistrationId(cryptoLibrary.GetPublicKeyEd25519(privatekey.ed25519privateKey))
+                LocalPeerRegistrationId = new RegistrationId(registrationId?.Ed25519publicKey ?? cryptoLibrary.GetPublicKeyEd25519(privatekey.ed25519privateKey))
             };
             if (numberOfDimensions == 2)
             {

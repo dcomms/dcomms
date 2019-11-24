@@ -19,11 +19,17 @@ namespace Dcomms.Sandbox
         public readonly DrpPeerEngine DrpPeerEngine;
         public readonly LocalDrpPeerConfiguration DrpPeerRegistrationConfiguration;
         public LocalDrpPeer LocalDrpPeer;
-        public DrpTesterPeerApp(DrpPeerEngine drpPeerEngine, LocalDrpPeerConfiguration drpPeerRegistrationConfiguration)
+        public DrpTesterPeerApp(DrpPeerEngine drpPeerEngine, LocalDrpPeerConfiguration drpPeerRegistrationConfiguration, UserRootPrivateKeys userRootPrivateKeys = null, UserId userId = null)
         {
             DrpPeerRegistrationConfiguration = drpPeerRegistrationConfiguration;
             DrpPeerEngine = drpPeerEngine;
-            UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(366), DrpPeerEngine.CryptoLibrary, out UserRootPrivateKeys, out UserId);
+            if (userRootPrivateKeys == null || userId == null)
+                UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(366), DrpPeerEngine.CryptoLibrary, out UserRootPrivateKeys, out UserId);
+            else
+            {
+                UserId = userId;
+                UserRootPrivateKeys = userRootPrivateKeys;
+            }
             UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddYears(1));
         }
         public string LatestReceivedTextMessage { get; private set; }

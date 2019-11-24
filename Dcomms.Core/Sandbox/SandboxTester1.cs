@@ -216,15 +216,36 @@ namespace Dcomms.Sandbox
             RaisePropertyChanged(() => DrpTester3IsCreated);
         });
 
-        public DrpTester4 DrpDistanceTester { get; private set; }
-        public bool DrpDistanceTesterVisible => DrpDistanceTester != null;
-        public DelegateCommand CreateDrpDistanceTester => new DelegateCommand(() =>
+        public DrpTester4 DrpTester4 { get; private set; }
+        public bool DrpTester4IsCreated => DrpTester4 != null;
+        public DelegateCommand CreateDrpTester4 => new DelegateCommand(() =>
         {
-            if (DrpDistanceTester != null) throw new InvalidOperationException();
-            DrpDistanceTester = new DrpTester4(_visionChannel);
-            RaisePropertyChanged(() => DrpDistanceTester);
-            RaisePropertyChanged(() => DrpDistanceTesterVisible);
+            if (DrpTester4 != null) throw new InvalidOperationException();
+            DrpTester4 = new DrpTester4(_visionChannel);
+            RaisePropertyChanged(() => DrpTester4);
+            RaisePropertyChanged(() => DrpTester4IsCreated);
         });
+
+
+
+        public DrpTester5 DrpTester5 { get; private set; }
+        public bool DrpTester5IsCreated => DrpTester5 != null;
+        public DelegateCommand CreateDrpTester5 => new DelegateCommand(() =>
+        {
+            if (DrpTester5 != null) throw new InvalidOperationException();
+            DrpTester5 = new DrpTester5(_visionChannel);
+            RaisePropertyChanged(() => DrpTester5);
+            RaisePropertyChanged(() => DrpTester5IsCreated);
+        });
+        public DelegateCommand DestroyDrpTester5 => new DelegateCommand(() =>
+        {
+            if (DrpTester5 == null) throw new InvalidOperationException();
+            DrpTester5.Dispose();
+            DrpTester5 = null;
+            RaisePropertyChanged(() => DrpTester5);
+            RaisePropertyChanged(() => DrpTester5IsCreated);
+        });
+               
 
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
         {

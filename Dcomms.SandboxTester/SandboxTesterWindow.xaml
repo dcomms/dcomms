@@ -38,8 +38,12 @@
                 <Button Command="{Binding DestroyDrpTester3}" Content="DestroyDrpTester3" Visibility="{Binding DrpTester3IsCreated, Converter={StaticResource BoolToVisibilityConverter}}"  />
 
 
+                <Button Command="{Binding CreateDrpTester4}" Content="CreateDrpTester4(distance)" />
 
-                <Button Command="{Binding CreateDrpDistanceTester}" Content="CreateDrpTester4(distance)" />
+                <Button Command="{Binding CreateDrpTester5}" Content="CreateDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
+                <Button Command="{Binding DestroyDrpTester5}" Content="DestroyDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityConverter}}"  />
+
+
             </StackPanel>
         </StackPanel>
 
@@ -48,6 +52,19 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
+            <Grid Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" >
+                    <Button Content="ShowPeers" Margin="3" Command="{Binding DrpTester2.ShowPeers}" />
+                    <Button Content="TestInvites" Margin="3" Command="{Binding DrpTester2.TestInvites}" />                    
+                </StackPanel>
+            </Grid>
             <Grid Visibility="{Binding DrpTester3IsCreated, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -64,8 +81,7 @@
                     <ColumnDefinition Width="Auto" MinWidth="190"/>
                 </Grid.ColumnDefinitions>
 
-               
-              
+                            
                 
                 <TextBlock Grid.Row="0" Text="local EPs:" />
                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DrpTester3.NumberOfLocalInterconnectedEpEngines, Mode=TwoWay}" MinWidth="50" />
@@ -78,9 +94,6 @@
 
                 <TextBlock Grid.Row="3" Text="temp peers worker period (s):" />
                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpTester3.TempPeersWorkerPeriodS, Mode=TwoWay}" MinWidth="50" />
-
-
-
 
 
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="VisionChannelSourceIdPrefix:" />
@@ -102,7 +115,7 @@
                     <Button Content="Initialize users" Margin="3" Command="{Binding DrpTester3.InitializeUsers}"   />
                 </StackPanel>
             </Grid>
-            <Grid Visibility="{Binding DrpDistanceTesterVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid Visibility="{Binding DrpTester4IsCreated, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -122,62 +135,84 @@
 
 
                 <TextBlock Grid.Row="0" Text="number of peers:" />
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DrpDistanceTester.Config.NumberOfPeers, Mode=TwoWay}" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DrpTester4.Config.NumberOfPeers, Mode=TwoWay}" />
                 <TextBlock Grid.Row="1" Text="number of entry peers:" />
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpDistanceTester.Config.NumberOfEntryPeers, Mode=TwoWay}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DrpTester4.Config.NumberOfEntryPeers, Mode=TwoWay}" />
                 
                 
                 <TextBlock Grid.Row="2" Text="number of neighbors:" />
                 <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="1" >
-                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors_Min, Mode=TwoWay}" MinWidth="50" />
+                    <TextBox Text="{Binding DrpTester4.Config.NumberOfNeighbors_Min, Mode=TwoWay}" MinWidth="50" />
                     <TextBlock Text="...soft max: " />
-                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors_SoftMax, Mode=TwoWay}" MinWidth="50" />
+                    <TextBox Text="{Binding DrpTester4.Config.NumberOfNeighbors_SoftMax, Mode=TwoWay}" MinWidth="50" />
                     <TextBlock Text=" hw max:" />
-                    <TextBox Text="{Binding DrpDistanceTester.Config.NumberOfNeighbors_HardwareMax, Mode=TwoWay}" MinWidth="50" />
+                    <TextBox Text="{Binding DrpTester4.Config.NumberOfNeighbors_HardwareMax, Mode=TwoWay}" MinWidth="50" />
                 </StackPanel>
                 <TextBlock Grid.Row="3" Text="number of dimensions:" />
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpDistanceTester.Config.NumberOfDimensions, Mode=TwoWay}" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DrpTester4.Config.NumberOfDimensions, Mode=TwoWay}" />
                 <TextBlock Grid.Row="4" Text="optimization it. count:" />
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpDistanceTester.Config.OptimizationIterationsCount, Mode=TwoWay}" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DrpTester4.Config.OptimizationIterationsCount, Mode=TwoWay}" />
 
 
-                <CheckBox Grid.Row="0" Grid.Column="2"  IsChecked="{Binding DrpDistanceTester.Config.Consider2ndOrderNeighborsForInviteRouting, Mode=TwoWay}" Content="2ndOrderNeighborsForInviteRouting" />
-                <CheckBox Grid.Row="1" Grid.Column="2"  IsChecked="{Binding DrpDistanceTester.Config.UseGlobalSearchForRegistration, Mode=TwoWay}" Content="global reg search" />
+                <CheckBox Grid.Row="0" Grid.Column="2"  IsChecked="{Binding DrpTester4.Config.Consider2ndOrderNeighborsForInviteRouting, Mode=TwoWay}" Content="2ndOrderNeighborsForInviteRouting" />
+                <CheckBox Grid.Row="1" Grid.Column="2"  IsChecked="{Binding DrpTester4.Config.UseGlobalSearchForRegistration, Mode=TwoWay}" Content="global reg search" />
                 
                 <TextBlock Grid.Row="2" Grid.Column="2"  Text="TotalMaxHopsCountToExtendNeighbors" />
-                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.TotalMaxHopsCountToExtendNeighbors, Mode=TwoWay}" />
+                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpTester4.Config.TotalMaxHopsCountToExtendNeighbors, Mode=TwoWay}" />
                 <TextBlock Grid.Row="3" Grid.Column="2"  Text="RandomHopsCountToExtendNeighbors" />
-                <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.RandomHopsCountToExtendNeighbors, Mode=TwoWay}" />
+                <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding DrpTester4.Config.RandomHopsCountToExtendNeighbors, Mode=TwoWay}" />
 
 
                 <TextBlock Grid.Row="4" Grid.Column="2"  Text="NewTestedPeersCount" />
-                <TextBox Grid.Row="4" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.NewTestedPeersCount, Mode=TwoWay}" />
+                <TextBox Grid.Row="4" Grid.Column="3" Text="{Binding DrpTester4.Config.NewTestedPeersCount, Mode=TwoWay}" />
                 <TextBlock Grid.Row="5" Grid.Column="2"  Text="TestedDestinationsCount" />
-                <TextBox Grid.Row="5" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.TestedDestinationsCount, Mode=TwoWay}" />
+                <TextBox Grid.Row="5" Grid.Column="3" Text="{Binding DrpTester4.Config.TestedDestinationsCount, Mode=TwoWay}" />
                 <TextBlock Grid.Row="6" Grid.Column="2"  Text="TestedMaxHopsCount" />
-                <TextBox Grid.Row="6" Grid.Column="3" Text="{Binding DrpDistanceTester.Config.TestedMaxHopsCount, Mode=TwoWay}" />
+                <TextBox Grid.Row="6" Grid.Column="3" Text="{Binding DrpTester4.Config.TestedMaxHopsCount, Mode=TwoWay}" />
                                 
 
                 <StackPanel Orientation="Horizontal" Grid.Row="7" >
-                    <Button Content="Test" Margin="3" Command="{Binding DrpDistanceTester.Test}" />
-                    <CheckBox  IsChecked="{Binding DrpDistanceTester.EnableDetailedLogs, Mode=TwoWay}" Content="detailed logs" />
+                    <Button Content="Test" Margin="3" Command="{Binding DrpTester4.Test}" />
+                    <CheckBox  IsChecked="{Binding DrpTester4.EnableDetailedLogs, Mode=TwoWay}" Content="detailed logs" />
                 </StackPanel>
             </Grid>
 
-            <Grid Visibility="{Binding DrpTester2IsCreated, Converter={StaticResource BoolToVisibilityConverter}}">
+
+            <Grid Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityConverter}}" Margin="0 10 0 0">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" MinWidth="190"/>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" MinWidth="190"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Orientation="Horizontal" >
-                    <Button Content="ShowPeers" Margin="3" Command="{Binding DrpTester2.ShowPeers}" />
-                    <Button Content="TestInvites" Margin="3" Command="{Binding DrpTester2.TestInvites}" />                    
+
+                <TextBlock Grid.Row="0" Text="local user:" />
+                <ComboBox Grid.Row="0" Grid.Column="1"  />
+                <TextBlock Grid.Row="1" Text="remote user:" />
+                <ComboBox Grid.Row="1" Grid.Column="1"  />
+
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="VisionChannelSourceId:" />
+                <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding DrpTester5.VisionChannelSourceId, Mode=TwoWay}" MinWidth="50"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="remote EPs:" />
+                <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding DrpTester5.RemoteEpEndPointsString, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="num of dimensions:" />
+                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpTester5.NumberOfDimensions, Mode=TwoWay}" />
+
+                <StackPanel Orientation="Horizontal" Grid.Row="5" Visibility="{Binding DrpTester5.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
+                    <Button Content="Initialize" Margin="3" Command="{Binding DrpTester5.Initialize}" />
                 </StackPanel>
             </Grid>
-            
 
             <TabControl Grid.Row="1" x:Name="visionGui">               
                 <TabItem Header="Log">

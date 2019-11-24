@@ -135,9 +135,11 @@ namespace Dcomms.DRP
                     continue;
                 }
                 else if (request.RequestPacketDataNullable != null && timeNowUTC > request.NextRetransmissionTimeUTC)
-                {          
+                {
                     if (request.RetransmissionsCount < 2)
+                    {
                         if (WriteToLog_udp_detail_enabled) WriteToLog_udp_detail($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");
+                    }
                     else WriteToLog_udp_lightPain($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");
                     request.OnRetransmitted();
                     SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);  

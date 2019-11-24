@@ -21,6 +21,8 @@ namespace Dcomms.DMP.Packets
 
         internal static LowLevelUdpResponseScanner GetScanner(DirectChannelToken32 localDirectChannelToken32, InviteSession session)
         {
+            if (!session.DerivedDirectChannelSharedDhSecretsAE) throw new InvalidOperationException("DerivedDirectChannelSharedDhSecretsAE=false");
+
             PacketProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.MessageStart);
             localDirectChannelToken32.Encode(w);            
@@ -29,6 +31,7 @@ namespace Dcomms.DMP.Packets
                 ResponseFirstBytes = ms.ToArray(),
                 OptionalFilter = (udpData) =>
                 {
+                    if (!session.DerivedDirectChannelSharedDhSecretsAE) return false;
                     var msgStart = Decode(udpData);
                     if (msgStart.MessageHMAC.Equals(
                         session.GetMessageHMAC(w2 => msgStart.GetSignedFieldsForMessageHMAC(w2, true))

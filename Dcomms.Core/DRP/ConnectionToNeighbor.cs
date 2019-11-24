@@ -432,7 +432,7 @@ namespace Dcomms.DRP
                 // remove timed out connected peers (neighbors)
                 if (timeNowUTC > _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket + _engine.Configuration.ConnectedPeersRemovalTimeout)
                 {
-                    _engine.WriteToLog_p2p_higherLevelDetail(this, "disposing connection to neighbor: ping response timer has expired", null);
+                    _engine.WriteToLog_p2p_higherLevelDetail(this, $"disposing connection to neighbor: ping response timer has expired. {LocalDrpPeer.ConnectedNeighbors.Count} neighbors remaining", null);
                     this.Dispose(); // remove dead connected peers (no reply to ping)
                     needToRestartLoop = true;
                     return;

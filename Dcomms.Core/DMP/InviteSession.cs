@@ -61,6 +61,7 @@ namespace Dcomms.DMP
         byte[] LocalDirectChannelEcdhePrivateKeyE, LocalDirectChannelEcdhePublicKeyE;
 
         bool _derivedDirectChannelSharedDhSecretsAE;
+        public bool DerivedDirectChannelSharedDhSecretsAE => _derivedDirectChannelSharedDhSecretsAE;
         void DeriveDirectChannelSharedDhSecretsAE(byte[] remoteDirectChannelEcdhePublicKeyA, byte[] remoteDirectChannelEcdhePublicKeyE)
         {
             if (!_derivedDirectChannelSharedDhSecretsAE)
@@ -85,7 +86,8 @@ namespace Dcomms.DMP
         public HMAC GetMessageHMAC(byte[] data)
         {
             if (_disposed) throw new ObjectDisposedException(ToString());
-            if (MessageHMACkey == null) throw new InvalidOperationException();
+            if (DerivedDirectChannelSharedDhSecretsAE == false) throw new InvalidOperationException("DerivedDirectChannelSharedDhSecretsAE=false");
+            if (MessageHMACkey == null) throw new InvalidOperationException($"MessageHMACkey = null, DerivedDirectChannelSharedDhSecretsAE={DerivedDirectChannelSharedDhSecretsAE}");
             var r = new HMAC
             {
                 hmacSha256 = _localDrpPeer.CryptoLibrary.GetSha256HMAC(MessageHMACkey, data)
@@ -225,9 +227,9 @@ namespace Dcomms.DMP
 
         internal async Task SendShortSingleMessageAsync(string messageText, UserCertificate senderUserCertificateWithPrivateKeys)
         {
+            if (!DerivedDirectChannelSharedDhSecretsAE) throw new InvalidOperationException("DerivedDirectChannelSharedDhSecretsAE = false");
             if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail(">> InviteSession.SendShortSingleMessageAsync()");
-
-
+            
             var messageSession = new MessageSession();
             var messageStart = new MessageStartPacket()
             {
@@ -277,7 +279,9 @@ namespace Dcomms.DMP
         internal async Task<string> ReceiveShortSingleMessageAsync(UserCertificate senderUserCertificate)
         {
             if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail(">>InviteSession.ReceiveShortSingleMessageAsync()");
-                       
+            if (!DerivedDirectChannelSharedDhSecretsAE) throw new InvalidOperationException("DerivedDirectChannelSharedDhSecretsAE = false");
+
+
             var messageSession = new MessageSession();
 
             // wait for msgstart

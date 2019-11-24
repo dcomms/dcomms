@@ -178,6 +178,10 @@ namespace Dcomms.DRP
                 else
                     session.Dispose(); // todo implement other things
             }
+            catch (DrpTimeoutException exc)
+            {
+                logger.WriteToLog_lightPain($"could not accept INVITE request: {exc}");
+            }
             catch (Exception exc)
             {
                 logger.WriteToLog_mediumPain($"could not accept INVITE request: {exc}");
