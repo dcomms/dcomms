@@ -69,11 +69,14 @@ _retry:
         /// comes from local contact book
         /// </param>
         /// <param name="loggerCb">may be invoked more than one time (in case of retrying)</param>
-        public async Task<InviteSession> SendInviteAsync(UserCertificate requesterUserCertificate, RegistrationId responderRegistrationId, UserId responderUserId, SessionType sessionType, Action<Logger> loggerCb = null)
+        public async Task<InviteSession> SendInviteAsync(UserCertificate requesterUserCertificate, RegistrationId responderRegistrationId, UserId responderUserId,
+            SessionType sessionType, Action<Logger> loggerCb = null)
         {
             InviteSession session = null;
             try
             {
+                var sw = Stopwatch.StartNew();
+                RoutedRequest routedRequest = null;
 _retry:
                 session = new InviteSession(this);
                 var req = new InviteRequestPacket
@@ -92,8 +95,8 @@ _retry:
                 req.RequesterRegistrationSignature = RegistrationSignature.Sign(Engine.CryptoLibrary, req.GetSharedSignedFields, this.Configuration.LocalPeerRegistrationPrivateKey);
 
                 this.TestDirection(logger, req.ResponderRegistrationId);
-                var routedRequest = new RoutedRequest(logger, null, null, null, req, null);
-
+                routedRequest = new RoutedRequest(logger, null, null, null, req, null, routedRequest);
+             
                 // find best connected peer to send the request
                 var destinationPeer = Engine.RouteInviteRequest(this, routedRequest);
                 if (destinationPeer == null) throw new NoNeighborsToSendInviteException();
@@ -128,7 +131,7 @@ _retry:
                 }
                 catch (RequestFailedException exc2)
                 {
-                    logger.WriteToLog_higherLevelDetail($"trying again on error {exc2}... alreadyTriedProxyingToDestinationPeers.Count={routedRequest.TriedNeighbors.Count}");
+                    logger.WriteToLog_higherLevelDetail($"trying again on error {exc2.Message}... alreadyTriedProxyingToDestinationPeers.Count={routedRequest.TriedNeighbors.Count}");
                     routedRequest.TriedNeighbors.Add(destinationPeer);
                     goto _retry;
                 }

@@ -20,7 +20,8 @@ namespace Dcomms.DRP
         public bool CheckedRecentUniqueProxiedRequests;
         public readonly Logger Logger;
         public RoutedRequest(Logger logger, ConnectionToNeighbor receivedFromNeighborNullable, IPEndPoint receivedFromEndpoint,
-            DateTime? reqReceivedTimeUtc, InviteRequestPacket inviteReqNullable, RegisterRequestPacket registerReqNullable)
+            DateTime? reqReceivedTimeUtc, InviteRequestPacket inviteReqNullable,
+            RegisterRequestPacket registerReqNullable, RoutedRequest previousTrialRoutedRequestNullable = null)
         {
             InviteReq = inviteReqNullable;
             RegisterReq = registerReqNullable;
@@ -35,6 +36,12 @@ namespace Dcomms.DRP
 
             if (InviteReq != null) ReqP2pSeq16 = InviteReq.ReqP2pSeq16;
             else ReqP2pSeq16 = RegisterReq.ReqP2pSeq16;
+
+            if (previousTrialRoutedRequestNullable != null)
+            {
+                _repliedWithNPA = previousTrialRoutedRequestNullable._repliedWithNPA;
+                TriedNeighbors = previousTrialRoutedRequestNullable.TriedNeighbors;
+            }
         }
 
         public readonly InviteRequestPacket InviteReq;
@@ -94,44 +101,7 @@ namespace Dcomms.DRP
             _engine.RespondToRequestAndRetransmissions(RequestUdpPayloadData, npAckUdpData, ReceivedFromEndpoint);
             _repliedWithNPA = true;
         }
-
-        //internal void SendErrorResponseToInviteReq(InviteRequestPacket req, IPEndPoint requesterEndpoint,
-        //    ConnectionToNeighbor neighborWhoSentRequest, bool alreadyRepliedWithNPA, NextHopResponseOrFailureCode errorCode)
-        //{
-        //    Engine.WriteToLog_inv_proxySide_detail($"routing failed, executing SendErrorResponseToInviteReq()", req, this);
-        //    if (alreadyRepliedWithNPA)
-        //    {
-        //        // send FAILURE
-        //        _ = RespondToSourcePeerWithAck1_Error(requesterEndpoint, req, neighborWhoSentRequest, errorCode);
-        //    }
-        //    else
-        //    {
-        //        // send NPACK
-        //        SendNeighborPeerAckResponseToReq(req, neighborWhoSentRequest, errorCode);
-        //    }
-        //}
-
-
-        //internal void SendNeighborPeerAckResponseToRegisterReq(RegisterRequestPacket req, IPEndPoint requesterEndpoint, NextHopResponseOrFailureCode responseCode, ConnectionToNeighbor neighbor)
-        //{
-        //    neighbor?.AssertIsNotDisposed();
-        //    var npAck = new NeighborPeerAckPacket
-        //    {
-        //        ReqP2pSeq16 = req.ReqP2pSeq16,
-        //        ResponseCode = responseCode
-        //    };
-        //    if (neighbor != null)
-        //    {
-        //        npAck.NeighborToken32 = neighbor.RemoteNeighborToken32;
-        //        npAck.NeighborHMAC = neighbor.GetNeighborHMAC(w => npAck.GetSignedFieldsForNeighborHMAC(w, req.GetSignedFieldsForNeighborHMAC));
-        //    }
-        //    var npAckUdpData = npAck.Encode(neighbor == null);
-
-        //    RespondToRequestAndRetransmissions(req.DecodedUdpPayloadData, npAckUdpData, requesterEndpoint);
-
-        //}
-
-
+        
         public async Task RespondWithFailure(ResponseOrFailureCode responseCode)
         {
             ReceivedFromNeighborNullable?.AssertIsNotDisposed();

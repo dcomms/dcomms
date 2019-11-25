@@ -262,7 +262,16 @@ namespace Dcomms.Sandbox
             _userApp.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, RemoteUser.RegistrationId, RemoteUser.UserId, sentText, TimeSpan.FromSeconds(60),
                 (exc) =>
                 {
-                    BeginVerifyReceivedEchoedMessage(sentText, sw, Stopwatch.StartNew());
+                    if (exc != null)
+                    {
+                        _visionChannel.EmitListOfPeers(_userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.strongPain,
+                            $"could not send message: {exc}");
+
+                        if (!ContinueOnFailed()) return;
+                        SendMessage();
+                    }
+                    else
+                        BeginVerifyReceivedEchoedMessage(sentText, sw, Stopwatch.StartNew());
                 });
         }
 
@@ -289,25 +298,27 @@ namespace Dcomms.Sandbox
                 _visionChannel.EmitListOfPeers(_userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                    AttentionLevel.strongPain,
                    $"test message failed: received '{_userApp.LatestReceivedTextMessage}', expected '{sentText}. {TestReport}");
-              
-                var failedCount = OnFailed(_visionChannel.TimeNow);
-                if (failedCount >= 1)
-                {
-                    _visionChannel.EmitListOfPeers(_userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                              AttentionLevel.strongPain,
-                              $"disposing the test: {failedCount} messages failed");
 
-                    BeginDisposeOnFailure();
-                    return;
-                }
+                if (!ContinueOnFailed()) return;
             }
 
             SendMessage(); // continue with next test message
         }
+        bool ContinueOnFailed()
+        {
+            var failedCount = OnFailed(_visionChannel.TimeNow);
+            if (failedCount >= 1)
+            {
+                _visionChannel.EmitListOfPeers(_userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                          AttentionLevel.strongPain,
+                          $"disposing the test: {failedCount} messages failed");
 
-
-
-
+                BeginDisposeOnFailure();
+                return false;
+            }
+            return true;
+        }
+                     
         #region  test results
         
         int _sentCount = 0;
