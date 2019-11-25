@@ -346,7 +346,7 @@ _retry:
 
         void BeginTestMessage3(MessagesTest test, DrpTesterPeerApp peer1, DrpTesterPeerApp peer2, Stopwatch sw, string text)
         {
-            var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
+            var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(1));
             peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, null, (exc) =>
             {
                 BeginVerifyReceivedMessage(test, peer1, peer2, text, sw, Stopwatch.StartNew());

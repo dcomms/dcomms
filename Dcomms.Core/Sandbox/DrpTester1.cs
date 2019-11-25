@@ -130,7 +130,7 @@ namespace Dcomms.Sandbox
         {
             _xUser.ContactBookUsersByRegId.Add(_aLocalDrpPeer.Configuration.LocalPeerRegistrationId, _aUser.UserId);
 
-            var aUserCertificate = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_a.CryptoLibrary, _aUser.UserId, _aUser.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
+            var aUserCertificate = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_a.CryptoLibrary, _aUser.UserId, _aUser.UserRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(1));
 
 
             var message = $"test Dcomms message {new Random().Next()}";

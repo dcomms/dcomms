@@ -22,17 +22,20 @@ namespace Dcomms
     {
 
     }
-    class BadSignatureException : PossibleAttackException 
+    class BadSignatureException : PossibleAttackException
     {
-
+        public BadSignatureException() { }
+        public BadSignatureException(string message) : base(message) { }
     }
     class BadUserCertificateException : BadSignatureException
     {
-
+        public BadUserCertificateException() { }
+        public BadUserCertificateException(string message) : base(message) { }
     }
     class CertificateOutOfDateException : BadUserCertificateException
     {
-
+        public CertificateOutOfDateException() { }
+        public CertificateOutOfDateException(string message) : base(message) { }
     }
    
     class ExpiredUserKeysException: BadSignatureException

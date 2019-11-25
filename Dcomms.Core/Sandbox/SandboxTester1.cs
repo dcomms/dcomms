@@ -258,6 +258,8 @@ namespace Dcomms.Sandbox
             if (_drpTester1 != null) _drpTester1.Dispose();
             if (DrpTester2 != null) DrpTester2.Dispose();
             if (DrpTester3 != null) DrpTester3.Dispose();
+            if (DrpTester4 != null) DrpTester4.Dispose();
+            if (DrpTester5 != null) DrpTester5.Dispose();
         }
     }
 }

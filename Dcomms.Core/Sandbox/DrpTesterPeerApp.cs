@@ -31,7 +31,7 @@ namespace Dcomms.Sandbox
                 UserId = userId;
                 UserRootPrivateKeys = userRootPrivateKeys;
             }
-            UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddYears(1));
+            UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddYears(1));
         }
         public string LatestReceivedTextMessage { get; private set; }
         public InviteRequestPacket LatestReceivedTextMessage_req;
@@ -49,7 +49,7 @@ namespace Dcomms.Sandbox
                 DrpPeerEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromMilliseconds(20), () =>
                 {
                     var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId,
-                                UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
+                                UserRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(1));
 
                     LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, req.RequesterRegistrationId,
                         ContactBookUsersByRegId[req.RequesterRegistrationId], message, TimeSpan.FromSeconds(60),

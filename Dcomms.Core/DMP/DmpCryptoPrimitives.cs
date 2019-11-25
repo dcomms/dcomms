@@ -212,11 +212,11 @@ namespace Dcomms.DMP
         void AssertIsValidNow(ICryptoLibrary cryptoLibrary, UserId userId, DateTime localTimeNowUtc)
         {                      
             if (localTimeNowUtc > ValidToUtc)
-                throw new CertificateOutOfDateException();
+                throw new CertificateOutOfDateException($"localTimeNowUtc={localTimeNowUtc} > ValidToUtc={ValidToUtc}");
             if (localTimeNowUtc < ValidFromUtc)
-                throw new CertificateOutOfDateException();            
+                throw new CertificateOutOfDateException($"localTimeNowUtc={localTimeNowUtc} < ValidFromUtc={ValidFromUtc}");            
             if (ValidToUtc - ValidFromUtc > userId.MaxCertificateDuration)
-                throw new BadUserCertificateException();
+                throw new BadUserCertificateException($"ValidToUtc - ValidFromUtc = {ValidToUtc - ValidFromUtc} > userId.MaxCertificateDuration={userId.MaxCertificateDuration}");
             
 
             var validRootSignatureIndexes = new HashSet<int>();

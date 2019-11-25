@@ -268,7 +268,7 @@ namespace Dcomms.Sandbox
 
             // send msg (with autoRetry=true)   wait for completion
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_userApp.DrpPeerEngine.CryptoLibrary, _userApp.UserId,
-                _userApp.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
+                _userApp.UserRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(1));
             var sentText = $"echoTest_#{_sentCount}_{VisionChannelSourceId}_from_{LocalUser.Name}_to_{RemoteUser.Name}_{_insecureRandom.Next()}";
             var sw = Stopwatch.StartNew();
             OnSent();
