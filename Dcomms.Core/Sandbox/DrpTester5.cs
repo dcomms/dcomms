@@ -195,13 +195,20 @@ namespace Dcomms.Sandbox
         public PredefinedUser LocalUser { get; set; }
         public PredefinedUser RemoteUser { get; set; }
 
+        public ICommand InitializeUser2EchoResponder => new DelegateCommand(() =>
+        {
+            LocalUser = PredefinedUsers[1];
+            Initialize.Execute(null);
+        });
 
         public ICommand Initialize => new DelegateCommand(() =>
         {
             if (Initialized) throw new InvalidOperationException();
             Initialized = true;
             RaisePropertyChanged(() => Initialized);
-            
+            this.VisionChannelSourceId = $"U{LocalUser.Name}{(LocalUser.SendOrEcho?"S":"RE")}";
+
+
             var userEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 InsecureRandomSeed = _insecureRandom.Next(),
@@ -269,7 +276,7 @@ namespace Dcomms.Sandbox
             // send msg (with autoRetry=true)   wait for completion
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_userApp.DrpPeerEngine.CryptoLibrary, _userApp.UserId,
                 _userApp.UserRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(1));
-            var sentText = $"echoTest_#{_sentCount}_{VisionChannelSourceId}_from_{LocalUser.Name}_to_{RemoteUser.Name}_{_insecureRandom.Next()}";
+            var sentText = $"echoTest_#{_sentCount}_from_{LocalUser.Name}_to_{RemoteUser.Name}_{_insecureRandom.Next()}";
             var sw = Stopwatch.StartNew();
             OnSent();
             _userApp.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, RemoteUser.RegistrationId, RemoteUser.UserId, sentText, TimeSpan.FromSeconds(60),
@@ -320,7 +327,7 @@ namespace Dcomms.Sandbox
         bool ContinueOnFailed()
         {
             var failedCount = OnFailed(_visionChannel.TimeNow);
-            if (failedCount >= 1)
+            if (failedCount >= 10000000)
             {
                 _visionChannel.EmitListOfPeers(_userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                           AttentionLevel.strongPain,
