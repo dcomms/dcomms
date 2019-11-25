@@ -89,15 +89,16 @@ _retry:
                     ResponderRegistrationId = responderRegistrationId,
                     ReqTimestamp32S = Engine.Timestamp32S,
                 };
+                var logger = new Logger(Engine, this, req, DrpPeerEngine.VisionChannelModuleName_inv_requesterSide);
                 if (!Engine.RecentUniqueInviteRequests.Filter(req.GetUniqueRequestIdFields))
                 {
                     if (trialsCount > 50) throw new NonUniquePacketFieldsException($"could not find unique fields to send INVITE request");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"waiting a second to generate ne wunique INVITE request");
                     await Engine.EngineThreadQueue.WaitAsync(TimeSpan.FromSeconds(1), "inv_wait_1236");
                     goto _retry;
                 }
 
 
-                var logger = new Logger(Engine, this, req, DrpPeerEngine.VisionChannelModuleName_inv_requesterSide);
                 session.Logger = logger;
                 loggerCb?.Invoke(logger);
                 Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey, "req.RequesterEcdhePublicKey");

@@ -211,8 +211,10 @@ namespace Dcomms.DMP
         /// </summary>
         void AssertIsValidNow(ICryptoLibrary cryptoLibrary, UserId userId, DateTime localTimeNowUtc)
         {                      
-            if (localTimeNowUtc > ValidToUtc) throw new CertificateOutOfDateException();
-            if (localTimeNowUtc < ValidFromUtc) throw new CertificateOutOfDateException();            
+            if (localTimeNowUtc > ValidToUtc)
+                throw new CertificateOutOfDateException();
+            if (localTimeNowUtc < ValidFromUtc)
+                throw new CertificateOutOfDateException();            
             if (ValidToUtc - ValidFromUtc > userId.MaxCertificateDuration)
                 throw new BadUserCertificateException();
             

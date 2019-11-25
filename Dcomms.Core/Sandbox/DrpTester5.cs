@@ -42,7 +42,7 @@ namespace Dcomms.Sandbox
                         ).ToArray();
             }
         }
-        public bool SendMessages { get; set; }
+
 
         readonly Random _insecureRandom = new Random();
         DrpTesterPeerApp _userApp;
@@ -115,10 +115,12 @@ namespace Dcomms.Sandbox
             public RegistrationId RegistrationId;
             public UserRootPrivateKeys UserRootPrivateKeys;
             public UserId UserId;
+            public bool SendOrEcho;
         }
         public List<PredefinedUser> PredefinedUsers { get; set; } = new List<PredefinedUser>
         {
             new PredefinedUser {
+                SendOrEcho = true,
                 Name = "01",
                 RegistrationId_ed25519privateKey = new byte[] { 0x42, 0xFF, 0x59, 0x72, 0x3C, 0x2D, 0x82, 0xC6, 0x4E, 0xC3, 0x97, 0x3F, 0xB7, 0x4A, 0x57, 0x18, 0xD7, 0x23, 0x58, 0x6D, 0x88, 0x95, 0x85, 0x69, 0x65, 0x6A, 0xAB, 0x8F, 0xC8, 0xD5, 0xB2, 0xD9 },
                 RegistrationId = new RegistrationId(new byte[] { 0x46, 0xE2, 0x7E, 0xFF, 0x20, 0x92, 0x36, 0x43, 0xD4, 0xD8, 0xA8, 0x47, 0x8E, 0x75, 0xA5, 0xF0, 0xAE, 0x26, 0x70, 0x0D, 0x7B, 0x41, 0xD4, 0xB5, 0x21, 0xDB, 0x2B, 0xFB, 0x6C, 0x8F, 0x21, 0xB4 }),
@@ -142,6 +144,7 @@ namespace Dcomms.Sandbox
                 }
             },
             new PredefinedUser {
+                SendOrEcho = false,
                 Name = "02",
                 RegistrationId_ed25519privateKey = new byte[] { 0xDA, 0x52, 0x8B, 0x37, 0x80, 0xC5, 0x29, 0x61, 0x44, 0x59, 0x8D, 0x52, 0x59, 0x56, 0x78, 0x25, 0x0F, 0x91, 0xC6, 0x60, 0x66, 0x57, 0xE5, 0x5F, 0x23, 0xB9, 0x87, 0xF1, 0xCB, 0xB2, 0x08, 0xB8 },
                 RegistrationId = new RegistrationId(new byte[] { 0x6E, 0xE9, 0x92, 0xA2, 0xAB, 0xA9, 0x31, 0x79, 0x99, 0xEA, 0xF9, 0x1C, 0xA6, 0x43, 0x34, 0xF7, 0x00, 0x2E, 0xAE, 0x32, 0xF6, 0x29, 0x54, 0xF2, 0x58, 0x9F, 0xFE, 0x5A, 0x61, 0x15, 0x81, 0x12 }),
@@ -165,6 +168,7 @@ namespace Dcomms.Sandbox
                 }
             },
             new PredefinedUser {
+                SendOrEcho = false,
                 Name = "03",
                 RegistrationId_ed25519privateKey = new byte[] { 0x45, 0xBB, 0x47, 0xDE, 0x6A, 0xDA, 0x22, 0x56, 0x23, 0xC7, 0x7F, 0x7F, 0xB2, 0x5F, 0xAE, 0x09, 0x43, 0x90, 0x79, 0x54, 0xBF, 0x3F, 0x7B, 0xD6, 0xB7, 0xF3, 0x6A, 0xAF, 0x15, 0xE7, 0xEC, 0x36 },
                 RegistrationId = new RegistrationId(new byte[] { 0x4B, 0x9A, 0x46, 0x56, 0xB5, 0x6F, 0x7C, 0xA5, 0xCB, 0x1D, 0x7D, 0xB8, 0x8A, 0xE7, 0x31, 0x14, 0xFF, 0x21, 0x4C, 0x43, 0xEA, 0x57, 0x67, 0x0D, 0xF3, 0x5F, 0xE1, 0xFA, 0x59, 0x5A, 0x1F, 0x2F }),
@@ -212,7 +216,7 @@ namespace Dcomms.Sandbox
             var epEndpoints = RemoteEpEndPoints.ToList();
             localDrpPeerConfiguration.EntryPeerEndpoints = RemoteEpEndPoints;
 
-            _userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration, LocalUser.UserRootPrivateKeys, LocalUser.UserId);
+            _userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration, LocalUser.UserRootPrivateKeys, LocalUser.UserId) { EchoMessages = LocalUser.SendOrEcho == false };
 
             var contactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
             foreach (var u in PredefinedUsers)
@@ -260,12 +264,12 @@ namespace Dcomms.Sandbox
         }
         void SendMessage()
         {
-            if (!SendMessages) return;
+            if (!LocalUser.SendOrEcho) return;
 
             // send msg (with autoRetry=true)   wait for completion
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_userApp.DrpPeerEngine.CryptoLibrary, _userApp.UserId,
                 _userApp.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
-            var sentText = $"{DrpTesterPeerApp.EchoTestPrefix}_#{_sentCount}_{VisionChannelSourceId}_from_{LocalUser.Name}_to_{RemoteUser.Name}_{_insecureRandom.Next()}";
+            var sentText = $"echoTest_#{_sentCount}_{VisionChannelSourceId}_from_{LocalUser.Name}_to_{RemoteUser.Name}_{_insecureRandom.Next()}";
             var sw = Stopwatch.StartNew();
             OnSent();
             _userApp.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, RemoteUser.RegistrationId, RemoteUser.UserId, sentText, TimeSpan.FromSeconds(60),

@@ -10,7 +10,6 @@ namespace Dcomms.Sandbox
 {
     class DrpTesterPeerApp : IDrpRegisteredPeerApp
     {
-        public const string EchoTestPrefix = "echo";
         const string VisionChannelModuleName = "drpTesterApp";
         public readonly UserRootPrivateKeys UserRootPrivateKeys;
         public readonly UserId UserId;
@@ -20,6 +19,7 @@ namespace Dcomms.Sandbox
         public readonly DrpPeerEngine DrpPeerEngine;
         public readonly LocalDrpPeerConfiguration DrpPeerRegistrationConfiguration;
         public LocalDrpPeer LocalDrpPeer;
+        public bool EchoMessages;
         public DrpTesterPeerApp(DrpPeerEngine drpPeerEngine, LocalDrpPeerConfiguration drpPeerRegistrationConfiguration, UserRootPrivateKeys userRootPrivateKeys = null, UserId userId = null)
         {
             DrpPeerRegistrationConfiguration = drpPeerRegistrationConfiguration;
@@ -42,7 +42,7 @@ namespace Dcomms.Sandbox
             LatestReceivedTextMessage_req = req;
             LatestReceivedTextMessage = message;
 
-            if (message.StartsWith(EchoTestPrefix))
+            if (EchoMessages)
             {
                 DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.guiActivity,
                     $"echoing message: {message}");
