@@ -100,7 +100,7 @@
                 <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding DrpTester3.LocalInterconnectedEpEnginesBasePort, Mode=TwoWay}" />
 
                 <TextBlock Grid.Row="2" Grid.Column="2" Text="remote EPs:" />
-                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpTester3.RemoteEpEndPointsString, Mode=TwoWay}" />
+                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpTester3.RemoteEpEndPointsString, Mode=TwoWay}"  />
 
                 <TextBlock Grid.Row="3" Grid.Column="2" Text="num of dimensions:" />
                 <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding DrpTester3.NumberOfDimensions, Mode=TwoWay}" />
@@ -193,13 +193,13 @@
                 <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding DrpTester5.PredefinedUsers}" DisplayMemberPath="Name"  SelectedItem="{Binding DrpTester5.LocalUser, Mode=TwoWay}" />
                 <TextBlock Grid.Row="1" Text="remote user:" />
                 <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding DrpTester5.PredefinedUsers}" DisplayMemberPath="Name"  SelectedItem="{Binding DrpTester5.RemoteUser, Mode=TwoWay}"  />
+                <TextBlock Grid.Row="2" Text="send messages:" />
+                <CheckBox Grid.Row="2" Grid.Column="1"  IsChecked="{Binding DrpTester5.SendMessages, Mode=TwoWay}"  />
 
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="VisionChannelSourceId:" />
                 <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding DrpTester5.VisionChannelSourceId, Mode=TwoWay}" MinWidth="50"/>
-
                 <TextBlock Grid.Row="1" Grid.Column="2" Text="remote EPs:" />
                 <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding DrpTester5.RemoteEpEndPointsString, Mode=TwoWay}" />
-
                 <TextBlock Grid.Row="2" Grid.Column="2" Text="num of dimensions:" />
                 <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpTester5.NumberOfDimensions, Mode=TwoWay}" />
 

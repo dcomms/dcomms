@@ -42,6 +42,7 @@ namespace Dcomms.Sandbox
                         ).ToArray();
             }
         }
+        public bool SendMessages { get; set; }
 
         readonly Random _insecureRandom = new Random();
         DrpTesterPeerApp _userApp;
@@ -259,6 +260,8 @@ namespace Dcomms.Sandbox
         }
         void SendMessage()
         {
+            if (!SendMessages) return;
+
             // send msg (with autoRetry=true)   wait for completion
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_userApp.DrpPeerEngine.CryptoLibrary, _userApp.UserId,
                 _userApp.UserRootPrivateKeys, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));

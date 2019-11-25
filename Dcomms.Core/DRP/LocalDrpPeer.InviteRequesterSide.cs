@@ -77,7 +77,9 @@ _retry:
             {
                 var sw = Stopwatch.StartNew();
                 RoutedRequest routedRequest = null;
-_retry:
+                int trialsCount = 0;
+ _retry:
+                trialsCount++;
                 session = new InviteSession(this);
                 var req = new InviteRequestPacket
                 {
@@ -87,6 +89,14 @@ _retry:
                     ResponderRegistrationId = responderRegistrationId,
                     ReqTimestamp32S = Engine.Timestamp32S,
                 };
+                if (!Engine.RecentUniqueInviteRequests.Filter(req.GetUniqueRequestIdFields))
+                {
+                    if (trialsCount > 50) throw new NonUniquePacketFieldsException($"could not find unique fields to send INVITE request");
+                    await Engine.EngineThreadQueue.WaitAsync(TimeSpan.FromSeconds(1), "inv_wait_1236");
+                    goto _retry;
+                }
+
+
                 var logger = new Logger(Engine, this, req, DrpPeerEngine.VisionChannelModuleName_inv_requesterSide);
                 session.Logger = logger;
                 loggerCb?.Invoke(logger);
@@ -131,6 +141,7 @@ _retry:
                 }
                 catch (RequestFailedException exc2)
                 {
+                    if (trialsCount > 50) throw;
                     logger.WriteToLog_higherLevelDetail($"trying again on error {exc2.Message}... alreadyTriedProxyingToDestinationPeers.Count={routedRequest.TriedNeighbors.Count}");
                     routedRequest.TriedNeighbors.Add(destinationPeer);
                     goto _retry;
