@@ -25,7 +25,7 @@ namespace Dcomms.Sandbox
             DrpPeerRegistrationConfiguration = drpPeerRegistrationConfiguration;
             DrpPeerEngine = drpPeerEngine;
             if (userRootPrivateKeys == null || userId == null)
-                UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(366), DrpPeerEngine.CryptoLibrary, out UserRootPrivateKeys, out UserId);
+                UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), DrpPeerEngine.CryptoLibrary, out UserRootPrivateKeys, out UserId);
             else
             {
                 UserId = userId;
