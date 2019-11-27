@@ -10,9 +10,13 @@ namespace Dcomms.PocTest1
     {
         public VisionChannel1 VisionChannel { get; set; } = new VisionChannel1();
         public DrpTester5 DrpTester5 { get; set; }
-        public Poc1Model()
+        public Poc1Model(bool drpTester5_InitializeUser2EchoResponder = false)
         {
             DrpTester5 = new DrpTester5(VisionChannel);
+            if (drpTester5_InitializeUser2EchoResponder)
+            {
+                DrpTester5.InitializeUser2EchoResponder.Execute(null);
+            }
         }
         public void Dispose()
         {

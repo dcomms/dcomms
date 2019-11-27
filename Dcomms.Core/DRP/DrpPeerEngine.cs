@@ -67,7 +67,7 @@ namespace Dcomms.DRP
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
         internal DMP.InviteSession[] InviteSessionsByToken16 = new DMP.InviteSession[ushort.MaxValue + 1];
                
-        string IVisibleModule.Status => $"socket: {_socket?.Client?.LocalEndPoint}, local peers: {LocalPeers.Count}, ConnectedPeer tokens: {ConnectedPeersByToken16.Count(x => x != null)}, InviteSession tokens: {InviteSessionsByToken16.Count(x => x != null)}, queue count: {EngineThreadQueue.Count}. delays:\r\n{ETSC.PeakExecutionTimeStats}";
+        string IVisibleModule.Status => $"uptime: {TimeSWE}, socket: {_socket?.Client?.LocalEndPoint}, local peers: {LocalPeers.Count}, ConnectedPeer tokens: {ConnectedPeersByToken16.Count(x => x != null)}, InviteSession tokens: {InviteSessionsByToken16.Count(x => x != null)}, queue count: {EngineThreadQueue.Count}. delays:\r\n{ETSC.PeakExecutionTimeStats}";
         
         ushort _seq16Counter_AtoEP; // accessed only by engine thread
         internal RequestP2pSequenceNumber16 GetNewNpaSeq16_AtoEP() => new RequestP2pSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };

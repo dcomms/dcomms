@@ -33,10 +33,12 @@
                                         <ColumnDefinition Width="30*"></ColumnDefinition>
                                         <ColumnDefinition Width="100*"></ColumnDefinition>
                                     </Grid.ColumnDefinitions>
-                                    <Label Text="{Binding TimeStr, Mode=OneTime}" BackgroundColor="{Binding AttentionLevelColor, Mode=OneTime}" ></Label>
+                                    <StackLayout>                                        
+                                        <Label Text="{Binding TimeStr, Mode=OneTime}" BackgroundColor="{Binding AttentionLevelColor, Mode=OneTime}" ></Label>
+                                    </StackLayout>
                                     <Label Text="{Binding ModuleName, Mode=OneTime}" Grid.Row="1" ></Label>
                                     <!--<Label Text="{Binding AttentionLevelStr, Mode=OneTime}" Grid.Row="2" ></Label>-->
-                                    <Label Grid.Column="1" Grid.RowSpan="3" Text="{Binding Message, Mode=OneTime}" />
+                                    <Label Grid.Column="1" Grid.RowSpan="2" Text="{Binding Message, Mode=OneTime}" />
                                 </Grid>
                             </ViewCell.View>
                         </ViewCell>

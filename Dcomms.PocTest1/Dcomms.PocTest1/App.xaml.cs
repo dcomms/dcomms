@@ -9,15 +9,16 @@ namespace Dcomms.PocTest1
 {
     public partial class App : Application
     {
-        Poc1Model _poc1Model = new Poc1Model();
-        public App()
+      //  Poc1Model _poc1Model = new Poc1Model();
+        public App(Poc1Model poc1)
         {
             InitializeComponent();
+            
                         
             MainPage = new MainPage();
-            MainPage.BindingContext = _poc1Model;
+            MainPage.BindingContext = poc1;// _poc1Model;
         }
-
+        
         protected override void OnStart()
         {
             // Handle when your app starts

@@ -65,7 +65,9 @@
     <PackageReference Include="Xamarin.Essentials" Version="1.1.0" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BootCompleteBroadcastReceiver.cs" />
     <Compile Include="MainActivity.cs" />
+    <Compile Include="MainService.cs" />
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -101,7 +103,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Dcomms.PocTest1\Dcomms.PocTest1.csproj">
-      <Project>{247D51B6-3785-4161-9182-534231193291}</Project>
+      <Project>{57d15200-eea5-492d-bb04-d690c8b35d84}</Project>
       <Name>Dcomms.PocTest1</Name>
     </ProjectReference>
   </ItemGroup>

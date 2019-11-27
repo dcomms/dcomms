@@ -22,9 +22,12 @@ namespace Dcomms.PocTest1.Droid
             Xamarin.Essentials.Platform.Init(this, savedInstanceState);
             global::Xamarin.Forms.Forms.Init(this, savedInstanceState);
 
+           MainService.StartService(this, (poc1)=>
+           {
+               LoadApplication(new App(poc1));
+           });
 
 
-            LoadApplication(new App());
         }
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, [GeneratedEnum] Android.Content.PM.Permission[] grantResults)
         {
