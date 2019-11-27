@@ -12,10 +12,7 @@
                 <Button Text="clear" Command="{Binding VisionChannel.ClearLogMessages}" />
                 <Picker SelectedItem="{Binding VisionChannel.DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding VisionChannel.DisplayFilterMinLevels}" WidthRequest="70" />
 
-
                 <Entry Text="{Binding VisionChannel.DisplayFilterMessageContainsString, Mode=TwoWay}" WidthRequest="50" />
-
-
             </StackLayout>
 
             <ListView ItemsSource="{Binding VisionChannel.DisplayedLogMessages}" SeparatorVisibility="None" 
@@ -37,7 +34,6 @@
                                         <Label Text="{Binding TimeStr, Mode=OneTime}" BackgroundColor="{Binding AttentionLevelColor, Mode=OneTime}" ></Label>
                                     </StackLayout>
                                     <Label Text="{Binding ModuleName, Mode=OneTime}" Grid.Row="1" ></Label>
-                                    <!--<Label Text="{Binding AttentionLevelStr, Mode=OneTime}" Grid.Row="2" ></Label>-->
                                     <Label Grid.Column="1" Grid.RowSpan="2" Text="{Binding Message, Mode=OneTime}" />
                                 </Grid>
                             </ViewCell.View>
@@ -46,26 +42,6 @@
                 </ListView.ItemTemplate>
             </ListView>
                      
-            
-
-            <!--<DataGrid Grid.Row="1" ItemsSource="{Binding }" AutoGenerateColumns="False" >
-                <DataGrid.Columns>
-                    <DataGridTemplateColumn Header="Level" >
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}" />
-                    <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}" />
-                    <DataGridTextColumn Header="Source" Binding="{Binding SourceId, Mode=OneTime}" />
-                    <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}" />
-                    <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" />
-                </DataGrid.Columns>
-            </DataGrid>-->
-
-
         </StackLayout>
     </ContentPage.Content>
 </ContentPage>
