@@ -76,6 +76,7 @@
                     <ColumnDefinition Width="Auto" MinWidth="190"/>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" MinWidth="190"/>
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                             
@@ -104,7 +105,9 @@
 
                 <TextBlock Grid.Row="3" Grid.Column="2" Text="num of dimensions:" />
                 <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding DrpTester3.NumberOfDimensions, Mode=TwoWay}" />
-                
+
+                <CheckBox Grid.Row="0" Grid.Column="4"  IsChecked="{Binding DrpTester3.EnableMessagesTest, Mode=TwoWay}" Content="enable msgs test" />
+
 
                 <StackPanel Orientation="Horizontal" Grid.Row="5" Visibility="{Binding DrpTester3.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
                     <Button Content="Initialize" Margin="3" Command="{Binding DrpTester3.Initialize}" />
@@ -178,9 +181,6 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -194,13 +194,12 @@
                 <TextBlock Grid.Row="1" Text="remote user:" />
                 <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding DrpTester5.PredefinedUsers}" DisplayMemberPath="Name"  SelectedItem="{Binding DrpTester5.RemoteUser, Mode=TwoWay}"  />
 
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="remote EPs:" />
+                <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding DrpTester5.RemoteEpEndPointsString, Mode=TwoWay}" />
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="num of dimensions:" />
+                <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding DrpTester5.NumberOfDimensions, Mode=TwoWay}" />
 
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="remote EPs:" />
-                <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding DrpTester5.RemoteEpEndPointsString, Mode=TwoWay}" />
-                <TextBlock Grid.Row="2" Grid.Column="2" Text="num of dimensions:" />
-                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DrpTester5.NumberOfDimensions, Mode=TwoWay}" />
-
-                <StackPanel Orientation="Horizontal" Grid.Row="5" Visibility="{Binding DrpTester5.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
+                <StackPanel Orientation="Horizontal" Grid.Row="2" Visibility="{Binding DrpTester5.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
                     <Button Content="Initialize" Margin="3" Command="{Binding DrpTester5.Initialize}" />
                 </StackPanel>
             </Grid>

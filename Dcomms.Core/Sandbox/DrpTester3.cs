@@ -249,9 +249,11 @@ namespace Dcomms.Sandbox
         }
 
         #region messages test
+        public bool EnableMessagesTest { get; set; } = true;
         void BeginTestMessages()
         {
             if (_userApps.Count < 2) return;
+            if (!EnableMessagesTest) return;
 
             var contactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
             foreach (var u in _userApps)

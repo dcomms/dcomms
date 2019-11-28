@@ -350,7 +350,7 @@ namespace Dcomms.DRP
             }
             catch (Exception exc)
             {
-                WriteToLog_drpGeneral_needsAttention($"public IP address API request to {url} failed. result: '{result}': {exc}");
+                WriteToLog_drpGeneral_needsAttention($"public IP address API request to {url} failed. result: '{result}': {exc.Message}");
                 return null;
             }
         }
