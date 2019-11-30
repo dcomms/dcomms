@@ -110,6 +110,7 @@ namespace Dcomms.Vision
             lock (_logMessagesNewestFirst)
             {
                 _logMessagesNewestFirst.AddFirst(msg);
+                CleanMemoryIfNeeded(msg.Time);
             }
 
             if (_maxEmittedAttentionLevelLogMessage == null || msg.AttentionLevel >= _maxEmittedAttentionLevelLogMessage.AttentionLevel)
@@ -127,10 +128,8 @@ namespace Dcomms.Vision
                 Time = TimeNow,
                 SourceId = sourceId,
                 ModuleName = moduleName,
-                Message = message,
-                
+                Message = message,                
                 PeersListDisplayMode = peersList_RoutingPath != null ? VisiblePeersDisplayMode.routingPath : VisiblePeersDisplayMode.allPeers,
-
             };
             try
             {
@@ -143,6 +142,7 @@ namespace Dcomms.Vision
             lock (_logMessagesNewestFirst)
             {
                 _logMessagesNewestFirst.AddFirst(msg);
+                CleanMemoryIfNeeded(msg.Time);
             }
 
             if (_maxEmittedAttentionLevelLogMessage == null || msg.AttentionLevel >= _maxEmittedAttentionLevelLogMessage.AttentionLevel)
@@ -160,7 +160,7 @@ namespace Dcomms.Vision
                 Time = TimeNow,
                 SourceId = visionChannelSourceId,
                 ModuleName = moduleName,
-                Message = message,               
+                Message = message,             
 
             };
 
@@ -180,6 +180,7 @@ namespace Dcomms.Vision
             lock (_logMessagesNewestFirst)
             {
                 _logMessagesNewestFirst.AddFirst(msg);
+                CleanMemoryIfNeeded(msg.Time);
             }
             if (_maxEmittedAttentionLevelLogMessage == null || msg.AttentionLevel >= _maxEmittedAttentionLevelLogMessage.AttentionLevel)
             {
@@ -201,7 +202,6 @@ namespace Dcomms.Vision
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedLogMessages"));
         });
 
-        int _msSinceLastCleaningMemory;
         public void UpdateGui_100ms()
         {
             if (PropertyChanged != null)
@@ -209,30 +209,37 @@ namespace Dcomms.Vision
                 PropertyChanged(this, new PropertyChangedEventArgs("RefreshDisplayedLogMessagesButtonColor"));
                 PropertyChanged(this, new PropertyChangedEventArgs("MaxEmittedAttentionLevelLogMessage"));
             }
+        }
 
-            
-            _msSinceLastCleaningMemory += 100;
-            try
+
+        DateTime? _lastTimeCleanedMemory = null;
+        /// <summary>
+        /// is executed by log writer thread, so we make make minimal deadlocks here, and clean memory in a separate thread
+        /// </summary>
+        void CleanMemoryIfNeeded(DateTime timeNow) 
+        {
+            if (_lastTimeCleanedMemory == null || (timeNow - _lastTimeCleanedMemory.Value).TotalSeconds > 30)
             {
-                /*
-                    sometimes it generates exception:
-                    error in SIP Tester: 'WPF GUI thread' failed: System.Reflection.TargetInvocationException: 
-                    Exception has been thrown by the target of an invocation. ---> 
-                    System.InvalidOperationException: Couldn't get process information from performance counter. ---> 
-                    System.ComponentModel.Win32Exception: Unknown error (0xc0000017)     
-                    --- End of inner exception stack trace ---     
-                    at System.Diagnostics.NtProcessInfoHelper.GetProcessInfos()  
-                    at System.Diagnostics.ProcessManager.GetProcessInfos(String machineName)  
-                    at System.Diagnostics.Process.EnsureState(State state)     
-                    at System.Diagnostics.Process.get_PagedMemorySize64() 
-                */
-                var consumedMemoryMb = Process.GetCurrentProcess().PagedMemorySize64 / 1024 / 1024;
-               
-                if (consumedMemoryMb > EnableNewLogMessagesUntilProcessRamSizeMB)
+                _lastTimeCleanedMemory = timeNow;
+
+                try
                 {
-                    if (_msSinceLastCleaningMemory > 10000)
-                    {
-                        _msSinceLastCleaningMemory = 0;
+                    /*
+                        sometimes it generates exception:
+                        error in SIP Tester: 'WPF GUI thread' failed: System.Reflection.TargetInvocationException: 
+                        Exception has been thrown by the target of an invocation. ---> 
+                        System.InvalidOperationException: Couldn't get process information from performance counter. ---> 
+                        System.ComponentModel.Win32Exception: Unknown error (0xc0000017)     
+                        --- End of inner exception stack trace ---     
+                        at System.Diagnostics.NtProcessInfoHelper.GetProcessInfos()  
+                        at System.Diagnostics.ProcessManager.GetProcessInfos(String machineName)  
+                        at System.Diagnostics.Process.EnsureState(State state)     
+                        at System.Diagnostics.Process.get_PagedMemorySize64() 
+                    */
+                    var consumedMemoryMb = Process.GetCurrentProcess().PagedMemorySize64 / 1024 / 1024;
+
+                    if (consumedMemoryMb > EnableNewLogMessagesUntilProcessRamSizeMB)
+                    {                       
                         // clean 5% of oldest log messages
                         lock (_logMessagesNewestFirst)
                         {
@@ -240,13 +247,14 @@ namespace Dcomms.Vision
                             for (int i = 0; i < numberToDelete; i++)
                                 _logMessagesNewestFirst.RemoveLast();
                         }
+                       
                     }
+
                 }
-               
+                catch (Exception)
+                {/// intentionally ignore
+                }
             }
-            catch (Exception)
-            {/// intentionally ignore
-			}
         }
 
 

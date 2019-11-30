@@ -140,6 +140,8 @@ namespace Dcomms.DRP
                     {
                         if (WriteToLog_udp_detail_enabled) WriteToLog_udp_detail($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");
                     }
+                    else if (request.RetransmissionsCount < 10)
+                        WriteToLog_udp_needsAttention($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");                   
                     else WriteToLog_udp_lightPain($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");
                     request.OnRetransmitted();
                     SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);  

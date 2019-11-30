@@ -12,6 +12,9 @@ namespace Dcomms.PocTest1
         public DrpTester5 DrpTester5 { get; set; }
         public Poc1Model(bool drpTester5_InitializeUser1EchoResponder = false)
         {
+            VisionChannel.AttentionLevel = AttentionLevel.guiActivity;
+            VisionChannel.EnableNewLogMessagesUntilProcessRamSizeMB = 100;
+
             DrpTester5 = new DrpTester5(VisionChannel);
             if (drpTester5_InitializeUser1EchoResponder)
             {

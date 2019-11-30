@@ -166,7 +166,7 @@ namespace Dcomms.DRP
             }
             if (neighbor_along_destinationVector_exists == false)
             {
-                if (iteration < 4)
+                if (iteration < 8)
                 {
                     if (ConnectedNeighbors.Count < _configuration.AbsoluteMaxNumberOfNeighbors)
                     {                    
