@@ -19,7 +19,7 @@ namespace Dcomms.DMP
         byte[] _iv, _aesKey;
         internal byte[] AesKey => _aesKey;
         internal void DeriveKeys(ICryptoLibrary cryptoLibrary, byte[] sharedPingPongHmacKey, MessageStartPacket messageStart,
-            byte[] directChannelSharedDhSecretE)
+            byte[] directChannelSharedDhSecret)
         {
             if (Status != MessageSessionStatusCode.created) throw new InvalidOperationException();
 
@@ -27,7 +27,7 @@ namespace Dcomms.DMP
             messageStart.GetSignedFieldsForMessageHMAC(wE, false);
             wE.Write(sharedPingPongHmacKey);
             _iv = cryptoLibrary.GetHashSHA256(msE.ToArray()).Take(16).ToArray();
-            wE.Write(directChannelSharedDhSecretE);
+            wE.Write(directChannelSharedDhSecret);
             _aesKey = cryptoLibrary.GetHashSHA256(msE.ToArray());
             
             Status = MessageSessionStatusCode.inProgress;

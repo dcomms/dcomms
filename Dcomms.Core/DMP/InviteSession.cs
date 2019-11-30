@@ -54,30 +54,27 @@ namespace Dcomms.DMP
 
         byte[] MessageHMACkey;
         #region DirectChannelSharedDhSecrets  A+E
-        byte[] DirectChannelSharedDhSecretA;
-        byte[] LocalDirectChannelEcdhePrivateKeyA, LocalDirectChannelEcdhePublicKeyA;
+        byte[] DirectChannelSharedDhSecret;
+        byte[] LocalDirectChannelEcdhePrivateKey, LocalDirectChannelEcdhePublicKey;
 
-        byte[] DirectChannelSharedDhSecretE;
-        byte[] LocalDirectChannelEcdhePrivateKeyE, LocalDirectChannelEcdhePublicKeyE;
+        //byte[] DirectChannelSharedDhSecretE;
+        //byte[] LocalDirectChannelEcdhePrivateKeyE, LocalDirectChannelEcdhePublicKeyE;
 
         bool _derivedDirectChannelSharedDhSecretsAE;
         public bool DerivedDirectChannelSharedDhSecretsAE => _derivedDirectChannelSharedDhSecretsAE;
-        void DeriveDirectChannelSharedDhSecretsAE(byte[] remoteDirectChannelEcdhePublicKeyA, byte[] remoteDirectChannelEcdhePublicKeyE)
+        void DeriveDirectChannelSharedDhSecret(byte[] remoteDirectChannelEcdhePublicKey)
         {
             if (!_derivedDirectChannelSharedDhSecretsAE)
             {
                 _derivedDirectChannelSharedDhSecretsAE = true;
 
-                _localDrpPeer.Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(remoteDirectChannelEcdhePublicKeyA, $"remoteDirectChannelEcdhePublicKeyA {RemoteSessionDescription}");
-                _localDrpPeer.Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(remoteDirectChannelEcdhePublicKeyE, $"remoteDirectChannelEcdhePublicKeyE {RemoteSessionDescription}");
-
-                DirectChannelSharedDhSecretA = _localDrpPeer.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalDirectChannelEcdhePrivateKeyA, remoteDirectChannelEcdhePublicKeyA);
-                DirectChannelSharedDhSecretE = _localDrpPeer.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalDirectChannelEcdhePrivateKeyE, remoteDirectChannelEcdhePublicKeyE);
-
+                _localDrpPeer.Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(remoteDirectChannelEcdhePublicKey, $"remoteDirectChannelEcdhePublicKey {RemoteSessionDescription}");
+                DirectChannelSharedDhSecret = _localDrpPeer.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalDirectChannelEcdhePrivateKey, remoteDirectChannelEcdhePublicKey);
+                
                 if (SharedPingPongHmacKey == null) throw new InvalidOperationException();
                 PacketProcedures.CreateBinaryWriter(out var msA, out var wA);
                 wA.Write(SharedPingPongHmacKey);
-                wA.Write(DirectChannelSharedDhSecretA);
+                wA.Write(DirectChannelSharedDhSecret);
                 MessageHMACkey = _localDrpPeer.CryptoLibrary.GetHashSHA256(msA.ToArray());
               // not safe to write it to log    _localDrpPeer.Engine.WriteToLog_dc_detail($"derived keys: A={MiscProcedures.ByteArrayToString(DirectChannelSharedDhSecretA)}, E={MiscProcedures.ByteArrayToString(DirectChannelSharedDhSecretE)}"); ;
             }
@@ -123,8 +120,7 @@ namespace Dcomms.DMP
         {
             _localDrpPeer = localDrpPeer;
             _localDrpPeer.CryptoLibrary.GenerateEcdh25519Keypair(out LocalInviteAckEcdhePrivateKey, out LocalInviteAckEcdhePublicKey);
-            _localDrpPeer.CryptoLibrary.GenerateEcdh25519Keypair(out LocalDirectChannelEcdhePrivateKeyA, out LocalDirectChannelEcdhePublicKeyA);
-            _localDrpPeer.CryptoLibrary.GenerateEcdh25519Keypair(out LocalDirectChannelEcdhePrivateKeyE, out LocalDirectChannelEcdhePublicKeyE);
+            _localDrpPeer.CryptoLibrary.GenerateEcdh25519Keypair(out LocalDirectChannelEcdhePrivateKey, out LocalDirectChannelEcdhePublicKey);
 
             DirectChannelToken32 localDirectChannelToken32 = null;
             for (int i = 0; i < 100; i++)
@@ -178,11 +174,10 @@ namespace Dcomms.DMP
                 DirectChannelToken32 = RemoteSessionDescription.DirectChannelToken32,
                 PingRequestId32 = ping.PingRequestId32,                
             };
-            if (ping.PublicEcdheKeyA != null)
+            if (ping.PublicEcdheKey != null)
             {
-                pong.PublicEcdheKeyA = new EcdhPublicKey { Ecdh25519PublicKey = this.LocalDirectChannelEcdhePublicKeyA };
-                pong.PublicEcdheKeyE = new EcdhPublicKey { Ecdh25519PublicKey = this.LocalDirectChannelEcdhePublicKeyE };
-                this.DeriveDirectChannelSharedDhSecretsAE(ping.PublicEcdheKeyA.Ecdh25519PublicKey, ping.PublicEcdheKeyE.Ecdh25519PublicKey);
+                pong.PublicEcdheKey = new EcdhPublicKey { Ecdh25519PublicKey = this.LocalDirectChannelEcdhePublicKey };
+                this.DeriveDirectChannelSharedDhSecret(ping.PublicEcdheKey.Ecdh25519PublicKey);
             }
             pong.PingPongHMAC = GetPingPongHMAC(pong.GetSignedFieldsForPingPongHMAC);
 
@@ -191,7 +186,7 @@ namespace Dcomms.DMP
         }
 
 
-        public DmpPingPacket CreatePing(bool sendPublicEcdhKeysAE)
+        public DmpPingPacket CreatePing(bool sendPublicEcdhKey)
         {
             if (_disposed) throw new ObjectDisposedException(ToString());
             var r = new DmpPingPacket
@@ -199,10 +194,9 @@ namespace Dcomms.DMP
                 DirectChannelToken32 = RemoteSessionDescription.DirectChannelToken32,
                 PingRequestId32 = (uint)_insecureRandom.Next(),
             };
-            if (sendPublicEcdhKeysAE)
+            if (sendPublicEcdhKey)
             {
-                r.PublicEcdheKeyA = new EcdhPublicKey { Ecdh25519PublicKey = this.LocalDirectChannelEcdhePublicKeyA };
-                r.PublicEcdheKeyE = new EcdhPublicKey { Ecdh25519PublicKey = this.LocalDirectChannelEcdhePublicKeyE };
+                r.PublicEcdheKey = new EcdhPublicKey { Ecdh25519PublicKey = this.LocalDirectChannelEcdhePublicKey };
             }
             r.PingPongHMAC = GetPingPongHMAC(r.GetSignedFieldsForPingPongHMAC);
             return r;
@@ -220,7 +214,7 @@ namespace Dcomms.DMP
                 DmpPongPacket.GetScanner(LocalDirectChannelToken32, ping.PingRequestId32, this)); // scanner also verifies HMAC
             var pong = DmpPongPacket.Decode(pongUdpData);
 
-            this.DeriveDirectChannelSharedDhSecretsAE(pong.PublicEcdheKeyA.Ecdh25519PublicKey, pong.PublicEcdheKeyE.Ecdh25519PublicKey);
+            this.DeriveDirectChannelSharedDhSecret(pong.PublicEcdheKey.Ecdh25519PublicKey);
             if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("<< InviteSession.SetupAEkeysAsync()");
         }
 
@@ -237,7 +231,7 @@ namespace Dcomms.DMP
                 DirectChannelToken32 = RemoteSessionDescription.DirectChannelToken32,
                 MessageTimestamp64 = _localDrpPeer.Engine.Timestamp64,                
             };
-            messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecretE);
+            messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecret);
             messageStart.EncryptedMessageData = messageSession.EncryptShortSingleMessage(_localDrpPeer.CryptoLibrary, messageText);
 
             // sign with HMAC
@@ -293,7 +287,7 @@ namespace Dcomms.DMP
             var messageStart = MessageStartPacket.Decode(messageStartUdpData);
             if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("decoded MSGSTART");
 
-            messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecretE);
+            messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecret);
 
             // decrypt
             var receivedMessage = messageSession.DecryptShortSingleMessage(_localDrpPeer.CryptoLibrary, messageStart.EncryptedMessageData);

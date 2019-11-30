@@ -15,10 +15,9 @@ namespace Dcomms.DMP.Packets
         public DirectChannelToken32 DirectChannelToken32;
         public uint PingRequestId32; // is used to avoid mismatch between delyed responses and requests // is used as salt also
      //   public byte Flags;
-        const byte Flags_PublicEcdheKeysSet = 0b00000001;
+        const byte Flags_PublicEcdheKeySet = 0b00000001;
         const byte FlagsMask_MustBeZero = 0b11110000;
-        public EcdhPublicKey PublicEcdheKeyA; // nullable
-        public EcdhPublicKey PublicEcdheKeyE; // nullable
+        public EcdhPublicKey PublicEcdheKey; // nullable
         public HMAC PingPongHMAC; 
 
         public void GetSignedFieldsForPingPongHMAC(BinaryWriter writer)
@@ -26,10 +25,9 @@ namespace Dcomms.DMP.Packets
             writer.Write((byte)PacketTypes.DmpPing);
             DirectChannelToken32.Encode(writer);
             writer.Write(PingRequestId32);            
-            if (PublicEcdheKeyA != null)
+            if (PublicEcdheKey != null)
             {
-                PublicEcdheKeyA.Encode(writer);
-                PublicEcdheKeyE.Encode(writer);
+                PublicEcdheKey.Encode(writer);
             }
         }
         public byte[] Encode()
@@ -41,14 +39,13 @@ namespace Dcomms.DMP.Packets
             writer.Write(PingRequestId32);
 
             byte flags = 0;
-            if (PublicEcdheKeyA != null)
-                flags |= Flags_PublicEcdheKeysSet;
+            if (PublicEcdheKey != null)
+                flags |= Flags_PublicEcdheKeySet;
             writer.Write(flags);
 
-            if (PublicEcdheKeyA != null)
+            if (PublicEcdheKey != null)
             {
-                PublicEcdheKeyA.Encode(writer);
-                PublicEcdheKeyE.Encode(writer);
+                PublicEcdheKey.Encode(writer);
             }
 
 
@@ -72,10 +69,9 @@ namespace Dcomms.DMP.Packets
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
 
-            if ((flags & Flags_PublicEcdheKeysSet) != 0)
+            if ((flags & Flags_PublicEcdheKeySet) != 0)
             {
-                r.PublicEcdheKeyA = EcdhPublicKey.Decode(reader);
-                r.PublicEcdheKeyE = EcdhPublicKey.Decode(reader);
+                r.PublicEcdheKey = EcdhPublicKey.Decode(reader);
             }
 
             r.PingPongHMAC = HMAC.Decode(reader);
@@ -100,11 +96,10 @@ namespace Dcomms.DMP.Packets
         /// </summary>
         public DirectChannelToken32 DirectChannelToken32;
         public uint PingRequestId32;  // must match to request
-        const byte Flags_PublicEcdheKeysSet = 0b00000001;
+        const byte Flags_PublicEcdheKeySet = 0b00000001;
         const byte FlagsMask_MustBeZero = 0b11110000;
 
-        public EcdhPublicKey PublicEcdheKeyA; // nullable
-        public EcdhPublicKey PublicEcdheKeyE; // nullable
+        public EcdhPublicKey PublicEcdheKey; // nullable
 
         public HMAC PingPongHMAC; 
 
@@ -117,10 +112,9 @@ namespace Dcomms.DMP.Packets
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
 
-            if ((flags & Flags_PublicEcdheKeysSet) != 0)
+            if ((flags & Flags_PublicEcdheKeySet) != 0)
             {
-                r.PublicEcdheKeyA = EcdhPublicKey.Decode(reader);
-                r.PublicEcdheKeyE = EcdhPublicKey.Decode(reader);
+                r.PublicEcdheKey = EcdhPublicKey.Decode(reader);
             }
 
             r.PingPongHMAC = HMAC.Decode(reader);
@@ -160,10 +154,9 @@ namespace Dcomms.DMP.Packets
         public void GetSignedFieldsForPingPongHMAC(BinaryWriter writer)
         {
             GetHeaderFields(writer, DirectChannelToken32, PingRequestId32);
-            if (PublicEcdheKeyA != null)
+            if (PublicEcdheKey != null)
             {
-                PublicEcdheKeyA.Encode(writer);
-                PublicEcdheKeyE.Encode(writer);
+                PublicEcdheKey.Encode(writer);
             }
         }
                    
@@ -172,14 +165,13 @@ namespace Dcomms.DMP.Packets
             PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
             GetHeaderFields(writer, DirectChannelToken32, PingRequestId32);           
             byte flags = 0;
-            if (PublicEcdheKeyA != null)
-                flags |= Flags_PublicEcdheKeysSet;
+            if (PublicEcdheKey != null)
+                flags |= Flags_PublicEcdheKeySet;
             writer.Write(flags);
 
-            if (PublicEcdheKeyA != null)
+            if (PublicEcdheKey != null)
             {
-                PublicEcdheKeyA.Encode(writer);
-                PublicEcdheKeyE.Encode(writer);
+                PublicEcdheKey.Encode(writer);
             }
 
             PingPongHMAC.Encode(writer);
