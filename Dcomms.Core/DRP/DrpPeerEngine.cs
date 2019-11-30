@@ -192,7 +192,7 @@ namespace Dcomms.DRP
                             var neighborToken16 = PingPacket.DecodeNeighborToken16(udpData);
                             var connectedPeer = ConnectedPeersByToken16[neighborToken16];
                             if (WriteToLog_receiver_detail_enabled)
-                                WriteToLog_receiver_detail($"got connectedPeer={connectedPeer} by neighborToken16={neighborToken16.ToString("X4")} to process ping udp data {MiscProcedures.ByteArrayToString(udpData)}");
+                                WriteToLog_receiver_detail($"got connectedPeer={connectedPeer} by neighborToken16={neighborToken16.ToString("X4")} to process ping udp data {MiscProcedures.ByteArrayToString(udpData)}, hash={MiscProcedures.GetArrayHashCodeString(udpData)}");
                            
                             if (connectedPeer != null)
                             {
@@ -205,7 +205,7 @@ namespace Dcomms.DRP
                                 connectedPeer.OnReceivedPing(remoteEndpoint, udpData);
                             }
                             else
-                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16.ToString("X4")}");
+                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16.ToString("X4")}, hash={MiscProcedures.GetArrayHashCodeString(udpData)}");
 
                         } break;
                     case PacketTypes.Pong:
@@ -223,7 +223,7 @@ namespace Dcomms.DRP
                                 connectedPeer.OnReceivedPong(remoteEndpoint, udpData, receivedAtUtc);
                             }
                             else
-                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16.ToString("X4")}");
+                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16.ToString("X4")}, hash={MiscProcedures.GetArrayHashCodeString(udpData)}");
                         }
                         break;
                     case PacketTypes.RegisterReq:
@@ -240,7 +240,7 @@ namespace Dcomms.DRP
                                 _ = connectedPeer.OnReceivedRegisterReq(remoteEndpoint, udpData, receivedAtUtc);
                             }
                             else
-                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
+                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}, hash={MiscProcedures.GetArrayHashCodeString(udpData)}");
                         }
                         break;
                     case PacketTypes.InviteReq:
@@ -257,7 +257,7 @@ namespace Dcomms.DRP
                                 _ = connectedPeer.OnReceivedInviteReq(remoteEndpoint, udpData, receivedAtUtc);
                             }
                             else
-                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}");
+                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}, hash={MiscProcedures.GetArrayHashCodeString(udpData)}");
                         }
                         break;
                     case PacketTypes.DmpPing:
@@ -267,11 +267,12 @@ namespace Dcomms.DRP
                             if (session != null)
                                 session.OnReceivedDmpPing(remoteEndpoint, udpData);
                             else
-                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid DcToken={dcToken16}");
+                                WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid DcToken={dcToken16}, hash={MiscProcedures.GetArrayHashCodeString(udpData)}");
                         }
                         break;
                     default:
-                        WriteToLog_receiver_detail($"packet {packetType} from {remoteEndpoint} is unhandled");
+                        if (WriteToLog_receiver_detail_enabled)
+                            WriteToLog_receiver_detail($"packet {packetType} from {remoteEndpoint} is unhandled, hash={MiscProcedures.GetArrayHashCodeString(udpData)}");
                         break;
                 }
             }, $"ProcRecv {packetType}");

@@ -298,7 +298,7 @@ namespace Dcomms.DRP
                 r += $", req={(PacketTypes)RequestPacketDataNullable[0]} (hash={MiscProcedures.GetArrayHashCodeString(RequestPacketDataNullable)})";
             if (ResponseScanner != null && ResponseScanner.ResponseFirstBytes != null)
                 r += $", resp={(PacketTypes)ResponseScanner.ResponseFirstBytes[0]}";
-            r += $", timeout={_expirationTimeoutS}s]";
+            r += $", timeout={_expirationTimeoutS}s, compl.Action={CompletionActionVisibleId}]";
             return r;
         }
         public int RetransmissionsCount { get; private set; }

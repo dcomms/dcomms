@@ -83,7 +83,7 @@ namespace Dcomms.Sandbox
         {
             _visionChannel = visionChannel;
             _visionChannel.VisiblePeersDelegate = () => { return VisiblePeers.ToList(); };
-            RemoteEpEndPointsString = "192.99.160.225:12000";
+            RemoteEpEndPointsString = "192.99.160.225:12000;163.172.210.13:12000;195.154.173.208:12000;5.135.179.50:12000";
             
             LocalUser = PredefinedUsers[0];
             RemoteUser = PredefinedUsers[1];
@@ -319,6 +319,8 @@ namespace Dcomms.Sandbox
             if (Initialized) throw new InvalidOperationException();
             Initialized = true;
             RaisePropertyChanged(() => Initialized);
+
+            _visionChannel.ClearModules();
             this.VisionChannelSourceId = $"U{LocalUser.Name}{(LocalUser.SendOrEcho?"S":"R")}";
 
 

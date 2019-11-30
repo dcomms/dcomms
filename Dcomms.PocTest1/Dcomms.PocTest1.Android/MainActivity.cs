@@ -7,6 +7,7 @@ using Android.Views;
 using Android.Widget;
 using Android.OS;
 using Android.Content;
+using Android;
 
 namespace Dcomms.PocTest1.Droid
 {
@@ -33,12 +34,20 @@ namespace Dcomms.PocTest1.Droid
         void RequestToIgnoreBatteryOptimizations()
         {
             var pm = (PowerManager)Application.Context.GetSystemService(Context.PowerService);
-
             if (!pm.IsIgnoringBatteryOptimizations(this.PackageName))
-            {              
-                var myIntent = new Intent();
-                myIntent.SetAction(Android.Provider.Settings.ActionIgnoreBatteryOptimizationSettings);
-                StartActivity(myIntent);
+            {
+                var intent = new Intent();
+                if (CheckSelfPermission(Manifest.Permission.RequestIgnoreBatteryOptimizations) == Permission.Granted)
+                {
+                    intent.SetAction(Android.Provider.Settings.ActionRequestIgnoreBatteryOptimizations);
+                    intent.SetData(Android.Net.Uri.Parse("package:" + Android.App.Application.Context.PackageName));
+                    this.StartActivity(intent);
+                }
+                else
+                {
+                    intent.SetAction(Android.Provider.Settings.ActionIgnoreBatteryOptimizationSettings);
+                    StartActivity(intent);
+                }
             }
 
         }

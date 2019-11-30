@@ -94,7 +94,15 @@ namespace Dcomms.Vision
                 _visibleModulesByPath.Remove(visionChannelSourceId + PathSeparator + path);
             }
         }
-        
+        public void ClearModules()
+        {
+            lock (_visibleModulesByPath)
+            {
+                _visibleModulesByPath.Clear();
+            }
+        }
+
+
         public Func<List<IVisiblePeer>> VisiblePeersDelegate = null;
 
         public virtual void EmitListOfPeers(string visionChannelSourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList_RoutedPath = null, IVisiblePeer selectedPeer = null)

@@ -100,6 +100,7 @@ namespace Dcomms.Sandbox
         {
             _visionChannel = visionChannel;
             _visionChannel.VisiblePeersDelegate = () => { return VisiblePeers.ToList(); };
+            RemoteEpEndPointsString = "192.99.160.225:12000;163.172.210.13:12000;195.154.173.208:12000;5.135.179.50:12000";
         }
 
         public ICommand Initialize => new DelegateCommand(() =>
@@ -153,25 +154,19 @@ namespace Dcomms.Sandbox
 
             epEngine.BeginCreateLocalPeer(epLocalDrpPeerConfig, epApp, (localDrpPeer) =>
             {
+                var connectToEpsList = _localEpApps.Select(x => x.LocalDrpPeerEndpoint).ToList(); // make a list of EPs   WITHOUT this new EP
                 epApp.LocalDrpPeer = localDrpPeer;
-                
-                var connectToEpsList = _localEpApps.ToList();
                 _localEpApps.Add(epApp);
                 _visionChannel.Emit(epEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                     AttentionLevel.guiActivity, $"created local EP #{localEpIndex}/{NumberOfLocalInterconnectedEpEngines}");
-
+                
+                if (RemoteEpEndPoints != null)
+                    connectToEpsList.AddRange(RemoteEpEndPoints.Where(x => !connectToEpsList.Contains(x) && !x.Equals(epApp.LocalDrpPeerEndpoint)));
                 if (connectToEpsList.Count != 0)
                 {
                     _visionChannel.Emit(epEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                         AttentionLevel.guiActivity, $"connecting with {connectToEpsList.Count} other EPs...");
-
-                    var connectToEpEndpoints = new List<IPEndPoint>();
-                    foreach (var connectToEp in connectToEpsList)
-                        connectToEpEndpoints.Add(                            
-                                new IPEndPoint(connectToEp.LocalDrpPeer.PublicIpApiProviderResponse, 
-                                    connectToEp.DrpPeerEngine.Configuration.LocalPort.Value));
-                    
-                    epApp.LocalDrpPeer.BeginConnectToEPs(connectToEpEndpoints.ToArray(), () =>
+                    epApp.LocalDrpPeer.BeginConnectToEPs(connectToEpsList.ToArray(), () =>
                     {
                         BeginCreateLocalEpOrContinue(localEpIndex + 1);
                     });
@@ -202,7 +197,8 @@ namespace Dcomms.Sandbox
             });
             var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
 
-            var epEndpoints = RemoteEpEndPoints.ToList();
+            var epEndpoints = new List<IPEndPoint>();
+            if (RemoteEpEndPoints != null) epEndpoints.AddRange(RemoteEpEndPoints);
             epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPort.Value)));
             localDrpPeerConfiguration.EntryPeerEndpoints = epEndpoints.ToArray();
 
@@ -349,7 +345,7 @@ _retry:
         void BeginTestMessage3(MessagesTest test, DrpTesterPeerApp peer1, DrpTesterPeerApp peer2, Stopwatch sw, string text)
         {
             var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(peer1.DrpPeerEngine.CryptoLibrary, peer1.UserId, peer1.UserRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(1));
-            peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, null, (exc) =>
+            peer1.LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, peer2.LocalDrpPeer.Configuration.LocalPeerRegistrationId, peer2.UserId, text, TimeSpan.FromSeconds(60), (exc) =>
             {
                 BeginVerifyReceivedMessage(test, peer1, peer2, text, sw, Stopwatch.StartNew());
             });
@@ -374,18 +370,12 @@ _retry:
                     return;
                 }
 
-                var swMs = sw.Elapsed.TotalMilliseconds;
-                var tryAgain = swMs < 15000;
                 _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                   tryAgain ? AttentionLevel.mediumPain : AttentionLevel.strongPain,
-                   $"sw:{swMs}ms, test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{sentText}. {test.Report}. tryAgain={tryAgain}");
-                if (tryAgain)
-                {
-                    BeginTestMessage3(test, peer1, peer2, sw, sentText);
-                    return;
-                }
+                   AttentionLevel.mediumPain,
+                   $"test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{sentText}. {test.Report}");
+             
                 var failedCount = test.OnFailed(_visionChannel.TimeNow);
-                if (failedCount >= 1)
+                if (failedCount >= 100)
                 {
                     _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                               AttentionLevel.strongPain,

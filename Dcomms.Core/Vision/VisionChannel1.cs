@@ -12,7 +12,7 @@ namespace Dcomms.Vision
     public class VisionChannel1 : VisionChannel, INotifyPropertyChanged
     {
         public bool AttentionToRoutedPath { get; set; } = true;
-        public AttentionLevel AttentionLevel { get; set; } = AttentionLevel.deepDetail;
+        public AttentionLevel AttentionLevel { get; set; } = AttentionLevel.guiActivity;
         public AttentionLevel DisplayFilterMinLevel { get; set; } = AttentionLevel.guiActivity;
         public override AttentionLevel GetAttentionTo(string visionChannelSourceId, string moduleName)
         {
@@ -91,7 +91,7 @@ namespace Dcomms.Vision
 
         public LinkedList<LogMessage> _logMessagesNewestFirst = new LinkedList<LogMessage>(); // locked
         public bool EnableNewLogMessages { get; set; } = true;
-        public int EnableNewLogMessagesUntilProcessRamSizeMB { get; set; } = 10000;
+        public int EnableNewLogMessagesUntilProcessRamSizeMB { get; set; } = 1000;
         
         public event PropertyChangedEventHandler PropertyChanged;
 

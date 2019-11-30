@@ -4,6 +4,7 @@ using Dcomms.DRP.Packets;
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 
 namespace Dcomms.Sandbox
@@ -19,6 +20,8 @@ namespace Dcomms.Sandbox
         public readonly DrpPeerEngine DrpPeerEngine;
         public readonly LocalDrpPeerConfiguration DrpPeerRegistrationConfiguration;
         public LocalDrpPeer LocalDrpPeer;
+        public IPEndPoint LocalDrpPeerEndpoint => new IPEndPoint(LocalDrpPeer.PublicIpApiProviderResponse,
+                                    DrpPeerEngine.Configuration.LocalPort.Value);
         public bool EchoMessages;
         public DrpTesterPeerApp(DrpPeerEngine drpPeerEngine, LocalDrpPeerConfiguration drpPeerRegistrationConfiguration, UserRootPrivateKeys userRootPrivateKeys = null, UserId userId = null)
         {

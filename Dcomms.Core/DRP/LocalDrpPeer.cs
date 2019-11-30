@@ -389,12 +389,12 @@ namespace Dcomms.DRP
                 try
                 {
                     await BeginConnectToEPsAsync(endpoints);
-                    cb();
                 }
                 catch (Exception exc)
                 {
                     Engine.HandleGeneralException("BeginConnectToEPs failed", exc);
                 }
+                cb();
             }, "BeginConnectToEPs4695");
 
         }
