@@ -225,7 +225,7 @@
                                 <CheckBox IsChecked="{Binding EnableNewLogMessages, Mode=TwoWay}" Content="enable new" />
                                 
                                 <TextBlock Text="until RAM (MB): " />
-                                <TextBox MinWidth="50" Text="{Binding EnableNewLogMessagesUntilProcessRamSizeMB, Mode=TwoWay}" />
+                                <TextBox MinWidth="50" Text="{Binding ClearLog_RamSizeMB, Mode=TwoWay}" />
                                 
                                 
                                 <TextBlock Text="Filter:" />

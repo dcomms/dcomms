@@ -91,8 +91,9 @@ namespace Dcomms.Vision
 
         public LinkedList<LogMessage> _logMessagesNewestFirst = new LinkedList<LogMessage>(); // locked
         public bool EnableNewLogMessages { get; set; } = true;
-        public int EnableNewLogMessagesUntilProcessRamSizeMB { get; set; } = 1000;
-        
+        public int ClearLog_RamSizeMB { get; set; } = 1000;
+        public int? ClearLog_MessagesCount { get; set; }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         public override void Emit(string sourceId, string moduleName, AttentionLevel level, string message)
@@ -222,6 +223,15 @@ namespace Dcomms.Vision
             {
                 _lastTimeCleanedMemory = timeNow;
 
+                if (ClearLog_MessagesCount.HasValue)
+                {
+                    lock (_logMessagesNewestFirst)
+                    {
+                        while (_logMessagesNewestFirst.Count > ClearLog_MessagesCount.Value)                       
+                            _logMessagesNewestFirst.RemoveLast();
+                    }
+                }
+
                 try
                 {
                     /*
@@ -238,7 +248,7 @@ namespace Dcomms.Vision
                     */
                     var consumedMemoryMb = Process.GetCurrentProcess().PagedMemorySize64 / 1024 / 1024;
 
-                    if (consumedMemoryMb > EnableNewLogMessagesUntilProcessRamSizeMB)
+                    if (consumedMemoryMb > ClearLog_RamSizeMB)
                     {                       
                         // clean 5% of oldest log messages
                         lock (_logMessagesNewestFirst)
@@ -246,10 +256,8 @@ namespace Dcomms.Vision
                             int numberToDelete = _logMessagesNewestFirst.Count / 50;
                             for (int i = 0; i < numberToDelete; i++)
                                 _logMessagesNewestFirst.RemoveLast();
-                        }
-                       
+                        }                       
                     }
-
                 }
                 catch (Exception)
                 {/// intentionally ignore
