@@ -94,7 +94,7 @@ namespace Dcomms.DRP.Packets
 
             r.NeighborHMAC = HMAC.Decode(reader);
             if (r.NeighborHMAC.Equals(receivedFromNeighbor.GetNeighborHMAC(r.GetSignedFieldsForNeighborHMAC)) == false)
-                throw new BadSignatureException();
+                throw new BadSignatureException("invalid INVITE REQ NeighborHMAC 5902");
 
             return r;
         }

@@ -94,13 +94,13 @@ namespace Dcomms.DRP.Packets
             
             // verify NeighborToken32
             if (!r.NeighborToken32.Equals(connectedPeerWhoSentTheRequest.LocalNeighborToken32))
-                throw new BadSignatureException();
+                throw new BadSignatureException("invalid PING NeighborToken32 23478");
 
             // verify NeighborHMAC
             if (r.NeighborHMAC.Equals(
                 connectedPeerWhoSentTheRequest.GetNeighborHMAC(r.GetSignedFieldsForNeighborHMAC)
                 ) == false)
-                throw new BadSignatureException();
+                throw new BadSignatureException("invalid PING NeighborHMAC 4701");
 
             return r;
         }
@@ -174,7 +174,7 @@ namespace Dcomms.DRP.Packets
             if (r.NeighborHMAC.Equals(expectedHMAC) == false)
             {
                 connectedPeerWhoSentTheResponse.Engine.WriteToLog_p2p_detail(connectedPeerWhoSentTheResponse, $"incorrect sender HMAC in ping response: {r.NeighborHMAC}. expected: {expectedHMAC}", null);
-                throw new BadSignatureException();
+                throw new BadSignatureException("invalid PONG NeighborHMAC 23494");
             }
           
             return r;

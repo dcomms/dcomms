@@ -121,8 +121,6 @@ _retry:
                     var ack1UdpData = await sentRequest.SendRequestAsync("ack1 4146");
                                        
                     #region process ACK1
-                  /////////////////////////////////////////////////////////////////////  await destinationPeer.SendUdpRequestAsync_Retransmit_WaitForNPACK("ack1 26892", reqUdpData, req.ReqP2pSeq16, req.GetSignedFieldsForNeighborHMAC);
-               
                     // NeighborHMAC and NeighborToken32 are already verified by scanner
                     ack1 = InviteAck1Packet.Decode(ack1UdpData);
                     Engine.RecentUniquePublicEcdhKeys.AssertIsUnique(ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey, $"ack1.ResponderEcdhePublicKey");
@@ -132,7 +130,7 @@ _retry:
                             ack1.GetSharedSignedFields(w, true);
                         },
                         responderRegistrationId))
-                        throw new BadSignatureException();
+                        throw new BadSignatureException("invalid REGISTER ACK1 ResponderRegistrationSignature 2349");
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"verified ACK1");
                     session.DeriveSharedInviteAckDhSecret(Engine.CryptoLibrary, ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
@@ -213,7 +211,7 @@ _retry:
                         ack2.GetSharedSignedFields(w);
                     },
                     responderRegistrationId))
-                    throw new BadSignatureException();
+                    throw new BadSignatureException("invalid REGISTER CFM ResponderRegistrationSignature 6398");
 
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"verified CFM");
 

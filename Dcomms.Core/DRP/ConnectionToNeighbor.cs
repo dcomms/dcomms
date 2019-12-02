@@ -611,7 +611,7 @@ namespace Dcomms.DRP
                 // NeighborToken32 and NeighborHMAC are verified at this time
 
                 if (!_engine.ValidateReceivedReqTimestamp32S(req.ReqTimestamp32S))
-                    throw new BadSignatureException();
+                    throw new BadSignatureException($"invalid INVITE REQ ReqTimestamp32S={MiscProcedures.Uint32secondsToDateTime(req.ReqTimestamp32S)}");
 
                 this.LocalDrpPeer.TestDirection(logger, req.ResponderRegistrationId);
                 var routedRequest = new RoutedRequest(logger, this,  requesterEndpoint, reqReceivedTimeUtc, req, null);

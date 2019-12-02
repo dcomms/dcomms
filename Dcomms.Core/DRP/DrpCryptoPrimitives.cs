@@ -758,7 +758,7 @@ namespace Dcomms.DRP
         public static RegistrationSignature DecodeAndVerify(BinaryReader reader, ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, RegistrationId publicKey)
         {
             var r = Decode(reader);  
-            if (!r.Verify(cryptoLibrary, writeSignedFields, publicKey)) throw new BadSignatureException();     
+            if (!r.Verify(cryptoLibrary, writeSignedFields, publicKey)) throw new BadSignatureException("invalid registration signature 135");     
             return r;
         }
         public bool Verify(ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, RegistrationId publicKey)

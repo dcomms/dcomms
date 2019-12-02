@@ -54,7 +54,7 @@ namespace Dcomms.DRP
 
             // verify requester reg. signature
             if (!req.RequesterRegistrationSignature.Verify(Engine.CryptoLibrary, req.GetSharedSignedFields, req.RequesterRegistrationId))
-                throw new BadSignatureException();
+                throw new BadSignatureException("invalid  INVITE REQ RequesterRegistrationSignature 2349");
             
             _pendingInviteRequests.Add(req.RequesterRegistrationId);
 
@@ -125,7 +125,7 @@ namespace Dcomms.DRP
                             ack1.GetSharedSignedFields(w, true);
                             ack2.GetSharedSignedFields(w);
                         }, req.RequesterRegistrationId))
-                        throw new BadSignatureException();
+                        throw new BadSignatureException("invalid INVITE ACK2 RequesterRegistrationSignature 2348");
                     // decrypt, verify SD remote user's certificate and signature
                     session.RemoteSessionDescription = InviteSessionDescription.Decrypt_Verify(Engine.CryptoLibrary,
                         ack2.ToRequesterSessionDescriptionEncrypted,

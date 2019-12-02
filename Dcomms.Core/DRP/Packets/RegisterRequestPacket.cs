@@ -218,7 +218,7 @@ namespace Dcomms.DRP.Packets
             {
                 r.NeighborHMAC = HMAC.Decode(reader);
                 if (r.NeighborHMAC.Equals(receivedFromNeighborNullable.GetNeighborHMAC(r.GetSignedFieldsForNeighborHMAC)) == false)
-                    throw new BadSignatureException();
+                    throw new BadSignatureException("invalid REGISTER REQ NeighborHMAC 1573");
             }
 
             return r;

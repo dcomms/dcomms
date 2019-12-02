@@ -322,7 +322,7 @@ namespace Dcomms.DMP
                 w.Write(messageStart.EncryptedMessageData);
                 w.Write(messageAck.ReceiverFinalNonce);
             }, senderUserCertificate))
-                throw new BadSignatureException();
+                throw new BadSignatureException("bad MSGPART sender signature 3408");
             if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("verified sender signature");
 
             // send msgack status=finalSignatureVerified

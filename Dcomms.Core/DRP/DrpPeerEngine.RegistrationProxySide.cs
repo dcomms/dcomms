@@ -56,7 +56,7 @@ namespace Dcomms.DRP
             logger.WriteToLog_higherLevelDetail($"proxying {req}: requesterEndpoint={routedRequest.ReceivedFromEndpoint}, NumberOfHopsRemaining={req.NumberOfHopsRemaining}, ReqP2pSeq16={req.ReqP2pSeq16}, destinationPeer={destinationPeer}, sourcePeer={routedRequest.ReceivedFromNeighborNullable}");
             
             if (!ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
-                throw new BadSignatureException();
+                throw new BadSignatureException($"invalid REGISTER REQ ReqTimestamp64={MiscProcedures.Int64ticksToDateTime(req.ReqTimestamp64)} 3507");
 
             req.NumberOfHopsRemaining--;
             if (req.NumberOfHopsRemaining == 0)

@@ -192,7 +192,7 @@ namespace Dcomms.DRP.Packets
                         ack.GetSharedSignedFields(w, false, true);
                     },
                     reqNullable.RequesterRegistrationId))
-                    throw new BadSignatureException();
+                    throw new BadSignatureException("invalid REGISTER ACK2 RequesterSignature 6106");
             }
 
             ack.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);

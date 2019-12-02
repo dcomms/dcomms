@@ -78,13 +78,13 @@ namespace Dcomms.DMP.Packets
 
             // verify DirectChannelToken32
             if (!r.DirectChannelToken32.Equals(session.LocalSessionDescription.DirectChannelToken32))
-                throw new BadSignatureException();
+                throw new BadSignatureException("invalid DMP PING DirectChannelToken32 136");
 
             // verify PingPongHMAC
             if (r.PingPongHMAC.Equals(
                 session.GetPingPongHMAC(r.GetSignedFieldsForPingPongHMAC)
                 ) == false)
-                throw new BadSignatureException();
+                throw new BadSignatureException("invalid DMP PING PingPongHMAC 1237");
 
             return r;
         }
