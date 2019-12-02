@@ -118,7 +118,18 @@ namespace Dcomms.Vision
             {
                 _maxEmittedAttentionLevelLogMessage = msg;
             }
+
+            if (msg.AttentionLevel >= AttentionLevel.mediumPain)
+                try
+                {
+                    SevereMessageEmitted?.Invoke(msg);
+                }
+                catch
+                {
+                }
         }
+        public event Action<LogMessage> SevereMessageEmitted; // is used to pass errors to android adb log
+
         public override void EmitListOfPeers(string sourceId, string moduleName, AttentionLevel level, string message, List<IVisiblePeer> peersList_RoutingPath, IVisiblePeer selectedPeer)
         {
             if (!EnableNewLogMessages) return;
@@ -472,6 +483,26 @@ _retry:
             {
                 return MiscProcedures.EqualFloatArrays(this.VectorValues, ((ClonedVisiblePeer)obj).VectorValues);
             }
+        }
+
+
+
+
+        public VisionChannel1()
+        {
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
+            System.Threading.Tasks.TaskScheduler.UnobservedTaskException += TaskSchedulerOnUnobservedTaskException;
+        }
+
+        private void TaskSchedulerOnUnobservedTaskException(object sender, System.Threading.Tasks.UnobservedTaskExceptionEventArgs ea)
+        {
+            ea.SetObserved();
+            Emit("TaskScheduler", "", AttentionLevel.strongPain, $"error in TaskScheduler: {ea.Exception}");
+        }
+
+        private void CurrentDomainOnUnhandledException(object sender, UnhandledExceptionEventArgs ea)
+        {
+            Emit("AppDomain.CurrentDomain", "", AttentionLevel.strongPain, $"error in AppDomain.CurrentDomain: {ea.ExceptionObject}");
         }
     }
 }

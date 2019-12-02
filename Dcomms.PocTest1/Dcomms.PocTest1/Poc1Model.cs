@@ -21,7 +21,16 @@ namespace Dcomms.PocTest1
             {
                 DrpTester5.InitializeUser1EchoResponder.Execute(null);
             }
+
+            VisionChannel.SevereMessageEmitted += VisionChannel_SevereMessageEmitted;
         }
+
+        private void VisionChannel_SevereMessageEmitted(VisionChannel1.LogMessage msg)
+        {
+            SevereError?.Invoke(msg.Message);
+        }
+
+        public event Action<string> SevereError;
         public void Dispose()
         {
             DrpTester5.Dispose();
