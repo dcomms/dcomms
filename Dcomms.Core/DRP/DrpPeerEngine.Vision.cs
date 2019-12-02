@@ -160,12 +160,14 @@ namespace Dcomms.DRP
         }
         void HandleExceptionWhileConnectingToEP(IPEndPoint epEndpoint, Exception exc)
         {
-
             if (exc is BadSignatureException) { WriteToLog_attacks_strongPain($"exception while connection to EP: {exc}"); return; }
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.mediumPain)
-                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.detail, $"exception while connecting to EP {epEndpoint}: {exc}");
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.detail,
+                    $"exception while connecting to EP {epEndpoint} (SystemClock={DateTimeNowUtc}UTC make sure that it is valid): {exc}");
 
             // todo: analyse if it is malformed packet received from attacker's EP
+
+            // todo try to get correct time UTC
             
         }
         internal void HandleGeneralException(string prefix, Exception exc)

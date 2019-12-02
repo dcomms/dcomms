@@ -13,7 +13,7 @@ namespace Dcomms.DRP
         {
             var req = routedRequest.RegisterReq;
             if (!ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
-                throw new BadSignatureException($"invalid REGISTER REQ ReqTimestamp64={MiscProcedures.Int64ticksToDateTime(req.ReqTimestamp64)} 265");
+                throw new BadSignatureException($"invalid REGISTER REQ 265 ReqTimestamp64={MiscProcedures.Int64ticksToDateTime(req.ReqTimestamp64)}");
 
             if (PendingRegisterRequestExists(req.RequesterRegistrationId))
             {
@@ -78,7 +78,7 @@ namespace Dcomms.DRP
                         req.RequesterRegistrationId
                     )
                 )
-                throw new BadSignatureException("invalid REEGISTER REQ RequesterSignature 2396");
+                throw new BadSignatureException("invalid REGISTER REQ RequesterSignature 2396");
 
             if (routedRequest.ReceivedFromNeighborNullable == null)
             { // A-EP mode

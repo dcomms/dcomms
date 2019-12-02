@@ -78,6 +78,9 @@ _retry:
                 var sw = Stopwatch.StartNew();
                 RoutedRequest routedRequest = null;
                 int trialsCount = 0;
+                Exception latestTriedNeighborException = null;
+
+
  _retry:
                 trialsCount++;
                 session = new InviteSession(this);
@@ -110,12 +113,16 @@ _retry:
              
                 // find best connected peer to send the request
                 var destinationPeer = Engine.RouteInviteRequest(this, routedRequest);
-                if (destinationPeer == null) throw new NoNeighborsToSendInviteException();
+                if (destinationPeer == null)
+                {
+                    if (latestTriedNeighborException == null) throw new NoNeighborsToSendInviteException();
+                    else throw latestTriedNeighborException;
+                }
                 InviteAck1Packet ack1;
                 try
                 {
                     var reqUdpData = req.Encode_SetP2pFields(destinationPeer);
-                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending {req}, waiting for NPACK");
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending {req} (ReqTimestamp32S={MiscProcedures.Uint32secondsToDateTime(req.ReqTimestamp32S)}), waiting for NPACK");
 
                     var sentRequest = new SentRequest(Engine, logger, destinationPeer.RemoteEndpoint, destinationPeer, reqUdpData, req.ReqP2pSeq16, InviteAck1Packet.GetScanner(logger, req, destinationPeer));
                     var ack1UdpData = await sentRequest.SendRequestAsync("ack1 4146");
@@ -140,6 +147,7 @@ _retry:
                 }
                 catch (RequestFailedException exc2)
                 {
+                    latestTriedNeighborException = exc2;
                     if (trialsCount > 50) throw;
                     logger.WriteToLog_higherLevelDetail($"trying again on error {exc2.Message}... alreadyTriedProxyingToDestinationPeers.Count={routedRequest.TriedNeighbors.Count}");
                     routedRequest.TriedNeighbors.Add(destinationPeer);

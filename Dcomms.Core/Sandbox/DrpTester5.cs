@@ -83,7 +83,7 @@ namespace Dcomms.Sandbox
         {
             _visionChannel = visionChannel;
             _visionChannel.VisiblePeersDelegate = () => { return VisiblePeers.ToList(); };
-            RemoteEpEndPointsString = "192.99.160.225:12000;163.172.210.13:12000;195.154.173.208:12000;5.135.179.50:12000";
+            RemoteEpEndPointsString = "192.99.160.225:12000;195.154.173.208:12000;5.135.179.50:12000";
             
             LocalUser = PredefinedUsers[0];
             RemoteUser = PredefinedUsers[1];
@@ -109,14 +109,14 @@ namespace Dcomms.Sandbox
 
         public ICommand Deinitialize => new DelegateCommand(() =>
         {
-            if (!Initialized) throw new InvalidOperationException();
+            if (Initialized)
+            {
+                if (_userApp != null)
+                    _userApp.DrpPeerEngine.Dispose();
 
-            if (_userApp != null)
-                _userApp.DrpPeerEngine.Dispose();
-
-            Initialized = false;
-            RaisePropertyChanged(() => Initialized);
-
+                Initialized = false;
+                RaisePropertyChanged(() => Initialized);
+            }
         });
 
         public class PredefinedUser
@@ -285,6 +285,7 @@ namespace Dcomms.Sandbox
         public ICommand InitializeUser1Sender => new DelegateCommand(() =>
         {
             LocalUser = PredefinedUsers[0];
+            RemoteUser = PredefinedUsers[1];
             Initialize.Execute(null);
         });
         public ICommand InitializeUser1EchoResponder => new DelegateCommand(() =>
@@ -295,6 +296,7 @@ namespace Dcomms.Sandbox
         public ICommand InitializeUser2Sender => new DelegateCommand(() =>
         {
             LocalUser = PredefinedUsers[2];
+            RemoteUser = PredefinedUsers[3];
             Initialize.Execute(null);
         });
         public ICommand InitializeUser2EchoResponder => new DelegateCommand(() =>
@@ -305,6 +307,7 @@ namespace Dcomms.Sandbox
         public ICommand InitializeUser3Sender => new DelegateCommand(() =>
         {
             LocalUser = PredefinedUsers[4];
+            RemoteUser = PredefinedUsers[5];
             Initialize.Execute(null);
         });
         public ICommand InitializeUser3EchoResponder => new DelegateCommand(() =>
@@ -316,57 +319,59 @@ namespace Dcomms.Sandbox
 
         public ICommand Initialize => new DelegateCommand(() =>
         {
-            if (Initialized) throw new InvalidOperationException();
-            Initialized = true;
-            RaisePropertyChanged(() => Initialized);
-
-            _visionChannel.ClearModules();
-            this.VisionChannelSourceId = $"U{LocalUser.Name}{(LocalUser.SendOrEcho?"S":"R")}";
-
-
-            var userEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
+            if (!Initialized)
             {
-                InsecureRandomSeed = _insecureRandom.Next(),
-                VisionChannel = _visionChannel,
-                VisionChannelSourceId = VisionChannelSourceId,
-                SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
-            });
+                Initialized = true;
+                RaisePropertyChanged(() => Initialized);
 
-            //var user4DrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
-            //UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), userEngine.CryptoLibrary, out var userRootPrivateKeys4, out var userId4);
+                _visionChannel.ClearModules();
+                this.VisionChannelSourceId = $"U{LocalUser.Name}{(LocalUser.SendOrEcho ? "S" : "R")}";
 
-            //var user5DrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
-            //UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), userEngine.CryptoLibrary, out var userRootPrivateKeys5, out var userId5);
 
-            var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions, 
-                LocalUser.RegistrationId_ed25519privateKey, LocalUser.RegistrationId);
+                var userEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
+                {
+                    InsecureRandomSeed = _insecureRandom.Next(),
+                    VisionChannel = _visionChannel,
+                    VisionChannelSourceId = VisionChannelSourceId,
+                    SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
+                });
 
-            var epEndpoints = RemoteEpEndPoints.ToList();
-            localDrpPeerConfiguration.EntryPeerEndpoints = RemoteEpEndPoints;
+                //var user4DrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
+                //UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), userEngine.CryptoLibrary, out var userRootPrivateKeys4, out var userId4);
 
-            _userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration, LocalUser.UserRootPrivateKeys, LocalUser.UserId) { EchoMessages = LocalUser.SendOrEcho == false };
+                //var user5DrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
+                //UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), userEngine.CryptoLibrary, out var userRootPrivateKeys5, out var userId5);
 
-            var contactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
-            foreach (var u in PredefinedUsers)
-                contactBookUsersByRegId.Add(u.RegistrationId, u.UserId);
-            _userApp.ContactBookUsersByRegId = contactBookUsersByRegId;
-            
-            if (epEndpoints.Count == 0) throw new Exception("no endpoints for users to register");
+                var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions,
+                    LocalUser.RegistrationId_ed25519privateKey, LocalUser.RegistrationId);
 
-            var sw = Stopwatch.StartNew();
-            _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registering (adding first neighbor)... via {epEndpoints.Count} EPs");
-            userEngine.BeginRegister(localDrpPeerConfiguration, _userApp, (localDrpPeer) =>
-            {
-                _userApp.LocalDrpPeer = localDrpPeer;
-                _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
-                var waitForNeighborsSw = Stopwatch.StartNew();
+                var epEndpoints = RemoteEpEndPoints.ToList();
+                localDrpPeerConfiguration.EntryPeerEndpoints = RemoteEpEndPoints;
+
+                _userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration, LocalUser.UserRootPrivateKeys, LocalUser.UserId) { EchoMessages = LocalUser.SendOrEcho == false };
+
+                var contactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
+                foreach (var u in PredefinedUsers)
+                    contactBookUsersByRegId.Add(u.RegistrationId, u.UserId);
+                _userApp.ContactBookUsersByRegId = contactBookUsersByRegId;
+
+                if (epEndpoints.Count == 0) throw new Exception("no endpoints for users to register");
+
+                var sw = Stopwatch.StartNew();
+                _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registering (adding first neighbor)... via {epEndpoints.Count} EPs");
+                userEngine.BeginRegister(localDrpPeerConfiguration, _userApp, (localDrpPeer) =>
+                {
+                    _userApp.LocalDrpPeer = localDrpPeer;
+                    _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
+                    var waitForNeighborsSw = Stopwatch.StartNew();
 
                 // wait until number of neighbors reaches minimum
                 userEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromMilliseconds(300), () =>
-                {
-                    AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(waitForNeighborsSw);
-                }, "waiting for connection with neighbors 324155");
-            });
+                    {
+                        AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(waitForNeighborsSw);
+                    }, "waiting for connection with neighbors 324155");
+                });
+            }
         });
         void AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(Stopwatch waitForNeighborsSw)
         {

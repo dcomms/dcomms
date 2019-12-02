@@ -26,6 +26,13 @@ namespace Dcomms.DRP
             var req = routedRequest.RegisterReq;
             var logger = routedRequest.Logger;
             logger.ModuleName = VisionChannelModuleName_reg_proxySide;
+            
+            if (!ValidateReceivedReqTimestamp64(req.ReqTimestamp64))
+            {
+                logger.WriteToLog_needsAttention($"rejecting REGISTER request {req.RequesterRegistrationId}: invalid REGISTER REQ 457 ReqTimestamp64={MiscProcedures.Int64ticksToDateTime(req.ReqTimestamp64)}");
+             //   await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_numberOfHopsRemainingReachedZero);
+                return false;
+            }
 
             if (PendingRegisterRequestExists(req.RequesterRegistrationId))
             {
@@ -131,9 +138,9 @@ namespace Dcomms.DRP
 
                     return true; // will retry
                 }
-                catch (DrpTimeoutException)
+                catch (DrpTimeoutException exc)
                 {
-                    logger.WriteToLog_higherLevelDetail($"got timeout error when requesting {destinationPeer}");
+                    logger.WriteToLog_higherLevelDetail($"got timeout error when requesting {destinationPeer}: {exc.Message}");
                     req.NumberOfHopsRemaining++; // roll back previous decrement for a new trial
                     return true; // will retry
                 }
@@ -274,9 +281,9 @@ namespace Dcomms.DRP
 
                 logger.WriteToLog_higherLevelDetail($"proxying {req} is successfully complete");
             }
-            catch (DrpTimeoutException)
+            catch (DrpTimeoutException exc)
             {
-                logger.WriteToLog_lightPain($"could not proxy REGISTER: request timeout");
+                logger.WriteToLog_lightPain($"could not proxy REGISTER: request timeout: {exc.Message}");
             }
             catch (Exception exc)
             {

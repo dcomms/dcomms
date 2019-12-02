@@ -94,9 +94,9 @@ namespace Dcomms.DRP
                     }
                     return true; // will retry
                 }
-                catch (DrpTimeoutException)
+                catch (DrpTimeoutException exc)
                 {
-                    logger.WriteToLog_higherLevelDetail($"got timeout error when requesting {destinationPeer}");
+                    logger.WriteToLog_higherLevelDetail($"got timeout error when requesting {destinationPeer}: {exc.Message}");
                     req.NumberOfHopsRemaining++; // roll back previous decrement for a new trial
                     return true; // will retry
                 }
