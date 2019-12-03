@@ -566,7 +566,7 @@ namespace Dcomms.DRP
         }
         #endregion
 
-        internal async Task OnReceivedRegisterReq(IPEndPoint requesterEndpoint, byte[] udpData, DateTime reqReceivedTimeUtc)
+        internal async Task OnReceivedRegisterReq(IPEndPoint requesterEndpoint, byte[] udpData, DateTime reqReceivedTimeUtc, Stopwatch receivedAtSW)
         {
             if (_disposed) return;
             if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -581,7 +581,7 @@ namespace Dcomms.DRP
                 // NeighborToken32 and NeighborHMAC are verified at this time
                 
                 var routedRequest = new RoutedRequest(new Logger(_engine, LocalDrpPeer, req, DrpPeerEngine.VisionChannelModuleName_reg), 
-                     this, requesterEndpoint, reqReceivedTimeUtc, null, req);
+                     this, requesterEndpoint, receivedAtSW, null, req);
                 routedRequest.Logger.WriteToLog_higherLevelDetail($"received {req} ({req.NumberOfHopsRemaining} hops remaining) via P2P connection");
                 
                 if (req.RequesterRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
@@ -594,7 +594,7 @@ namespace Dcomms.DRP
                 _engine.HandleGeneralException($"Exception while processing REGISTER REQ in {this}", exc); // dont dispose the connection to avoid DoS'es.   if HMAC is not good - we ignore the bad packet
             }
         }
-        internal async Task OnReceivedInviteReq(IPEndPoint requesterEndpoint, byte[] udpData, DateTime reqReceivedTimeUtc)
+        internal async Task OnReceivedInviteReq(IPEndPoint requesterEndpoint, byte[] udpData, DateTime reqReceivedTimeUtc, Stopwatch receivedAtSW)
         {
             if (_disposed) return;
             if (requesterEndpoint.Equals(this.RemoteEndpoint) == false)
@@ -614,7 +614,7 @@ namespace Dcomms.DRP
                     throw new BadSignatureException($"invalid INVITE REQ ReqTimestamp32S={MiscProcedures.Uint32secondsToDateTime(req.ReqTimestamp32S)}");
 
                 this.LocalDrpPeer.TestDirection(logger, req.ResponderRegistrationId);
-                var routedRequest = new RoutedRequest(logger, this,  requesterEndpoint, reqReceivedTimeUtc, req, null);
+                var routedRequest = new RoutedRequest(logger, this,  requesterEndpoint, receivedAtSW, req, null);
                 if (LocalDrpPeer.PendingInviteRequestExists(req.RequesterRegistrationId))
                 {
                     logger.WriteToLog_higherLevelDetail($"rejecting {req}: another INVITE request from {req.RequesterRegistrationId} is already being processed");

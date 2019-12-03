@@ -53,9 +53,12 @@ namespace Dcomms.Vision
     /// </summary>
     public abstract class VisionChannel
     {
-        readonly Stopwatch _sw = Stopwatch.StartNew();
-        readonly DateTime _started = DateTime.Now;
-        public DateTime TimeNow => _started + _sw.Elapsed;
+        (DateTime,Stopwatch) _started = (DateTime.Now, Stopwatch.StartNew());
+        public void SyncStartedTime()
+        {
+            _started = (DateTime.Now, Stopwatch.StartNew());
+        }
+        public DateTime TimeNow => _started.Item1 + _started.Item2.Elapsed;
 
         public virtual AttentionLevel GetAttentionTo(string visionChannelSourceId, string moduleName) => AttentionLevel.deepDetail;
         public abstract void Emit(string visionChannelSourceId, string moduleName, AttentionLevel level, string message);

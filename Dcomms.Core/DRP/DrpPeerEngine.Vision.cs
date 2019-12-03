@@ -136,6 +136,11 @@ namespace Dcomms.DRP
                 Configuration.VisionChannel?.EmitPeerInRoutedPath(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.lightPain, message, req, localPeer);
             }
         }
+        internal void WriteToLog_reg_responderSide_higherLevelDetail(string message)
+        {
+            if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide) <= AttentionLevel.higherLevelDetail)
+                Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_responderSide, AttentionLevel.higherLevelDetail, message);
+        }
         internal void WriteToLog_drpGeneral_detail(string message)
         {
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_drp_general) <= AttentionLevel.detail)

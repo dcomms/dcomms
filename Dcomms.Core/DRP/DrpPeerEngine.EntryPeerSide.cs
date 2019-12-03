@@ -151,7 +151,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// is executed by receiver thread
         /// </summary>
-        void ProcessRegisterReqAtoEpPacket(IPEndPoint requesterEndpoint, byte[] udpData, DateTime reqReceivedAtUtc)
+        void ProcessRegisterReqAtoEpPacket(IPEndPoint requesterEndpoint, byte[] udpData, Stopwatch reqReceivedAtSW)
         {
             Pow2RequestState pow2RequestState = null;
             if (!Configuration.SandboxModeOnly_DisablePoW)
@@ -178,14 +178,22 @@ namespace Dcomms.DRP
           
             EngineThreadQueue.Enqueue(() =>
             {
-                _ = ProcessRegisterReqAtoEpPacket2Async(requesterEndpoint, req, reqReceivedAtUtc);
+                _ = ProcessRegisterReqAtoEpPacket2Async(requesterEndpoint, req, reqReceivedAtSW);
             }, "ProcessRegisterReqAtoEpPacket2Async436");
         }
-        async Task ProcessRegisterReqAtoEpPacket2Async(IPEndPoint requesterEndpoint, RegisterRequestPacket req, DateTime reqReceivedTimeUtc)
+        async Task ProcessRegisterReqAtoEpPacket2Async(IPEndPoint requesterEndpoint, RegisterRequestPacket req, Stopwatch reqReceivedSW)
         {
-            var logger = new Logger(this, LocalPeers.Values.First(), req, VisionChannelModuleName_reg);
-            var routedRequest = new RoutedRequest(logger, null, requesterEndpoint, reqReceivedTimeUtc, null, req);
-            await ProcessRegisterRequestAsync(null, routedRequest);
+            var firstLocalPeer = LocalPeers.Values.FirstOrDefault();
+            if (firstLocalPeer != null)
+            {
+                var logger = new Logger(this, firstLocalPeer, req, VisionChannelModuleName_reg);
+                var routedRequest = new RoutedRequest(logger, null, requesterEndpoint, reqReceivedSW, null, req);
+                await ProcessRegisterRequestAsync(null, routedRequest);
+            }
+            else
+            {
+                WriteToLog_reg_responderSide_higherLevelDetail($"no local peers to accept {req}");
+            }
         }
     }
 

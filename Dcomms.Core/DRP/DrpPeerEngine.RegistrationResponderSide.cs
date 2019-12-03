@@ -112,7 +112,7 @@ namespace Dcomms.DRP
             _pendingRegisterRequests.Add(req.RequesterRegistrationId);
             try
             {
-                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to REQ to {routedRequest.ReceivedFromEndpoint} (delay={(int)(DateTimeNowUtc - routedRequest.ReqReceivedTimeUtc.Value).TotalMilliseconds}ms)");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to REQ to {routedRequest.ReceivedFromEndpoint} (delay={routedRequest.ReqReceivedSw_ms}ms)");
                 routedRequest.SendNeighborPeerAck_accepted_IfNotAlreadyReplied();
 
                 var newConnectionToNeighbor = new ConnectionToNeighbor(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer, req.RequesterRegistrationId)

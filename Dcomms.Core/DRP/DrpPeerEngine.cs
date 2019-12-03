@@ -24,10 +24,22 @@ namespace Dcomms.DRP
     {
         readonly ICryptoLibrary _cryptoLibrary = CryptoLibraries.Library;
         internal ICryptoLibrary CryptoLibrary => _cryptoLibrary;
-        readonly DateTime _startTimeUtc = DateTime.UtcNow;
-        readonly Stopwatch _stopwatch = Stopwatch.StartNew();
-        TimeSpan TimeSWE => _stopwatch.Elapsed; // stopwatch elapsed
-        public DateTime DateTimeNowUtc { get { return _startTimeUtc + TimeSWE; } }
+
+        (DateTime, Stopwatch) _startTimeUtc = (DateTime.UtcNow, Stopwatch.StartNew());
+      
+        readonly Stopwatch _uptimeSW = Stopwatch.StartNew();
+        TimeSpan Uptime => _uptimeSW.Elapsed; // stopwatch elapsed
+        /// <summary>
+        /// is interrupted (makes a gap) on some (android) devices when OS puts this app into idle mode
+        /// </summary>
+        public DateTime DateTimeNowUtc { get { return _startTimeUtc.Item1 + _startTimeUtc.Item2.Elapsed; } } 
+
+        void SyncDateTimeNowUtc() // engine thread
+        {
+            _startTimeUtc = (DateTime.UtcNow, Stopwatch.StartNew());
+            Configuration.VisionChannel?.SyncStartedTime();
+        }
+
         public uint Timestamp32S => MiscProcedures.DateTimeToUint32seconds(DateTimeNowUtc);
         public Int64 Timestamp64 => MiscProcedures.DateTimeToInt64ticks(DateTimeNowUtc);
         bool _disposing;
@@ -67,7 +79,7 @@ namespace Dcomms.DRP
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
         internal DMP.InviteSession[] InviteSessionsByToken16 = new DMP.InviteSession[ushort.MaxValue + 1];
                
-        string IVisibleModule.Status => $"uptime: {TimeSWE}, now: {DateTimeNowUtc}UTC, socket: {_socket?.Client?.LocalEndPoint}, local peers: {LocalPeers.Count}, ConnectedPeer tokens: {ConnectedPeersByToken16.Count(x => x != null)}, InviteSession tokens: {InviteSessionsByToken16.Count(x => x != null)}, queue count: {EngineThreadQueue.Count}. delays:\r\n{ETSC.PeakExecutionTimeStats}";
+        string IVisibleModule.Status => $"uptime: {Uptime}, now: {DateTimeNowUtc}UTC, socket: {_socket?.Client?.LocalEndPoint}, local peers: {LocalPeers.Count}, ConnectedPeer tokens: {ConnectedPeersByToken16.Count(x => x != null)}, InviteSession tokens: {InviteSessionsByToken16.Count(x => x != null)}, queue count: {EngineThreadQueue.Count}. delays:\r\n{ETSC.PeakExecutionTimeStats}";
         
         ushort _seq16Counter_AtoEP; // accessed only by engine thread
         internal RequestP2pSequenceNumber16 GetNewNpaSeq16_AtoEP() => new RequestP2pSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
@@ -168,19 +180,22 @@ namespace Dcomms.DRP
                 return;
             }
 
-            var receivedAtUtc = DateTimeNowUtc;
+            var receivedAtSW = Stopwatch.StartNew();
             if (packetType == PacketTypes.RegisterReq)
             {
                 if (RegisterRequestPacket.IsAtoEP(udpData))
                 {
-                    ProcessRegisterReqAtoEpPacket(remoteEndpoint, udpData, receivedAtUtc);
+                    ProcessRegisterReqAtoEpPacket(remoteEndpoint, udpData, receivedAtSW);
                     return;
                 }
             }
 
             EngineThreadQueue.Enqueue(() =>
             {
-                var delayMs = (DateTimeNowUtc - receivedAtUtc).TotalMilliseconds;
+                var delay = receivedAtSW.Elapsed;
+                var delayMs = delay.TotalMilliseconds;
+
+                var receivedAtUtc = DateTimeNowUtc - delay;
                 OnMeasuredEngineThreadQueueDelay(receivedAtUtc, delayMs);
                 if (RespondersToRetransmittedRequests_ProcessPacket(remoteEndpoint, udpData)) return;
                 if (PendingUdpRequests_ProcessPacket(remoteEndpoint, udpData, receivedAtUtc)) return;
@@ -237,7 +252,7 @@ namespace Dcomms.DRP
                                     WriteToLog_receiver_lightPain($"can't process REGISTER REQ: connectedPeer={connectedPeer} is disposed, being removed from table");
                                     return;
                                 }
-                                _ = connectedPeer.OnReceivedRegisterReq(remoteEndpoint, udpData, receivedAtUtc);
+                                _ = connectedPeer.OnReceivedRegisterReq(remoteEndpoint, udpData, receivedAtUtc, receivedAtSW);
                             }
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}, hash={MiscProcedures.GetArrayHashCodeString(udpData)}");
@@ -254,7 +269,7 @@ namespace Dcomms.DRP
                                     WriteToLog_receiver_lightPain($"can't process INVITE REQ: connectedPeer={connectedPeer} is disposed, being removed from table");
                                     return;
                                 }
-                                _ = connectedPeer.OnReceivedInviteReq(remoteEndpoint, udpData, receivedAtUtc);
+                                _ = connectedPeer.OnReceivedInviteReq(remoteEndpoint, udpData, receivedAtUtc, receivedAtSW);
                             }
                             else
                                 WriteToLog_receiver_lightPain($"packet {packetType} from {remoteEndpoint} has invalid NeighborToken={neighborToken16}, hash={MiscProcedures.GetArrayHashCodeString(udpData)}");
@@ -286,7 +301,8 @@ namespace Dcomms.DRP
             while (!_disposing)
             {
                 try
-                {                
+                {
+                    SyncDateTimeNowUtc();
                     EngineThreadQueue.ExecuteQueued();
 
                     var timeNowUTC = DateTimeNowUtc;

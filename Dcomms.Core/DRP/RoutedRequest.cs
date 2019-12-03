@@ -1,6 +1,7 @@
 ﻿using Dcomms.DRP.Packets;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -16,11 +17,12 @@ namespace Dcomms.DRP
         /// <summary>
         /// is NULL for request that is generated locally (when local peer sends INVITE/REGISTER)
         /// </summary>
-        public readonly DateTime? ReqReceivedTimeUtc; 
+        public readonly Stopwatch ReqReceivedSwNullable;
+        public int? ReqReceivedSw_ms => ReqReceivedSwNullable != null ? (int?)ReqReceivedSwNullable.Elapsed.TotalMilliseconds : null;
         public bool CheckedRecentUniqueProxiedRequests;
         public readonly Logger Logger;
         public RoutedRequest(Logger logger, ConnectionToNeighbor receivedFromNeighborNullable, IPEndPoint receivedFromEndpoint,
-            DateTime? reqReceivedTimeUtc, InviteRequestPacket inviteReqNullable,
+            Stopwatch reqReceivedSwNullable, InviteRequestPacket inviteReqNullable,
             RegisterRequestPacket registerReqNullable, RoutedRequest previousTrialRoutedRequestNullable = null)
         {
             InviteReq = inviteReqNullable;
@@ -32,7 +34,7 @@ namespace Dcomms.DRP
             ReceivedFromEndpoint = receivedFromEndpoint;
             Logger = logger;
             _engine = logger.Engine;
-            ReqReceivedTimeUtc = reqReceivedTimeUtc;
+            ReqReceivedSwNullable = reqReceivedSwNullable;
 
             if (InviteReq != null) ReqP2pSeq16 = InviteReq.ReqP2pSeq16;
             else ReqP2pSeq16 = RegisterReq.ReqP2pSeq16;

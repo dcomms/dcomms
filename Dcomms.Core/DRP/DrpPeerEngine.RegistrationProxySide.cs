@@ -77,7 +77,7 @@ namespace Dcomms.DRP
             try
             {
                 // send NPACK to source peer
-                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to REQ source peer (delay={(int)(DateTimeNowUtc - routedRequest.ReqReceivedTimeUtc.Value).TotalMilliseconds}ms)");                
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to REQ source peer (delay={routedRequest.ReqReceivedSw_ms}ms)");                
                 routedRequest.SendNeighborPeerAck_accepted_IfNotAlreadyReplied();                
                                 
                 if (req.NumberOfRandomHopsRemaining >= 1) req.NumberOfRandomHopsRemaining--;
