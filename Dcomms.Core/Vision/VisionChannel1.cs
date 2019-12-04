@@ -497,7 +497,9 @@ _retry:
         private void TaskSchedulerOnUnobservedTaskException(object sender, System.Threading.Tasks.UnobservedTaskExceptionEventArgs ea)
         {
             ea.SetObserved();
-            Emit("TaskScheduler", "", AttentionLevel.strongPain, $"error in TaskScheduler: {ea.Exception}");
+            var level = AttentionLevel.strongPain;
+            if (ea.Exception.InnerException is DrpTimeoutException) level = AttentionLevel.lightPain;
+            Emit("TaskScheduler", "", level, $"error in TaskScheduler: {ea.Exception}");
         }
 
         private void CurrentDomainOnUnhandledException(object sender, UnhandledExceptionEventArgs ea)

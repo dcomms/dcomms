@@ -80,7 +80,39 @@ namespace Dcomms.DRP
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
         internal DMP.InviteSession[] InviteSessionsByToken16 = new DMP.InviteSession[ushort.MaxValue + 1];
                
-        string IVisibleModule.Status => $"uptime: {Uptime}, now: {DateTimeNowUtc}UTC, socket: {_socket?.Client?.LocalEndPoint}, local peers: {LocalPeers.Count}, ConnectedPeer tokens: {ConnectedPeersByToken16.Count(x => x != null)}, InviteSession tokens: {InviteSessionsByToken16.Count(x => x != null)}, queue count: {EngineThreadQueue.Count}. delays:\r\n{ETSC.PeakExecutionTimeStats}";
+        string IVisibleModule.Status
+        {
+            get
+            {
+                float? ramMB = null;
+                try
+                {
+                    /*
+                        sometimes it generates exception:
+                        error in SIP Tester: 'WPF GUI thread' failed: System.Reflection.TargetInvocationException: 
+                        Exception has been thrown by the target of an invocation. ---> 
+                        System.InvalidOperationException: Couldn't get process information from performance counter. ---> 
+                        System.ComponentModel.Win32Exception: Unknown error (0xc0000017)     
+                        --- End of inner exception stack trace ---     
+                        at System.Diagnostics.NtProcessInfoHelper.GetProcessInfos()  
+                        at System.Diagnostics.ProcessManager.GetProcessInfos(String machineName)  
+                        at System.Diagnostics.Process.EnsureState(State state)     
+                        at System.Diagnostics.Process.get_PagedMemorySize64() 
+                    */
+                    ramMB = (float)Process.GetCurrentProcess().PagedMemorySize64 / 1024 / 1024;
+                }
+                catch (Exception)
+                {/// intentionally ignore
+                }
+
+
+                var r = $"RAM: {ramMB}MB, uptime: {Uptime}, now: {DateTimeNowUtc}UTC, socket: {_socket?.Client?.LocalEndPoint}, local peers: {LocalPeers.Count}," +
+                    $" ConnectedPeer tokens: {ConnectedPeersByToken16.Count(x => x != null)}," +
+                    $" InviteSession tokens: {InviteSessionsByToken16.Count(x => x != null)}," +
+                    $" queue count: {EngineThreadQueue.Count}. delays:\r\n{ETSC.PeakExecutionTimeStats}";
+                return r;
+            }
+        }
         
         ushort _seq16Counter_AtoEP; // accessed only by engine thread
         internal RequestP2pSequenceNumber16 GetNewNpaSeq16_AtoEP() => new RequestP2pSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
@@ -130,6 +162,7 @@ namespace Dcomms.DRP
             WriteToLog_drpGeneral_higherLevelDetail("created DRP engine");
         }
         partial void Initialize(DrpPeerEngineConfiguration configuration);
+        public bool IsDisposed => _disposing;
         public void Dispose()
         {
             WriteToLog_drpGeneral_higherLevelDetail("destroying DRP engine");

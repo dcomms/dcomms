@@ -9,7 +9,7 @@ using System.Text;
 
 namespace Dcomms.Sandbox
 {
-    class DrpTesterPeerApp : IDrpRegisteredPeerApp
+    class DrpTesterPeerApp : IDrpRegisteredPeerApp, IVisibleModule
     {
         const string VisionChannelModuleName = "drpTesterApp";
         public readonly UserRootPrivateKeys UserRootPrivateKeys;
@@ -37,9 +37,12 @@ namespace Dcomms.Sandbox
             UserCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId, UserRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddYears(1));
         }
         public string LatestReceivedTextMessage { get; private set; }
+
+
         public InviteRequestPacket LatestReceivedTextMessage_req;
         public void OnReceivedShortSingleMessage(string message, InviteRequestPacket req)
         {
+            _receivedMessages++;
             DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.guiActivity,
                 $"received message: {message}");
             LatestReceivedTextMessage_req = req;
@@ -53,14 +56,17 @@ namespace Dcomms.Sandbox
                 {
                     var userCertificate1 = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(DrpPeerEngine.CryptoLibrary, UserId,
                                 UserRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(1));
-
+                    _echoedMessages_attempts++;
                     LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, req.RequesterRegistrationId,
                         ContactBookUsersByRegId[req.RequesterRegistrationId], message, TimeSpan.FromSeconds(60),
                         (exc) =>
                         {
                             if (exc == null)
+                            {
+                                _echoedMessages_succeeded++;
                                 DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.guiActivity,
                                     $"successfully echoed message: {message}");
+                            }
                             else
                                 DrpPeerEngine.Configuration.VisionChannel.EmitListOfPeers(DrpPeerEngine.Configuration.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.strongPain,
                                     $"could not send echoed message: {message}: {exc}");
@@ -72,9 +78,22 @@ namespace Dcomms.Sandbox
         public Dictionary<RegistrationId, UserId> ContactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
         public void OnReceivedInvite(RegistrationId remoteRegistrationId, out DMP.UserId remoteUserId, out DMP.UserCertificate localUserCertificateWithPrivateKey, out bool autoReceiveShortSingleMessage)
         {
+            _receivedInvites++;
             remoteUserId = ContactBookUsersByRegId[remoteRegistrationId];
             localUserCertificateWithPrivateKey = UserCertificateWithPrivateKey;
             autoReceiveShortSingleMessage = true;
         }
+
+
+        #region status
+        int _receivedInvites = 0;
+        int _receivedMessages = 0;
+        int _echoedMessages_attempts = 0;
+        int _echoedMessages_succeeded = 0;
+
+        string IVisibleModule.Status => $"{_receivedInvites} INVITEs received, {_receivedMessages} messages received, {_echoedMessages_attempts} echo messages attempted, {_echoedMessages_succeeded} echoed messages succeeded";
+
+
+        #endregion
     }
 }

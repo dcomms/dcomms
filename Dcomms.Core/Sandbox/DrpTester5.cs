@@ -12,7 +12,7 @@ using System.Windows.Input;
 
 namespace Dcomms.Sandbox
 {
-    public class DrpTester5 : BaseNotify, IDisposable
+    public class DrpTester5 : BaseNotify, IDisposable, IVisibleModule
     {
 
         const string DrpTesterVisionChannelModuleName = "drpTester5";
@@ -314,9 +314,7 @@ namespace Dcomms.Sandbox
         {
             LocalUser = PredefinedUsers[5];
             Initialize.Execute(null);
-        });
-
-
+        });        
         public ICommand Initialize => new DelegateCommand(() =>
         {
             if (!Initialized)
@@ -326,7 +324,7 @@ namespace Dcomms.Sandbox
 
                 _visionChannel.ClearModules();
                 this.VisionChannelSourceId = $"U{LocalUser.Name}{(LocalUser.SendOrEcho ? "S" : "R")}";
-
+                _visionChannel.RegisterVisibleModule(VisionChannelSourceId, "DrpTester5", this);
 
                 var userEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
@@ -349,6 +347,7 @@ namespace Dcomms.Sandbox
                 localDrpPeerConfiguration.EntryPeerEndpoints = RemoteEpEndPoints;
 
                 _userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration, LocalUser.UserRootPrivateKeys, LocalUser.UserId) { EchoMessages = LocalUser.SendOrEcho == false };
+                _visionChannel.RegisterVisibleModule(VisionChannelSourceId, "DrpTester5/userApp", _userApp);
 
                 var contactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
                 foreach (var u in PredefinedUsers)
@@ -488,6 +487,8 @@ namespace Dcomms.Sandbox
                 $"nHopsRemaining: avg={AvgNumberOfHopsRemaining}, min={MinNumberOfHopsRemaining} at {MinNumberOfHopsRemainingTime.ToString("dd-HH:mm:ss.fff")}\r\n" +
             $"failures: {_failedCount}; last: {_lastFailureTime?.ToString("dd-HH:mm:ss.fff")}";
 
+        string IVisibleModule.Status => TestReport;
+
         public void OnSuccessfullyDelivered(double delayMs, DateTime now, InviteRequestPacket req)
         {
             SuccessfulCount++;
@@ -506,16 +507,14 @@ namespace Dcomms.Sandbox
                 MinNumberOfHopsRemainingTime = now;
             }
         }
-
-
+        
         DateTime? _lastFailureTime;
         public int _failedCount;
         public int OnFailed(DateTime now)
         {
             _lastFailureTime = now;
             return ++_failedCount;
-        }
-       
+        }       
         #endregion
     }
 }

@@ -85,6 +85,7 @@ namespace Dcomms.Vision
         /// <param name="visionChannelSourceIdModuleNamePath">may contain ModuleName, some object name</param>
         public void RegisterVisibleModule(string visionChannelSourceId, string path, IVisibleModule visibleModule)
         {
+            if (visibleModule == null) throw new ArgumentNullException();
             lock (_visibleModulesByPath)
             {
                 _visibleModulesByPath.Add(visionChannelSourceId + PathSeparator + path, visibleModule);

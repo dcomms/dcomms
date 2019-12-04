@@ -420,6 +420,7 @@ _retry:
                     tempPeerApp.LocalDrpPeer = localDrpPeer;
                     _visionChannel.Emit(tempPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, 
                         $"registration complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
+                    TestTemporaryPeers_WaitUntilEnoughNeighbors(tempPeerApp, Stopwatch.StartNew());
                     TestTemporaryPeers_Wait();                  
                 });
             }
@@ -437,6 +438,34 @@ _retry:
                 TestTemporaryPeers_Wait();
             }
 
+        }
+        void TestTemporaryPeers_WaitUntilEnoughNeighbors(DrpTesterPeerApp app, Stopwatch sw)
+        {
+            if (app.DrpPeerEngine.IsDisposed)
+                return;
+           
+            app.DrpPeerEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(1), () =>
+            {
+                var neighborsCount = app.LocalDrpPeer.ConnectedNeighbors.Count;
+                var elapsedMs = sw.Elapsed.TotalMilliseconds;
+                var level = AttentionLevel.guiActivity;
+                if (elapsedMs > 30000) level = AttentionLevel.needsAttention;
+                else if (elapsedMs > 40000) level = AttentionLevel.mediumPain;              
+                if (neighborsCount >= app.LocalDrpPeer.Configuration.MinDesiredNumberOfNeighbors)
+                {
+                    _visionChannel.Emit(app.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                        level,
+                        $"temp. peer got {neighborsCount} neighbors in {elapsedMs}ms");
+                }
+                else
+                {
+                    _visionChannel.Emit(app.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                        level,
+                        $"temp. peer got {neighborsCount} neighbors in {elapsedMs}ms");
+                    if (level != AttentionLevel.mediumPain)
+                        TestTemporaryPeers_WaitUntilEnoughNeighbors(app, sw);
+                }
+            }, "TestTemporaryPeers_WaitUntilEnoughNeighbors 237");
         }
         void TestTemporaryPeers_Wait()
         {

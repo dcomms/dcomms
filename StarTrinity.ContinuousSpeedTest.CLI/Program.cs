@@ -23,7 +23,7 @@ namespace StarTrinity.ContinuousSpeedTest.CLI
             var subtLocalPeer = new SubtLocalPeer(new SubtLocalPeerConfiguration
             {
                 SenderThreadsCount = 4,
-                BandwidthTarget = 50000,
+                BandwidthTarget = 1000000,
             });
             var node = new LocalPeer(new LocalPeerConfiguration
             {
@@ -36,19 +36,19 @@ namespace StarTrinity.ContinuousSpeedTest.CLI
                     new IPEndPoint(coordinatorServerIp1, 10000),
                     new IPEndPoint(coordinatorServerIp1, 10001),
                     new IPEndPoint(coordinatorServerIp1, 10002),
-                    new IPEndPoint(coordinatorServerIp1, 10003),
-                    new IPEndPoint(coordinatorServerIp1, 10004),
-                    new IPEndPoint(coordinatorServerIp1, 10005),
-                    new IPEndPoint(coordinatorServerIp1, 10006),
-                    new IPEndPoint(coordinatorServerIp1, 10007),
-                    new IPEndPoint(coordinatorServerIp1, 9000),
-                    new IPEndPoint(coordinatorServerIp1, 9001),
-                    new IPEndPoint(coordinatorServerIp1, 9002),
-                    new IPEndPoint(coordinatorServerIp1, 9003),
-                    new IPEndPoint(coordinatorServerIp2, 9000),
-                    new IPEndPoint(coordinatorServerIp2, 9001),
-                    new IPEndPoint(coordinatorServerIp2, 9002),
-                    new IPEndPoint(coordinatorServerIp2, 9003),
+                    //new IPEndPoint(coordinatorServerIp1, 10003),
+                    //new IPEndPoint(coordinatorServerIp1, 10004),
+                    //new IPEndPoint(coordinatorServerIp1, 10005),
+                    //new IPEndPoint(coordinatorServerIp1, 10006),
+                    //new IPEndPoint(coordinatorServerIp1, 10007),
+                    //new IPEndPoint(coordinatorServerIp1, 9000),
+                    //new IPEndPoint(coordinatorServerIp1, 9001),
+                    //new IPEndPoint(coordinatorServerIp1, 9002),
+                    //new IPEndPoint(coordinatorServerIp1, 9003),
+                    //new IPEndPoint(coordinatorServerIp2, 9000),
+                    //new IPEndPoint(coordinatorServerIp2, 9001),
+                    //new IPEndPoint(coordinatorServerIp2, 9002),
+                    //new IPEndPoint(coordinatorServerIp2, 9003),
                 },
                 Extensions = new[]
                 {
