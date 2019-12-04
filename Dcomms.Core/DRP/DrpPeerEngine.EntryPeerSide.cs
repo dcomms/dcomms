@@ -122,7 +122,7 @@ namespace Dcomms.DRP
             {
                 // check if pow1 data is unique
                 var dataIsUnique = _recentUniquePow1Data.TryInputData(packet.ProofOfWork1, localTimeSec32);
-                if (dataIsUnique)
+                if (dataIsUnique) 
                 {
                     return true;
                 }

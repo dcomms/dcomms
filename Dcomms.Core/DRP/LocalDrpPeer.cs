@@ -202,12 +202,17 @@ namespace Dcomms.DRP
                 if (connectAnyway || (CurrentRegistrationOperationsCount == 0) ||
                     timeNowUtc > _latestConnectToNewNeighborOperationStartTimeUtc + TimeSpan.FromSeconds(Engine.Configuration.NeighborhoodExtensionMaxRetryIntervalS))
                 {
-                    if (connectAnyway == false && _latestConnectToNewNeighborOperationStartTimeUtc.HasValue)
+                    if (connectAnyway == false)
                     {
-                        if ((timeNowUtc - _latestConnectToNewNeighborOperationStartTimeUtc.Value).TotalSeconds < Engine.Configuration.NeighborhoodExtensionMinIntervalS)
+                        if (_latestConnectToNewNeighborOperationStartTimeUtc.HasValue && 
+                            (timeNowUtc - _latestConnectToNewNeighborOperationStartTimeUtc.Value).TotalSeconds < Engine.Configuration.NeighborhoodExtensionMinIntervalS)
+                            return; // avoid too frequent registrations
+                        if (Engine.PowThreadQueueCount != 0) // avoid having concurrent PoW operations, it leads to 200sec+ PoW delays when mobile device has bad internet connection
                             return;
+
                         Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood: {connectedNeighborsForNewRequests.Count} neighbors now", null, null);
                     }
+                 
                     _latestConnectToNewNeighborOperationStartTimeUtc = timeNowUtc;
 
                     try

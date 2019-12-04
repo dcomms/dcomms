@@ -49,6 +49,7 @@ namespace Dcomms.DRP
         UdpClient _socket;
         internal ActionsQueue EngineThreadQueue;
         ActionsQueue PowThreadQueue;
+        public int PowThreadQueueCount => PowThreadQueue.Count;
         public readonly ExecutionTimeStatsCollector ETSC;
         public ExecutionTimeTracker CreateTracker(string actionVisibleId)
         {
