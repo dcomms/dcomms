@@ -1,45 +1,50 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
+using SQLite;
 
 namespace Dcomms.DataModels
 {
-//    public class SampleDBContext : DbContext
-//    {
-//        private static bool _created = false;
-//        public SampleDBContext()
-//        {
-//            if (!_created)
-//            {
-//                _created = true;
-//                Database.EnsureDeleted();
-//                Database.EnsureCreated();
-//            }
-//        }
-//        protected override void OnConfiguring(DbContextOptionsBuilder optionbuilder)
-//        {
-//            optionbuilder.UseSqlite(@"Data Source=d:\Sample.db");
-//        }
+    public class Database
+    {
+        public Database()
+        {
+            string dbPath = Path.Combine(
+                 Environment.GetFolderPath(Environment.SpecialFolder.Personal),
+                 "ormdemo.db3");
 
-//        public DbSet<Category> Categories { get; set; }
-//    }
+            var db = new SQLiteConnection(dbPath);
 
 
-//    /// <summary>
-//    /// both local user IDs and remote user IDs (=contact book)
-//    /// </summary>
-//    class UserId
-//    {
-//        [PrimaryKey, AutoIncrement]
-//        public int Id { get; set; }
+            db.CreateTable<UserId>(CreateFlags.None);
+            db.Insert(new UserId
+            {
+            }); // after creating the newStock object
 
-//        UserID
-//AliasID
-//bool IsLocal
-//LocalUserCertificate
-//PrivateKey
-//PublicKey
-//ValidPeriod
-//RootUserKeySignature(s) (multiple)
-//    }
+
+            var user = db.Get<UserId>(5); // primary key id of 5
+            var users = db.Table<UserId>();
+        }
+    }
+
+
+    /// <summary>
+    /// both local user IDs and remote user IDs (=contact book)
+    /// </summary>
+    [Table("UserIDs")]
+    public class UserId
+    {
+        [PrimaryKey, AutoIncrement]
+        public int Id { get; set; }
+
+        public byte[]         UserID { get; set; }
+        public string AliasID { get; set; }
+        bool IsLocal { get; set; }
+       // LocalUserCertificate
+            //    PrivateKey
+            //    PublicKey
+           //     ValidPeriod
+           //     RootUserKeySignature(s) (multiple)
+    }
 }

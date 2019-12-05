@@ -16,4 +16,8 @@
     <Folder Include="Cryptography\BouncyCastle\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="sqlite-net-pcl" Version="1.6.292" />
+  </ItemGroup>
+
 </Project>

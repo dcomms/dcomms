@@ -223,7 +223,6 @@ namespace Dcomms.Vision
             }
         }
 
-
         DateTime? _lastTimeCleanedMemory = null;
         /// <summary>
         /// is executed by log writer thread, so we make make minimal deadlocks here, and clean memory in a separate thread
@@ -267,6 +266,7 @@ namespace Dcomms.Vision
                             int numberToDelete = _logMessagesNewestFirst.Count / 50;
                             for (int i = 0; i < numberToDelete; i++)
                                 _logMessagesNewestFirst.RemoveLast();
+                            Emit("VisionChannel", "VisionChannel", AttentionLevel.guiActivity, $"cleaned {numberToDelete} log messages. consumedMemoryMb={consumedMemoryMb} > ClearLog_RamSizeMB={ClearLog_RamSizeMB}");
                         }                       
                     }
                 }
@@ -275,8 +275,7 @@ namespace Dcomms.Vision
                 }
             }
         }
-
-
+        
         public ICommand ClearLogMessages => new DelegateCommand(() =>
         {
             lock (_logMessagesNewestFirst)
@@ -298,6 +297,7 @@ namespace Dcomms.Vision
             }
         }
 
+        #region visible modules
         public string VisibleModulePathContainsString { get; set; }
         public string VisibleModuleStatusContainsString { get; set; }
         public IEnumerable<VisibleModule> DisplayedVisibleModules
@@ -320,18 +320,17 @@ namespace Dcomms.Vision
                 }
             }
         }
-
         public ICommand RefreshDisplayedVisibleModules => new DelegateCommand(() =>
         {
             if (PropertyChanged != null)
                 PropertyChanged(this, new PropertyChangedEventArgs("DisplayedVisibleModules"));
         });
-
         public class VisibleModule
         {
             public string Path { get; set; }
             public string Status { get; set; }
         }
+        #endregion
 
         public class LogMessage
         {
@@ -387,8 +386,7 @@ namespace Dcomms.Vision
 
             public object RoutedPathReq;
             public IVisiblePeer RoutedPathPeer;
-        }
-        
+        }        
         class ClonedVisiblePeer: IVisiblePeer
         {
             public float[] VectorValues { get; private set; }
@@ -484,10 +482,7 @@ _retry:
                 return MiscProcedures.EqualFloatArrays(this.VectorValues, ((ClonedVisiblePeer)obj).VectorValues);
             }
         }
-
-
-
-
+                     
         public VisionChannel1()
         {
             AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
