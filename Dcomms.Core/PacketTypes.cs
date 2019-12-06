@@ -49,7 +49,10 @@ namespace Dcomms
         DmpPong = 51,
         MessageStart = 52,
         MessagePart = 53,
-        MessageAck = 54
+        MessageAck = 54,
         #endregion
+
+        NatTest1Request = 70,
+        NatTest1Response = 71,
     }
 }

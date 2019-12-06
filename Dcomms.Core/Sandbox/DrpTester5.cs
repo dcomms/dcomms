@@ -46,6 +46,7 @@ namespace Dcomms.Sandbox
 
         readonly Random _insecureRandom = new Random();
         DrpTesterPeerApp _userApp;
+        public DrpPeerEngine DrpPeerEngineForNatTest => _userApp.DrpPeerEngine;
 
         IEnumerable<IVisiblePeer> VisiblePeers
         {

@@ -67,8 +67,7 @@ namespace Dcomms.DRP.Packets
                     DirectionVectorNullable[i] = (sbyte)(127.0 * value[i] / max);
             }
         }
-
-
+        
         public IPEndPoint EpEndpoint; // is not null only in A-EP mode // unencrypted  // makes sense when EP is behind NAT (e.g amazon) and does not know its public IP
 
         /// <summary>
@@ -228,20 +227,17 @@ namespace Dcomms.DRP.Packets
         {
             var flags = udpData[1];
            return (flags & Flag_AtoEP) != 0;
-        }
-        
+        }        
         public static ushort DecodeNeighborToken16(byte[] udpData)
         { // first 2 bytes ares packet type and flags. then 4 bytes are NeighborToken32
             return (ushort)(udpData[2] | (udpData[3] << 8));
         }
-
         public void GetUniqueRequestIdFields(BinaryWriter writer)
         {
             RequesterRegistrationId.Encode(writer);
             writer.Write(ReqTimestamp64);
         }
-
-
+        
         public override bool Equals(object obj)
         {
             var obj2 = obj as RegisterRequestPacket;

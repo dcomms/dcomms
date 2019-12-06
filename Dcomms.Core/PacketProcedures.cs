@@ -200,6 +200,18 @@ namespace Dcomms
             return new IPEndPoint(new IPAddress(DecodeByteArray256(reader)), reader.ReadUInt16());
         }
 
+        public static void EncodeIPEndPoint_ipv4(BinaryWriter writer, IPEndPoint endpoint) // max 19 bytes
+        {
+            var addressBytes = endpoint.Address.GetAddressBytes();
+            if (addressBytes.Length != 4) throw new ArgumentException();
+            writer.Write(addressBytes);
+            writer.Write((UInt16)endpoint.Port);
+        }
+        public static IPEndPoint DecodeIPEndPoint_ipv4(BinaryReader reader)
+        {
+            return new IPEndPoint(new IPAddress(reader.ReadBytes(4)), reader.ReadUInt16());
+        }
+
 
     }
 }

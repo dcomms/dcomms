@@ -27,8 +27,7 @@ namespace Dcomms.Vision
         public string DisplayFilterModuleContainsStrings { get; set; }
         public string DisplayFilterModuleExcludesStrings { get; set; }
         public int DisplayedLogMessagesMaxCount { get; set; } = 30;
-
-
+        
         public IEnumerable<LogMessage> DisplayedLogMessages
         {
             get

@@ -15,8 +15,9 @@
                 <Button Text="Start U3S" Command="{Binding DrpTester5.InitializeUser3Sender}" IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}" />
                 <Button Text="Start U3E" Command="{Binding DrpTester5.InitializeUser3EchoResponder}" IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}" />
 
-                <StackLayout IsVisible="{Binding DrpTester5.Initialized}">                    
-                    <Button Text="Stop" Command="{Binding DrpTester5.Deinitialize}" />    
+                <StackLayout IsVisible="{Binding DrpTester5.Initialized}">
+                    <Button Text="Stop" Command="{Binding DrpTester5.Deinitialize}" />
+                    <Button Text="Test NAT #1" Command="{Binding TestNat1}" />
                 </StackLayout>            
             </StackLayout>
         </ScrollView>

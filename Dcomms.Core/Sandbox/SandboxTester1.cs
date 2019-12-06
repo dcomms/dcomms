@@ -1,6 +1,7 @@
 ﻿using Dcomms.CCP;
 using Dcomms.Cryptography;
 using Dcomms.DRP;
+using Dcomms.DRP.Packets;
 using Dcomms.Sandbox;
 using Dcomms.Vision;
 using System;
@@ -224,9 +225,7 @@ namespace Dcomms.Sandbox
             DrpTester4 = new DrpTester4(_visionChannel);
             RaisePropertyChanged(() => DrpTester4);
             RaisePropertyChanged(() => DrpTester4IsCreated);
-        });
-
-
+        });        
 
         public DrpTester5 DrpTester5 { get; private set; }
         public bool DrpTester5IsCreated => DrpTester5 != null;
@@ -246,12 +245,50 @@ namespace Dcomms.Sandbox
             RaisePropertyChanged(() => DrpTester5IsCreated);
         });
                
-
         public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
         {
            // var t = new UniqueDataTracker();
          //   t.TryInputData(null);
         });
+
+
+        public DelegateCommand TestNat1 => new DelegateCommand(() =>
+        {
+            if (DrpTester5 != null)
+            {
+                TestNat1Async(DrpTester5.DrpPeerEngineForNatTest);
+            }
+        });
+        async void TestNat1Async(DrpPeerEngine drpPeerEngine)
+        {
+            // RemoteEpEndPointsString = "192.99.160.225:12000;195.154.173.208:12000;5.135.179.50:12000";
+            var endpoints = new List<IPEndPoint>();
+            for (int port = 12000; port < 12010; port++)
+                endpoints.Add(new IPEndPoint(IPAddress.Parse("192.99.160.225"), port));
+            for (int port = 12000; port < 12010; port++)
+                endpoints.Add(new IPEndPoint(IPAddress.Parse("195.154.173.208"), port));
+
+            var rnd = new Random();
+            foreach (var responderEp in endpoints)
+            {
+                var req = new NatTest1RequestPacket { Token32 = (uint)rnd.Next() };
+                var nateTest1responseData = await DrpTester5.DrpPeerEngineForNatTest.SendUdpRequestAsync_Retransmit(new PendingLowLevelUdpRequest("nattest1 23",
+                    responderEp, NatTest1ResponsePacket.GetScanner(req.Token32),
+                    drpPeerEngine.DateTimeNowUtc,
+                    3,
+                    req.Encode(), 
+                    0.1,
+                    1.2
+                    ));
+                if (nateTest1responseData != null)
+                {
+                    var nateTest1response = NatTest1ResponsePacket.Decode(nateTest1responseData);
+                    _visionChannel.Emit("NATtest1", "NATtest1", AttentionLevel.guiActivity, $"response from {responderEp}: {nateTest1response.RequesterEndpoint}");
+                }
+            }
+
+        }
+
 
         public void Dispose()
         {

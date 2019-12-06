@@ -46,9 +46,9 @@ namespace Dcomms.Sandbox
         public string VisionChannelSourceIdPrefix { get; set; } = "";
         public int NumberOfDimensions { get; set; } = 8;
         public int NumberOfLocalInterconnectedEpEngines { get; set; } = 17;
-        public int NumberOfUserApps { get; set; } = 50;
+        public int NumberOfUserApps { get; set; } = 10;
         public int NumberOfTempPeers { get; set; } = 20;
-        public int TempPeersWorkerPeriodS { get; set; } = 15;
+        public int TempPeersWorkerPeriodS { get; set; } = 150;
         int _createdTempPeersCount;
 
         public bool Initialized { get; private set; }

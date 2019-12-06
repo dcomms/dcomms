@@ -208,10 +208,14 @@ namespace Dcomms.DRP
             var packetType = (PacketTypes)udpData[0];
             if (WriteToLog_receiver_detail_enabled) 
                 WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint} ({udpData.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpData)})");
-            if (packetType == PacketTypes.RegisterPow1Request)
+            switch (packetType)
             {
-                ProcessRegisterPow1RequestPacket(remoteEndpoint, udpData);
-                return;
+                case PacketTypes.RegisterPow1Request:
+                    ProcessRegisterPow1RequestPacket(remoteEndpoint, udpData);
+                    return;
+                case PacketTypes.NatTest1Request:
+                    ProcessNatTest1Request(remoteEndpoint, udpData);
+                    return;
             }
 
             var receivedAtSW = Stopwatch.StartNew();
@@ -383,6 +387,12 @@ namespace Dcomms.DRP
             RespondersToRetransmittedRequests_OnTimer100ms(timeNowUTC);
         }
         #endregion
+        void ProcessNatTest1Request(IPEndPoint remoteEndpoint, byte[] udpData) // receiver thread
+        { // todo put some limits here per endpnt? or we don't care?
+            var request = NatTest1RequestPacket.Decode(udpData);
+            var response = new NatTest1ResponsePacket { RequesterEndpoint = remoteEndpoint, Token32 = request.Token32 };
+            SendPacket(response.Encode(), remoteEndpoint);
+        }
 
 
         void PowThreadEntry()

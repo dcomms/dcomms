@@ -41,6 +41,7 @@
 
                 <Button Command="{Binding CreateDrpTester5}" Content="CreateDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
                 <Button Command="{Binding DestroyDrpTester5}" Content="DestroyDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityConverter}}"  />
+                <Button Command="{Binding TestNat1}" Content="Test NAT #1"  />
             </StackPanel>
         </StackPanel>
 
