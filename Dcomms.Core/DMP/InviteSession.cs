@@ -159,8 +159,10 @@ namespace Dcomms.DMP
         internal void OnReceivedDmpPing(IPEndPoint remoteEndpoint, byte[] udpData) // engine thread
         {
             WriteToLog_detail($">> OnReceivedDmpPing(remoteEndpoint={remoteEndpoint})");
-            if (!remoteEndpoint.Equals(RemoteSessionDescription.DirectChannelEndPoint))
-                throw new PossibleAttackException();
+            
+            if (!remoteEndpoint.Address.Equals(RemoteSessionDescription.DirectChannelEndPoint.Address))
+                throw new PossibleAttackException($"receibed DMP PING from bad IP address {remoteEndpoint.Address}, expected from {RemoteSessionDescription.DirectChannelEndPoint.Address}");
+            
             if (SharedPingPongHmacKey == null)
             {
                 WriteToLog_detail($"ignoring received DMP PING: SharedPingPongHmacKey is not initialized yet");
@@ -168,6 +170,14 @@ namespace Dcomms.DMP
             }
 
             var ping = DmpPingPacket.DecodeAndVerify(udpData, this);
+
+
+            if (this.RemoteSessionDescription.DirectChannelEndPoint.Port != remoteEndpoint.Port)
+            {
+                WriteToLog_detail($"updating remote peer DirectChannel port from {this.RemoteSessionDescription.DirectChannelEndPoint} to {remoteEndpoint} (when remote peer opens another port in NAT)");
+                this.RemoteSessionDescription.DirectChannelEndPoint = remoteEndpoint;
+            }
+
 
             var pong = new DmpPongPacket
             {

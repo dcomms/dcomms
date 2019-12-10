@@ -314,6 +314,15 @@ namespace Dcomms.Sandbox
 
         void BeginTestMessage(MessagesTest test)
         {
+            if (!EnableMessagesTest)
+            {
+                _localEpApps[0].DrpPeerEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromSeconds(1), () => 
+                {
+                    BeginTestMessage(test);
+                }, "testmessage35905");
+                return;
+            }
+
             int c = test.OnSent();
             var userAppIndex = c % _userApps.Count;
             var peer1 = _userApps[userAppIndex];

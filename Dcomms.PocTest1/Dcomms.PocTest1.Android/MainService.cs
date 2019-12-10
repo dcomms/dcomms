@@ -83,7 +83,7 @@ namespace Dcomms.PocTest1.Droid
                     //   handler.PostDelayed(runnable, Constants.DELAY_BETWEEN_LOG_MESSAGES);
                     //   isStarted = true;
 
-                    _poc1 = new Poc1Model(true);
+                    _poc1 = new Poc1Model(false);
                     _poc1.SevereError += (errorMsg) =>
                     {
                         Android.Util.Log.Error("Dcomms", errorMsg);

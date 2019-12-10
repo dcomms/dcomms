@@ -145,6 +145,15 @@ namespace Dcomms.DRP
             PowThreadQueue = new ActionsQueue(exc => HandleGeneralException("error in PoW thread:", exc), null);
 
             _socket = new UdpClient(configuration.LocalPort ?? 0);
+            try
+            {
+                _socket.AllowNatTraversal(true);
+            }
+            catch (Exception exc)
+            {
+                WriteToLog_drpGeneral_higherLevelDetail($"AllowNatTraversal() failed: {exc.Message}");
+            }
+
             _receiverThread = new Thread(ReceiverThreadEntry);
             _receiverThread.Name = "DRP receiver";
             _receiverThread.Priority = ThreadPriority.Highest;
@@ -176,6 +185,14 @@ namespace Dcomms.DRP
             _socket.Close();
             _socket.Dispose();
             _receiverThread.Join();
+        }
+        public void DisposeDrpPeers()
+        {
+            foreach (var localPeer in LocalPeers.Values)
+            {
+                localPeer.Dispose();
+            }
+            LocalPeers.Clear();
         }
         public override string ToString() => Configuration.VisionChannelSourceId;
 
@@ -393,8 +410,7 @@ namespace Dcomms.DRP
             var response = new NatTest1ResponsePacket { RequesterEndpoint = remoteEndpoint, Token32 = request.Token32 };
             SendPacket(response.Encode(), remoteEndpoint);
         }
-
-
+        
         void PowThreadEntry()
         {
             while (!_disposing)
@@ -411,6 +427,7 @@ namespace Dcomms.DRP
             }
         }
 
+
         internal bool ValidateReceivedReqTimestamp32S(uint receivedReqTimestamp32S)
         {
             var differenceS = Math.Abs((int)receivedReqTimestamp32S - Timestamp32S);
@@ -420,6 +437,53 @@ namespace Dcomms.DRP
         {
             var differenceTicks64 = Math.Abs(receivedReqTimestamp64 - Timestamp64);
             return MiscProcedures.Int64ToTimeSpan(differenceTicks64) < TimeSpan.FromSeconds(Configuration.MaxReqTimestampDifferenceS);
+        }
+
+        public void TestUPnPdec9()
+        {
+            try
+            {
+                bool r = UPnPdec9.Discover();
+                if (!r)
+                {
+                    WriteToLog_drpGeneral_needsAttention("upnp discover returned false");
+                    return;
+                }
+
+            //    var externalIp = UPnP.GetExternalIP();
+           //     WriteToLog_drpGeneral_needsAttention($"upnp returned external address = {externalIp}");
+
+                var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
+                UPnPdec9.ForwardPort(localEP.Port, ProtocolType.Udp, "dcomms");
+                WriteToLog_drpGeneral_needsAttention($"upnp forwarded port to local endpoint {localEP}");
+            }
+            catch (Exception exc)
+            {
+                HandleGeneralException("error in TestUPnPdec9", exc);
+            }
+        }
+        public void TestUPnPdec10()
+        {
+            try
+            {
+                bool r = UPnPdec9.Discover();
+                if (!r)
+                {
+                    WriteToLog_drpGeneral_needsAttention("upnp discover returned false");
+                    return;
+                }
+
+                //    var externalIp = UPnP.GetExternalIP();
+                //     WriteToLog_drpGeneral_needsAttention($"upnp returned external address = {externalIp}");
+
+                var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
+                UPnPdec9.ForwardPort(localEP.Port, ProtocolType.Udp, "dcomms");
+                WriteToLog_drpGeneral_needsAttention($"upnp forwarded port to local endpoint {localEP}");
+            }
+            catch (Exception exc)
+            {
+                HandleGeneralException("error in TestUPnPdec10", exc);
+            }
         }
     }
 

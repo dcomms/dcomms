@@ -203,6 +203,14 @@
                 <StackPanel Orientation="Horizontal" Grid.Row="2" Visibility="{Binding DrpTester5.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
                     <Button Content="Initialize" Margin="3" Command="{Binding DrpTester5.Initialize}" />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" Grid.Row="2" Visibility="{Binding DrpTester5.Initialized, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Button Content="TestUPnPdec9" Command="{Binding DrpTester5.TestUPnPdec9}" VerticalAlignment="Top" />
+                    <Button Content="TestUPnPdec10" Command="{Binding DrpTester5.TestUPnPdec10}" VerticalAlignment="Top" />
+                    <Button Content="StartNat1Test" Command="{Binding DrpTester5.StartNat1Test}" VerticalAlignment="Top" />
+                    <Button Content="StopNat1Test" Command="{Binding DrpTester5.StopNat1Test}" VerticalAlignment="Top" />
+                    <TextBlock Text="remote EPs:" />
+                    <TextBox Text="{Binding DrpTester5.Nat1TestRemoteEPs, Mode=TwoWay}" Height="100" Width="200"/>
+                </StackPanel>
             </Grid>
 
             <TabControl Grid.Row="1" x:Name="visionGui">               

@@ -16,8 +16,28 @@
                 <Button Text="Start U3E" Command="{Binding DrpTester5.InitializeUser3EchoResponder}" IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}" />
 
                 <StackLayout IsVisible="{Binding DrpTester5.Initialized}">
-                    <Button Text="Stop" Command="{Binding DrpTester5.Deinitialize}" />
-                    <Button Text="Test NAT #1" Command="{Binding TestNat1}" />
+                    <StackLayout Orientation="Horizontal">
+                        <Button Text="Stop" Command="{Binding DrpTester5.Deinitialize}" />
+                        <Button Text="Stop DRP" Command="{Binding DrpTester5.DeinitializeDrpPeer}" />
+                        <Button Text="Test uPnP dec9" Command="{Binding DrpTester5.TestUPnPdec9}" />
+                        <Button Text="Test uPnP dec10" Command="{Binding DrpTester5.TestUPnPdec10}" />
+                    </StackLayout>                   
+
+                    <StackLayout IsVisible="{Binding DrpTester5.Nat1TestStarted, Converter={StaticResource OppositeConverter}}">
+                        <Button Text="Start NAT Test #1" Command="{Binding DrpTester5.StartNat1Test}" />
+                    </StackLayout>
+
+                    <StackLayout IsVisible="{Binding DrpTester5.Nat1TestStarted}">
+                        <Button Text="Stop NAT Test #1" Command="{Binding DrpTester5.StopNat1Test}" />
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="TTL:" />
+                            <Editor Text="{Binding DrpTester5.Nat1TestTTL, Mode=TwoWay}" WidthRequest="60" />
+                            <Label Text="wait:" />
+                            <Editor Text="{Binding DrpTester5.Nat1TestWaitTimeMs, Mode=TwoWay}" WidthRequest="70" />
+                        </StackLayout>                        
+                    </StackLayout>  
+                    
+                    <Editor Text="{Binding DrpTester5.Nat1TestRemoteEPs, Mode=TwoWay}" HeightRequest="250"  VerticalOptions="FillAndExpand"/>
                 </StackLayout>            
             </StackLayout>
         </ScrollView>

@@ -132,6 +132,8 @@ namespace Dcomms.DRP
 
         public void Dispose() // unregisters
         {
+            foreach (var conn in ConnectedNeighbors.ToList())
+                conn.Dispose();
 
         }
         public override string ToString() => $"localDrpPeer{_configuration.LocalPeerRegistrationId}";

@@ -79,7 +79,13 @@ namespace Dcomms.DRP
         internal async Task<byte[]> SendUdpRequestAsync_Retransmit(PendingLowLevelUdpRequest request)
         {
             request.InitialTxTimeUTC = DateTimeNowUtc;
-            if (request.RequestPacketDataNullable != null) SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);          
+            if (request.RequestPacketDataNullable != null)
+            {
+                short previousTTL = 0;
+                if (request.TTL != null) { previousTTL = _socket.Ttl; _socket.Ttl = request.TTL.Value; }
+                SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);
+                if (request.TTL != null) { _socket.Ttl = previousTTL; }
+            }
             return await WaitForUdpResponseAsync(request);
         }
 		internal void SendPacket(byte[] udpPayload, IPEndPoint remoteEndpoint)
@@ -144,7 +150,11 @@ namespace Dcomms.DRP
                         WriteToLog_udp_needsAttention($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");                   
                     else WriteToLog_udp_lightPain($"retransmitting request {request}. {request.RetransmissionsCount} retransmissions");
                     request.OnRetransmitted();
-                    SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);  
+
+                    short previousTTL = 0;
+                    if (request.TTL != null) { previousTTL = _socket.Ttl; _socket.Ttl = request.TTL.Value; }
+                    SendPacket(request.RequestPacketDataNullable, request.ResponderEndpoint);
+                    if (request.TTL != null) { _socket.Ttl = previousTTL; }
                 }
                 item = item.Next;
             }
@@ -279,6 +289,7 @@ namespace Dcomms.DRP
         public DateTime? ResponseReceivedAtUtc;
         double? _currentRetransmissionTimeoutS;
         readonly double _expirationTimeoutS;
+        public short? TTL;
         public PendingLowLevelUdpRequest(string completionActionVisibleId, IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, DateTime timeUtc,
             double expirationTimeoutS,
             byte[] requestPacketDataNullable = null, double? initialRetransmissionTimeoutS = null, double? retransmissionTimeoutIncrement = null)

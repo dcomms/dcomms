@@ -46,7 +46,92 @@ namespace Dcomms.Sandbox
 
         readonly Random _insecureRandom = new Random();
         DrpTesterPeerApp _userApp;
-        public DrpPeerEngine DrpPeerEngineForNatTest => _userApp.DrpPeerEngine;
+
+        #region NAT test #1
+        public bool Nat1TestStarted { get; set; }
+        public DelegateCommand StartNat1Test => new DelegateCommand(() =>
+        {
+            Nat1TestStarted = true;
+            RaisePropertyChanged(() => Nat1TestStarted);
+            TestNat1Async(_userApp.DrpPeerEngine);
+        });
+        public DelegateCommand StopNat1Test => new DelegateCommand(() =>
+        {
+            Nat1TestStarted = false;
+            RaisePropertyChanged(() => Nat1TestStarted);
+        });
+        public string Nat1TestRemoteEPs { get; set; } = "192.99.160.225:12000-12016\r\n195.154.173.208:12000-12016\r\n5.135.179.50:12000-12016";
+        
+        public string Nat1TestTTL { get; set; }
+        public string Nat1TestWaitTimeMs { get; set; } = "15000";
+
+        async void TestNat1Async(DrpPeerEngine drpPeerEngine)
+        {
+            _visionChannel.Emit("NATtest1", "NATtest1", AttentionLevel.guiActivity, $"running NAT#1 test....");
+          
+            for (int loop = 0; ; loop++)
+            {
+                if (!Nat1TestStarted) break;
+                if (drpPeerEngine.IsDisposed) break;
+
+                await drpPeerEngine.EngineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(20), "nattest1 528");
+
+                short? ttl = null;
+                if (short.TryParse(Nat1TestTTL, out var ttl2)) ttl = ttl2;
+                var rnd = new Random();
+                var epLines = Nat1TestRemoteEPs.Split(new[] { "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var epLine in epLines)
+                {                  
+                    var i0 = epLine.IndexOf(':');
+                    if (i0 == -1) continue;
+                    var ipStr = epLine.Substring(0, i0);
+                    if (!IPAddress.TryParse(ipStr, out var epIP)) continue;
+                    var portsStr = epLine.Substring(i0 + 1);
+                    int portsRangeStart, portsRangeEnd; // inclusive
+                    var i1 = portsStr.IndexOf('-');
+                    if (i1 == -1)
+                    {
+                        if (!Int32.TryParse(portsStr, out var port1)) continue;
+                        portsRangeStart = portsRangeEnd = port1;
+                    }
+                    else
+                    {
+                        if (!Int32.TryParse(portsStr.Substring(0, i1), out portsRangeStart)) continue;
+                        if (!Int32.TryParse(portsStr.Substring(i1 + 1), out portsRangeEnd)) continue;
+                        if (portsRangeEnd <= portsRangeStart) continue;
+                    }
+                    var port = portsRangeStart + loop % (portsRangeEnd - portsRangeStart + 1);
+
+                    var responderEp = new IPEndPoint(epIP, port);
+                    var req = new NatTest1RequestPacket { Token32 = (uint)rnd.Next() };
+                    var sw = Stopwatch.StartNew();
+                    var nateTest1responseData = await drpPeerEngine.SendUdpRequestAsync_Retransmit(new PendingLowLevelUdpRequest("nattest1 23",
+                        responderEp
+                        , NatTest1ResponsePacket.GetScanner(req.Token32),
+                        drpPeerEngine.DateTimeNowUtc,
+                        1.0,
+                        req.Encode(),
+                        0.3,
+                        1.2
+                        )
+                    { TTL = ttl });
+                    if (nateTest1responseData != null)
+                    {
+                        var nateTest1response = NatTest1ResponsePacket.Decode(nateTest1responseData);
+                        _visionChannel.Emit("NATtest1", "NATtest1", AttentionLevel.guiActivity, $"response from {responderEp}: {nateTest1response.RequesterEndpoint} {(int)sw.Elapsed.TotalMilliseconds}ms");
+                    }
+                    else
+                        _visionChannel.Emit("NATtest1", "NATtest1", AttentionLevel.guiActivity, $"no response from {responderEp}");
+
+                }
+                if (int.TryParse(Nat1TestWaitTimeMs, out var sleepTimeMs))
+                {
+                    await drpPeerEngine.EngineThreadQueue.WaitAsync(TimeSpan.FromMilliseconds(sleepTimeMs), "nattest1 247");
+                }
+            }
+        }
+        #endregion
+
 
         IEnumerable<IVisiblePeer> VisiblePeers
         {
@@ -95,19 +180,15 @@ namespace Dcomms.Sandbox
             if (_userApp != null)
                 _userApp.DrpPeerEngine.Dispose();
         }
-        void BeginDisposeOnFailure() // if not alrady disposing
+
+        public ICommand DeinitializeDrpPeer => new DelegateCommand(() =>
         {
-            if (_disposingOnFailure) return;
-            _disposingOnFailure = true;
-
-            var a = new Action(() =>
+            if (Initialized)
             {
-                Dispose();
-            });
-            a.BeginInvoke((ar) => a.EndInvoke(ar), null);
-        }
-        bool _disposingOnFailure;
-
+                if (_userApp != null)
+                    _userApp.DrpPeerEngine.DisposeDrpPeers();
+            }
+        });
         public ICommand Deinitialize => new DelegateCommand(() =>
         {
             if (Initialized)
@@ -117,6 +198,8 @@ namespace Dcomms.Sandbox
 
                 Initialized = false;
                 RaisePropertyChanged(() => Initialized);
+                Nat1TestStarted = false;
+                RaisePropertyChanged(() => Nat1TestStarted);
             }
         });
 
@@ -453,14 +536,14 @@ namespace Dcomms.Sandbox
         bool ContinueOnFailed()
         {
             var failedCount = OnFailed(_visionChannel.TimeNow);
-            if (failedCount >= 10000000)
+           // if (failedCount >= 10000000)
             {
-                _visionChannel.EmitListOfPeers(_userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                          AttentionLevel.strongPain,
-                          $"disposing the test: {failedCount} messages failed");
+              //  _visionChannel.EmitListOfPeers(_userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+              //            AttentionLevel.strongPain,
+              //            $"disposing the test: {failedCount} messages failed");
 
-                BeginDisposeOnFailure();
-                return false;
+             //   BeginDisposeOnFailure();
+             //   return false;
             }
             return true;
         }
@@ -515,7 +598,23 @@ namespace Dcomms.Sandbox
         {
             _lastFailureTime = now;
             return ++_failedCount;
-        }       
+        }
         #endregion
+
+
+
+        public ICommand TestUPnPdec9 => new DelegateCommand(() =>
+        {
+            _userApp.DrpPeerEngine.TestUPnPdec9();
+        });
+
+        public ICommand TestUPnPdec10 => new DelegateCommand(() =>
+        {
+            _userApp.DrpPeerEngine.TestUPnPdec10();
+        });
+
+
+
+
     }
 }
