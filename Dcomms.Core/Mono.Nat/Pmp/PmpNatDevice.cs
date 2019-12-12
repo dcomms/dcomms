@@ -110,8 +110,8 @@ namespace Mono.Nat.Pmp
 		/// <returns></returns>
 		public override string ToString ()
 		{
-			return String.Format ("PmpNatDevice - Local Address: {0}, Public IP: {1}, Last Seen: {2}",
-				DeviceEndpoint, PublicAddress, LastSeen);
+			return String.Format("PmpNatDevice - Local Address: {0}, Public IP: {1}",
+				DeviceEndpoint, PublicAddress);
 		}
 	}
 }

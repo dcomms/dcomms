@@ -37,79 +37,136 @@ using System.IO;
 using Mono.Nat.Pmp;
 using Mono.Nat.Upnp;
 using System.Threading.Tasks;
+using Dcomms.Vision;
+using System.Diagnostics;
 
 namespace Mono.Nat
 {
-	public static class NatUtility
+	public class NatUtility: IDisposable
 	{
-		public static event EventHandler<DeviceEventArgs> DeviceFound;
-		public static event EventHandler<DeviceEventArgs> DeviceLost;
+        //	public event EventHandler<DeviceEventArgs> DeviceFound;
+        //	public event EventHandler<DeviceEventArgs> DeviceLost;
 
-		static readonly object Locker = new object ();
+        //readonly object Locker = new object();
 
-		public static TextWriter Logger { get; set; }
+        readonly VisionChannel _visionChannel;
+        readonly string _visionChannelSourceId;
+        const string VisionChannelModuleName = "NAT";
 
-		public static bool IsSearching => PmpSearcher.Instance.Listening || UpnpSearcher.Instance.Listening;
+        public bool IsSearching => _upnpSearcher.Listening || _pmpSearcher.Listening;
 
-		static NatUtility ()
-		{
-			foreach (var searcher in new ISearcher [] { UpnpSearcher.Instance, PmpSearcher.Instance }) {
-				searcher.DeviceFound += (o, e) => DeviceFound?.Invoke (o, e);
-				searcher.DeviceLost += (o, e) => DeviceLost?.Invoke (o, e);
-			}
-		}
+        UpnpSearcher _upnpSearcher;
+        PmpSearcher _pmpSearcher;
+        bool _succeeded;
+        public NatUtility(VisionChannel visionChannel, string visionChannelSourceId)
+        {
+            _visionChannel = visionChannel;
+            _visionChannelSourceId = visionChannelSourceId;            
+        }
+        public async Task<bool> SearchAndConfigure(TimeSpan timeout, int localUdpPort)
+        {
+            _upnpSearcher = new UpnpSearcher(this, d => Configure(d, localUdpPort));
+            _pmpSearcher = new PmpSearcher(this, d => Configure(d, localUdpPort));             
+            _pmpSearcher.SearchAsync().FireAndForget(this);
+            _upnpSearcher.SearchAsync().FireAndForget(this);
 
-		internal static void Log (string format, params object [] args)
-		{
-			TextWriter logger = Logger;
-			if (logger != null)
-				logger.WriteLine (format, args);
-		}
+            var sw = Stopwatch.StartNew();
+            for (; ; )
+            {
+                await Task.Delay(10);
+                if (_succeeded) return true;
+                if (sw.Elapsed > timeout) return false;
+            }
+        }
+        async void Configure(INatDevice device, int localUdpPort)
+        { 
+            try
+            {
+                var externalIP = await device.GetExternalIPAsync();
+                if (externalIP == null) return;
+                if (externalIP.ToString() == "0.0.0.0") return;
+                if (externalIP.ToString() == "127.0.0.1") return;
 
-		/// <summary>
-		/// Sends a single (non-periodic) message to the specified IP address to see if it supports the
-		/// specified port mapping protocol, and begin listening indefinitely for responses.
-		/// </summary>
-		/// <param name="gatewayAddress">The IP address</param>
-		/// <param name="type"></param>
-		public static void Search (IPAddress gatewayAddress, NatProtocol type)
-		{
-			lock (Locker) {
-				if (type == NatProtocol.Pmp) {
-					PmpSearcher.Instance.SearchAsync (gatewayAddress).FireAndForget ();
-				} else if (type == NatProtocol.Upnp) {
-					UpnpSearcher.Instance.SearchAsync (gatewayAddress).FireAndForget ();
-				} else {
-					throw new InvalidOperationException ("Unsuported type given");
-				}
-			}
-		}
+                Log($"configuring NAT device {device.NatProtocol}, externalIP: {externalIP}");
 
-		/// <summary>
-		/// Periodically send a multicast UDP message to scan for new devices, and begin listening indefinitely
-		/// for responses.
-		/// </summary>
-		/// <param name="devices">The protocols which should be searched for. An empty array will result in all supported protocols being used.</param>
-		public static void StartDiscovery (params NatProtocol [] devices)
-		{
-			lock (Locker) {
-				if (devices.Length == 0 || devices.Contains (NatProtocol.Pmp))
-					PmpSearcher.Instance.SearchAsync ().FireAndForget ();
+                //Console.WriteLine("IP: {0}", await device.GetExternalIPAsync());
+                // try to create a new port map:
+           
+                var mapping2 = new Mapping(Mono.Nat.Protocol.Udp, localUdpPort, localUdpPort);
+                await device.CreatePortMapAsync(mapping2);
+                Log($"created mapping: externalIP={externalIP}, protocol={mapping2.Protocol}, publicPort={mapping2.PublicPort}, privatePort={mapping2.PrivatePort}");
 
-				if (devices.Length == 0 || devices.Contains (NatProtocol.Upnp))
-					UpnpSearcher.Instance.SearchAsync ().FireAndForget ();
-			}
-		}
+                // Try to retrieve confirmation on the port map we just created:               
+                //try
+                //{
+                //    var m = await device.GetSpecificMappingAsync(Mono.Nat.Protocol.Udp, 6020);
+                //    WriteToLog_drpGeneral_guiActivity($"Verified Mapping: externalIP={externalIP}, protocol={m.Protocol}, publicPort={m.PublicPort}, privatePort={m.PrivatePort}");
+                //}
+                //catch (Exception exc)
+                //{
+                //    WriteToLog_drpGeneral_guiActivity($"Couldn't verify mapping (GetSpecificMappingAsync failed): {exc}");
+                //}
+
+                _succeeded = true;
+            }
+            catch (Exception exc)
+            {
+                LogError($"error: {exc}");
+            }
+
+        }
+
+        internal void Log(string message)
+        {
+            _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail, message);
+        }
+        internal void LogError(string message)
+        {
+            _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.mediumPain, message);          
+        }
+
+        ///// <summary>
+        ///// Sends a single (non-periodic) message to the specified IP address to see if it supports the
+        ///// specified port mapping protocol, and begin listening indefinitely for responses.
+        ///// </summary>
+        ///// <param name="gatewayAddress">The IP address</param>
+        ///// <param name="type"></param>
+        //public void Search (IPAddress gatewayAddress, NatProtocol type)
+        //{
+        //	lock (Locker) {
+        //		if (type == NatProtocol.Pmp) {
+        //			PmpSearcher.Instance.SearchAsync (gatewayAddress).FireAndForget ();
+        //		} else if (type == NatProtocol.Upnp) {
+        //			UpnpSearcher.Instance.SearchAsync (gatewayAddress).FireAndForget ();
+        //		} else {
+        //			throw new InvalidOperationException ("Unsuported type given");
+        //		}
+        //	}
+        //}
+
+        /// <summary>
+        /// Periodically send a multicast UDP message to scan for new devices, and begin listening indefinitely
+        /// for responses.
+        /// </summary>
+      //  public void StartDiscovery(params NatProtocol [] devices)
+	//	{
+	//	}
 
 		/// <summary>
 		/// Stop listening for responses to the search messages, and cancel any pending searches.
 		/// </summary>
-		public static void StopDiscovery ()
-		{
-			lock (Locker) {
-				PmpSearcher.Instance.Stop ();
-				UpnpSearcher.Instance.Stop ();
-			}
+		public void Dispose ()
+        {
+            if (_pmpSearcher != null)
+            {
+                _pmpSearcher.Dispose();
+                _pmpSearcher = null;
+            }
+            if (_upnpSearcher != null)
+            {
+                _upnpSearcher.Dispose();
+                _upnpSearcher = null;
+            }
 		}
 	}
 }

@@ -5,7 +5,7 @@ namespace Mono.Nat.Upnp
 {
 	class ResponseMessage
 	{
-		public static ResponseMessage Decode (UpnpNatDevice device, string message)
+		public static ResponseMessage Decode (NatUtility nu, UpnpNatDevice device, string message)
 		{
 			XmlNode node;
 			XmlDocument doc = new XmlDocument ();
@@ -40,8 +40,7 @@ namespace Mono.Nat.Upnp
 			if ((node = doc.SelectSingleNode ("//responseNs:GetSpecificPortMappingEntryResponse", nsm)) != null)
 				return new GetSpecificPortMappingEntryResponseMessage (node);
 
-			NatUtility.Log ("Unknown message returned. Please send me back the following XML:");
-			NatUtility.Log (message);
+			nu.LogError ($"Unknown message returned: {message}");
 			return null;
 		}
 	}

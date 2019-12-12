@@ -42,7 +42,7 @@ namespace Mono.Nat
 		/// <summary>
 		/// The UTC time the last message was received from the WAN device.
 		/// </summary>
-		DateTime LastSeen { get; }
+	//	DateTime LastSeen { get; }
 
 		/// <summary>
 		/// The NAT protocol supported by the WAN device (e.g. NAT-PMP or uPnP)

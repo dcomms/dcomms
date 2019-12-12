@@ -53,10 +53,12 @@ namespace Mono.Nat.Upnp
 		/// The service type we're using on the device
 		/// </summary>
 		public string ServiceType { get; private set; }
+        readonly NatUtility _nu;
 
-		internal UpnpNatDevice (IPAddress localAddress, IPEndPoint deviceEndpoint, Uri deviceControlUri, string serviceType)
+        internal UpnpNatDevice(NatUtility nu, IPAddress localAddress, IPEndPoint deviceEndpoint, Uri deviceControlUri, string serviceType)
 			: base (deviceEndpoint, NatProtocol.Upnp)
 		{
+            _nu = nu;
 			LocalAddress = localAddress;
 			DeviceControlUri = deviceControlUri;
 			ServiceType = serviceType;
@@ -136,14 +138,14 @@ namespace Mono.Nat.Upnp
 
 			try {
 				using (var response = await request.GetResponseAsync ().ConfigureAwait (false))
-					return await DecodeMessageFromResponse (response.GetResponseStream (), (int) response.ContentLength);
+					return await DecodeMessageFromResponse(_nu, response.GetResponseStream (), (int) response.ContentLength);
 			} catch (WebException ex) {
 				// Even if the request "failed" i want to continue on to read out the response from the router
 				using (var response = ex.Response as HttpWebResponse) {
 					if (response == null)
 						throw new MappingException ("Unexpected error sending a message to the device", ex);
 					else
-						return await DecodeMessageFromResponse (response.GetResponseStream (), (int) response.ContentLength);
+						return await DecodeMessageFromResponse(_nu, response.GetResponseStream (), (int) response.ContentLength);
 				}
 			}
 		}
@@ -157,7 +159,7 @@ namespace Mono.Nat.Upnp
 		public override int GetHashCode ()
 			=> DeviceControlUri.GetHashCode ();
 
-		async Task<ResponseMessage> DecodeMessageFromResponse (Stream s, int length)
+		async Task<ResponseMessage> DecodeMessageFromResponse(NatUtility nu, Stream s, int length)
 		{
 			StringBuilder data = new StringBuilder ();
 			int bytesRead;
@@ -177,12 +179,9 @@ namespace Mono.Nat.Upnp
 
 			// Once we have our content, we need to see what kind of message it is. If we received
 			// an error message we will immediately throw a MappingException.
-			return ResponseMessage.Decode (this, data.ToString ());
+			return ResponseMessage.Decode(nu, this, data.ToString ());
 		}
 
-		public override string ToString ()
-		{
-			return $"UpnpNatDevice - EndPoint: {DeviceEndpoint}, External IP: Manually Check, Control Url: {DeviceControlUri}, Service Type: {ServiceType}, Last Seen: {LastSeen}";
-		}
+		public override string ToString() =>  $"UpnpNatDevice - EndPoint: {DeviceEndpoint}, External IP: Manually Check, Control Url: {DeviceControlUri}, Service Type: {ServiceType}";
 	}
 }

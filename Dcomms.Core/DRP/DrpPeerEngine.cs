@@ -462,67 +462,71 @@ namespace Dcomms.DRP
                 HandleGeneralException("error in TestUPnPdec9", exc);
             }
         }
-        public void TestUPnPdec10()
+        public async void TestUPnPdec10()
         {
             try
             {
-                Mono.Nat.NatUtility.DeviceFound += TestUPnPdec10_DeviceFound;
+                //   Mono.Nat.NatUtility.DeviceFound += TestUPnPdec10_DeviceFound;
+                //  Mono.Nat.NatUtility.StartDiscovery();
+                //   WriteToLog_drpGeneral_guiActivity("NAT discovery started");
 
-                Mono.Nat.NatUtility.StartDiscovery();
-
-                WriteToLog_drpGeneral_guiActivity("NAT discovery started");
-            }
-            catch (Exception exc)
-            {
-                HandleGeneralException("error in TestUPnPdec10", exc);
-            }
-        }
-
-        private async void TestUPnPdec10_DeviceFound(object sender, Mono.Nat.DeviceEventArgs args)
-        {
-
-          //  await locker.WaitAsync();
-            try
-            {
-                var device = args.Device;
-
-                // Only interact with one device at a time. Some devices support both
-                // upnp and nat-pmp.
-                var externalIP = await device.GetExternalIPAsync();
-                WriteToLog_drpGeneral_guiActivity($"device found: {device.NatProtocol}, type: {device.GetType().Name}, externalIP: {externalIP}");
-
-                if (externalIP == null) return;
-                if (externalIP.ToString() == "0.0.0.0") return;
-                if (externalIP.ToString() == "127.0.0.1") return;
-
-                //Console.WriteLine("IP: {0}", await device.GetExternalIPAsync());
-
-                // try to create a new port map:
+                WriteToLog_drpGeneral_guiActivity($"starting upnp procedure");
+                using var nu = new Mono.Nat.NatUtility(Configuration.VisionChannel, Configuration.VisionChannelSourceId);
                 var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
-                var mapping2 = new Mono.Nat.Mapping(Mono.Nat.Protocol.Udp, localEP.Port, localEP.Port);
-                await device.CreatePortMapAsync(mapping2);
-                WriteToLog_drpGeneral_guiActivity($"created mapping: externalIP={externalIP}, protocol={mapping2.Protocol}, publicPort={mapping2.PublicPort}, privatePort={mapping2.PrivatePort}");
-
-                // Try to retrieve confirmation on the port map we just created:               
-                try
-                {
-                    var m = await device.GetSpecificMappingAsync(Mono.Nat.Protocol.Udp, 6020);
-                    WriteToLog_drpGeneral_guiActivity($"Verified Mapping: externalIP={externalIP}, protocol={m.Protocol}, publicPort={m.PublicPort}, privatePort={m.PrivatePort}");
-                }
-                catch (Exception exc)
-                {
-                    WriteToLog_drpGeneral_guiActivity($"Couldn't verify mapping (GetSpecificMappingAsync failed): {exc}");
-                }
+                var succeeded = await nu.SearchAndConfigure(TimeSpan.FromSeconds(3), localEP.Port);
+                WriteToLog_drpGeneral_guiActivity($"upnp procedure is complete, succeeded={succeeded}");
             }
             catch (Exception exc)
             {
                 HandleGeneralException("error in TestUPnPdec10", exc);
             }
-            finally
-            {
-              //  locker.Release();
-            }
         }
+
+        //private async void TestUPnPdec10_DeviceFound(object sender, Mono.Nat.DeviceEventArgs args)
+        //{
+
+        //  //  await locker.WaitAsync();
+        //    try
+        //    {
+        //        var device = args.Device;
+
+        //        // Only interact with one device at a time. Some devices support both
+        //        // upnp and nat-pmp.
+        //        var externalIP = await device.GetExternalIPAsync();
+        //        WriteToLog_drpGeneral_guiActivity($"device found: {device.NatProtocol}, type: {device.GetType().Name}, externalIP: {externalIP}");
+
+        //        if (externalIP == null) return;
+        //        if (externalIP.ToString() == "0.0.0.0") return;
+        //        if (externalIP.ToString() == "127.0.0.1") return;
+
+        //        //Console.WriteLine("IP: {0}", await device.GetExternalIPAsync());
+
+        //        // try to create a new port map:
+        //        var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
+        //        var mapping2 = new Mono.Nat.Mapping(Mono.Nat.Protocol.Udp, localEP.Port, localEP.Port);
+        //        await device.CreatePortMapAsync(mapping2);
+        //        WriteToLog_drpGeneral_guiActivity($"created mapping: externalIP={externalIP}, protocol={mapping2.Protocol}, publicPort={mapping2.PublicPort}, privatePort={mapping2.PrivatePort}");
+
+        //        // Try to retrieve confirmation on the port map we just created:               
+        //        try
+        //        {
+        //            var m = await device.GetSpecificMappingAsync(Mono.Nat.Protocol.Udp, 6020);
+        //            WriteToLog_drpGeneral_guiActivity($"Verified Mapping: externalIP={externalIP}, protocol={m.Protocol}, publicPort={m.PublicPort}, privatePort={m.PrivatePort}");
+        //        }
+        //        catch (Exception exc)
+        //        {
+        //            WriteToLog_drpGeneral_guiActivity($"Couldn't verify mapping (GetSpecificMappingAsync failed): {exc}");
+        //        }
+        //    }
+        //    catch (Exception exc)
+        //    {
+        //        HandleGeneralException("error in TestUPnPdec10", exc);
+        //    }
+        //    finally
+        //    {
+        //      //  locker.Release();
+        //    }
+        //}
     }
 
     public interface IDrpRegisteredPeerApp 

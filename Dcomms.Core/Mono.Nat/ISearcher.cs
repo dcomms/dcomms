@@ -35,44 +35,44 @@ using System.Threading.Tasks;
 
 namespace Mono.Nat
 {
-	interface ISearcher
-	{
-		/// <summary>
-		/// This event is raised whenever a device which supports port mapping is discovered
-		/// </summary>
-		event EventHandler<DeviceEventArgs> DeviceFound;
+	//interface ISearcher
+	//{
+	//	/// <summary>
+	//	/// This event is raised whenever a device which supports port mapping is discovered
+	//	/// </summary>
+	//	event EventHandler<DeviceEventArgs> DeviceFound;
 
-		/// <summary>
-		/// This event is raised whenever a device which supports port mapping is no longer available
-		/// </summary>
-		event EventHandler<DeviceEventArgs> DeviceLost;
+	//	/// <summary>
+	//	/// This event is raised whenever a device which supports port mapping is no longer available
+	//	/// </summary>
+	//	event EventHandler<DeviceEventArgs> DeviceLost;
 
-		/// <summary>
-		/// The port mapping protocol supported by the device
-		/// </summary>
-		NatProtocol Protocol { get; }
+	//	/// <summary>
+	//	/// The port mapping protocol supported by the device
+	//	/// </summary>
+	//	NatProtocol Protocol { get; }
 
-		/// <summary>
-		/// While running the searcher constantly listens for UDP broadcasts when new devices come online.
-		/// </summary>
-		bool Listening { get; }
+	//	/// <summary>
+	//	/// While running the searcher constantly listens for UDP broadcasts when new devices come online.
+	//	/// </summary>
+	//	bool Listening { get; }
 
-		/// <summary>
-		/// Periodically send a multicast UDP message to scan for new devices.
-		/// If the searcher is not listening, it will begin listening until 'Stop' is invoked.
-		/// </summary>
-		Task SearchAsync ();
+	//	/// <summary>
+	//	/// Periodically send a multicast UDP message to scan for new devices.
+	//	/// If the searcher is not listening, it will begin listening until 'Stop' is invoked.
+	//	/// </summary>
+	//	Task SearchAsync ();
 
-		/// <summary>
-		/// Immediately sends a unicast UDP message to this IP address to check for a compatible device.
-		/// If the searcher is not listening, it will begin listening until 'Stop' is invoked.
-		/// </summary>
-		/// <param name="gatewayAddress">The IP address which should</param>
-		Task SearchAsync (IPAddress gatewayAddress);
+	//	/// <summary>
+	//	/// Immediately sends a unicast UDP message to this IP address to check for a compatible device.
+	//	/// If the searcher is not listening, it will begin listening until 'Stop' is invoked.
+	//	/// </summary>
+	//	/// <param name="gatewayAddress">The IP address which should</param>
+	//	Task SearchAsync (IPAddress gatewayAddress);
 
-		/// <summary>
-		/// The searcher will no longer listen for new devices.
-		/// </summary>
-		void Stop ();
-	}
+	//	/// <summary>
+	//	/// The searcher will no longer listen for new devices.
+	//	/// </summary>
+	//	void Stop ();
+	//}
 }

@@ -11,7 +11,6 @@ namespace Mono.Nat
 	{
 		Dictionary<UdpClient, List<IPAddress>> Sockets { get; }
 		SemaphoreSlim SocketSendLocker { get; }
-
 		int DefaultPort { get ; }
 
 		public SocketGroup (Dictionary<UdpClient, List<IPAddress>> sockets, int defaultPort)
@@ -21,40 +20,46 @@ namespace Mono.Nat
 			SocketSendLocker = new SemaphoreSlim (1, 1);
 		}
 
-		public async Task<(IPAddress, UdpReceiveResult)> ReceiveAsync (CancellationToken token)
+		public async Task<(IPAddress, UdpReceiveResult)> ReceiveAsync(CancellationToken token)
 		{
-			while (!token.IsCancellationRequested) {
-				foreach (var keypair in Sockets) {
-					try {
+			while (!token.IsCancellationRequested)
+            {
+				foreach (var keypair in Sockets)
+                {
+					try 
+                    {
 						if (keypair.Key.Available > 0) {
-							var localAddress = ((IPEndPoint) keypair.Key.Client.LocalEndPoint).Address;
-							var data = await keypair.Key.ReceiveAsync ();
+							var localAddress = ((IPEndPoint)keypair.Key.Client.LocalEndPoint).Address;
+							var data = await keypair.Key.ReceiveAsync();
 							return (localAddress, data);
 						}
 					} catch (Exception) {
-						// Ignore any errors
+						// Ignore any errors ///???????????
 					}
 				}
-
-				await Task.Delay (10, token);
+				await Task.Delay(10, token);
 			}
-
 			throw new Exception ("Should not be reached");
 		}
 
-		public async Task SendAsync (byte [] buffer, IPAddress gatewayAddress, CancellationToken token)
+		public async Task SendAsync (byte [] buffer, IPAddress gatewayAddressNullable, CancellationToken token)
 		{
-			using (await SocketSendLocker.DisposableWaitAsync (token)) {
-				foreach (var keypair in Sockets) {
-					try {
-						if (gatewayAddress == null) {
-							foreach (var defaultGateway in keypair.Value)
-								await keypair.Key.SendAsync (buffer, buffer.Length, new IPEndPoint (defaultGateway, DefaultPort));
-						} else {
-							await keypair.Key.SendAsync (buffer, buffer.Length, new IPEndPoint (gatewayAddress, DefaultPort));
-						}
-					} catch (Exception) {
-
+			using (await SocketSendLocker.DisposableWaitAsync (token)) 
+            {
+				foreach (var socket in Sockets) 
+                {
+					try 
+                    {
+						if (gatewayAddressNullable == null) 
+                        {
+							foreach (var defaultGateway in socket.Value)
+								await socket.Key.SendAsync(buffer, buffer.Length, new IPEndPoint(defaultGateway, DefaultPort));
+						} 
+                        else
+							await socket.Key.SendAsync(buffer, buffer.Length, new IPEndPoint(gatewayAddressNullable, DefaultPort));						
+					} 
+                    catch (Exception) 
+                    { ////??????????????
 					}
 				}
 			}

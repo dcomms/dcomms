@@ -40,9 +40,9 @@ namespace Mono.Nat.Pmp
 {
 	class PmpSearcher : Searcher
 	{
-		public static ISearcher Instance { get; }
+	//	public static ISearcher Instance { get; }
 
-		static PmpSearcher ()
+		static SocketGroup GetSockets()
 		{
 			var clients = new Dictionary<UdpClient, List<IPAddress>> ();
 
@@ -96,32 +96,31 @@ namespace Mono.Nat.Pmp
 				// NAT-PMP does not use multicast, so there isn't really a good fallback.
 			}
 
-			Instance = new PmpSearcher (new SocketGroup (clients, PmpConstants.ServerPort));
+			return new SocketGroup (clients, PmpConstants.ServerPort);
 		}
 
 		public override NatProtocol Protocol => NatProtocol.Pmp;
 
-		PmpSearcher (SocketGroup sockets)
-			: base (sockets)
+		public PmpSearcher(NatUtility nu, Action<INatDevice> deviceFound)
+			: base (GetSockets(), nu, deviceFound)
 		{
-
 		}
 
-		protected override async Task SearchAsync (IPAddress gatewayAddress, TimeSpan? repeatInterval, CancellationToken token)
+		protected override async Task SearchAsync(IPAddress gatewayAddressNullable, CancellationToken token)
 		{
-			do {
-				var currentSearch = CancellationTokenSource.CreateLinkedTokenSource (token);
-				Interlocked.Exchange (ref CurrentSearchCancellation, currentSearch)?.Cancel ();
+		//	do {
+				var currentSearch = CancellationTokenSource.CreateLinkedTokenSource(token);
+				Interlocked.Exchange (ref CurrentSearchCancellationTokenSource, currentSearch)?.Cancel ();
 
 				try {
-					await SearchOnce (gatewayAddress, currentSearch.Token);
+					await SearchOnce(gatewayAddressNullable, currentSearch.Token);
 				} catch (OperationCanceledException) {
-					token.ThrowIfCancellationRequested ();
+					token.ThrowIfCancellationRequested();
 				}
-				if (!repeatInterval.HasValue)
-					break;
-				await Task.Delay (repeatInterval.Value, token);
-			} while (true);
+			///	if (!repeatInterval.HasValue)
+			//		break;
+			//	await Task.Delay (repeatInterval.Value, token);
+			//} while (true);
 		}
 
 		async Task SearchOnce (IPAddress gatewayAddress, CancellationToken token)
@@ -150,7 +149,7 @@ namespace Mono.Nat.Pmp
 
 			int errorcode = IPAddress.NetworkToHostOrder (BitConverter.ToInt16 (response, 2));
 			if (errorcode != 0)
-				NatUtility.Log ("Non zero error: {0}", errorcode);
+				NU.LogError ($"PMP error from {endpoint}: {errorcode}");
 
 			var publicIp = new IPAddress (new byte [] { response [8], response [9], response [10], response [11] });
 
