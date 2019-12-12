@@ -57,13 +57,13 @@ namespace Mono.Nat.Pmp
 		}
 
 		public override Task<Mapping []> GetAllMappingsAsync ()
-			=> throw new MappingException (ErrorCode.UnsupportedOperation, "The NAT-PMP protocol does not support listing all mappings");
+			=> throw new NotImplementedException ("The NAT-PMP protocol does not support listing all mappings");
 
 		public override Task<IPAddress> GetExternalIPAsync ()
 			=> Task.FromResult (PublicAddress);
 
 		public override Task<Mapping> GetSpecificMappingAsync (Protocol protocol, int publicPort)
-			=> throw new MappingException (ErrorCode.UnsupportedOperation, "The NAT-PMP protocol does not support retrieving a specific mappings");
+			=> throw new NotImplementedException ("The NAT-PMP protocol does not support retrieving a specific mappings");
 
 		public override bool Equals (object obj)
 			=> Equals (obj as PmpNatDevice);

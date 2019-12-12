@@ -67,19 +67,12 @@ namespace Mono.Nat
 		{
 			while (!token.IsCancellationRequested)
             {
-                try
-                {
-                    (var localAddress, var data) = await Clients.ReceiveAsync(token).ConfigureAwait(false);
-                    await HandleMessageReceived(localAddress, data, token).ConfigureAwait(false);
-                }
-                catch (Exception exc)
-                {
-                    NU.LogError($"error: {exc}");
-                }
+                (var localAddress, var data) = await Clients.ReceiveAsync(token).ConfigureAwait(false);
+                await HandleInitialResponse(localAddress, data, token).ConfigureAwait(false);               
 			}
 		}
 
-		protected abstract Task HandleMessageReceived(IPAddress localAddress, UdpReceiveResult result, CancellationToken token);
+		protected abstract Task HandleInitialResponse(IPAddress localAddress, UdpReceiveResult result, CancellationToken token);
 		public async Task SearchAsync()
 		{
 			// Cancel any existing continuous search operation.

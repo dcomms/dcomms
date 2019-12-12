@@ -135,7 +135,7 @@ namespace Mono.Nat.Pmp
 			}
 		}
 
-		protected override Task HandleMessageReceived (IPAddress localAddress, UdpReceiveResult result, CancellationToken token)
+		protected override Task HandleInitialResponse (IPAddress localAddress, UdpReceiveResult result, CancellationToken token)
 		{
 			var response = result.Buffer;
 			var endpoint = result.RemoteEndPoint;

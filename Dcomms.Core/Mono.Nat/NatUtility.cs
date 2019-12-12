@@ -82,19 +82,37 @@ namespace Mono.Nat
         { 
             try
             {
+                Log($">>NatUtility.Configure(localUdpPort={localUdpPort}) device={device}");
+
                 var externalIP = await device.GetExternalIPAsync();
+                Log($"device={device}, externalIP={externalIP}");
                 if (externalIP == null) return;
                 if (externalIP.ToString() == "0.0.0.0") return;
                 if (externalIP.ToString() == "127.0.0.1") return;
-
-                Log($"configuring NAT device {device.NatProtocol}, externalIP: {externalIP}");
-
+                
                 //Console.WriteLine("IP: {0}", await device.GetExternalIPAsync());
-                // try to create a new port map:
-           
+                // try to create a new port map:           
                 var mapping2 = new Mapping(Mono.Nat.Protocol.Udp, localUdpPort, localUdpPort);
-                await device.CreatePortMapAsync(mapping2);
-                Log($"created mapping: externalIP={externalIP}, protocol={mapping2.Protocol}, publicPort={mapping2.PublicPort}, privatePort={mapping2.PrivatePort}");
+                try
+                {
+                    await device.CreatePortMapAsync(mapping2);
+                    Log($"successfully created mapping: externalIP={externalIP}, protocol={mapping2.Protocol}, publicPort={mapping2.PublicPort}, privatePort={mapping2.PrivatePort}");
+                }
+                catch (MappingException exc)
+                {
+                    Log($"first-trial error when adding port mapping to {device}: {exc.Message}. trying to delete and add again...");
+                    try
+                    {
+                        await device.DeletePortMapAsync(mapping2);
+                        await device.CreatePortMapAsync(mapping2);
+                        Log($"successfully created mapping (2nd trial): externalIP={externalIP}, protocol={mapping2.Protocol}, publicPort={mapping2.PublicPort}, privatePort={mapping2.PrivatePort}");
+                    }
+                    catch (MappingException exc2)
+                    {
+                        LogError($"second-trial error when adding port mapping to {device}: {exc2.Message}");
+                    }
+                }
+
 
                 // Try to retrieve confirmation on the port map we just created:               
                 //try
@@ -111,14 +129,14 @@ namespace Mono.Nat
             }
             catch (Exception exc)
             {
-                LogError($"error: {exc}");
+                LogError($"error when configuring NAT device {device}: {exc}");
             }
 
         }
 
         internal void Log(string message)
         {
-            _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail, message);
+            _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.guiActivity, message);
         }
         internal void LogError(string message)
         {

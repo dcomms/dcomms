@@ -34,10 +34,10 @@ namespace Mono.Nat.Pmp
 		public static ResponseMessage Decode (byte [] data)
 		{
 			if (data.Length < 16)
-				throw new MappingException ($"The received message was too short, only {data.Length} bytes");
+				throw new MappingException(ErrorCode.Unknown, $"The received message was too short, only {data.Length} bytes", null);
 
 			if (data [0] != PmpConstants.Version)
-				throw new MappingException ($"The received message was unsupported version {data [0]}");
+				throw new MappingException(ErrorCode.Unknown, $"The received message was unsupported version {data[0]}", null);
 
 			byte opCode = (byte) (data [1] & (byte) 127);
 
@@ -54,9 +54,9 @@ namespace Mono.Nat.Pmp
 			uint lifetime = (uint) IPAddress.NetworkToHostOrder (BitConverter.ToInt32 (data, 12));
 
 			if (publicPort < 0 || privatePort < 0 || resultCode != ErrorCode.Success)
-				throw new MappingException ((ErrorCode) resultCode, "Could not modify the port map");
+				throw new MappingException ((ErrorCode)resultCode, "Could not modify the port map", null);
 
-			var mapping = new Mapping (protocol, privatePort, publicPort, (int) lifetime, null);
+			var mapping = new Mapping(protocol, privatePort, publicPort, (int) lifetime, null);
 			return new MappingResponseMessage (mapping);
 		}
 	}

@@ -462,24 +462,32 @@ namespace Dcomms.DRP
                 HandleGeneralException("error in TestUPnPdec9", exc);
             }
         }
-        public async void TestUPnPdec10()
+        public void TestUPnPdec10()
         {
-            try
+            EngineThreadQueue.Enqueue(async () => 
             {
-                //   Mono.Nat.NatUtility.DeviceFound += TestUPnPdec10_DeviceFound;
-                //  Mono.Nat.NatUtility.StartDiscovery();
-                //   WriteToLog_drpGeneral_guiActivity("NAT discovery started");
-
-                WriteToLog_drpGeneral_guiActivity($"starting upnp procedure");
-                using var nu = new Mono.Nat.NatUtility(Configuration.VisionChannel, Configuration.VisionChannelSourceId);
-                var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
-                var succeeded = await nu.SearchAndConfigure(TimeSpan.FromSeconds(3), localEP.Port);
-                WriteToLog_drpGeneral_guiActivity($"upnp procedure is complete, succeeded={succeeded}");
-            }
-            catch (Exception exc)
-            {
-                HandleGeneralException("error in TestUPnPdec10", exc);
-            }
+                try
+                {
+                    WriteToLog_drpGeneral_guiActivity($"starting upnp procedure");
+                    var nu = new Mono.Nat.NatUtility(Configuration.VisionChannel, Configuration.VisionChannelSourceId);
+                    try
+                    {
+                        var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
+                        var succeeded = await nu.SearchAndConfigure(TimeSpan.FromSeconds(3), localEP.Port);
+                        WriteToLog_drpGeneral_guiActivity($"upnp procedure is complete, succeeded={succeeded}");
+                    }
+                    finally
+                    {
+                        WriteToLog_drpGeneral_guiActivity($"disposing NU..");
+                        nu.Dispose();
+                        WriteToLog_drpGeneral_guiActivity($"disposed NU");
+                    }
+                }
+                catch (Exception exc)
+                {
+                    HandleGeneralException("error in TestUPnPdec10", exc);
+                }
+            }, "TestUPnPdec10 368");            
         }
 
         //private async void TestUPnPdec10_DeviceFound(object sender, Mono.Nat.DeviceEventArgs args)

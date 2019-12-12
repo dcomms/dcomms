@@ -54,22 +54,24 @@ namespace Mono.Nat.Upnp
 		/// </summary>
 		public string ServiceType { get; private set; }
         readonly NatUtility _nu;
+        readonly string _serverHeaderValue;
 
-        internal UpnpNatDevice(NatUtility nu, IPAddress localAddress, IPEndPoint deviceEndpoint, Uri deviceControlUri, string serviceType)
+        internal UpnpNatDevice(NatUtility nu, string serverHeaderValue, IPAddress localAddress, IPEndPoint deviceEndpoint, Uri deviceControlUri, string serviceType)
 			: base (deviceEndpoint, NatProtocol.Upnp)
 		{
+            _serverHeaderValue = serverHeaderValue;
             _nu = nu;
 			LocalAddress = localAddress;
 			DeviceControlUri = deviceControlUri;
 			ServiceType = serviceType;
 		}
 
-		public override async Task<Mapping> CreatePortMapAsync (Mapping mapping)
+		public override async Task<Mapping> CreatePortMapAsync(Mapping mapping)
 		{
 			var message = new CreatePortMappingMessage (mapping, LocalAddress, this);
 			var response = await SendMessageAsync (message).ConfigureAwait (false);
 			if (!(response is CreatePortMappingResponseMessage))
-				throw new MappingException (ErrorCode.Unknown, "Invalid response received when creating the port map");
+				throw new MappingException(ErrorCode.Unknown, "Invalid response received when creating the port map", null);
 			return mapping;
 		}
 
@@ -78,7 +80,7 @@ namespace Mono.Nat.Upnp
 			var message = new DeletePortMappingMessage (mapping, this);
 			var response = await SendMessageAsync (message).ConfigureAwait (false);
 			if (!(response is DeletePortMapResponseMessage))
-				throw new MappingException (ErrorCode.Unknown, "Invalid response received when deleting the port map");
+				throw new MappingException(ErrorCode.Unknown, "Invalid response received when deleting the port map", null);
 			return mapping;
 		}
 
@@ -97,7 +99,7 @@ namespace Mono.Nat.Upnp
 					if (!(resp is GetGenericPortMappingEntryResponseMessage response))
 						break;
 
-					mappings.Add (new Mapping (response.Protocol, response.InternalPort, response.ExternalPort, response.LeaseDuration, response.PortMappingDescription));
+					mappings.Add(new Mapping (response.Protocol, response.InternalPort, response.ExternalPort, response.LeaseDuration, response.PortMappingDescription));
 				}
 			} catch (MappingException ex) {
 				// Error code 713 means we successfully iterated to the end of the array and have all the mappings.
@@ -106,7 +108,7 @@ namespace Mono.Nat.Upnp
 					throw;
 			}
 
-			return mappings.ToArray ();
+			return mappings.ToArray();
 		}
 
 		public override async Task<IPAddress> GetExternalIPAsync ()
@@ -114,7 +116,7 @@ namespace Mono.Nat.Upnp
 			var message = new GetExternalIPAddressMessage (this);
 			var response = await SendMessageAsync (message).ConfigureAwait (false);
 			if (!(response is GetExternalIPAddressResponseMessage msg))
-				throw new MappingException (ErrorCode.Unknown, "Invalid response received when getting the external IP address");
+				throw new MappingException(ErrorCode.Unknown, "Invalid response received when getting the external IP address", null);
 			return msg.ExternalIPAddress;
 		}
 
@@ -123,29 +125,34 @@ namespace Mono.Nat.Upnp
 			var message = new GetSpecificPortMappingEntryMessage (protocol, publicPort, this);
 			var response = await SendMessageAsync (message).ConfigureAwait (false);
 			if (!(response is GetSpecificPortMappingEntryResponseMessage msg))
-				throw new MappingException (ErrorCode.Unknown, "Invalid response received when getting the specific mapping");
+				throw new MappingException(ErrorCode.Unknown, "Invalid response received when getting the specific mapping", null);
 			return new Mapping (protocol, msg.InternalPort, publicPort, msg.LeaseDuration, msg.PortMappingDescription);
 		}
 
-		async Task<ResponseMessage> SendMessageAsync (RequestMessage message)
+		async Task<ResponseMessage> SendMessageAsync(RequestMessage requestMessage)
 		{
-			WebRequest request = message.Encode (out byte [] body);
-			if (body.Length > 0) {
+			WebRequest request = requestMessage.Encode(out byte [] body);
+			if (body.Length > 0)
+            {
 				request.ContentLength = body.Length;
-				using (var stream = await request.GetRequestStreamAsync ().ConfigureAwait (false))
-					await stream.WriteAsync (body, 0, body.Length).ConfigureAwait (false);
+				using (var stream = await request.GetRequestStreamAsync().ConfigureAwait(false))
+					await stream.WriteAsync(body, 0, body.Length).ConfigureAwait (false);
 			}
 
-			try {
+			try
+            {
 				using (var response = await request.GetResponseAsync ().ConfigureAwait (false))
-					return await DecodeMessageFromResponse(_nu, response.GetResponseStream (), (int) response.ContentLength);
-			} catch (WebException ex) {
+					return await DecodeMessageFromResponse(_nu, response.GetResponseStream (), (int) response.ContentLength, requestMessage);
+			} 
+            catch (WebException ex) 
+            {
 				// Even if the request "failed" i want to continue on to read out the response from the router
-				using (var response = ex.Response as HttpWebResponse) {
+				using (var response = ex.Response as HttpWebResponse) 
+                {
 					if (response == null)
-						throw new MappingException ("Unexpected error sending a message to the device", ex);
+						throw new MappingException(ErrorCode.Unknown, $"HTTP request error sending a message to NAT device: {ex.Message}", null);
 					else
-						return await DecodeMessageFromResponse(_nu, response.GetResponseStream (), (int) response.ContentLength);
+						return await DecodeMessageFromResponse(_nu, response.GetResponseStream(), (int) response.ContentLength, requestMessage);
 				}
 			}
 		}
@@ -159,7 +166,7 @@ namespace Mono.Nat.Upnp
 		public override int GetHashCode ()
 			=> DeviceControlUri.GetHashCode ();
 
-		async Task<ResponseMessage> DecodeMessageFromResponse(NatUtility nu, Stream s, int length)
+		async Task<ResponseMessage> DecodeMessageFromResponse(NatUtility nu, Stream s, int length, RequestMessage requestMessage)
 		{
 			StringBuilder data = new StringBuilder ();
 			int bytesRead;
@@ -168,7 +175,7 @@ namespace Mono.Nat.Upnp
 			// Read out the content of the message, hopefully picking everything up in the case where we have no contentlength
 			if (length != -1) {
 				while (length > 0) {
-					bytesRead = await s.ReadAsync (buffer, 0, Math.Min (buffer.Length, length)).ConfigureAwait (false);
+					bytesRead = await s.ReadAsync(buffer, 0, Math.Min (buffer.Length, length)).ConfigureAwait (false);
 					data.Append (Encoding.UTF8.GetString (buffer, 0, bytesRead));
 					length -= bytesRead;
 				}
@@ -179,9 +186,9 @@ namespace Mono.Nat.Upnp
 
 			// Once we have our content, we need to see what kind of message it is. If we received
 			// an error message we will immediately throw a MappingException.
-			return ResponseMessage.Decode(nu, this, data.ToString ());
+			return ResponseMessage.Decode(nu, this, data.ToString(), requestMessage);
 		}
 
-		public override string ToString() =>  $"UpnpNatDevice - EndPoint: {DeviceEndpoint}, External IP: Manually Check, Control Url: {DeviceControlUri}, Service Type: {ServiceType}";
+		public override string ToString() =>  $"UpnpNatDevice {DeviceEndpoint}, Control Url: {DeviceControlUri}, ServerHeader: {_serverHeaderValue}";
 	}
 }

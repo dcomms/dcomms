@@ -45,8 +45,6 @@ namespace Mono.Nat.Upnp
 {
 	class UpnpSearcher : Searcher
 	{
-	//	public static ISearcher Instance { get; }
-
 		static SocketGroup GetSockets()
 		{
 			var clients = new Dictionary<UdpClient, List<IPAddress>> ();
@@ -73,98 +71,93 @@ namespace Mono.Nat.Upnp
 		}
 
 		public override NatProtocol Protocol => NatProtocol.Upnp;
-
-		Dictionary<Uri, DateTime> LastFetchedDeviceServiceUris { get; }
-		SemaphoreSlim Locker { get; }
-
+        readonly HashSet<Uri> AlreadyProcessedDeviceServiceUris = new HashSet<Uri>();
+	
         public UpnpSearcher(NatUtility nu, Action<INatDevice> deviceFound)
 			: base (GetSockets(), nu, deviceFound)
 		{
-			LastFetchedDeviceServiceUris = new Dictionary<Uri, DateTime> ();
-			Locker = new SemaphoreSlim (1, 1);
 		}
 
 		protected override async Task SearchAsync(IPAddress gatewayAddressNullable, CancellationToken token)
 		{
+            NU.Log($">> UpnpSearcher.SearchAsync() gatewayAddressNullable={gatewayAddressNullable}");
 			var buffer = gatewayAddressNullable == null ? DiscoverDeviceMessage.EncodeSSDP() : DiscoverDeviceMessage.EncodeUnicast(gatewayAddressNullable);
             await Clients.SendAsync(buffer, gatewayAddressNullable, token);		
 		}
-		protected override async Task HandleMessageReceived (IPAddress localAddress, UdpReceiveResult result, CancellationToken token)
-		{
-			// Convert it to a string for easy parsing
-			string dataString = null;
-			var response = result.Buffer;
+        static string GetHeaderValue(List<string> headerLines, string headerName)
+        {
+            var headerLine = headerLines.FirstOrDefault(t => t.StartsWith(headerName, StringComparison.OrdinalIgnoreCase));
+            if (headerLine == null) return null;
 
-			// No matter what, this method should never throw an exception. If something goes wrong
-			// we should still be in a position to handle the next reply correctly.
+            var i0 = headerLine.IndexOf(':');
+            if (i0 == -1) return null;
+            i0++;
+            if (i0 >= headerLine.Length) return null;
+            if (headerLine[i0] == ' ') i0++;
+            if (i0 >= headerLine.Length) return null;
+
+            return headerLine.Substring(i0);
+        }
+		protected override async Task HandleInitialResponse(IPAddress localAddress, UdpReceiveResult result, CancellationToken token)
+		{	
+		    var dataString = Encoding.UTF8.GetString(result.Buffer);	
 			try
             {
-				dataString = Encoding.UTF8.GetString (response);
-
-				NU.Log($"UPnP Response: {dataString}");
+			//	NU.Log($"handling UPnP response (received via local interface {localAddress}): {dataString}");
 
 				/* For UPnP Port Mapping we need ot find either WANPPPConnection or WANIPConnection. 
-				 Any other device type is no good to us for this purpose. See the IGP overview paper 
+				 Any other device type is not good to us for this purpose. See the IGP overview paper 
 				 page 5 for an overview of device types and their hierarchy.
 				 http://upnp.org/specs/gw/UPnP-gw-InternetGatewayDevice-v1-Device.pdf */
+				// TODO: Currently we are assuming version 1 of the protocol. We should figure out which version it is and apply the correct URN
+				// Some routers don't correctly implement the version ID on the URN, so we only search for the type prefix.
 
-				/* TODO: Currently we are assuming version 1 of the protocol. We should figure out which
-				 version it is and apply the correct URN. */
-
-				/* Some routers don't correctly implement the version ID on the URN, so we only search for the type
-				 prefix. */
-
-				string log = "UPnP Response: Router advertised a '{0}' service";
-				StringComparison c = StringComparison.OrdinalIgnoreCase;
-				if (dataString.IndexOf ("urn:schemas-upnp-org:service:WANIPConnection:", c) != -1) {
-					NU.Log("UPnP Response: Router advertised a 'urn:schemas-upnp-org:service:WANIPConnection:1' service");
-				} else if (dataString.IndexOf ("urn:schemas-upnp-org:service:WANPPPConnection:", c) != -1) {
-					NU.Log("UPnP Response: Router advertised a 'urn:schemas-upnp-org:service:WANPPPConnection:' service");
-				} else
+				if (dataString.IndexOf("urn:schemas-upnp-org:service:WANIPConnection:", StringComparison.OrdinalIgnoreCase) != -1) 
+					NU.Log("UPnP Response: router advertised a 'urn:schemas-upnp-org:service:WANIPConnection:1' service");
+				else if (dataString.IndexOf("urn:schemas-upnp-org:service:WANPPPConnection:", StringComparison.OrdinalIgnoreCase) != -1) 
+					NU.Log("UPnP Response: router advertised a 'urn:schemas-upnp-org:service:WANPPPConnection:' service");
+				else
 					return;
 
-				var location = dataString.Split(new [] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries)
-					.Select (t => t.Trim())
-					.FirstOrDefault (t => t.StartsWith ("LOCATION", StringComparison.OrdinalIgnoreCase));
+                var headerLines = dataString.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToList();
+                var locationHeaderValue = GetHeaderValue(headerLines, "location");
+				if (locationHeaderValue == null) return;
 
-				if (location == null)
-					return;
-
-				var deviceLocation = location.Split (new [] { ':' }, 2).Skip (1).FirstOrDefault ();
-				var deviceServiceUri = new Uri (deviceLocation);
-
-				using (await Locker.DisposableWaitAsync(token))
+				var deviceServiceUri = new Uri(locationHeaderValue);
+				lock (AlreadyProcessedDeviceServiceUris)
                 {
-					// If we send 3 requests at a time, ensure we only fetch the services list once
-					// even if three responses are received
-					if (LastFetchedDeviceServiceUris.TryGetValue (deviceServiceUri, out DateTime last))
-						if ((DateTime.Now - last) < TimeSpan.FromSeconds (20))
-							return;
-
-					LastFetchedDeviceServiceUris[deviceServiceUri] = DateTime.Now;
+                    if (AlreadyProcessedDeviceServiceUris.Contains(deviceServiceUri))
+                    {
+                        NU.Log($"skipping uPnP service URL {deviceServiceUri}, it has been already processed");
+                        return;
+                    }
+                    AlreadyProcessedDeviceServiceUris.Add(deviceServiceUri);
 				}
+                
+                var serverHeaderValue = GetHeaderValue(headerLines, "server");
 
-				// Once we've parsed the information we need, we tell the device to retrieve it's service list
-				// Once we successfully receive the service list, the callback provided will be invoked.
-				NU.Log($"Fetching service list: {deviceServiceUri}");
-				var d = await ParseReceivedServices(localAddress, deviceServiceUri, token).ConfigureAwait(false);
+                // Once we've parsed the information we need, we tell the device to retrieve it's service list
+                // Once we successfully receive the service list, the callback provided will be invoked.
+				var d = await TryGetServices(serverHeaderValue, localAddress, deviceServiceUri, token).ConfigureAwait(false);
 				if (d != null)
 					RaiseDeviceFound(d);
 			} catch (Exception ex) {
-                NU.LogError($"Unhandled exception when trying to decode a device's response: {ex}. data string: {dataString}");
+                NU.LogError($"Unhandled exception when trying to decode response from router: {ex}. data: {dataString}");
 			}
 		}
-		async Task<UpnpNatDevice> ParseReceivedServices(IPAddress localAddress, Uri deviceServiceUri, CancellationToken token)
-		{
-			// Create a HTTPWebRequest to download the list of services the device offers
-			var request = new GetServicesMessage (deviceServiceUri).Encode(out byte[] body);
+		async Task<UpnpNatDevice> TryGetServices(string serverHeaderValue, IPAddress localAddress, Uri deviceServiceUri, CancellationToken token)
+        {
+            NU.Log($"getting uPnP services list from {deviceServiceUri} server {serverHeaderValue}");
+
+            // create a HTTPWebRequest to download the list of services the device offers
+            var request = new GetServicesMessage(deviceServiceUri).Encode(out byte[] body);
 			if (body.Length > 0)
 				NU.LogError("Error: Services Message contained a body");
 			using (token.Register(() => request.Abort()))
 			    using (var response = (HttpWebResponse)await request.GetResponseAsync().ConfigureAwait(false))
-				    return await ParseReceivedServices (localAddress, deviceServiceUri, response).ConfigureAwait(false);
+				    return await TryParseServices(serverHeaderValue, localAddress, deviceServiceUri, response).ConfigureAwait(false);
 		}
-		async Task<UpnpNatDevice> ParseReceivedServices(IPAddress localAddress, Uri deviceServiceUri, HttpWebResponse response)
+		async Task<UpnpNatDevice> TryParseServices(string serverHeaderValue, IPAddress localAddress, Uri deviceServiceUri, HttpWebResponse response)
 		{
 			int loopsCount = 0;
 			byte[] buffer = new byte[10240];
@@ -174,7 +167,7 @@ namespace Mono.Nat.Upnp
 
 			if (response.StatusCode != HttpStatusCode.OK)
             {
-				NU.LogError($"{response.ResponseUri}: Couldn't get services list: {response.StatusCode}");
+				NU.LogError($"{response.ResponseUri}: couldn't get services list: {response.StatusCode}");
 				return null; // FIXME: This the best thing to do??
 			}
 
@@ -191,14 +184,14 @@ namespace Mono.Nat.Upnp
 					// so this hack is needed to keep testing our received data until it gets successfully
 					// parsed by the xmldoc. Without this, the code will never pick up my router.
 					if (loopsCount++ > 500) {
+                        NU.LogError($"{response.ResponseUri}: couldn't parse services list: {servicesXml}\r\nserver: {serverHeaderValue}");
 						return null;
 					}
-                    NU.LogError($"{response.ResponseUri}: Couldn't parse services list");
 					await Task.Delay(10);
 				}
 			}
 
-            NU.Log($"{response.ResponseUri}: Parsed services list");
+         //   NU.Log($"{response.ResponseUri}: parsed services: {xmldoc.OuterXml}");
 			XmlNamespaceManager ns = new XmlNamespaceManager (xmldoc.NameTable);
 			ns.AddNamespace ("ns", "urn:schemas-upnp-org:device-1-0");
 			XmlNodeList nodes = xmldoc.SelectNodes ("//*/ns:serviceList", ns);
@@ -208,27 +201,27 @@ namespace Mono.Nat.Upnp
 				foreach (XmlNode service in node.ChildNodes) {
 					//If the service is a WANIPConnection, then we have what we want
 					string serviceType = service["serviceType"].InnerText;
-                    NU.Log($"{response.ResponseUri}: Found service: {serviceType}");
+                   // NU.Log($"{response.ResponseUri}: Found service: {serviceType}");
 					StringComparison c = StringComparison.OrdinalIgnoreCase;
 					// TODO: Add support for version 2 of UPnP.
 					if (serviceType.Equals ("urn:schemas-upnp-org:service:WANPPPConnection:1", c) ||
 						serviceType.Equals ("urn:schemas-upnp-org:service:WANIPConnection:1", c)) {
 						var controlUrl = new Uri (service ["controlURL"].InnerText, UriKind.RelativeOrAbsolute);
 						IPEndPoint deviceEndpoint = new IPEndPoint (IPAddress.Parse (response.ResponseUri.Host), response.ResponseUri.Port);
-                        NU.Log($"{response.ResponseUri}: Found upnp service at: {controlUrl.OriginalString}");
+                        NU.Log($"{response.ResponseUri}: found upnp service at: {controlUrl.OriginalString}");
 						try {
 							if (controlUrl.IsAbsoluteUri) {
 								deviceEndpoint = new IPEndPoint (IPAddress.Parse (controlUrl.Host), controlUrl.Port);
-                                NU.Log($"{deviceEndpoint}: New control url: {controlUrl}");
+                                NU.Log($"{deviceEndpoint}: new control url: {controlUrl}");
 							} else {
 								controlUrl = new Uri (deviceServiceUri, controlUrl.OriginalString);
 							}
 						} catch {
 							controlUrl = new Uri (deviceServiceUri, controlUrl.OriginalString);
-                            NU.Log($"{deviceEndpoint}: Assuming control Uri is relative: {controlUrl}");
+                            NU.Log($"{deviceEndpoint}: assuming control Uri is relative: {controlUrl}");
 						}
-                        NU.Log($"{deviceEndpoint}: Handshake Complete");
-						return new UpnpNatDevice(NU, localAddress, deviceEndpoint, controlUrl, serviceType);
+                        NU.Log($"{deviceEndpoint}: handshake is complete");
+						return new UpnpNatDevice(NU, serverHeaderValue, localAddress, deviceEndpoint, controlUrl, serviceType);
 					}
 				}
 			}

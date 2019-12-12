@@ -43,7 +43,9 @@ namespace Mono.Nat.Upnp
 			RequestType = requestType;
 		}
 
-		protected WebRequest CreateRequest (string upnpMethod, string methodParameters, out byte [] body)
+        string _toString = "[not sent]";
+        public override string ToString() => _toString;
+        protected WebRequest CreateRequest(string upnpMethod, string methodParameters, out byte [] body)
 		{
 			var location = Device.DeviceControlUri;
 
@@ -51,7 +53,7 @@ namespace Mono.Nat.Upnp
 			req.KeepAlive = false;
 			req.Method = "POST";
 			req.ContentType = "text/xml; charset=\"utf-8\"";
-			req.Headers.Add ("SOAPACTION", "\"" + Device.ServiceType + "#" + upnpMethod + "\"");
+			req.Headers.Add("SOAPACTION", "\"" + Device.ServiceType + "#" + upnpMethod + "\"");
 
 			string bodyString = "<s:Envelope "
 			   + "xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
@@ -64,9 +66,12 @@ namespace Mono.Nat.Upnp
 			   + "</s:Body>"
 			   + "</s:Envelope>\r\n\r\n";
 
-			body = Encoding.UTF8.GetBytes (bodyString);
+            _toString = $"action: {Device.ServiceType}#{upnpMethod} {bodyString}";
+
+			body = Encoding.UTF8.GetBytes(bodyString);
 			return req;
 		}
+       
 
 		public WebRequest Encode (out byte [] body)
 		{
@@ -76,8 +81,8 @@ namespace Mono.Nat.Upnp
 			};
 
 			using (var writer = XmlWriter.Create (builder, settings))
-				Encode (writer);
-			return CreateRequest (RequestType, builder.ToString (), out body);
+				Encode(writer);
+			return CreateRequest(RequestType, builder.ToString (), out body);
 		}
 
 		public virtual void Encode (XmlWriter writer)

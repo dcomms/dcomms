@@ -5,11 +5,11 @@ namespace Mono.Nat.Upnp
 {
 	class ResponseMessage
 	{
-		public static ResponseMessage Decode (NatUtility nu, UpnpNatDevice device, string message)
+		public static ResponseMessage Decode(NatUtility nu, UpnpNatDevice device, string responseMessageText, RequestMessage requestMessage)
 		{
 			XmlNode node;
-			XmlDocument doc = new XmlDocument ();
-			doc.LoadXml (message);
+			var doc = new XmlDocument();
+			doc.LoadXml (responseMessageText);
 
 			XmlNamespaceManager nsm = new XmlNamespaceManager (doc.NameTable);
 
@@ -21,8 +21,7 @@ namespace Mono.Nat.Upnp
 			if ((node = doc.SelectSingleNode ("//errorNs:UPnPError", nsm)) != null) {
 				string errorCode = node ["errorCode"] != null ? node ["errorCode"].InnerText : "";
 				string errorDescription = node ["errorDescription"] != null ? node ["errorDescription"].InnerText : "";
-
-				throw new MappingException ((ErrorCode) int.Parse (errorCode), errorDescription);
+				throw new MappingException((ErrorCode)int.Parse(errorCode), errorDescription, responseMessageText, requestMessage);
 			}
 
 			if ((doc.SelectSingleNode ("//responseNs:AddPortMappingResponse", nsm)) != null)
@@ -40,7 +39,7 @@ namespace Mono.Nat.Upnp
 			if ((node = doc.SelectSingleNode ("//responseNs:GetSpecificPortMappingEntryResponse", nsm)) != null)
 				return new GetSpecificPortMappingEntryResponseMessage (node);
 
-			nu.LogError ($"Unknown message returned: {message}");
+			nu.LogError ($"Unknown message returned: {responseMessageText}");
 			return null;
 		}
 	}
