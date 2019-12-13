@@ -18,7 +18,7 @@ namespace Dcomms.Sandbox
         const string DrpTesterVisionChannelModuleName = "drpTester5";
 
         public bool Initialized { get; private set; }
-
+        public string LocalUdpPortString { get; set; }
         public string VisionChannelSourceId { get; set; } = "U";
         public int NumberOfDimensions { get; set; } = 8;
         IPEndPoint[] RemoteEpEndPoints = new IPEndPoint[0];
@@ -63,7 +63,7 @@ namespace Dcomms.Sandbox
         public string Nat1TestRemoteEPs { get; set; } = "192.99.160.225:12000-12016\r\n195.154.173.208:12000-12016\r\n5.135.179.50:12000-12016";
         
         public string Nat1TestTTL { get; set; }
-        public string Nat1TestWaitTimeMs { get; set; } = "15000";
+        public string Nat1TestWaitTimeMs { get; set; } = "1500";
 
         async void TestNat1Async(DrpPeerEngine drpPeerEngine)
         {
@@ -131,8 +131,7 @@ namespace Dcomms.Sandbox
             }
         }
         #endregion
-
-
+        
         IEnumerable<IVisiblePeer> VisiblePeers
         {
             get
@@ -415,7 +414,8 @@ namespace Dcomms.Sandbox
                     InsecureRandomSeed = _insecureRandom.Next(),
                     VisionChannel = _visionChannel,
                     VisionChannelSourceId = VisionChannelSourceId,
-                    SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
+                    SandboxModeOnly_NumberOfDimensions = NumberOfDimensions,
+                    LocalPort = LocalUdpPortString.ToUShortNullable()
                 });
 
                 //var user4DrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
@@ -600,21 +600,10 @@ namespace Dcomms.Sandbox
             return ++_failedCount;
         }
         #endregion
-
-
-
-        public ICommand TestUPnPdec9 => new DelegateCommand(() =>
-        {
-            _userApp.DrpPeerEngine.TestUPnPdec9();
-        });
-
+               
         public ICommand TestUPnPdec10 => new DelegateCommand(() =>
         {
             _userApp.DrpPeerEngine.TestUPnPdec10();
-        });
-
-
-
-
+        });               
     }
 }

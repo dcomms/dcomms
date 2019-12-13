@@ -82,7 +82,7 @@ namespace Mono.Nat
         { 
             try
             {
-                Log($">>NatUtility.Configure(localUdpPort={localUdpPort}) device={device}");
+                Log($">> NatUtility.Configure(localUdpPort={localUdpPort}) device={device}");
 
                 var externalIP = await device.GetExternalIPAsync();
                 Log($"device={device}, externalIP={externalIP}");

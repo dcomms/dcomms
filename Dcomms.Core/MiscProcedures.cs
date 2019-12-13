@@ -364,12 +364,15 @@ namespace Dcomms
             return String.Join(", 0x", a.Select(x => x.ToString("X2")));
         }
         
-
-
-
         public static string VectorToString(double[] a)
         {
             return "[" + String.Join(", ", a.Select(x => x.ToString("0.000"))) + "]";
+        }
+
+        public static ushort? ToUShortNullable(this string str)
+        {
+            if (ushort.TryParse(str, out var r)) return r;
+            return null;
         }
     }
     public class AverageSingle

@@ -8,19 +8,22 @@
     <ContentPage.Content>
         <ScrollView>
             <StackLayout>
-                <Button Text="Start U1S" Command="{Binding DrpTester5.InitializeUser1Sender}" IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}" />
-                <Button Text="Start U1E" Command="{Binding DrpTester5.InitializeUser1EchoResponder}" IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}" />
-                <Button Text="Start U2S" Command="{Binding DrpTester5.InitializeUser2Sender}" IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}" />
-                <Button Text="Start U2E" Command="{Binding DrpTester5.InitializeUser2EchoResponder}" IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}" />
-                <Button Text="Start U3S" Command="{Binding DrpTester5.InitializeUser3Sender}" IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}" />
-                <Button Text="Start U3E" Command="{Binding DrpTester5.InitializeUser3EchoResponder}" IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}" />
+                <StackLayout  IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}">                    
+                    <Button Text="Start U1S" Command="{Binding DrpTester5.InitializeUser1Sender}" />
+                    <Button Text="Start U1E" Command="{Binding DrpTester5.InitializeUser1EchoResponder}" />
+                    <Button Text="Start U2S" Command="{Binding DrpTester5.InitializeUser2Sender}" />
+                    <Button Text="Start U2E" Command="{Binding DrpTester5.InitializeUser2EchoResponder}" />
+                    <Button Text="Start U3S" Command="{Binding DrpTester5.InitializeUser3Sender}" />
+                    <Button Text="Start U3E" Command="{Binding DrpTester5.InitializeUser3EchoResponder}" />
+                    <Label Text="local UDP port:" />
+                    <Entry Text="{Binding DrpTester5.LocalUdpPortString, Mode=TwoWay}" WidthRequest="60" />
+                </StackLayout>
 
                 <StackLayout IsVisible="{Binding DrpTester5.Initialized}">
                     <StackLayout Orientation="Horizontal">
                         <Button Text="Stop" Command="{Binding DrpTester5.Deinitialize}" />
                         <Button Text="Stop DRP" Command="{Binding DrpTester5.DeinitializeDrpPeer}" />
-                        <Button Text="Test uPnP dec9" Command="{Binding DrpTester5.TestUPnPdec9}" />
-                        <Button Text="Test uPnP dec10" Command="{Binding DrpTester5.TestUPnPdec10}" />
+                        <Button Text="uPnP dec10" Command="{Binding DrpTester5.TestUPnPdec10}" />
                     </StackLayout>                   
 
                     <StackLayout IsVisible="{Binding DrpTester5.Nat1TestStarted, Converter={StaticResource OppositeConverter}}">

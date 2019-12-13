@@ -439,29 +439,6 @@ namespace Dcomms.DRP
             return MiscProcedures.Int64ToTimeSpan(differenceTicks64) < TimeSpan.FromSeconds(Configuration.MaxReqTimestampDifferenceS);
         }
 
-        public void TestUPnPdec9()
-        {
-            try
-            {
-                bool r = UPnPdec9.Discover();
-                if (!r)
-                {
-                    WriteToLog_drpGeneral_needsAttention("upnp discover returned false");
-                    return;
-                }
-
-            //    var externalIp = UPnP.GetExternalIP();
-           //     WriteToLog_drpGeneral_needsAttention($"upnp returned external address = {externalIp}");
-
-                var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
-                UPnPdec9.ForwardPort(localEP.Port, ProtocolType.Udp, "dcomms");
-                WriteToLog_drpGeneral_needsAttention($"upnp forwarded port to local endpoint {localEP}");
-            }
-            catch (Exception exc)
-            {
-                HandleGeneralException("error in TestUPnPdec9", exc);
-            }
-        }
         public void TestUPnPdec10()
         {
             EngineThreadQueue.Enqueue(async () => 

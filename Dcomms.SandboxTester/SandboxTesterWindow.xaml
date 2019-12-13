@@ -41,7 +41,7 @@
 
                 <Button Command="{Binding CreateDrpTester5}" Content="CreateDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
                 <Button Command="{Binding DestroyDrpTester5}" Content="DestroyDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityConverter}}"  />
-                <Button Command="{Binding TestNat1}" Content="Test NAT #1"  />
+
             </StackPanel>
         </StackPanel>
 
@@ -182,6 +182,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -191,23 +192,25 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Row="0" Text="local user:" />
-                <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding DrpTester5.PredefinedUsers}" DisplayMemberPath="Name"  SelectedItem="{Binding DrpTester5.LocalUser, Mode=TwoWay}" />
+                <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding DrpTester5.PredefinedUsers}" DisplayMemberPath="Name" SelectedItem="{Binding DrpTester5.LocalUser, Mode=TwoWay}" />
                 <TextBlock Grid.Row="1" Text="remote user:" />
-                <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding DrpTester5.PredefinedUsers}" DisplayMemberPath="Name"  SelectedItem="{Binding DrpTester5.RemoteUser, Mode=TwoWay}"  />
+                <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding DrpTester5.PredefinedUsers}" DisplayMemberPath="Name" SelectedItem="{Binding DrpTester5.RemoteUser, Mode=TwoWay}"  />
+                <TextBlock Grid.Row="2" Text="local UDP port:" />
+                <TextBox Grid.Row="2" Grid.Column="1"  Text="{Binding DrpTester5.LocalUdpPortString, Mode=TwoWay}"  />
 
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="remote EPs:" />
                 <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding DrpTester5.RemoteEpEndPointsString, Mode=TwoWay}" />
                 <TextBlock Grid.Row="1" Grid.Column="2" Text="num of dimensions:" />
                 <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding DrpTester5.NumberOfDimensions, Mode=TwoWay}" />
 
-                <StackPanel Orientation="Horizontal" Grid.Row="2" Visibility="{Binding DrpTester5.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
+                <StackPanel Orientation="Horizontal" Grid.Row="3" Visibility="{Binding DrpTester5.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
                     <Button Content="Initialize" Margin="3" Command="{Binding DrpTester5.Initialize}" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Grid.Row="2" Visibility="{Binding DrpTester5.Initialized, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <Button Content="TestUPnPdec9" Command="{Binding DrpTester5.TestUPnPdec9}" VerticalAlignment="Top" />
+                <StackPanel Orientation="Horizontal" Grid.Row="3" Visibility="{Binding DrpTester5.Initialized, Converter={StaticResource BoolToVisibilityConverter}}">
                     <Button Content="TestUPnPdec10" Command="{Binding DrpTester5.TestUPnPdec10}" VerticalAlignment="Top" />
                     <Button Content="StartNat1Test" Command="{Binding DrpTester5.StartNat1Test}" VerticalAlignment="Top" />
                     <Button Content="StopNat1Test" Command="{Binding DrpTester5.StopNat1Test}" VerticalAlignment="Top" />
+                    <Button Content="Deinitialize DRP" Command="{Binding DrpTester5.DeinitializeDrpPeer}" VerticalAlignment="Top" />                    
                     <TextBlock Text="remote EPs:" />
                     <TextBox Text="{Binding DrpTester5.Nat1TestRemoteEPs, Mode=TwoWay}" Height="100" Width="200"/>
                 </StackPanel>

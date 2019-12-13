@@ -97,14 +97,18 @@ namespace Mono.Nat
 
 		public void Dispose()
 		{
-			ListeningTask_CancellationTokenSource?.Cancel ();
-			ListeningTask?.WaitAndForget(NU);
-			SearchTask?.WaitAndForget(NU);
+          //  ListeningTask?.WaitAndForget(NU);
+		//	SearchTask?.WaitAndForget(NU);
 
+			ListeningTask_CancellationTokenSource?.Cancel();
 			ListeningTask_CancellationTokenSource = null;
 			ListeningTask = null;
+
+            OverallSearchCancellationTokenSource?.Cancel();
+            OverallSearchCancellationTokenSource = null;
 			SearchTask = null;
-		}
+
+        }
 
 		protected void RaiseDeviceFound(NatDevice device)
 		{
