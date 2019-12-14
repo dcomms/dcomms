@@ -35,7 +35,7 @@ namespace Mono.Nat
 			} catch (OperationCanceledException) {
 				// If we cancel the task then we don't need to log anything.
 			} catch (Exception ex) {
-				nu.LogError($"Unhandled exception: {ex}");
+				nu.Log_mediumPain($"Unhandled exception: {ex}");
 			}
 		}
 
@@ -46,7 +46,7 @@ namespace Mono.Nat
 			} catch (OperationCanceledException) {
 				// If we cancel the task then we don't need to log anything.
 			} catch (Exception ex) {
-				nu.LogError ($"Unhandled exception: {ex}");
+				nu.Log_mediumPain ($"Unhandled exception: {ex}");
 			}
 		}
 
@@ -57,7 +57,7 @@ namespace Mono.Nat
 			} catch (OperationCanceledException) {
 				// If we cancel the task then we don't need to log anything.
 			} catch (Exception ex) {
-				nu.Log ($"Unhandled exception: {ex}");
+				nu.Log_deepDetail ($"Unhandled exception: {ex}");
 			}
 		}
 	}

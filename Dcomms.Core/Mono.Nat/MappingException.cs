@@ -38,7 +38,6 @@ namespace Mono.Nat
 		public MappingException(ErrorCode errorCode, string errorText, string responseMessageText = null, RequestMessage requestMessage = null)
 			: base($"NAT error {errorCode}: {errorText}. response: {responseMessageText}. request: {requestMessage}")
 		{			
-		}      
-		
+		}  
 	}
 }

@@ -41,9 +41,9 @@ namespace Mono.Nat.Pmp
 
 			byte opCode = (byte) (data [1] & (byte) 127);
 
-			Protocol protocol = Protocol.Tcp;
+			IpProtocol protocol = IpProtocol.Tcp;
 			if (opCode == PmpConstants.OperationCodeUdp)
-				protocol = Protocol.Udp;
+				protocol = IpProtocol.Udp;
 
 			var resultCode = (ErrorCode) IPAddress.NetworkToHostOrder (BitConverter.ToInt16 (data, 2));
 			uint epoch = (uint) IPAddress.NetworkToHostOrder (BitConverter.ToInt32 (data, 4));

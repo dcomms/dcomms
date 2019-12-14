@@ -28,7 +28,7 @@ namespace Mono.Nat.Upnp
 {
 	sealed class GetExternalIPAddressMessage : RequestMessage
 	{
-		public GetExternalIPAddressMessage (UpnpNatDevice device)
+		public GetExternalIPAddressMessage (UpnpNatRouterDevice device)
 			: base (device, "GetExternalIPAddress")
 		{
 

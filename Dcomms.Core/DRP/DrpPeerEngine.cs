@@ -450,14 +450,14 @@ namespace Dcomms.DRP
                     try
                     {
                         var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
-                        var succeeded = await nu.SearchAndConfigure(TimeSpan.FromSeconds(3), localEP.Port);
+                        var succeeded = await nu.SearchAndConfigure(new[] { localEP.Port });
                         WriteToLog_drpGeneral_guiActivity($"upnp procedure is complete, succeeded={succeeded}");
                     }
                     finally
                     {
-                        WriteToLog_drpGeneral_guiActivity($"disposing NU..");
+                     //   WriteToLog_drpGeneral_guiActivity($"disposing NU..");
                         nu.Dispose();
-                        WriteToLog_drpGeneral_guiActivity($"disposed NU");
+                    //    WriteToLog_drpGeneral_guiActivity($"disposed NU");
                     }
                 }
                 catch (Exception exc)

@@ -33,11 +33,11 @@ namespace Mono.Nat.Upnp
 {
 	abstract class RequestMessage : IRequestMessage
 	{
-		protected UpnpNatDevice Device { get; }
+		protected UpnpNatRouterDevice Device { get; }
 
 		string RequestType { get; }
 
-		protected RequestMessage (UpnpNatDevice device, string requestType)
+		protected RequestMessage (UpnpNatRouterDevice device, string requestType)
 		{
 			Device = device;
 			RequestType = requestType;
@@ -93,8 +93,8 @@ namespace Mono.Nat.Upnp
 		protected static void WriteFullElement (XmlWriter writer, string element, IPAddress value)
 			=> WriteFullElement (writer, element, value.ToString ());
 
-		protected static void WriteFullElement (XmlWriter writer, string element, Protocol value)
-			=> WriteFullElement (writer, element, value == Protocol.Tcp ? "TCP" : "UDP");
+		protected static void WriteFullElement (XmlWriter writer, string element, IpProtocol value)
+			=> WriteFullElement (writer, element, value == IpProtocol.Tcp ? "TCP" : "UDP");
 
 		protected static void WriteFullElement (XmlWriter writer, string element, int value)
 			=> WriteFullElement (writer, element, value.ToString ());

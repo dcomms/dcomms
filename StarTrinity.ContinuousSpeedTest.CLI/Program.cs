@@ -3,19 +3,13 @@ using Dcomms.SUBT;
 using Dcomms;
 using System;
 using System.Net;
+using Dcomms.Vision;
 
 namespace StarTrinity.ContinuousSpeedTest.CLI
 {
     class Program
     {
-        class User : ILocalPeerUser
-        {
-            bool ILocalPeerUser.EnableLog => true;
-            void ILocalPeerUser.WriteToLog(string message)
-            {
-             //   Console.WriteLine(message);
-            }
-        }
+      
         static void Main(string[] args)
         {
             var coordinatorServerIp1 = IPAddress.Parse("163.172.210.13");//neth3
@@ -28,7 +22,7 @@ namespace StarTrinity.ContinuousSpeedTest.CLI
             var node = new LocalPeer(new LocalPeerConfiguration
             {
                 RoleAsUser = true,
-                LocalPeerUser = new User(),
+                VisionChannel = new VisionChannel1() { ClearLog_MessagesCount = 1000 },
                 LocalUdpPortRangeStart = null,
                 SocketsCount = 4,
                 Coordinators = new IPEndPoint[]

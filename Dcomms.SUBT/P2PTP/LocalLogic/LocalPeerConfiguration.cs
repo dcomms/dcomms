@@ -24,7 +24,8 @@ namespace Dcomms.P2PTP.LocalLogic
         /// initially known 'entry points' to the P2PTS network
         /// </summary>
         public IPEndPoint[] Coordinators;
-        public ILocalPeerUser LocalPeerUser;
+        public Vision.VisionChannel VisionChannel;
+        public string VisionChannelSourceId;
         public string CoordinatorsString
         {
             get

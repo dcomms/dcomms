@@ -16,21 +16,41 @@
             <TextBlock Text="{Binding LocalPeer.LocalPeerId}" />
 
 
-            <CheckBox Content="enable log" IsChecked="{Binding EnableLog, UpdateSourceTrigger=PropertyChanged}" Margin="50 3 3 3" />
+            <!--<CheckBox Content="enable log" IsChecked="{Binding EnableLog, UpdateSourceTrigger=PropertyChanged}" Margin="50 3 3 3" />-->
             <TextBlock Text="max items in RAM:" />
-            <TextBox Text="{Binding LogMessagesMaxRamCount}" MinWidth="50" />
+            <TextBox Text="{Binding VisionChannel.ClearLog_MessagesCount}" MinWidth="50" />
             <TextBlock Text="display:" />
-            <TextBox Text="{Binding LogMessagesMaxDisplayCount}" MinWidth="50" />
-            <TextBlock Text="filter:" />
-            <TextBox Text="{Binding LogMessagesFilter, UpdateSourceTrigger=PropertyChanged}" MinWidth="150" />
-            
+            <TextBox Text="{Binding VisionChannel.DisplayedLogMessagesMaxCount}" MinWidth="50" />
+            <TextBlock Text="msg contains:" />
+            <TextBox Text="{Binding VisionChannel.DisplayFilterMessageContainsString, UpdateSourceTrigger=PropertyChanged}" MinWidth="150" />
+            <TextBlock Text="modules:" />
+            <TextBox Text="{Binding VisionChannel.DisplayFilterModuleContainsStrings, Mode=TwoWay}" Width="200"/>
 
 
+            <TextBlock Text="display level:" />
+            <ComboBox SelectedItem="{Binding VisionChannel.DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding VisionChannel.DisplayFilterMinLevels}" VerticalAlignment="Center"/>
+            <TextBlock Text="attention:" />
+            <ComboBox SelectedItem="{Binding VisionChannel.AttentionLevel, Mode=TwoWay}" ItemsSource="{Binding VisionChannel.DisplayFilterMinLevels}" VerticalAlignment="Center"/>
         </StackPanel>
-        <DataGrid Grid.Row="1" Name="logMessagesGrid" ItemsSource="{Binding LogMessages}" HeadersVisibility="None" >
+        <DataGrid Grid.Row="1" Name="logMessagesGrid" ItemsSource="{Binding VisionChannel.DisplayedLogMessages}"  >
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Time" Binding="{Binding DateTime, StringFormat='\{0:yyyy-MM-dd HH:mm:ss:fff\}', Mode=OneTime}"></DataGridTextColumn>
-                <DataGridTextColumn Header="Text" Binding="{Binding Text, Mode=OneTime}"></DataGridTextColumn>
+                <DataGridTemplateColumn Header="Level" >
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Margin="0" Text="{Binding AttentionLevelStr, Mode=OneTime}" Background="{Binding AttentionLevelColor, Mode=OneTime, Converter={StaticResource ColorToBrushConverter}}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Thread" Binding="{Binding ManagedThreadId, Mode=OneTime}"></DataGridTextColumn>
+                <DataGridTextColumn Header="Module" Binding="{Binding ModuleName, Mode=OneTime}"></DataGridTextColumn>
+                <DataGridTextColumn Header="Time" Binding="{Binding TimeStr, Mode=OneTime}"></DataGridTextColumn>
+                <DataGridTextColumn Header="Message" Binding="{Binding Message, Mode=OneTime}" MaxWidth="800" >
+                    <DataGridTextColumn.ElementStyle>
+                        <Style>
+                            <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

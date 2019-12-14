@@ -88,8 +88,14 @@ namespace Dcomms.P2PTP.LocalLogic
                     _previousTimestamp32 = timestamp32;
 
                     var manager = _localPeer.Manager;
-                    if (manager != null && _localPeer.Firewall.PacketIsAllowed(remoteEndpoint))
+                    if (manager != null && _localPeer.Firewall.PacketIsAllowed(remoteEndpoint) && udpData.Length > 4)
                     {
+                        if (udpData[0] == (byte)PacketTypes.NatTest1Request)
+                        {
+                            manager.ProcessReceivedNat1TestRequest(this, udpData, remoteEndpoint);
+                            return;
+                        }
+
                         var packetType = P2ptpCommon.DecodeHeader(udpData);
                         if (packetType.HasValue)
                         {

@@ -32,27 +32,31 @@ using System.Threading.Tasks;
 
 namespace Mono.Nat
 {
-	abstract class NatDevice : INatDevice
+	abstract class NatRouterDevice 
 	{
-		//public DateTime LastSeen { get; internal set; }
 		public IPEndPoint DeviceEndpoint { get; }
-		public NatProtocol NatProtocol { get; }
+		public NatConfigurationProtocol NatProtocol { get; }
 
-		protected NatDevice (IPEndPoint deviceEndpoint, NatProtocol natProtocol)
+		protected NatRouterDevice(IPEndPoint deviceEndpoint, NatConfigurationProtocol natProtocol)
 		{
-		//	LastSeen = DateTime.UtcNow;
 			DeviceEndpoint = deviceEndpoint;
 			NatProtocol = natProtocol;
 		}
 
-		public abstract Task<Mapping> CreatePortMapAsync (Mapping mapping);
+        /// <summary>
+        /// Creates a port map using the specified Mapping. If that exact mapping cannot be
+        /// created, a best-effort mapping may be created which uses a different port. The
+        /// return value is actual created mapping.
+        /// </summary>
+        public abstract Task<Mapping> CreatePortMappingAsync(Mapping mapping);
+		public abstract Task<Mapping> DeletePortMappingAsync(Mapping mapping);
+		public abstract Task<Mapping []> GetAllMappingsAsync();
+		public abstract Task<IPAddress> GetExternalIPAsync();
 
-		public abstract Task<Mapping> DeletePortMapAsync (Mapping mapping);
-
-		public abstract Task<Mapping []> GetAllMappingsAsync ();
-
-		public abstract Task<IPAddress> GetExternalIPAsync ();
-
-		public abstract Task<Mapping> GetSpecificMappingAsync (Protocol protocol, int publicPort);
+        /// <summary>
+        /// Retrieves the mapping associated with this combination of public port and protocol. Throws a MappingException
+        /// if there is no mapping matching the criteria.
+        /// </summary>
+        public abstract Task<Mapping> GetSpecificMappingAsync(IpProtocol protocol, int publicPort);
 	}
 }

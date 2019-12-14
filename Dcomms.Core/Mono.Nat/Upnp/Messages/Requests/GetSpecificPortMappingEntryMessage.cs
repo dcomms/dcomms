@@ -31,9 +31,9 @@ namespace Mono.Nat.Upnp
 	sealed class GetSpecificPortMappingEntryMessage : RequestMessage
 	{
 		int ExternalPort { get; }
-		Protocol Protocol { get; }
+		IpProtocol Protocol { get; }
 
-		public GetSpecificPortMappingEntryMessage (Protocol protocol, int externalPort, UpnpNatDevice device)
+		public GetSpecificPortMappingEntryMessage (IpProtocol protocol, int externalPort, UpnpNatRouterDevice device)
 			: base (device, "GetSpecificPortMappingEntry")
 		{
 			Protocol = protocol;

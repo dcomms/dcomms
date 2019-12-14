@@ -46,7 +46,7 @@ namespace Mono.Nat.Pmp
 			var package = new List<byte> ();
 
 			package.Add (PmpConstants.Version);
-			package.Add (Mapping.Protocol == Protocol.Tcp ? PmpConstants.OperationCodeTcp : PmpConstants.OperationCodeUdp);
+			package.Add (Mapping.Protocol == IpProtocol.Tcp ? PmpConstants.OperationCodeTcp : PmpConstants.OperationCodeUdp);
 			package.Add ((byte) 0); //reserved
 			package.Add ((byte) 0); //reserved
 			package.AddRange (BitConverter.GetBytes (IPAddress.HostToNetworkOrder ((short) Mapping.PrivatePort)));

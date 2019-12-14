@@ -32,24 +32,24 @@ using System.Threading.Tasks;
 
 namespace Mono.Nat.Pmp
 {
-	sealed class PmpNatDevice : NatDevice, IEquatable<PmpNatDevice>
+	sealed class PmpNatRouterDevice : NatRouterDevice
 	{
 		IPAddress PublicAddress { get; }
 
-		internal PmpNatDevice (IPEndPoint deviceEndpoint, IPAddress publicAddress)
-			: base (deviceEndpoint, NatProtocol.Pmp)
+		internal PmpNatRouterDevice (IPEndPoint deviceEndpoint, IPAddress publicAddress)
+			: base (deviceEndpoint, NatConfigurationProtocol.Pmp)
 		{
 			PublicAddress = publicAddress;
 		}
 
-		public override async Task<Mapping> CreatePortMapAsync (Mapping mapping)
+		public override async Task<Mapping> CreatePortMappingAsync (Mapping mapping)
 		{
 			var message = new CreatePortMappingMessage (mapping);
 			var actualMapping = (MappingResponseMessage) await SendMessageAsync (DeviceEndpoint, message);
 			return actualMapping.Mapping;
 		}
 
-		public override async Task<Mapping> DeletePortMapAsync (Mapping mapping)
+		public override async Task<Mapping> DeletePortMappingAsync (Mapping mapping)
 		{
 			var message = new DeletePortMappingMessage (mapping);
 			var actualMapping = (MappingResponseMessage) await SendMessageAsync (DeviceEndpoint, message);
@@ -62,16 +62,16 @@ namespace Mono.Nat.Pmp
 		public override Task<IPAddress> GetExternalIPAsync ()
 			=> Task.FromResult (PublicAddress);
 
-		public override Task<Mapping> GetSpecificMappingAsync (Protocol protocol, int publicPort)
+		public override Task<Mapping> GetSpecificMappingAsync (IpProtocol protocol, int publicPort)
 			=> throw new NotImplementedException ("The NAT-PMP protocol does not support retrieving a specific mappings");
 
 		public override bool Equals (object obj)
-			=> Equals (obj as PmpNatDevice);
+			=> Equals (obj as PmpNatRouterDevice);
 
 		public override int GetHashCode ()
 			=> PublicAddress.GetHashCode ();
 
-		public bool Equals (PmpNatDevice other)
+		public bool Equals (PmpNatRouterDevice other)
 			=> other != null && PublicAddress.Equals (other.PublicAddress);
 
 		static async Task<ResponseMessage> SendMessageAsync (IPEndPoint deviceEndpoint, PortMappingMessage message)
@@ -110,7 +110,7 @@ namespace Mono.Nat.Pmp
 		/// <returns></returns>
 		public override string ToString ()
 		{
-			return String.Format("PmpNatDevice - Local Address: {0}, Public IP: {1}",
+			return String.Format("PmpNatRouterDevice - Local Address: {0}, Public IP: {1}",
 				DeviceEndpoint, PublicAddress);
 		}
 	}

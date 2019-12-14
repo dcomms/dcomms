@@ -5,13 +5,13 @@ namespace Mono.Nat.Upnp
 {
 	class ResponseMessage
 	{
-		public static ResponseMessage Decode(NatUtility nu, UpnpNatDevice device, string responseMessageText, RequestMessage requestMessage)
+		public static ResponseMessage Decode(NatUtility nu, UpnpNatRouterDevice device, string responseMessageText, RequestMessage requestMessage)
 		{
 			XmlNode node;
 			var doc = new XmlDocument();
 			doc.LoadXml (responseMessageText);
 
-			XmlNamespaceManager nsm = new XmlNamespaceManager (doc.NameTable);
+			var nsm = new XmlNamespaceManager (doc.NameTable);
 
 			// Error messages should be found under this namespace
 			nsm.AddNamespace ("errorNs", "urn:schemas-upnp-org:control-1-0");
@@ -39,7 +39,7 @@ namespace Mono.Nat.Upnp
 			if ((node = doc.SelectSingleNode ("//responseNs:GetSpecificPortMappingEntryResponse", nsm)) != null)
 				return new GetSpecificPortMappingEntryResponseMessage (node);
 
-			nu.LogError ($"Unknown message returned: {responseMessageText}");
+			nu.Log_mediumPain ($"Unknown message returned: {responseMessageText}");
 			return null;
 		}
 	}

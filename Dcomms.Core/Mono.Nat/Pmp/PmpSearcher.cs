@@ -40,8 +40,6 @@ namespace Mono.Nat.Pmp
 {
 	class PmpSearcher : Searcher
 	{
-	//	public static ISearcher Instance { get; }
-
 		static SocketGroup GetSockets()
 		{
 			var clients = new Dictionary<UdpClient, List<IPAddress>> ();
@@ -99,28 +97,23 @@ namespace Mono.Nat.Pmp
 			return new SocketGroup (clients, PmpConstants.ServerPort);
 		}
 
-		public override NatProtocol Protocol => NatProtocol.Pmp;
+		public override NatConfigurationProtocol Protocol => NatConfigurationProtocol.Pmp;
 
-		public PmpSearcher(NatUtility nu, Action<INatDevice> deviceFound)
+		public PmpSearcher(NatUtility nu, Action<NatRouterDevice> deviceFound)
 			: base (GetSockets(), nu, deviceFound)
 		{
 		}
 
 		protected override async Task SearchAsync(IPAddress gatewayAddressNullable, CancellationToken token)
-		{
-		//	do {
-				var currentSearch = CancellationTokenSource.CreateLinkedTokenSource(token);
-				Interlocked.Exchange (ref CurrentSearchCancellationTokenSource, currentSearch)?.Cancel ();
+		{	
+			var currentSearch = CancellationTokenSource.CreateLinkedTokenSource(token);
+			Interlocked.Exchange (ref CurrentSearchCancellationTokenSource, currentSearch)?.Cancel ();
 
-				try {
-					await SearchOnce(gatewayAddressNullable, currentSearch.Token);
-				} catch (OperationCanceledException) {
-					token.ThrowIfCancellationRequested();
-				}
-			///	if (!repeatInterval.HasValue)
-			//		break;
-			//	await Task.Delay (repeatInterval.Value, token);
-			//} while (true);
+			try {
+				await SearchOnce(gatewayAddressNullable, currentSearch.Token);
+			} catch (OperationCanceledException) {
+				token.ThrowIfCancellationRequested();
+			}		
 		}
 
 		async Task SearchOnce (IPAddress gatewayAddress, CancellationToken token)
@@ -135,7 +128,7 @@ namespace Mono.Nat.Pmp
 			}
 		}
 
-		protected override Task HandleInitialResponse (IPAddress localAddress, UdpReceiveResult result, CancellationToken token)
+		protected override Task HandleInitialResponse(IPAddress localAddress, UdpReceiveResult result, CancellationToken token)
 		{
 			var response = result.Buffer;
 			var endpoint = result.RemoteEndPoint;
@@ -147,13 +140,13 @@ namespace Mono.Nat.Pmp
 			if (response [1] != PmpConstants.ServerNoop)
 				return Task.CompletedTask;
 
-			int errorcode = IPAddress.NetworkToHostOrder (BitConverter.ToInt16 (response, 2));
+			int errorcode = IPAddress.NetworkToHostOrder(BitConverter.ToInt16 (response, 2));
 			if (errorcode != 0)
-				NU.LogError ($"PMP error from {endpoint}: {errorcode}");
+				NU.Log_mediumPain ($"PMP error from {endpoint}: {errorcode}");
 
 			var publicIp = new IPAddress (new byte [] { response [8], response [9], response [10], response [11] });
 
-			RaiseDeviceFound (new PmpNatDevice (endpoint, publicIp));
+			RaiseDeviceFound(new PmpNatRouterDevice (endpoint, publicIp));
 			return Task.CompletedTask;
 		}
 	}

@@ -34,7 +34,7 @@ namespace Mono.Nat.Upnp
 		IPAddress LocalIpAddress { get; }
 		Mapping Mapping { get; }
 
-		public CreatePortMappingMessage (Mapping mapping, IPAddress localIpAddress, UpnpNatDevice device)
+		public CreatePortMappingMessage (Mapping mapping, IPAddress localIpAddress, UpnpNatRouterDevice device)
 			: base (device, "AddPortMapping")
 		{
 			Mapping = mapping;
@@ -43,14 +43,14 @@ namespace Mono.Nat.Upnp
 
 		public override void Encode (XmlWriter writer)
 		{
-			WriteFullElement (writer, "NewRemoteHost", "");
-			WriteFullElement (writer, "NewExternalPort", Mapping.PublicPort);
-			WriteFullElement (writer, "NewProtocol", Mapping.Protocol);
-			WriteFullElement (writer, "NewInternalPort", Mapping.PrivatePort);
-			WriteFullElement (writer, "NewInternalClient", LocalIpAddress);
-			WriteFullElement (writer, "NewEnabled", "1");
-			WriteFullElement (writer, "NewPortMappingDescription", string.IsNullOrEmpty (Mapping.Description) ? "Mono.Nat" : Mapping.Description);
-			WriteFullElement (writer, "NewLeaseDuration", Mapping.Lifetime);
+			WriteFullElement(writer, "NewRemoteHost", "");
+			WriteFullElement(writer, "NewExternalPort", Mapping.PublicPort);
+			WriteFullElement(writer, "NewProtocol", Mapping.Protocol);
+			WriteFullElement(writer, "NewInternalPort", Mapping.PrivatePort);
+			WriteFullElement(writer, "NewInternalClient", LocalIpAddress);
+			WriteFullElement(writer, "NewEnabled", "1");
+			WriteFullElement(writer, "NewPortMappingDescription", string.IsNullOrEmpty(Mapping.Description) ? "Dcomms" : Mapping.Description);
+			WriteFullElement(writer, "NewLeaseDuration", Mapping.Lifetime);
 		}
 	}
 }

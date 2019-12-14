@@ -362,22 +362,22 @@ namespace Dcomms.SUBT
                     break;
                 case SubtPacketType.AdjustmentRequest:
                     var adj = new AdjustmentRequestPacket(reader);
-                    SubtLocalPeer.WriteToLog($"{this} received adjustment request: {adj}");
+                    SubtLocalPeer.WriteToLog_deepDetail($"{this} received adjustment request: {adj}");
                     if (adj.TxTargetBandwidth > this.TargetTxBandwidth)
                     { // increase
                         if (SubtLocalPeer.ImHealthyAndReadyFor100kbpsU2uSymbiosis)
                         {
                             // check requested BW
                             this.TargetTxBandwidth = Math.Min(adj.TxTargetBandwidth, MaxTxBandwidthToAcceptFromRemoteSide);
-                            SubtLocalPeer.WriteToLog($"{this} bandwidth increased to {MiscProcedures.BandwidthToString(this.TargetTxBandwidth)}");
+                            SubtLocalPeer.WriteToLog_deepDetail($"{this} bandwidth increased to {MiscProcedures.BandwidthToString(this.TargetTxBandwidth)}");
                         }
                         else
-                            SubtLocalPeer.WriteToLog($"{this} is not healthy to increase bandwidth");
+                            SubtLocalPeer.WriteToLog_deepDetail($"{this} is not healthy to increase bandwidth");
                     }
                     else // decrease
                     {
                         this.TargetTxBandwidth = adj.TxTargetBandwidth;
-                        SubtLocalPeer.WriteToLog($"{this} bandwidth decreased to {MiscProcedures.BandwidthToString(this.TargetTxBandwidth)}");
+                        SubtLocalPeer.WriteToLog_deepDetail($"{this} bandwidth decreased to {MiscProcedures.BandwidthToString(this.TargetTxBandwidth)}");
                     }
 
                     // respond
@@ -390,7 +390,7 @@ namespace Dcomms.SUBT
                     var adjResp = new AdjustmentResponsePacket(reader);
                     if (PendingAdjustmentRequestPacket != null)
                     { // we got response from remote peer
-                        SubtLocalPeer.WriteToLog($"{this} received adjustment response: {adjResp}");
+                        SubtLocalPeer.WriteToLog_deepDetail($"{this} received adjustment response: {adjResp}");
                         //  adjust local tx BW, according to remote BW. check what is responded 
                         this.TargetTxBandwidth = Math.Min(adjResp.TxTargetBandwidth, PendingAdjustmentRequestPacket.TxTargetBandwidth);
                         PendingAdjustmentRequestPacket = null;
@@ -425,7 +425,7 @@ namespace Dcomms.SUBT
             if (remotePeerId != null)
             {
                 PendingAdjustmentRequestPacket = new AdjustmentRequestPacket(requestedTxBandwidthAtRemotePeer);
-                SubtLocalPeer.WriteToLog($"{this} sends adjustment request {PendingAdjustmentRequestPacket}");
+                SubtLocalPeer.WriteToLog_deepDetail($"{this} sends adjustment request {PendingAdjustmentRequestPacket}");
                 PendingAdjustmentRequestPacketData = PendingAdjustmentRequestPacket.Encode(this);
                 _stream.SendPacket(PendingAdjustmentRequestPacketData, PendingAdjustmentRequestPacketData.Length);
             }

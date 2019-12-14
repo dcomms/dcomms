@@ -55,7 +55,7 @@ namespace Dcomms.P2PTP
     /// </summary>
     public static class PacketHeaders
     {
-        public static readonly byte[] P2PTP = new byte[] { 154, 77, 200, 11 };
+        public static readonly byte[] P2PTP = new byte[] { (byte)PacketTypes.P2ptpHeaderFirstByte, 77, 200, 11 };
         /// <summary>
         /// main UDP payload, used by SUBT extension
         /// </summary>

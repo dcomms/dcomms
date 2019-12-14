@@ -54,5 +54,7 @@ namespace Dcomms
 
         NatTest1Request = 70,
         NatTest1Response = 71,
+
+        P2ptpHeaderFirstByte = 154,
     }
 }

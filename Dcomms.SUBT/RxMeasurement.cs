@@ -130,7 +130,7 @@ namespace Dcomms.SUBT
             {
                 if (MiscProcedures.TimeStamp1IsLess(jbe.timestamp32, insertAfter.Value.timestamp32))
                 {
-                    _subtLocalPeer.WriteToLog($"JB corruption check: received {jbe}; first: {_jitterBuffer.First?.Value}; last: {_jitterBuffer.Last?.Value}");
+                    _subtLocalPeer.WriteToLog_lightPain($"JB corruption check: received {jbe}; first: {_jitterBuffer.First?.Value}; last: {_jitterBuffer.Last?.Value}");
                     return false;
                     //throw new Exception();
                 }

@@ -63,10 +63,10 @@ namespace Mono.Nat
             _visionChannel = visionChannel;
             _visionChannelSourceId = visionChannelSourceId;            
         }
-        public async Task<bool> SearchAndConfigure(TimeSpan timeout, int localUdpPort)
+        public async Task<bool> SearchAndConfigure(int[] localUdpPorts, int timeoutS = 20)
         {
-            _upnpSearcher = new UpnpSearcher(this, d => Configure(d, localUdpPort));
-            _pmpSearcher = new PmpSearcher(this, d => Configure(d, localUdpPort));             
+            _upnpSearcher = new UpnpSearcher(this, d => Configure(d, localUdpPorts));
+            _pmpSearcher = new PmpSearcher(this, d => Configure(d, localUdpPorts));             
             _pmpSearcher.SearchAsync().FireAndForget(this);
             _upnpSearcher.SearchAsync().FireAndForget(this);
 
@@ -75,41 +75,84 @@ namespace Mono.Nat
             {
                 await Task.Delay(10);
                 if (_succeeded) return true;
-                if (sw.Elapsed > timeout) return false;
+                if (sw.Elapsed.TotalSeconds > timeoutS) return false;
             }
         }
-        async void Configure(INatDevice device, int localUdpPort)
+        async void Configure(NatRouterDevice device, int[] localUdpPorts)
         { 
             try
             {
-                Log($">> NatUtility.Configure(localUdpPort={localUdpPort}) device={device}");
+                Log_deepDetail($">> NatUtility.Configure(localUdpPorts={String.Join(";", localUdpPorts.Select(x=>x.ToString()))}) device={device}");
 
                 var externalIP = await device.GetExternalIPAsync();
-                Log($"device={device}, externalIP={externalIP}");
+                Log_deepDetail($"device={device}, externalIP={externalIP}");
                 if (externalIP == null) return;
                 if (externalIP.ToString() == "0.0.0.0") return;
                 if (externalIP.ToString() == "127.0.0.1") return;
-                
-                //Console.WriteLine("IP: {0}", await device.GetExternalIPAsync());
-                // try to create a new port map:           
-                var mapping2 = new Mapping(Mono.Nat.Protocol.Udp, localUdpPort, localUdpPort);
-                try
+
+                var localUdpPortsHS = new HashSet<int>(localUdpPorts);
+                var existingMappings = await device.GetAllMappingsAsync();
+                foreach (var existingMapping in existingMappings)
                 {
-                    await device.CreatePortMapAsync(mapping2);
-                    Log($"successfully created mapping: externalIP={externalIP}, protocol={mapping2.Protocol}, publicPort={mapping2.PublicPort}, privatePort={mapping2.PrivatePort}");
+                    if (existingMapping.Protocol == IpProtocol.Udp)
+                    {
+                        if (localUdpPortsHS.Contains(existingMapping.PrivatePort))
+                        {
+                            Log_deepDetail($"mapping already exists at router: {existingMapping.Description} {existingMapping.PrivatePort}-{existingMapping.PublicPort} {existingMapping.Protocol}");
+                            localUdpPortsHS.Remove(existingMapping.PrivatePort);
+                        }
+                        else
+                        {
+                            try
+                            {
+                                Log_deepDetail($"deleting unused existing mapping: {existingMapping.Description} {existingMapping.PrivatePort}-{existingMapping.PublicPort} {existingMapping.Protocol}");
+                                await device.DeletePortMappingAsync(existingMapping);
+                            }
+                            catch (Exception exc)
+                            {
+                                Log_deepDetail($"could not delete existing unused mapping to UDP port {existingMapping.PrivatePort} at {device}: {exc.Message}");
+                            }
+                        }
+                    }
                 }
-                catch (MappingException exc)
+
+                if (localUdpPortsHS.Count == 0)
                 {
-                    Log($"first-trial error when adding port mapping to {device}: {exc.Message}. trying to delete and add again...");
+                    Log_higherLevelDetail($"no new mappings to create");
+                    _succeeded = true;
+                    return;
+                }
+
+                foreach (var localUdpPort in localUdpPortsHS)
+                {
                     try
                     {
-                        await device.DeletePortMapAsync(mapping2);
-                        await device.CreatePortMapAsync(mapping2);
-                        Log($"successfully created mapping (2nd trial): externalIP={externalIP}, protocol={mapping2.Protocol}, publicPort={mapping2.PublicPort}, privatePort={mapping2.PrivatePort}");
+                        var mapping2 = new Mapping(IpProtocol.Udp, localUdpPort, localUdpPort); // todo use   public port = *  (0)
+                        try
+                        {
+                            await device.CreatePortMappingAsync(mapping2);
+                            Log_higherLevelDetail($"successfully created mapping: externalIP={externalIP}, protocol={mapping2.Protocol}, publicPort={mapping2.PublicPort}, privatePort={mapping2.PrivatePort}");
+                            _succeeded = true;
+                        }
+                        catch (MappingException exc)
+                        {
+                            Log_deepDetail($"first-trial error when adding port mapping to {device}: {exc.Message}. trying again...");
+                            try
+                            {
+                                await device.DeletePortMappingAsync(mapping2);
+                                await device.CreatePortMappingAsync(mapping2);
+                                Log_higherLevelDetail($"successfully created mapping (2nd trial): externalIP={externalIP}, protocol={mapping2.Protocol}, publicPort={mapping2.PublicPort}, privatePort={mapping2.PrivatePort}");
+                                _succeeded = true;
+                            }
+                            catch (MappingException exc2)
+                            {
+                                Log_mediumPain($"second-trial error when adding port {localUdpPort} mapping to {device}: {exc2.Message}");
+                            }
+                        }
                     }
-                    catch (MappingException exc2)
-                    {
-                        LogError($"second-trial error when adding port mapping to {device}: {exc2.Message}");
+                    catch (Exception exc)
+                    {                  
+                        Log_mediumPain($"error when creating mapping for port {localUdpPort} at NAT device {device}: {exc}");               
                     }
                 }
 
@@ -125,20 +168,23 @@ namespace Mono.Nat
                 //    WriteToLog_drpGeneral_guiActivity($"Couldn't verify mapping (GetSpecificMappingAsync failed): {exc}");
                 //}
 
-                _succeeded = true;
             }
             catch (Exception exc)
             {
-                LogError($"error when configuring NAT device {device}: {exc}");
+                Log_mediumPain($"error when configuring NAT device {device}: {exc}");
             }
 
         }
 
-        internal void Log(string message)
+        internal void Log_deepDetail(string message)
         {
-            _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.guiActivity, message);
+            _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, message);
         }
-        internal void LogError(string message)
+        internal void Log_higherLevelDetail(string message)
+        {
+            _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail, message);
+        }
+        internal void Log_mediumPain(string message)
         {
             _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.mediumPain, message);          
         }

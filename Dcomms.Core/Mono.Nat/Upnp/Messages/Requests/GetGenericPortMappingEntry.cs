@@ -32,7 +32,7 @@ namespace Mono.Nat.Upnp
 	{
 		int Index { get; }
 
-		public GetGenericPortMappingEntry (int index, UpnpNatDevice device)
+		public GetGenericPortMappingEntry (int index, UpnpNatRouterDevice device)
 			: base (device, "GetGenericPortMappingEntry")
 		{
 			Index = index;

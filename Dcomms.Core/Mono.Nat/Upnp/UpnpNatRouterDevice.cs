@@ -37,7 +37,7 @@ using System.Collections.Generic;
 
 namespace Mono.Nat.Upnp
 {
-	sealed class UpnpNatDevice : NatDevice, IEquatable<UpnpNatDevice>
+	sealed class UpnpNatRouterDevice : NatRouterDevice, IEquatable<UpnpNatRouterDevice>
 	{
 		/// <summary>
 		/// The url we can use to control the port forwarding
@@ -56,8 +56,8 @@ namespace Mono.Nat.Upnp
         readonly NatUtility _nu;
         readonly string _serverHeaderValue;
 
-        internal UpnpNatDevice(NatUtility nu, string serverHeaderValue, IPAddress localAddress, IPEndPoint deviceEndpoint, Uri deviceControlUri, string serviceType)
-			: base (deviceEndpoint, NatProtocol.Upnp)
+        internal UpnpNatRouterDevice(NatUtility nu, string serverHeaderValue, IPAddress localAddress, IPEndPoint deviceEndpoint, Uri deviceControlUri, string serviceType)
+			: base (deviceEndpoint, NatConfigurationProtocol.Upnp)
 		{
             _serverHeaderValue = serverHeaderValue;
             _nu = nu;
@@ -66,7 +66,7 @@ namespace Mono.Nat.Upnp
 			ServiceType = serviceType;
 		}
 
-		public override async Task<Mapping> CreatePortMapAsync(Mapping mapping)
+		public override async Task<Mapping> CreatePortMappingAsync(Mapping mapping)
 		{
 			var message = new CreatePortMappingMessage (mapping, LocalAddress, this);
 			var response = await SendMessageAsync (message).ConfigureAwait (false);
@@ -75,7 +75,7 @@ namespace Mono.Nat.Upnp
 			return mapping;
 		}
 
-		public override async Task<Mapping> DeletePortMapAsync (Mapping mapping)
+		public override async Task<Mapping> DeletePortMappingAsync (Mapping mapping)
 		{
 			var message = new DeletePortMappingMessage (mapping, this);
 			var response = await SendMessageAsync (message).ConfigureAwait (false);
@@ -102,11 +102,13 @@ namespace Mono.Nat.Upnp
 					mappings.Add(new Mapping (response.Protocol, response.InternalPort, response.ExternalPort, response.LeaseDuration, response.PortMappingDescription));
 				}
 			} catch (MappingException ex) {
-				// Error code 713 means we successfully iterated to the end of the array and have all the mappings.
-				// Exception driven code flow ftw!
-				if (ex.ErrorCode != ErrorCode.SpecifiedArrayIndexInvalid)
-					throw;
-			}
+                // Error code 713 means we successfully iterated to the end of the array and have all the mappings.
+                // Exception driven code flow ftw!
+                //   191214   error 702 also means same thing, so we dont look at error code now
+
+                if (mappings.Count == 0) throw;
+                // old code:   // if (ex.ErrorCode != ErrorCode.SpecifiedArrayIndexInvalid)throw;
+            }
 
 			return mappings.ToArray();
 		}
@@ -120,7 +122,7 @@ namespace Mono.Nat.Upnp
 			return msg.ExternalIPAddress;
 		}
 
-		public override async Task<Mapping> GetSpecificMappingAsync (Protocol protocol, int publicPort)
+		public override async Task<Mapping> GetSpecificMappingAsync (IpProtocol protocol, int publicPort)
 		{
 			var message = new GetSpecificPortMappingEntryMessage (protocol, publicPort, this);
 			var response = await SendMessageAsync (message).ConfigureAwait (false);
@@ -158,9 +160,9 @@ namespace Mono.Nat.Upnp
 		}
 
 		public override bool Equals (object obj)
-			=> Equals (obj as UpnpNatDevice);
+			=> Equals (obj as UpnpNatRouterDevice);
 
-		public bool Equals (UpnpNatDevice other)
+		public bool Equals (UpnpNatRouterDevice other)
 			=> other != null && DeviceControlUri == other.DeviceControlUri;
 
 		public override int GetHashCode ()
@@ -189,6 +191,6 @@ namespace Mono.Nat.Upnp
 			return ResponseMessage.Decode(nu, this, data.ToString(), requestMessage);
 		}
 
-		public override string ToString() =>  $"UpnpNatDevice {DeviceEndpoint}, Control Url: {DeviceControlUri}, ServerHeader: {_serverHeaderValue}";
+		public override string ToString() =>  $"UpnpNatRouterDevice {DeviceEndpoint}, Control Url: {DeviceControlUri}, ServerHeader: {_serverHeaderValue}";
 	}
 }

@@ -37,14 +37,14 @@ namespace Mono.Nat.Upnp
 		public int InternalPort { get; }
 		public int LeaseDuration { get; }
 		public string PortMappingDescription { get; }
-		public Protocol Protocol { get; }
+		public IpProtocol Protocol { get; }
 		public string RemoteHost { get; }
 
 		public GetGenericPortMappingEntryResponseMessage (XmlNode data)
 		{
 			RemoteHost = data ["NewRemoteHost"].InnerText;
 			ExternalPort = Convert.ToInt32 (data ["NewExternalPort"].InnerText);
-			Protocol = data ["NewProtocol"].InnerText == "TCP" ? Protocol.Tcp : Protocol.Udp;
+			Protocol = data ["NewProtocol"].InnerText == "TCP" ? IpProtocol.Tcp : IpProtocol.Udp;
 
 			InternalPort = Convert.ToInt32 (data ["NewInternalPort"].InnerText);
 			InternalClient = data ["NewInternalClient"].InnerText;

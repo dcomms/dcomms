@@ -33,9 +33,13 @@ namespace Dcomms.SUBT
         {
             LocalPeer.HandleException(this, exc);
         }
-        internal void WriteToLog(string message)
+        internal void WriteToLog_deepDetail(string message)
         {
-            LocalPeer.WriteToLog(this, message);
+            LocalPeer.WriteToLog_deepDetail(this, message);
+        }
+        internal void WriteToLog_lightPain(string message)
+        {
+            LocalPeer.WriteToLog_lightPain(this, message);
         }
 
         public string ExtensionId => ExtensionIdPrefixes.SUBT;
@@ -228,7 +232,7 @@ namespace Dcomms.SUBT
                         if (!cp2.streams.Any(s => s.PendingAdjustmentRequestPacketData != null))
                         {
                             var stream = cp2.streams[LocalPeer.Random.Next(cp2.streams.Length)];
-                            WriteToLog($"first-time incrementing bandwidth via {stream}");
+                            WriteToLog_deepDetail($"first-time incrementing bandwidth via {stream}");
                             stream.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(stream.TargetTxBandwidth + 100000);
                         }
                     }
@@ -251,7 +255,7 @@ namespace Dcomms.SUBT
                         if (u2uConnectedPeers2.Length != 0)
                         {
                             var stream = u2uConnectedPeers2[0].streams.OrderBy(x => x.TargetTxBandwidth).First();
-                            WriteToLog($"further incrementing bandwidth via {stream}");
+                            WriteToLog_deepDetail($"further incrementing bandwidth via {stream}");
                             stream.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(stream.TargetTxBandwidth + 100000);
                         }                      
                     }    
@@ -273,7 +277,7 @@ namespace Dcomms.SUBT
                         var stream = u2uConnectedPeer_withMaxBandwidth.streams.OrderByDescending(x => x.TargetTxBandwidth).First(); // select stream with MAXIMAL bandwidth
                         var reqBw = Math.Max(0, stream.TargetTxBandwidth - 100000);
                         if (reqBw < 10000) reqBw = 0;
-                        WriteToLog($"decrementing bandwidth via {stream}: low user-set target BW");
+                        WriteToLog_deepDetail($"decrementing bandwidth via {stream}: low user-set target BW");
                         stream.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(reqBw);
                     }
                 }
@@ -285,7 +289,7 @@ namespace Dcomms.SUBT
                         {
                             var reqBw = Math.Max(0, s.TargetTxBandwidth - 10000);
                             if (reqBw < 10000) reqBw = 0;
-                            WriteToLog($"decrementing bandwidth via {s}: low quality");
+                            WriteToLog_deepDetail($"decrementing bandwidth via {s}: low quality");
                             s.SendBandwidthAdjustmentRequest_OnResponseAdjustLocalTxBw(reqBw);
                         }
             }

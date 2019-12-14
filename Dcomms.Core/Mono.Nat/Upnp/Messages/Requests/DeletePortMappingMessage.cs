@@ -32,7 +32,7 @@ namespace Mono.Nat.Upnp
 	{
 		Mapping Mapping { get; }
 
-		public DeletePortMappingMessage (Mapping mapping, UpnpNatDevice device)
+		public DeletePortMappingMessage (Mapping mapping, UpnpNatRouterDevice device)
 			: base (device, "DeletePortMapping")
 		{
 			Mapping = mapping;

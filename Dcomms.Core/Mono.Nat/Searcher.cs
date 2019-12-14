@@ -34,10 +34,10 @@ namespace Mono.Nat
 {
 	abstract class Searcher: IDisposable 
 	{
-        readonly Action<INatDevice> _deviceFound;
+        readonly Action<NatRouterDevice> _deviceFound;
 
         public bool Listening => ListeningTask != null;
-		public abstract NatProtocol Protocol { get; }
+		public abstract NatConfigurationProtocol Protocol { get; }
 
 		Task ListeningTask { get; set; }
 		protected SocketGroup Clients { get; }
@@ -47,7 +47,7 @@ namespace Mono.Nat
 		CancellationTokenSource OverallSearchCancellationTokenSource;
 		Task SearchTask { get; set; }
         protected NatUtility NU { get; private set; }
-		protected Searcher(SocketGroup clients, NatUtility nu, Action<INatDevice> deviceFound)
+		protected Searcher(SocketGroup clients, NatUtility nu, Action<NatRouterDevice> deviceFound)
 		{
             NU = nu;
 			Clients = clients;
@@ -110,7 +110,7 @@ namespace Mono.Nat
 
         }
 
-		protected void RaiseDeviceFound(NatDevice device)
+		protected void RaiseDeviceFound(NatRouterDevice device)
 		{
 			CurrentSearchCancellationTokenSource?.Cancel();
             _deviceFound(device);

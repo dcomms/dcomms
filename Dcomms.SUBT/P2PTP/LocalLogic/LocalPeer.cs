@@ -1,4 +1,5 @@
 ﻿using Dcomms.P2PTP.Extensibility;
+using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -43,22 +44,25 @@ namespace Dcomms.P2PTP.LocalLogic
         LocalPeerConfiguration ILocalPeer.Configuration => Configuration;
         internal readonly LocalPeerConfiguration Configuration;
         internal readonly Dictionary<string, ILocalPeerExtension> ExtensionsById;
-        internal readonly ILocalPeerUser User;
+        internal readonly VisionChannel VisionChannel;
+        internal readonly string VisionChannelSourceId;
         internal readonly Random Random = new Random();
         internal readonly Firewall Firewall = new Firewall();
         internal readonly SysAdminFeedbackChannel SysAdminFeedbackChannel = new SysAdminFeedbackChannel();
         static LocalPeer _instance;
         public LocalPeer(LocalPeerConfiguration configuration)
         {
-            if (configuration.LocalPeerUser == null) throw new ArgumentNullException(nameof(configuration.LocalPeerUser));
+            if (configuration.VisionChannel == null) throw new ArgumentNullException(nameof(configuration.VisionChannel));
             if (configuration.Extensions == null) configuration.Extensions = new ILocalPeerExtension[0];
-            User = configuration.LocalPeerUser;
+            VisionChannel = configuration.VisionChannel;
+            VisionChannelSourceId = configuration.VisionChannelSourceId;
             Configuration = configuration;
             if (configuration.RoleAsUser)
             { // client
                 if (configuration.RoleAsSharedPassive || configuration.RoleAsCoordinator) throw new ArgumentException(nameof(configuration.RoleAsUser));
                 if (configuration.Coordinators == null || configuration.Coordinators.Length < 1) throw new ArgumentException("Please enter coordinator server(s) details: IP addresses and ports");
                 //  if (configuration.SubtUserTargetBandwidthBps == null) throw new ArgumentException(nameof(configuration.SubtUserTargetBandwidthBps));
+
             }
             else if (configuration.RoleAsCoordinator)
             { // server
@@ -97,11 +101,11 @@ namespace Dcomms.P2PTP.LocalLogic
         }
         internal void HandleException(string module, Exception exc, string prefixInLog = "error: ")
         {
-            WriteToLog(module, prefixInLog + exc);
+            WriteToLog_mediumPain(module, prefixInLog + exc);
         }
         public void HandleGuiException(Exception exc)
         {
-            WriteToLog(LogModules.Gui, "error: " + exc);
+            WriteToLog_mediumPain(LogModules.Gui, "error: " + exc);
         }
         public void Dispose()
         {
@@ -119,12 +123,23 @@ namespace Dcomms.P2PTP.LocalLogic
 
             _instance = null;
         }
-        internal void WriteToLog(string module, string message)
+        internal void WriteToLog_deepDetail(string module, string message)
         {
-            if (User.EnableLog)
-                User.WriteToLog($"[{module}] {message}");
+            VisionChannel.Emit(VisionChannelSourceId, module, AttentionLevel.deepDetail, message);
         }
-       
+        internal void WriteToLog_higherLevelDetail(string module, string message)
+        {
+            VisionChannel.Emit(VisionChannelSourceId, module, AttentionLevel.higherLevelDetail, message);
+        }
+        internal void WriteToLog_lightPain(string module, string message)
+        {
+            VisionChannel.Emit(VisionChannelSourceId, module, AttentionLevel.lightPain, message);
+        }
+        internal void WriteToLog_mediumPain(string module, string message)
+        {
+            VisionChannel.Emit(VisionChannelSourceId, module, AttentionLevel.mediumPain, message);
+        }
+
         public void ReinitializeByGui()
         {
             Manager.InvokeInManagerThread(Manager.Reinitialize, "ReinitializeByGui1234");
@@ -137,7 +152,7 @@ namespace Dcomms.P2PTP.LocalLogic
         {           
             try
             {
-                WriteToLog(LogModules.GeneralManager, "reinitializing...");     
+                WriteToLog_deepDetail(LogModules.GeneralManager, "reinitializing...");     
                 Dispose(true);
                 Initialize();
             }
@@ -151,9 +166,13 @@ namespace Dcomms.P2PTP.LocalLogic
         {
             HandleException(extension.ExtensionId, exception);
         }
-        void ILocalPeer.WriteToLog(ILocalPeerExtension extension, string message)
+        void ILocalPeer.WriteToLog_deepDetail(ILocalPeerExtension extension, string message)
         {
-            WriteToLog(extension.ExtensionId, message);
+            WriteToLog_deepDetail(extension.ExtensionId, message);
+        }
+        void ILocalPeer.WriteToLog_lightPain(ILocalPeerExtension extension, string message)
+        {
+            WriteToLog_lightPain(extension.ExtensionId, message);
         }
         void ILocalPeer.InvokeInManagerThread(Action a) => Manager?.InvokeInManagerThread(a, "ILocalPeer.InvokeInManagerThread23423");
     }
@@ -165,6 +184,7 @@ namespace Dcomms.P2PTP.LocalLogic
         internal static string Hello = "hello";
         internal static string PeerSharing = "peerSharing";
         internal static string Gui = "gui";
+        internal static string Nat = "nat";
         internal static string IpLocationScraper = "ipls";
     }
 }

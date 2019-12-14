@@ -14,7 +14,7 @@ using System.IO;
 
 namespace Dcomms.SUBT.GUI
 {
-    public class CstApp : BaseNotify, IDisposable, ILocalPeerUser
+    public class CstApp : BaseNotify, IDisposable
     {
         internal const float InitialBandwidthTarget = 200 * 1024;
 
@@ -193,6 +193,13 @@ namespace Dcomms.SUBT.GUI
         public DowntimesTracker DowntimesTracker { get; private set; }
         static CstApp _instance;
         internal ICstAppUser User { get; private set; }
+        public Vision.VisionChannel1 VisionChannel { get; set; } = new Vision.VisionChannel1() 
+        {
+            DisplayedLogMessagesMaxCount = 100,
+            AttentionLevel = Vision.AttentionLevel.deepDetail, 
+            DisplayFilterMinLevel = Vision.AttentionLevel.deepDetail, 
+            ClearLog_MessagesCount = 10000
+        };
         public CstApp(ICstAppUser user)
         {
             if (_instance != null) throw new InvalidOperationException();
@@ -225,7 +232,7 @@ namespace Dcomms.SUBT.GUI
 
                         SubtLocalPeer = new SubtLocalPeer(SubtLocalPeerConfiguration, SubtLocalPeer);
                         LocalPeerConfiguration.Extensions = new[] { SubtLocalPeer };
-                        LocalPeerConfiguration.LocalPeerUser = this;
+                        LocalPeerConfiguration.VisionChannel = VisionChannel;
 
                         if (LocalPeerConfiguration.RoleAsUser)
                             MiscProcedures.MinPeerCompilationDateTimeUtc = new DateTime(2019, 05, 01);
@@ -296,7 +303,7 @@ namespace Dcomms.SUBT.GUI
             {
                 if (Initialized)
                 {
-                    if (EnableLog) RaisePropertyChanged(() => LogMessages);
+                    VisionChannel.RefreshDisplayedLogMessages.Execute(null);
                     RaisePropertyChanged(() => LocalPeer);
                     RaisePropertyChanged(() => SubtLocalPeer);
                 }
@@ -338,50 +345,50 @@ namespace Dcomms.SUBT.GUI
             }
             else _instance?.User.ShowMessageToUser("Error: " + exc.ToString());
         }
-        public int LogMessagesMaxRamCount { get; set; } = 100000;
-        int _logMessagesMaxDisplayCount = 1000;
-        public int LogMessagesMaxDisplayCount
-        {
-            get => _logMessagesMaxDisplayCount;
-            set { _logMessagesMaxDisplayCount = value; RaisePropertyChanged(() => LogMessages); }
-        }
-        public bool EnableLog { get; set; } = true;
-        string _logMessagesFilter { get; set; }
-        public string LogMessagesFilter
-        {
-            get => _logMessagesFilter;
-            set { _logMessagesFilter = value; RaisePropertyChanged(() => LogMessages); }
-        }
-        void ILocalPeerUser.WriteToLog(string message)
-        {
-            if (message == null) throw new ArgumentNullException(nameof(message));
-            if (EnableLog && LocalPeer != null)
-                lock (_logMessages)
-                {
-                    _logMessages.AddLast(new LogMessage { DateTime = LocalPeer.DateTimeNowUtc, Text = message });
-                    while (_logMessages.Count > LogMessagesMaxRamCount)
-                        _logMessages.RemoveFirst();
-                }
-        }
-        readonly LinkedList<LogMessage> _logMessages = new LinkedList<LogMessage>(); // from oldest to newest // locked
-        public IEnumerable<LogMessage> LogMessages // from newest to oldest
-        {
-            get
-            {
-                int c = 0;
-                lock (_logMessages)
-                    for (var item = _logMessages.Last; item != null; item = item.Previous)
-                    {
-                        var msg = item.Value;
-                        if (!String.IsNullOrEmpty(_logMessagesFilter))
-                            if (!msg.Text.Contains(_logMessagesFilter))
-                                continue;
-                        yield return msg;
-                        c++;
-                        if (c >= _logMessagesMaxDisplayCount) break;
-                    }
-            }
-        }
+        //public int LogMessagesMaxRamCount { get; set; } = 100000;
+        //int _logMessagesMaxDisplayCount = 1000;
+        //public int LogMessagesMaxDisplayCount
+        //{
+        //    get => _logMessagesMaxDisplayCount;
+        //    set { _logMessagesMaxDisplayCount = value; RaisePropertyChanged(() => LogMessages); }
+        //}
+        //public bool EnableLog { get; set; } = true;
+        //string _logMessagesFilter { get; set; }
+        //public string LogMessagesFilter
+        //{
+        //    get => _logMessagesFilter;
+        //    set { _logMessagesFilter = value; RaisePropertyChanged(() => LogMessages); }
+        //}
+        //void ILocalPeerUser.WriteToLog(string message)
+        //{
+        //    if (message == null) throw new ArgumentNullException(nameof(message));
+        //    if (EnableLog && LocalPeer != null)
+        //        lock (_logMessages)
+        //        {
+        //            _logMessages.AddLast(new LogMessage { DateTime = LocalPeer.DateTimeNowUtc, Text = message });
+        //            while (_logMessages.Count > LogMessagesMaxRamCount)
+        //                _logMessages.RemoveFirst();
+        //        }
+        //}
+        //readonly LinkedList<LogMessage> _logMessages = new LinkedList<LogMessage>(); // from oldest to newest // locked
+        //public IEnumerable<LogMessage> LogMessages // from newest to oldest
+        //{
+        //    get
+        //    {
+        //        int c = 0;
+        //        lock (_logMessages)
+        //            for (var item = _logMessages.Last; item != null; item = item.Previous)
+        //            {
+        //                var msg = item.Value;
+        //                if (!String.IsNullOrEmpty(_logMessagesFilter))
+        //                    if (!msg.Text.Contains(_logMessagesFilter))
+        //                        continue;
+        //                yield return msg;
+        //                c++;
+        //                if (c >= _logMessagesMaxDisplayCount) break;
+        //            }
+        //    }
+        //}
 #endregion
     }
 }
