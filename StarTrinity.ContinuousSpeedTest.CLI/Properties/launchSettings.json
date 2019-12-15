@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "StarTrinity.ContinuousSpeedTest.CLI": {
+      "commandName": "Project",
+      "commandLineArgs": "target 1000000"
+    }
+  }
+}

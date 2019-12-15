@@ -9,20 +9,37 @@ namespace StarTrinity.ContinuousSpeedTest.CLI
 {
     class Program
     {
-      
+        static DateTime VersionDateTimeUtc => new DateTime(2019, 12, 15); // todo get it somehow automatically in both windows and linux
+
+
+
         static void Main(string[] args)
         {
+            Console.WriteLine("usage: StarTrinity.ContinuousSpeedTest.CLI target 1000000\r\n" +
+                "where  1000000=1M is target bandwidth, in bits per second\r\n" +
+                "any questions/problems/suggestions - email to support@startrinity.com");
+            var bandwidthBps = 1000000;
+            if (args[0] == "target") bandwidthBps = int.Parse(args[1]);
+
+
+            MiscProcedures.Initialize(VersionDateTimeUtc);
             var coordinatorServerIp1 = IPAddress.Parse("163.172.210.13");//neth3
             var coordinatorServerIp2 = IPAddress.Parse("195.154.173.208");//fra2
             var subtLocalPeer = new SubtLocalPeer(new SubtLocalPeerConfiguration
             {
                 SenderThreadsCount = 4,
-                BandwidthTarget = 1000000,
+                BandwidthTarget = bandwidthBps,
             });
+            var visionChannel = new VisionChannel1() { ClearLog_MessagesCount = 1000 };
+            visionChannel.SevereMessageEmitted += (msg) =>
+            {
+                Console.WriteLine(msg.Message);
+            };
+
             var node = new LocalPeer(new LocalPeerConfiguration
             {
                 RoleAsUser = true,
-                VisionChannel = new VisionChannel1() { ClearLog_MessagesCount = 1000 },
+                VisionChannel = visionChannel,
                 LocalUdpPortRangeStart = null,
                 SocketsCount = 4,
                 Coordinators = new IPEndPoint[]
