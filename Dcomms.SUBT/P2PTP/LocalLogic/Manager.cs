@@ -123,7 +123,8 @@ namespace Dcomms.P2PTP.LocalLogic
                     }
                     if (threadLoopCounter % 1000 == 0)
                     { // every 100 sec
-                        _ = ConfigureNAT();
+                        if (_localPeer.Configuration.RoleAsUser)
+                            _ = ConfigureNAT();
                     }
 
                     foreach (var ext in _localPeer.Configuration.Extensions)

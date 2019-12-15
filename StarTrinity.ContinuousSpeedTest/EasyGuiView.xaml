@@ -243,7 +243,12 @@
                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.UptimeDurationString}" FontSize="20" />
                     <TextBlock Grid.Row="1" Text="downtime:" FontSize="20" />
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CstApp.DowntimesTracker.DowntimeDurationString}" FontSize="20" Margin="3 3 20 3"/>
-                    <Button Grid.Row="0" Grid.Column="2" Command="{Binding CstApp.DowntimesTracker.Clear}" Content="clear" HorizontalAlignment="Left" FontSize="16" />
+                    <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="2">
+                        <Button Command="{Binding CstApp.DowntimesTracker.Clear}" Content="clear" HorizontalAlignment="Left" FontSize="16" />
+                        <Button Command="{Binding CstApp.DowntimesTracker.Export}" Content="export" HorizontalAlignment="Left" FontSize="16" />
+                    </StackPanel>
+                    
+                    
                     <CheckBox Grid.Row="1" Grid.Column="2" IsChecked="{Binding CstApp.DowntimesTracker.DisplayUptimes, Mode=TwoWay}" Content="display uptimes" HorizontalAlignment="Left" FontSize="14" />
 
                     <DataGrid Grid.Row="2" Grid.ColumnSpan="3"  ItemsSource="{Binding CstApp.DowntimesTracker.DisplayedFragments}" >

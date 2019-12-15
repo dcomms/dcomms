@@ -2,6 +2,7 @@
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,8 +16,10 @@ namespace StarTrinity.CST
     public partial class XamarinMainPage : TabbedPage, ICstAppUser
     {
         CstApp _cstApp;
-        public XamarinMainPage()
+        IXamarinMainPageHost _host;
+        public XamarinMainPage(IXamarinMainPageHost host)
         {
+            _host = host;
             InitializeComponent();
             _cstApp = new CstApp(this);
             this.BindingContext = _cstApp;
@@ -52,14 +55,9 @@ namespace StarTrinity.CST
         {
             DisplayAlert("Continuous Speed Test", msg, "OK");
         }
-        bool ICstAppUser.ShowSaveFileDialog(string fileExtension, out string fileName)
+        bool ICstAppUser.ShowSaveFileDialog(string fileExtension, out string fileName, out Action optionalFileWrittenCallback)
         {
-            throw new NotImplementedException();
-            //IFileSystem fileSystem = FileSystem.Current;
-
-            //var filePicker = App.PresentationFactory.CreateFilePicker();
-
-            //await filePicker.PickAndOpenFileForWriting(fileTypes, defaultFileName)
+            return _host.ShowSaveFileDialog(fileExtension, out fileName, out optionalFileWrittenCallback);
         }
         void ICstAppUser.UninstallOnThisPC()
         {
@@ -77,5 +75,15 @@ namespace StarTrinity.CST
             _cstApp.EasyGuiViewModel.GoToMeasurement(f.StopTime);
 
         }
+
+
+        string ICstAppUser.CsvDelimiter => ",";
+        CultureInfo ICstAppUser.CsvCultureInfo => new System.Globalization.CultureInfo("en-US");
+    }
+
+
+    public interface IXamarinMainPageHost
+    {
+        bool ShowSaveFileDialog(string fileExtension, out string fileName, out Action optionalFileWrittenCallback);
     }
 }

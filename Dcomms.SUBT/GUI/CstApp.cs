@@ -204,6 +204,9 @@ namespace Dcomms.SUBT.GUI
         {
             if (_instance != null) throw new InvalidOperationException();
             _instance = this;
+
+            MiscProcedures.BandwidthToString_CultureInfo = user.CsvCultureInfo;
+
             User = user;
             user.CreateIdleGuiTimer(TimeSpan.FromSeconds(1), Timer_Tick_1sec);
             user.CreateIdleGuiTimer(TimeSpan.FromMilliseconds(50), Timer_Tick_50ms);

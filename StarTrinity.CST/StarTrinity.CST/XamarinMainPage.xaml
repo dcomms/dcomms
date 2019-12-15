@@ -135,6 +135,10 @@
                     <Button Text="&#9660;" TextColor="#700"  Command="{Binding DisplayMeasurementsGotoPreviousDowntime}"  WidthRequest="50"
                            FontSize="15"  /> <!--ToolTip="Go to previous downtime"-->
                 </StackLayout>
+                <StackLayout Orientation="Horizontal">
+                    <Button Command="{Binding ClearMeasurements}" Text="clear" />
+                    <Button Text="export" Command="{Binding ExportMeasurements}" />                    
+                </StackLayout>
             </StackLayout>
                 
 
@@ -157,7 +161,6 @@
             </StackPanel>-->
      
         </Grid>
-
     </ContentPage>
     <ContentPage BindingContext="{Binding DowntimesTracker}" Title="Uptime" x:Name="uptimeContentPage" Padding="5">
         <Grid>
@@ -179,13 +182,15 @@
                 </StackLayout>
                 <StackLayout Orientation="Horizontal">
                     <Label Grid.Row="1" Text="downtime:" FontSize="15" />
-                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding DowntimeDurationString}" FontSize="15" />                    
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding DowntimeDurationString}" FontSize="15" />
                 </StackLayout>
-                <Button Command="{Binding Clear}" Text="clear history" />
+                <StackLayout Orientation="Horizontal">
+                    <Button Command="{Binding Clear}" Text="clear history" />
+                    <Button Command="{Binding Export}" Text="export" />                    
+                </StackLayout>
                 <StackLayout Orientation="Horizontal">
                     <Label Text="show uptimes" FontSize="15" />
-                    <Switch IsToggled="{Binding DisplayUptimes, Mode=TwoWay}" />
-                    
+                    <Switch IsToggled="{Binding DisplayUptimes, Mode=TwoWay}" />                    
                 </StackLayout>
             </StackLayout>
 

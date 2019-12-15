@@ -7,13 +7,11 @@ namespace StarTrinity.CST
 {
     public partial class App : Application
     {
-        public App()
+        public App(IXamarinMainPageHost host)
         {
             InitializeComponent();
             Dcomms.MiscProcedures.Initialize(CompilationInfo.CompilationDateTimeUtc);
-
-            MainPage = new XamarinMainPage();
-
+            MainPage = new XamarinMainPage(host);            
         }
 
         protected override void OnStart()

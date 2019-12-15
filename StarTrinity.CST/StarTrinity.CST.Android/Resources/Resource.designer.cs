@@ -7540,6 +7540,22 @@ namespace StarTrinity.CST.Droid
 			{
 			}
 		}
+		
+		public partial class Xml
+		{
+			
+			// aapt resource value: 0x7F100000
+			public const int file_paths = 2131755008;
+			
+			static Xml()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Xml()
+			{
+			}
+		}
 	}
 }
 #pragma warning restore 1591

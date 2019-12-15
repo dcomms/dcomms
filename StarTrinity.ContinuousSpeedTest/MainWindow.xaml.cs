@@ -2,6 +2,7 @@
 using Dcomms.SUBT.GUI;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -157,6 +158,10 @@ namespace StarTrinity.ContinuousSpeedTest
         string DesktopShortcutFileName => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "StarTrinity CST.lnk");
         string StartMenuShortcutFileName => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs", "StarTrinity CST.lnk");
 
+        bool ICstAppUser.RunningInstalledOnThisPC => throw new NotImplementedException();
+
+        string ICstAppUser.CsvDelimiter => System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
+        CultureInfo ICstAppUser.CsvCultureInfo => System.Globalization.CultureInfo.CurrentCulture;
 
         [ComImport]
         [Guid("00021401-0000-0000-C000-000000000046")]
@@ -321,8 +326,9 @@ namespace StarTrinity.ContinuousSpeedTest
 
         void ICstAppUser.ShowMessageToUser(string msg) => MessageBox.Show(msg);
 
-        bool ICstAppUser.ShowSaveFileDialog(string fileExtension, out string fileName)
+        bool ICstAppUser.ShowSaveFileDialog(string fileExtension, out string fileName, out Action optionalFileWrittenCallback)
         {
+            optionalFileWrittenCallback = null;
             var dlg = new Microsoft.Win32.SaveFileDialog();
             dlg.Filter = $"{fileExtension.ToUpper()} files|*.{fileExtension.ToLower()}";
             if (dlg.ShowDialog() == true)

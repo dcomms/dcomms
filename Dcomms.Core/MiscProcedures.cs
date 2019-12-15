@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -72,21 +73,23 @@ namespace Dcomms
             return TimeSpan.FromTicks(ticks);
         }
 
+        public static CultureInfo BandwidthToString_CultureInfo;
         public static string BandwidthToString(this float bandwidth, float? targetBandwidth = null) => BandwidthToString((float?)bandwidth, targetBandwidth);
         public static string BandwidthToString(this float? bandwidth, float? targetBandwidth = null)
         {
             if (bandwidth == null) return "";
             var sb = new StringBuilder();
+            var cultureInfo = BandwidthToString_CultureInfo ?? CultureInfo.CurrentUICulture;
             if (bandwidth >= 1024 * 1024)
             {
-                sb.AppendFormat("{0:0.00}Mbps", bandwidth / (1024 * 1024));
+                sb.AppendFormat(cultureInfo, "{0:F2}Mbps", bandwidth / (1024 * 1024));
             }
             else if (bandwidth >= 1024)
             {
-                sb.AppendFormat("{0:0.00}kbps", bandwidth / (1024));
+                sb.AppendFormat(cultureInfo, "{0:F2}kbps", bandwidth / (1024));
             }
             else
-                sb.AppendFormat("{0:0.00}bps", bandwidth);
+                sb.AppendFormat(cultureInfo, "{0:F2}bps", bandwidth);
 
             if (targetBandwidth.HasValue)
             {
