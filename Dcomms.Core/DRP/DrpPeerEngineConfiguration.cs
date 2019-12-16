@@ -53,5 +53,7 @@ namespace Dcomms.DRP
 
         public double NeighborhoodExtensionMaxRetryIntervalS = 20;
         public double NeighborhoodExtensionMinIntervalS = 0.5;
+
+        public double NatConfigurationIntervalS = 120;
     }
 }

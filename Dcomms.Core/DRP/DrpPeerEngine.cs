@@ -402,6 +402,8 @@ namespace Dcomms.DRP
 
             // remove expired responders
             RespondersToRetransmittedRequests_OnTimer100ms(timeNowUTC);
+
+            ConfigureRouterNatIfNeeded(timeNowUTC);
         }
         #endregion
         void ProcessNatTest1Request(IPEndPoint remoteEndpoint, byte[] udpData) // receiver thread
@@ -439,19 +441,49 @@ namespace Dcomms.DRP
             return MiscProcedures.Int64ToTimeSpan(differenceTicks64) < TimeSpan.FromSeconds(Configuration.MaxReqTimestampDifferenceS);
         }
 
+        #region NAT
+        DateTime? _lastTimeConfiguredRouterNat = null;
+        async Task ConfigureRouterNatIfNeeded(DateTime timeNowUTC)
+        {
+            if (_lastTimeConfiguredRouterNat == null || (timeNowUTC - _lastTimeConfiguredRouterNat.Value).TotalSeconds > Configuration.NatConfigurationIntervalS)
+            {
+                try
+                {
+                    _lastTimeConfiguredRouterNat = timeNowUTC;
+                    var sw = Stopwatch.StartNew();
+                    WriteToLog_drpGeneral_higherLevelDetail($"configuring NAT...");
+                    var nu = new Mono.Nat.NatUtility(Configuration.VisionChannel, Configuration.VisionChannelSourceId);
+                    try
+                    {
+                        var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
+                        var succeeded = await nu.SearchAndConfigure(new[] { localEP.Port });
+                        WriteToLog_drpGeneral_higherLevelDetail($"NAT configuration is complete in {(int)sw.Elapsed.TotalMilliseconds}ms, succeeded={succeeded}");
+                    }
+                    finally
+                    {
+                        nu.Dispose();
+                    }
+                }
+                catch (Exception exc)
+                {
+                    HandleGeneralException("error when configuring NAT", exc);
+                }
+            }
+        }
         public void TestUPnPdec10()
         {
             EngineThreadQueue.Enqueue(async () => 
             {
                 try
                 {
-                    WriteToLog_drpGeneral_guiActivity($"starting upnp procedure");
+                    WriteToLog_drpGeneral_guiActivity($"starting NAT procedure");
+                    var sw = Stopwatch.StartNew();
                     var nu = new Mono.Nat.NatUtility(Configuration.VisionChannel, Configuration.VisionChannelSourceId);
                     try
                     {
                         var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
                         var succeeded = await nu.SearchAndConfigure(new[] { localEP.Port });
-                        WriteToLog_drpGeneral_guiActivity($"upnp procedure is complete, succeeded={succeeded}");
+                        WriteToLog_drpGeneral_guiActivity($"NAT procedure is complete in {sw.Elapsed.TotalMilliseconds}ms, succeeded={succeeded}");
                     }
                     finally
                     {
@@ -466,7 +498,6 @@ namespace Dcomms.DRP
                 }
             }, "TestUPnPdec10 368");            
         }
-
         //private async void TestUPnPdec10_DeviceFound(object sender, Mono.Nat.DeviceEventArgs args)
         //{
 
@@ -512,6 +543,7 @@ namespace Dcomms.DRP
         //      //  locker.Release();
         //    }
         //}
+        #endregion
     }
 
     public interface IDrpRegisteredPeerApp 

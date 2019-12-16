@@ -2,6 +2,7 @@
 using Dcomms.SUBT.GUI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -157,9 +158,7 @@ namespace StarTrinity.ContinuousSpeedTest
         }
         string DesktopShortcutFileName => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "StarTrinity CST.lnk");
         string StartMenuShortcutFileName => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs", "StarTrinity CST.lnk");
-
-        bool ICstAppUser.RunningInstalledOnThisPC => throw new NotImplementedException();
-
+        
         string ICstAppUser.CsvDelimiter => System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
         CultureInfo ICstAppUser.CsvCultureInfo => System.Globalization.CultureInfo.CurrentCulture;
 
@@ -340,6 +339,71 @@ namespace StarTrinity.ContinuousSpeedTest
             {
                 fileName = null;
                 return false;
+            }
+        }
+
+        public void ConfigureFirewallIfNotConfigured()
+        {
+            const string visionChannelModuleName = "firewall";
+            try
+            {
+                const string ruleName = "StarTrinity CST";
+                var processName = Process.GetCurrentProcess().MainModule.FileName;
+
+                bool ruleAlreadyExists = false;
+
+                try
+                {
+                    var netshProcess = new Process();
+                    netshProcess.StartInfo.FileName = "netsh";
+                    netshProcess.StartInfo.Arguments = $"advfirewall firewall show rule name=\"{ruleName}\" verbose";
+                //    netshProcess.StartInfo.Verb = "runas"; 
+                    netshProcess.StartInfo.UseShellExecute = false;
+                    netshProcess.StartInfo.CreateNoWindow = true;
+                    netshProcess.StartInfo.RedirectStandardOutput = true;
+                    netshProcess.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(System.Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage);                 
+                    netshProcess.Start();
+
+                    var stdOutput = "";                  
+                    try
+                    {
+                        stdOutput = netshProcess.StandardOutput.ReadToEnd();
+                    }
+                    catch
+                    {
+                        stdOutput = "";
+                    }
+
+                    netshProcess.WaitForExit();
+                  
+                    _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.deepDetail, $"getting rule: netsh exited with code {netshProcess.ExitCode}. output:\r\n{stdOutput}");
+                    ruleAlreadyExists = (netshProcess.ExitCode == 0) && stdOutput.Contains(processName);
+                    _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.deepDetail, $"ruleAlreadyExists={ruleAlreadyExists}");
+                }
+                catch (Exception exc)
+                {
+                    _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.lightPain, $"could not get existing rule in firewall: {exc.Message}");
+                }
+
+
+                if (ruleAlreadyExists == false)
+                {
+                    var netshProcess = new Process();
+                    netshProcess.StartInfo.FileName = "netsh";
+                    netshProcess.StartInfo.Arguments = $"advfirewall firewall add rule name=\"{ruleName}\" dir=in action=allow program=\"{processName}\" enable=yes";
+                    netshProcess.StartInfo.Verb = "runas";
+                    netshProcess.StartInfo.UseShellExecute = true;
+                    netshProcess.Start();
+                    netshProcess.WaitForExit();
+                    if (netshProcess.ExitCode == 0)
+                        _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.deepDetail, $"adding rule: netsh exited with code {netshProcess.ExitCode}");
+                    else _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.lightPain, $"adding rule: netsh exited with code {netshProcess.ExitCode}");
+                    _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.higherLevelDetail, $"successfully configured firewall");
+                }
+            }
+            catch (Exception exc)
+            {
+                _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.lightPain, $"could not configure firewall: {exc.Message}");
             }
         }
     }

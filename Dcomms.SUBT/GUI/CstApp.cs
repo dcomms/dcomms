@@ -233,14 +233,14 @@ namespace Dcomms.SUBT.GUI
                         if (DeveloperMode == false)
                             PredefinedReleaseMode.Execute(null);
 
+                        User.ConfigureFirewallIfNotConfigured();
                         SubtLocalPeer = new SubtLocalPeer(SubtLocalPeerConfiguration, SubtLocalPeer);
                         LocalPeerConfiguration.Extensions = new[] { SubtLocalPeer };
                         LocalPeerConfiguration.VisionChannel = VisionChannel;
 
                         if (LocalPeerConfiguration.RoleAsUser)
                             MiscProcedures.MinPeerCompilationDateTimeUtc = new DateTime(2019, 05, 01);
-
-
+                        
                         LocalPeer = new LocalPeer(LocalPeerConfiguration);
                         RaisePropertyChanged(() => Initialized);
                         if (DeveloperMode)

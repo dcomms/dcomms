@@ -36,7 +36,7 @@ namespace Org.BouncyCastle.Asn1.Cms
         public Time(
             DateTime date)
         {
-            string d = date.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + "Z";
+            string d = date.ToString(" MMddHHmmss", CultureInfo.InvariantCulture) + "Z";
 
 			int year = int.Parse(d.Substring(0, 4));
 

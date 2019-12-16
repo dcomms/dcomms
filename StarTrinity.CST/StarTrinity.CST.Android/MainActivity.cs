@@ -28,7 +28,7 @@ namespace StarTrinity.CST.Droid
         {
           //  var tmpPath = Path.GetTempPath();
             var tmpPath = CacheDir.AbsolutePath;
-            var fn = Path.Combine(tmpPath, $"CST_export_{Guid.NewGuid()}.{fileExtension}");
+            var fn = Path.Combine(tmpPath, $"CST_export_{DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss")}.{fileExtension}");
             fileName = fn;
 
             optionalFileWrittenCallback = () =>

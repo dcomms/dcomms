@@ -76,6 +76,9 @@ namespace StarTrinity.CST
 
         }
 
+        public void ConfigureFirewallIfNotConfigured()
+        {
+        }
 
         string ICstAppUser.CsvDelimiter => ",";
         CultureInfo ICstAppUser.CsvCultureInfo => new System.Globalization.CultureInfo("en-US");

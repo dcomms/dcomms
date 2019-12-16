@@ -19,5 +19,6 @@ namespace Dcomms.SUBT.GUI
         bool RunningInstalledOnThisPC { get; }
         string CsvDelimiter { get; }
         CultureInfo CsvCultureInfo { get; }
+        void ConfigureFirewallIfNotConfigured();
     }
 }
