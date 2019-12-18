@@ -453,7 +453,7 @@ namespace Dcomms.DRP
                     _lastTimeConfiguredRouterNat = timeNowUTC;
                     var sw = Stopwatch.StartNew();
                     WriteToLog_drpGeneral_higherLevelDetail($"configuring NAT...");
-                    var nu = new Mono.Nat.NatUtility(Configuration.VisionChannel, Configuration.VisionChannelSourceId);
+                    var nu = new Dcomms.NAT.NatUtility(Configuration.VisionChannel, Configuration.VisionChannelSourceId);
                     try
                     {
                         var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
@@ -479,7 +479,7 @@ namespace Dcomms.DRP
                 {
                     WriteToLog_drpGeneral_guiActivity($"starting NAT procedure");
                     var sw = Stopwatch.StartNew();
-                    var nu = new Mono.Nat.NatUtility(Configuration.VisionChannel, Configuration.VisionChannelSourceId);
+                    var nu = new Dcomms.NAT.NatUtility(Configuration.VisionChannel, Configuration.VisionChannelSourceId);
                     try
                     {
                         var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
@@ -499,7 +499,7 @@ namespace Dcomms.DRP
                 }
             }, "TestUPnPdec10 368");            
         }
-        //private async void TestUPnPdec10_DeviceFound(object sender, Mono.Nat.DeviceEventArgs args)
+        //private async void TestUPnPdec10_DeviceFound(object sender, Dcomms.NAT.DeviceEventArgs args)
         //{
 
         //  //  await locker.WaitAsync();
@@ -520,14 +520,14 @@ namespace Dcomms.DRP
 
         //        // try to create a new port map:
         //        var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
-        //        var mapping2 = new Mono.Nat.Mapping(Mono.Nat.Protocol.Udp, localEP.Port, localEP.Port);
+        //        var mapping2 = new Dcomms.NAT.Mapping(Dcomms.NAT.Protocol.Udp, localEP.Port, localEP.Port);
         //        await device.CreatePortMapAsync(mapping2);
         //        WriteToLog_drpGeneral_guiActivity($"created mapping: externalIP={externalIP}, protocol={mapping2.Protocol}, publicPort={mapping2.PublicPort}, privatePort={mapping2.PrivatePort}");
 
         //        // Try to retrieve confirmation on the port map we just created:               
         //        try
         //        {
-        //            var m = await device.GetSpecificMappingAsync(Mono.Nat.Protocol.Udp, 6020);
+        //            var m = await device.GetSpecificMappingAsync(Dcomms.NAT.Protocol.Udp, 6020);
         //            WriteToLog_drpGeneral_guiActivity($"Verified Mapping: externalIP={externalIP}, protocol={m.Protocol}, publicPort={m.PublicPort}, privatePort={m.PrivatePort}");
         //        }
         //        catch (Exception exc)
