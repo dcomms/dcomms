@@ -79,6 +79,7 @@ namespace Dcomms.DRP
         internal IEnumerable<LocalDrpPeer> VisibleLocalPeers => LocalPeers.Values;
         internal ConnectionToNeighbor[] ConnectedPeersByToken16 = new ConnectionToNeighbor[ushort.MaxValue+1];
         internal DMP.InviteSession[] InviteSessionsByToken16 = new DMP.InviteSession[ushort.MaxValue + 1];
+        internal NatBehaviourModel LocalNatBehaviour = NatBehaviourModel.Unknown;
                
         string IVisibleModule.Status
         {

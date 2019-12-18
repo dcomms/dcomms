@@ -173,6 +173,7 @@ namespace Dcomms.DRP
                     RequesterRegistrationId = localDrpPeer.Configuration.LocalPeerRegistrationId,
                     ReqTimestamp64 = Timestamp64,
                     MinimalDistanceToNeighbor = minimalDistanceToNeighbor,
+                    RequesterNatBehaviour = LocalNatBehaviour,
                     NumberOfHopsRemaining = numberofHops,
                     RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                     ReqP2pSeq16 = GetNewNpaSeq16_AtoEP(),

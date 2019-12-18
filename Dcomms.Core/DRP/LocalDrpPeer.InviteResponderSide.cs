@@ -44,7 +44,7 @@ namespace Dcomms.DRP
             if (!Engine.RecentUniquePublicEcdhKeys.Filter(req.RequesterEcdhePublicKey.Ecdh25519PublicKey))
             {
                 logger.WriteToLog_mediumPain($"RequesterEcdhePublicKey {req.RequesterEcdhePublicKey} is not unique, it has been recently processed");
-                return;
+                return; 
             }
             if (!Engine.RecentUniqueInviteRequests.Filter(req.GetUniqueRequestIdFields)) 
             {
@@ -54,8 +54,8 @@ namespace Dcomms.DRP
 
             // verify requester reg. signature
             if (!req.RequesterRegistrationSignature.Verify(Engine.CryptoLibrary, req.GetSharedSignedFields, req.RequesterRegistrationId))
-                throw new BadSignatureException("invalid  INVITE REQ RequesterRegistrationSignature 2349");
-            
+                throw new BadSignatureException("invalid INVITE REQ RequesterRegistrationSignature 2349");
+
             _pendingInviteRequests.Add(req.RequesterRegistrationId);
 
             try
@@ -73,6 +73,7 @@ namespace Dcomms.DRP
                     {
                         SessionType = SessionType.asyncShortSingleMessage,
                         DirectChannelEndPoint = routedRequest.ReceivedFromNeighborNullable.LocalEndpoint,
+                        NatBehaviour = Engine.LocalNatBehaviour,
                         DirectChannelToken32 = session.LocalDirectChannelToken32
                     };
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"responding with local session {session.LocalSessionDescription}");

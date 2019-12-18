@@ -1,5 +1,6 @@
 ﻿using Dcomms.Cryptography;
 using Dcomms.DMP;
+using Dcomms.DRP;
 using Dcomms.DRP.Packets;
 using System;
 using System.Collections.Generic;
@@ -26,6 +27,11 @@ namespace Dcomms.DMP
         /// at user who received this SessionDescription (via INVITE): IP address and UDP port to send DMP data send via direct channel to remote party
         /// </summary>
         public IPEndPoint DirectChannelEndPoint;
+        /// <summary>
+        /// at user who declared this SessionDescription: local NAT behaviour model, comes from DrpEngine.LocalNatBehaviour
+        /// at user who received this SessionDescription (via INVITE): NAT behaviour model at remote party
+        /// </summary>
+        public NatBehaviourModel NatBehaviour;
         public DirectChannelToken32 DirectChannelToken32;
         public SessionType SessionType;
 
@@ -44,6 +50,7 @@ namespace Dcomms.DMP
         internal void WriteSignedFields(BinaryWriter w)
         {
             PacketProcedures.EncodeIPEndPoint(w, DirectChannelEndPoint);
+            NatBehaviour.Encode(w);
             DirectChannelToken32.Encode(w);
             w.Write((byte)SessionType);
         }
@@ -61,6 +68,7 @@ namespace Dcomms.DMP
             w.Write(Flags);
             UserCertificate.Encode(w);
             PacketProcedures.EncodeIPEndPoint(w, DirectChannelEndPoint);
+            NatBehaviour.Encode(w);
             DirectChannelToken32.Encode(w);
             w.Write((byte)SessionType);
             UserCertificateSignature.Encode(w);
@@ -116,6 +124,7 @@ namespace Dcomms.DMP
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             r.UserCertificate = UserCertificate.Decode_AssertIsValidNow(reader, cryptoLibrary, receivedFromUser, localTimeNowUtc);
             r.DirectChannelEndPoint = PacketProcedures.DecodeIPEndPoint(reader);
+            r.NatBehaviour = NatBehaviourModel.Decode(reader);
             r.DirectChannelToken32 = DirectChannelToken32.Decode(reader);
             r.SessionType = (SessionType)reader.ReadByte();
             r.UserCertificateSignature = UserCertificateSignature.DecodeAndVerify(reader, cryptoLibrary, 

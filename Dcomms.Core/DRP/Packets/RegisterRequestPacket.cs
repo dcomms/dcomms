@@ -42,6 +42,7 @@ namespace Dcomms.DRP.Packets
         public Int64 ReqTimestamp64;
 
         public uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood // inclusive
+        public NatBehaviourModel RequesterNatBehaviour { get; set; }
 
         public sbyte[] DirectionVectorNullable;
         public double[] DirectionVectorNullableD
@@ -152,6 +153,7 @@ namespace Dcomms.DRP.Packets
             RequesterEcdhePublicKey.Encode(writer);
             writer.Write(ReqTimestamp64);
             writer.Write(MinimalDistanceToNeighbor);
+            RequesterNatBehaviour.Encode(writer);
             if (DirectionVectorNullable != null)
                 foreach (var sb in DirectionVectorNullable)
                     writer.Write(sb);
@@ -198,6 +200,7 @@ namespace Dcomms.DRP.Packets
             r.RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
             r.ReqTimestamp64 = reader.ReadInt64();
             r.MinimalDistanceToNeighbor = reader.ReadUInt32();
+            r.RequesterNatBehaviour = NatBehaviourModel.Decode(reader);
 
             if ((flags & Flag_DirectionVectorExists) != 0)
             {

@@ -28,6 +28,7 @@ namespace Dcomms.DRP
                     RequesterRegistrationId = _localDrpPeer.Configuration.LocalPeerRegistrationId,
                     ReqTimestamp64 = _engine.Timestamp64,
                     MinimalDistanceToNeighbor = minimalDistanceToNeighbor,
+                    RequesterNatBehaviour = _engine.LocalNatBehaviour,
                     RequesterNeighborsBusySectorIds = busySectorIds, 
                     NumberOfHopsRemaining = numberOfHopsRemaining,
                     NumberOfRandomHopsRemaining = numberOfRandomHopsRemaining,

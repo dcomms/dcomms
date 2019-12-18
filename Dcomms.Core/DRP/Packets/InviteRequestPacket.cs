@@ -25,6 +25,7 @@ namespace Dcomms.DRP.Packets
         public RegistrationId RequesterRegistrationId; // A public key 
         public RegistrationId ResponderRegistrationId; // B public key
         public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new DirectChannel connection
+        public NatBehaviourModel RequesterNatBehaviour;
         public RegistrationSignature RequesterRegistrationSignature;
 
         public byte NumberOfHopsRemaining; // is decremented by peers
@@ -68,6 +69,7 @@ namespace Dcomms.DRP.Packets
             RequesterRegistrationId.Encode(w);
             ResponderRegistrationId.Encode(w);
             RequesterEcdhePublicKey.Encode(w);
+            RequesterNatBehaviour.Encode(w);
         }
 
         internal byte[] DecodedUdpPayloadData;
@@ -88,6 +90,7 @@ namespace Dcomms.DRP.Packets
             r.RequesterRegistrationId = RegistrationId.Decode(reader);
             r.ResponderRegistrationId = RegistrationId.Decode(reader);
             r.RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
+            r.RequesterNatBehaviour = NatBehaviourModel.Decode(reader);
             r.RequesterRegistrationSignature = RegistrationSignature.Decode(reader);
             r.NumberOfHopsRemaining = reader.ReadByte();
             r.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);

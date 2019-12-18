@@ -55,9 +55,7 @@ namespace Dcomms.DRP
                 await routedRequest.SendErrorResponse(ResponseOrFailureCode.failure_routeIsUnavailable);
             }
         }
-
-
-
+               
         /// <summary>
         /// main register responder proc for both A-EP and P2P modes
         /// in P2P mode Timestamp32S, NeighborToken32 and NeighborHMAC are verified at this time
@@ -118,6 +116,7 @@ namespace Dcomms.DRP
                 var newConnectionToNeighbor = new ConnectionToNeighbor(this, acceptAt, ConnectedDrpPeerInitiatedBy.remotePeer, req.RequesterRegistrationId)
                 {
                     LocalEndpoint = routedRequest.ReceivedFromNeighborNullable?.LocalEndpoint ?? req.EpEndpoint,
+                    RemoteNatBehaviour = req.RequesterNatBehaviour
                 };
                 byte[] ack1UdpData;
                 try
@@ -302,6 +301,5 @@ namespace Dcomms.DRP
         /// </summary>
         HashSet<RegistrationId> _pendingRegisterRequests = new HashSet<RegistrationId>();
         internal bool PendingRegisterRequestExists(RegistrationId regId) => _pendingRegisterRequests.Contains(regId);
-
     }
 }

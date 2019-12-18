@@ -89,6 +89,7 @@ _retry:
                     NumberOfHopsRemaining = InviteRequestPacket.MaxNumberOfHopsRemaining,
                     RequesterEcdhePublicKey = new EcdhPublicKey(session.LocalInviteAckEcdhePublicKey),
                     RequesterRegistrationId = this.Configuration.LocalPeerRegistrationId,
+                    RequesterNatBehaviour = Engine.LocalNatBehaviour,
                     ResponderRegistrationId = responderRegistrationId,
                     ReqTimestamp32S = Engine.Timestamp32S,
                 };
@@ -164,6 +165,7 @@ _retry:
                 session.LocalSessionDescription = new InviteSessionDescription
                 {
                     DirectChannelEndPoint = destinationPeer.LocalEndpoint,
+                    NatBehaviour = Engine.LocalNatBehaviour,
                     SessionType = sessionType,
                     DirectChannelToken32 = session.LocalDirectChannelToken32
                 };

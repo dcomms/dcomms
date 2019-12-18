@@ -66,6 +66,7 @@ namespace Dcomms.DRP
             {
                 RemoteEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
                 RemoteNeighborToken32 = NeighborToken32.Decode(reader);
+                RemoteNatBehaviour = NatBehaviourModel.Decode(reader);
                 var magic16 = reader.ReadUInt16();
                 if (magic16 != Magic16_responderToRequester) throw new BrokenCipherException();
             }
@@ -111,22 +112,22 @@ namespace Dcomms.DRP
             PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
             PacketProcedures.EncodeIPEndPoint(wRxParameters, localResponderEndpoint); // max 19
             LocalNeighborToken32.Encode(wRxParameters); // +4   max 23
+            _engine.LocalNatBehaviour.Encode(wRxParameters); // +2 max 25
 
             if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"encrypting local responder endpoint={localResponderEndpoint}, localNeighborToken={LocalNeighborToken32} into ACK1");
 
-            wRxParameters.Write(Magic16_responderToRequester);    // +2 max 25
+            wRxParameters.Write(Magic16_responderToRequester);    // +2 max 27
             var bytesRemaining = RegisterAck1Packet.ToResponderTxParametersEncryptedLength - (int)msRxParameters.Length;
 
             wRxParameters.Write(_engine.CryptoLibrary.GetRandomBytes(bytesRemaining));   
 
-            var localRxParametersDecrypted = msRxParameters.ToArray(); // total 16 bytes
+            var localRxParametersDecrypted = msRxParameters.ToArray(); // total 32 bytes = RegisterAck1Packet.ToResponderTxParametersEncryptedLength
             var localRxParametersEncrypted = new byte[localRxParametersDecrypted.Length];
             _engine.CryptoLibrary.ProcessAesCbcBlocks(true, aesKey, iv, localRxParametersDecrypted, localRxParametersEncrypted);
 
             if (localRxParametersEncrypted.Length != RegisterAck1Packet.ToResponderTxParametersEncryptedLength)
                 throw new Exception();
-            return localRxParametersEncrypted;          
-
+            return localRxParametersEncrypted; 
         }
                
         /// <summary>initializes parameters to transmit direct (p2p) packets form neighbor N to requester A</returns>
@@ -278,6 +279,7 @@ namespace Dcomms.DRP
             }
         }
         public string RemoteVisionName { get; set; } // comes from PING packet; goes to develper's VisionChannel
+        public NatBehaviourModel RemoteNatBehaviour { get; set; }
         /// <summary>
         /// specifies sector of directin vector from local peer to neighbor peer
         /// has only one bit set to 1
