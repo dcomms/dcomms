@@ -70,27 +70,37 @@ namespace Dcomms.Sandbox
 
         }
 
-        void xList_BeginCreate(int index)
-        {        
+        void xList_BeginCreate(int index, int? copyRegIdFromIndexNullable)
+        {
+            string visionChannelSourceId = $"X{index}";
+            if (copyRegIdFromIndexNullable != null) visionChannelSourceId += $"_copyFrom{copyRegIdFromIndexNullable}";
+
             var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 InsecureRandomSeed = _insecureRandom.Next(),
                 VisionChannel = _visionChannel,
                 ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
-                VisionChannelSourceId = $"X{index}",
+                VisionChannelSourceId = visionChannelSourceId,
                 SandboxModeOnly_DisablePoW = true,
                 SandboxModeOnly_EnableInsecureLogs = true,
                 SandboxModeOnly_NumberOfDimensions = NumberOfDimensions,
                 NeighborhoodExtensionMinIntervalS = NeighborhoodExtensionMinIntervalS
             });
 
-            EmitAllPeers(AttentionLevel.guiActivity, $"creating peer index {index}...");
+            EmitAllPeers(AttentionLevel.guiActivity, $"creating peer index {index} (copyRegIdFromIndex={copyRegIdFromIndexNullable})...");
 
-            var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.Create(x.CryptoLibrary, NumberOfDimensions);
+            byte[] ed25519privateKey = null; RegistrationId registrationId = null;
+            if (copyRegIdFromIndexNullable.HasValue)
+            {
+                var copyFromUser = _xList[copyRegIdFromIndexNullable.Value];
+                ed25519privateKey = copyFromUser.DrpPeerRegistrationConfiguration.LocalPeerRegistrationPrivateKey.ed25519privateKey;
+                registrationId = copyFromUser.DrpPeerRegistrationConfiguration.LocalPeerRegistrationId;
+            }
+            var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.Create(x.CryptoLibrary, NumberOfDimensions, ed25519privateKey, registrationId);
             xLocalDrpPeerConfig.EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) };
-            xLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = MinDesiredNumberOfNeighbors;
-            xLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = SoftMaxDesiredNumberOfNeighbors;
-            xLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = AbsoluteMaxDesiredNumberOfNeighbors;
+            xLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = copyRegIdFromIndexNullable.HasValue ? 1 : MinDesiredNumberOfNeighbors;
+            xLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = copyRegIdFromIndexNullable.HasValue ? 1 : SoftMaxDesiredNumberOfNeighbors;
+            xLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = copyRegIdFromIndexNullable.HasValue ? 1 : AbsoluteMaxDesiredNumberOfNeighbors;
             xLocalDrpPeerConfig.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS;
             var xDrpTesterPeerApp = new DrpTesterPeerApp(x, xLocalDrpPeerConfig);
             _xList.Add(xDrpTesterPeerApp);
@@ -111,7 +121,7 @@ namespace Dcomms.Sandbox
             {
                 EmitAllPeers(AttentionLevel.guiActivity, $"{x} is connected with {x.LocalDrpPeer.ConnectedNeighbors.Count} neighbors, enough to continue with other peers");
                 if (index < NumberOfPeers)
-                    xList_BeginCreate(index + 1);
+                    xList_BeginCreate(index + 1, index == 0 ? (int?)0 : null);
                 if (index > NumberOfPeersToStartMessagesTest) BeginTestInvitesIfNotStartedAlready();
             }
             else
@@ -163,7 +173,7 @@ namespace Dcomms.Sandbox
                         ep2.DrpPeerRegistrationConfiguration.MinDesiredNumberOfNeighbors = EpMinDesiredNumberOfNeighbors;
                     }
 
-                    xList_BeginCreate(0);
+                    xList_BeginCreate(0, null);
                 }
             });
         }        

@@ -13,7 +13,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// is used to expand neighborhood
         /// </summary>
-        internal async Task RegisterAsync(uint minimalDistanceToNeighbor, ushort busySectorIds, byte numberOfHopsRemaining, byte numberOfRandomHopsRemaining, double[] directionVectorNullable)
+        internal async Task RegisterAsync(uint minimalDistanceToNeighbor, ushort busySectorIds, byte numberOfHopsRemaining, byte numberOfRandomHopsRemaining, double[] directionVectorNullable, bool allowConnectionsToRequesterRegistrationId)
         {
             _engine.WriteToLog_reg_requesterSide_detail($">> ConnectionToNeighbor.RegisterAsync(minimalDistanceToNeighbor={minimalDistanceToNeighbor}", null, null);
             _localDrpPeer.CurrentRegistrationOperationsCount++;
@@ -29,6 +29,7 @@ namespace Dcomms.DRP
                     ReqTimestamp64 = _engine.Timestamp64,
                     MinimalDistanceToNeighbor = minimalDistanceToNeighbor,
                     RequesterNatBehaviour = _engine.LocalNatBehaviour,
+                    AllowConnectionsToRequesterRegistrationId = allowConnectionsToRequesterRegistrationId,
                     RequesterNeighborsBusySectorIds = busySectorIds, 
                     NumberOfHopsRemaining = numberOfHopsRemaining,
                     NumberOfRandomHopsRemaining = numberOfRandomHopsRemaining,

@@ -112,9 +112,12 @@ namespace Dcomms.DRP
 
                 if (routedRequest.RequesterRegistrationId.Equals(connectedPeer.RemoteRegistrationId))
                 {
-                    if (routedRequest.Logger.WriteToLog_deepDetail_enabled)
-                        routedRequest.Logger.WriteToLog_deepDetail($"skipping routing to peer with same regID {connectedPeer}");
-                    continue;
+                    if (routedRequest.RegisterReq == null || routedRequest.RegisterReq.AllowConnectionsToRequesterRegistrationId != true)
+                    {
+                        if (routedRequest.Logger.WriteToLog_deepDetail_enabled)
+                            routedRequest.Logger.WriteToLog_deepDetail($"skipping routing to peer with same regID {connectedPeer}");
+                        continue;
+                    }
                 }
 
                 yield return connectedPeer;
@@ -141,6 +144,7 @@ namespace Dcomms.DRP
         internal void TestDirection(Logger logger, RegistrationId destinationRegId)
         {
             if (this.Configuration.LocalPeerRegistrationId.Equals(destinationRegId) == true) return;
+            if (this.Configuration.AbsoluteMaxNumberOfNeighbors == 1) return; // special case: mobile device connected to home device
             var diff = RegistrationId.GetDifferenceVector(this.Configuration.LocalPeerRegistrationId, destinationRegId, CryptoLibrary, Engine.Configuration.SandboxModeOnly_NumberOfDimensions);                
             _ = TestDirection(logger, diff);
         }
@@ -224,7 +228,7 @@ namespace Dcomms.DRP
                         {
                             var epEndpoint = this.Configuration.EntryPeerEndpoints[Engine.InsecureRandom.Next(this.Configuration.EntryPeerEndpoints.Length)];
                             Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via EP {epEndpoint} ({connectedNeighborsForNewRequests.Count} connected operable neighbors now)", null, null);
-                            await Engine.RegisterAsync(this, epEndpoint, 0, RegisterRequestPacket.MaxNumberOfHopsRemaining, directionVectorNullable);
+                            await Engine.RegisterAsync(this, epEndpoint, 0, RegisterRequestPacket.MaxNumberOfHopsRemaining, directionVectorNullable, connectedNeighborsForNewRequests.Count == 0);
                         }
                         else
                         {
@@ -234,7 +238,8 @@ namespace Dcomms.DRP
                                 Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood via neighbor {neighborToSendRegister} ({connectedNeighborsForNewRequests.Count} connected operable neighbors now)", null, null);
                                 await neighborToSendRegister.RegisterAsync(0, ConnectedNeighborsBusySectorIds, RegisterRequestPacket.MaxNumberOfHopsRemaining,
                                     (byte)Engine.InsecureRandom.Next(10),
-                                    directionVectorNullable
+                                    directionVectorNullable,
+                                    false
                                     );
                                 _neighborhoodExtensionFailuresCountInArow = 0;
                             }
@@ -299,7 +304,8 @@ namespace Dcomms.DRP
                         Engine.NumberOfDimensions,
                         true, 
                         this.AnotherNeighborToSameSectorExists(neighbor),
-                        neighbor.Remote_AnotherNeighborToSameSectorExists ?? false
+                        neighbor.Remote_AnotherNeighborToSameSectorExists ?? false, 
+                        true
                         );
                 Engine.WriteToLog_p2p_higherLevelDetail(neighbor, $"@DestroyWorstNeighbor() p2pConnectionValue_withNeighbor={p2pConnectionValue_withNeighbor} from {this} to {neighbor}", null);
                 if (worstValue == null || p2pConnectionValue_withNeighbor < worstValue)
@@ -340,7 +346,8 @@ namespace Dcomms.DRP
 
         async Task TestDirections(DateTime timeNowUtc)
         {
-            if (ConnectedNeighborsCanBeUsedForNewRequests.Count() >= _configuration.MinDesiredNumberOfNeighbors)
+            if (ConnectedNeighborsCanBeUsedForNewRequests.Count() >= _configuration.MinDesiredNumberOfNeighbors 
+                && _configuration.AbsoluteMaxNumberOfNeighbors != 1) // also if not  special mode: mobile device connected only to 1 home device
             { // enough neighbors
                 if (_latestEmptyDirectionsTestTimeUtc == null || timeNowUtc > _latestEmptyDirectionsTestTimeUtc.Value.AddSeconds(_configuration.TestDirectionsMinIntervalS))
                 {
@@ -379,7 +386,7 @@ namespace Dcomms.DRP
             {
                 try
                 {
-                    var conn = await Engine.RegisterAsync(this, endpoint, 0, 1, null); // engine thread
+                    var conn = await Engine.RegisterAsync(this, endpoint, 0, 1, null, false); // engine thread
                     Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"@BeginConnectToEPsAsync connected to {endpoint}. {ConnectedNeighbors.Count} connected neighbors", null, null);
                 }
                 catch (Exception exc)

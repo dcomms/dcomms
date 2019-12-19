@@ -25,6 +25,10 @@ namespace Dcomms
             var dataMustBeUnique = ms.ToArray();
             return Filter(dataMustBeUnique);
         }
+        public bool DataIsUnique(byte[] data)
+        {
+            return !_recentHashcodesHS.Contains(MiscProcedures.GetArrayHashCode(data));
+        }
         public bool Filter(byte[] dataMustBeUnique)
         {
             var hashCode = MiscProcedures.GetArrayHashCode(dataMustBeUnique);

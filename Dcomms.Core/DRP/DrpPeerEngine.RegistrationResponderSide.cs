@@ -68,7 +68,8 @@ namespace Dcomms.DRP
             var logger = routedRequest.Logger;
             logger.ModuleName = VisionChannelModuleName_reg_responderSide;
             var req = routedRequest.RegisterReq;
-            if (req.RequesterRegistrationId.Equals(acceptAt.Configuration.LocalPeerRegistrationId)) throw new InvalidOperationException();
+            if (req.AllowConnectionsToRequesterRegistrationId == false && req.RequesterRegistrationId.Equals(acceptAt.Configuration.LocalPeerRegistrationId)) 
+                throw new InvalidOperationException("same reg. id 43717");
 
             // check  signature of requester (A)
             if (!req.RequesterSignature.Verify(_cryptoLibrary,

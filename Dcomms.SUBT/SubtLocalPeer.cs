@@ -93,7 +93,16 @@ namespace Dcomms.SUBT
                             yield return (SubtConnectedPeer)cpx;
             }
         }
-        public IEnumerable<SubtConnectedPeer> ConnectedPeersForGui => ConnectedPeers.OrderByDescending(x => x.TargetTxBandwidth).ThenByDescending(x => x.RemoteLibraryVersion);
+        public IEnumerable<SubtConnectedPeer> ConnectedPeersForGui
+        {
+            get
+            {
+                var cplist = ConnectedPeers.ToList();
+                return cplist.OrderByDescending(x => x.TargetTxBandwidth)
+                    .ThenByDescending(x => x.RemoteLibraryVersion)
+                    .ThenBy(x => x.RemoteIpLocationString).ToList();
+            }
+        }
      
         ///// <param name="currentDependentMeasuredValue">some measurement (M) that depends on the TX bandwidth (T), and dM/dT > 0</param>
         ///// <param name="targetDependentMeasuredValue">target value for the dependent measurement (M)</param>

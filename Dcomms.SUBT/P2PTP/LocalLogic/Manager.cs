@@ -692,7 +692,7 @@ namespace Dcomms.P2PTP.LocalLogic
             {
                 var endpoints = _localPeer.Receivers.Select(x => x.UdpSocket.Client?.LocalEndPoint);
                 var localUdpPorts = endpoints.Select(x => x as IPEndPoint).Where(x => x != null).Select(x => x.Port).ToArray();
-                using var nu = new Mono.Nat.NatUtility(_localPeer.VisionChannel, _localPeer.VisionChannelSourceId);
+                using var nu = new NAT.NatUtility(_localPeer.VisionChannel, _localPeer.VisionChannelSourceId);
                 await nu.SearchAndConfigure(localUdpPorts);
             }
             catch (Exception exc)

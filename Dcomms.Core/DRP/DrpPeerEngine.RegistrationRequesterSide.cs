@@ -100,7 +100,7 @@ namespace Dcomms.DRP
                   //  {
                     try
                     {
-                        if (await RegisterAsync(localDrpPeer, epEndpoint, 0, 20, null) != null)
+                        if (await RegisterAsync(localDrpPeer, epEndpoint, 0, 20, null, false) != null)
                             break;
 
                         //  on error or timeout try next entry peer
@@ -123,7 +123,8 @@ namespace Dcomms.DRP
 
 
         /// <returns>null if registration failed with timeout or some error code</returns>
-        public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint, uint minimalDistanceToNeighbor, byte numberofHops, double[] directionVectorNullable) // engine thread
+        public async Task<ConnectionToNeighbor> RegisterAsync(LocalDrpPeer localDrpPeer, IPEndPoint epEndpoint, uint minimalDistanceToNeighbor,
+            byte numberofHops, double[] directionVectorNullable, bool allowConnectionsToRequesterRegistrationId) // engine thread
         {
             var regSW = Stopwatch.StartNew();
             WriteToLog_reg_requesterSide_higherLevelDetail($"connecting via EntryPeer {epEndpoint}", null, null);
@@ -174,6 +175,7 @@ namespace Dcomms.DRP
                     ReqTimestamp64 = Timestamp64,
                     MinimalDistanceToNeighbor = minimalDistanceToNeighbor,
                     RequesterNatBehaviour = LocalNatBehaviour,
+                    AllowConnectionsToRequesterRegistrationId = allowConnectionsToRequesterRegistrationId,
                     NumberOfHopsRemaining = numberofHops,
                     RequesterEcdhePublicKey = new EcdhPublicKey(newConnectionToNeighbor.LocalEcdhe25519PublicKey),
                     ReqP2pSeq16 = GetNewNpaSeq16_AtoEP(),
@@ -184,7 +186,7 @@ namespace Dcomms.DRP
                 try
                 {
                     #region register REQ  PoW2  
-                    RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey, $"req.RequesterEcdhePublicKey {req}");
+                    RecentUniquePublicEcdhKeys.AssertIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey, $"req.RequesterEcdhePublicKey {req}"); // this is used in non-standard way when routing registration requests to same (local) reg. ID,  too
 
                     var pow2SW = Stopwatch.StartNew();
                     if (!Configuration.SandboxModeOnly_DisablePoW)

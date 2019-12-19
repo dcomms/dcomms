@@ -597,9 +597,11 @@ namespace Dcomms.DRP
                 var routedRequest = new RoutedRequest(new Logger(_engine, LocalDrpPeer, req, DrpPeerEngine.VisionChannelModuleName_reg), 
                      this, requesterEndpoint, receivedAtSW, null, req);
                 routedRequest.Logger.WriteToLog_higherLevelDetail($"received {req} ({req.NumberOfHopsRemaining} hops remaining) via P2P connection");
-                
+
                 if (req.RequesterRegistrationId.Equals(this.LocalDrpPeer.Configuration.LocalPeerRegistrationId))
-                    routedRequest.Logger.WriteToLog_lightPain($"received {req} to same reg. ID");
+                {
+                    routedRequest.Logger.WriteToLog_higherLevelDetail($"received {req} to same reg. ID");
+                }
 
                 await _engine.ProcessRegisterRequestAsync(LocalDrpPeer, routedRequest);
             }

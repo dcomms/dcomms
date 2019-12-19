@@ -43,6 +43,17 @@ namespace Dcomms.DRP.Packets
 
         public uint MinimalDistanceToNeighbor; // is set to non-zero when requester wants to expand neighborhood // inclusive
         public NatBehaviourModel RequesterNatBehaviour { get; set; }
+        sbyte RequesterSignedFlags;
+        const sbyte RequesterSignedFlags_AllowConnectionsToRequesterRegistrationId = 0b00000001;
+        public bool AllowConnectionsToRequesterRegistrationId
+        {
+            get => (RequesterSignedFlags & RequesterSignedFlags_AllowConnectionsToRequesterRegistrationId) != 0;
+            set
+            {
+                if (value) RequesterSignedFlags |= RequesterSignedFlags_AllowConnectionsToRequesterRegistrationId;
+                else RequesterSignedFlags &= ~RequesterSignedFlags_AllowConnectionsToRequesterRegistrationId;
+            }
+        }
 
         public sbyte[] DirectionVectorNullable;
         public double[] DirectionVectorNullableD
@@ -154,6 +165,7 @@ namespace Dcomms.DRP.Packets
             writer.Write(ReqTimestamp64);
             writer.Write(MinimalDistanceToNeighbor);
             RequesterNatBehaviour.Encode(writer);
+            writer.Write(RequesterSignedFlags);
             if (DirectionVectorNullable != null)
                 foreach (var sb in DirectionVectorNullable)
                     writer.Write(sb);
@@ -201,6 +213,7 @@ namespace Dcomms.DRP.Packets
             r.ReqTimestamp64 = reader.ReadInt64();
             r.MinimalDistanceToNeighbor = reader.ReadUInt32();
             r.RequesterNatBehaviour = NatBehaviourModel.Decode(reader);
+            r.RequesterSignedFlags = reader.ReadSByte();
 
             if ((flags & Flag_DirectionVectorExists) != 0)
             {

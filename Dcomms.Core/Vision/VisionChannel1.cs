@@ -265,7 +265,7 @@ namespace Dcomms.Vision
                             int numberToDelete = _logMessagesNewestFirst.Count / 50;
                             for (int i = 0; i < numberToDelete; i++)
                                 _logMessagesNewestFirst.RemoveLast();
-                            Emit("VisionChannel", "VisionChannel", AttentionLevel.guiActivity, $"cleaned {numberToDelete} log messages. consumedMemoryMb={consumedMemoryMb} > ClearLog_RamSizeMB={ClearLog_RamSizeMB}");
+                            Emit("VisionChannel", "VisionChannel", AttentionLevel.guiActivity, $"cleaned {numberToDelete}/{_logMessagesNewestFirst.Count} log messages. consumedMemoryMb={consumedMemoryMb} > ClearLog_RamSizeMB={ClearLog_RamSizeMB}");
                         }                       
                     }
                 }

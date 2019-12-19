@@ -624,6 +624,7 @@ namespace Dcomms.DRP
         }
 
         const float EmptySectorOccupationValue = 10;
+        const float SameRegistrationIdConnectionValue = 20;
         internal static float ValueToKeepConnectionAlive_SoftLimitNeighborsCountCases = 5.0f;
 
         public static float MutualValueToKeepConnectionAlive_SoftLimitNeighborsCountCases => ValueToKeepConnectionAlive_SoftLimitNeighborsCountCases * 2;
@@ -631,8 +632,11 @@ namespace Dcomms.DRP
 
         public static double GetMutualP2pConnectionValue(ICryptoLibrary cryptoLibrary, RegistrationId registrationId1, ushort neighborsBusySectorIds1,
             RegistrationId registrationId2, ushort neighborsBusySectorIds2, int numberOfDimensions,
-            bool thisConnectionAlreadyExists, bool anotherNeighborToSameSectorExists1, bool anotherNeighborToSameSectorExists2)
+            bool thisConnectionAlreadyExists, bool anotherNeighborToSameSectorExists1, bool anotherNeighborToSameSectorExists2, bool allowConnectionsToSameRegistrationId)
         {
+            if (registrationId1.Equals(registrationId2))
+                return allowConnectionsToSameRegistrationId ? SameRegistrationIdConnectionValue : -SameRegistrationIdConnectionValue;
+            
             double r = 0;
             var distance = registrationId1.GetDistanceTo(cryptoLibrary, registrationId2, numberOfDimensions).ToDouble();
             r -= distance;

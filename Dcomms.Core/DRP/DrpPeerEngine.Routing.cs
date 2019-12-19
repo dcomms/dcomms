@@ -147,7 +147,7 @@ namespace Dcomms.DRP
                 connectedNeighborsCountThatMatchReqFilters++;
                 
                 var p2pConnectionValue_withNeighbor = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds,
-                    neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0, NumberOfDimensions, false, false, false);
+                    neighbor.RemoteRegistrationId, neighbor.RemoteNeighborsBusySectorIds ?? 0, NumberOfDimensions, false, false, false, req.AllowConnectionsToRequesterRegistrationId);
                 
                 if (logger.WriteToLog_deepDetail_enabled)
                     logger.WriteToLog_deepDetail($"p2pConnectionValue_withNeighbor={p2pConnectionValue_withNeighbor} from REGISTER REQ {req.RequesterRegistrationId} to {neighbor}");
@@ -199,10 +199,9 @@ namespace Dcomms.DRP
                 }
             }
 
-            // dont connect to local peer if already connected
-            if (localDrpPeer.Configuration.LocalPeerRegistrationId.Equals(req.RequesterRegistrationId) == true)
-            {
-                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"not accepting request at local peer: it has same regID {req.RequesterRegistrationId}");
+            if (RecentUniquePublicEcdhKeys.DataIsUnique(req.RequesterEcdhePublicKey.Ecdh25519PublicKey) == false)
+            {               
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"not accepting request at local peer: it has ECDHE key that is recently locally generated");
             }
             else if (localDrpPeer.ConnectedNeighbors.Any(x => x.RemoteRegistrationId.Equals(req.RequesterRegistrationId)) == true)
             {
@@ -215,7 +214,7 @@ namespace Dcomms.DRP
             else
             {
                 var p2pConnectionValue_withLocalPeer = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds,
-                    localDrpPeer.Configuration.LocalPeerRegistrationId, localDrpPeer.ConnectedNeighborsBusySectorIds, NumberOfDimensions, false, false, false);
+                    localDrpPeer.Configuration.LocalPeerRegistrationId, localDrpPeer.ConnectedNeighborsBusySectorIds, NumberOfDimensions, false, false, false, req.AllowConnectionsToRequesterRegistrationId);
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"p2pConnectionValue_withLocalPeer={p2pConnectionValue_withLocalPeer} from REGISTER REQ {req.RequesterRegistrationId} to {localDrpPeer.Configuration.LocalPeerRegistrationId}");
                 if (maxP2pConnectionValue == null || p2pConnectionValue_withLocalPeer > maxP2pConnectionValue)
                 {
