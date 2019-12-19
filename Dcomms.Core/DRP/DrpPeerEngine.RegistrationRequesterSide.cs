@@ -91,16 +91,10 @@ namespace Dcomms.DRP
                 {
                     var epIndex = _insecureRandom.Next(registrationConfiguration.EntryPeerEndpoints.Length);
                     var epEndpoint = registrationConfiguration.EntryPeerEndpoints[epIndex];
-               
-                   // if (MiscProcedures.EqualByteArrays(epEndpoint.Address.GetAddressBytes(), localDrpPeer.LocalPublicIpAddressForRegistration.GetAddressBytes()) == true)
-                  //  {
-                  //      if (logger.WriteToLog_detail2_enabled) logger.WriteToLog_detail($"not connecting to EP {epEndpoint}: same IP address as local public IP");
-                  //  }
-                   // else
-                  //  {
+                                
                     try
                     {
-                        if (await RegisterAsync(localDrpPeer, epEndpoint, 0, 20, null, false) != null)
+                        if (await RegisterAsync(localDrpPeer, epEndpoint, 0, RegisterRequestPacket.MaxNumberOfHopsRemaining , null, true) != null)
                             break;
 
                         //  on error or timeout try next entry peer
@@ -108,8 +102,7 @@ namespace Dcomms.DRP
                     catch (Exception exc)
                     {
                         HandleExceptionWhileConnectingToEP(epEndpoint, exc);
-                    }
-                  //  }
+                    }              
                 }
 
                 WriteToLog_reg_requesterSide_detail($"@RegisterAsync() returned {localDrpPeer}", null, null);
