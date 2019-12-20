@@ -63,7 +63,10 @@ namespace Dcomms.DRP
                     localDrpPeer.PublicIpApiProviderResponse = new IPAddress(localPublicIp);
                     _latestPublicIpAddressResponse = localDrpPeer.PublicIpApiProviderResponse;
                     _latestPublicIpAddressResponseTimeUTC = nowUTC;
-                    WriteToLog_drpGeneral_detail($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse} ({(int)sw.Elapsed.TotalMilliseconds}ms)");
+                    var elapsedMs = (int)sw.Elapsed.TotalMilliseconds;
+                    if (elapsedMs > 20000) WriteToLog_drpGeneral_mediumPain($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse} ({elapsedMs}ms) - too long");
+                    else if (elapsedMs > 10000) WriteToLog_drpGeneral_lightPain($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse} ({elapsedMs}ms) - too long");
+                    else WriteToLog_drpGeneral_detail($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse} ({elapsedMs}ms)");
                     await EngineThreadQueue.EnqueueAsync("resolved local public IP 3518");
                     WriteToLog_drpGeneral_detail($"@engine thread");
                 }
@@ -94,7 +97,7 @@ namespace Dcomms.DRP
                                 
                     try
                     {
-                        if (await RegisterAsync(localDrpPeer, epEndpoint, 0, RegisterRequestPacket.MaxNumberOfHopsRemaining , null, true) != null)
+                        if (await RegisterAsync(localDrpPeer, epEndpoint, 0, RegisterRequestPacket.MaxNumberOfHopsRemaining, null, true) != null)
                             break;
 
                         //  on error or timeout try next entry peer

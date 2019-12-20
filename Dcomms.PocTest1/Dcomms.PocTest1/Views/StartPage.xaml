@@ -8,15 +8,23 @@
     <ContentPage.Content>
         <ScrollView>
             <StackLayout>
-                <StackLayout  IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}">                    
-                    <Button Text="Start U1S" Command="{Binding DrpTester5.InitializeUser1Sender}" />
-                    <Button Text="Start U1E" Command="{Binding DrpTester5.InitializeUser1EchoResponder}" />
-                    <Button Text="Start U2S" Command="{Binding DrpTester5.InitializeUser2Sender}" />
-                    <Button Text="Start U2E" Command="{Binding DrpTester5.InitializeUser2EchoResponder}" />
-                    <Button Text="Start U3S" Command="{Binding DrpTester5.InitializeUser3Sender}" />
-                    <Button Text="Start U3E" Command="{Binding DrpTester5.InitializeUser3EchoResponder}" />                                       
-                    <Entry Text="{Binding DrpTester5.LocalUdpPortString, Mode=TwoWay}" WidthRequest="100" Placeholder="UDP port" />
-                    <Entry Text="{Binding DrpTester5.MaxNeighborsCountString, Mode=TwoWay}" WidthRequest="100" Placeholder="max neighbors" />
+                <StackLayout  IsVisible="{Binding DrpTester5.Initialized, Converter={StaticResource OppositeConverter}}">
+                    <StackLayout Orientation="Horizontal">
+                        <Button Text="Start U1S" Command="{Binding DrpTester5.InitializeUser1Sender}" />
+                        <Button Text="Start U1E" Command="{Binding DrpTester5.InitializeUser1EchoResponder}" />
+                    </StackLayout>
+                    <StackLayout Orientation="Horizontal">
+                        <Button Text="Start U2S" Command="{Binding DrpTester5.InitializeUser2Sender}" />
+                        <Button Text="Start U2E" Command="{Binding DrpTester5.InitializeUser2EchoResponder}" />
+                    </StackLayout>
+                    <StackLayout Orientation="Horizontal">
+                        <Button Text="Start U3S" Command="{Binding DrpTester5.InitializeUser3Sender}" />
+                        <Button Text="Start U3E" Command="{Binding DrpTester5.InitializeUser3EchoResponder}" />
+                    </StackLayout>
+                    <StackLayout Orientation="Horizontal">
+                        <Entry Text="{Binding DrpTester5.LocalUdpPortString, Mode=TwoWay}" WidthRequest="100" Placeholder="UDP port" />
+                        <Entry Text="{Binding DrpTester5.MaxNeighborsCountString, Mode=TwoWay}" WidthRequest="100" Placeholder="max neighbors" />                        
+                    </StackLayout>
                 </StackLayout>
                 <StackLayout IsVisible="{Binding DrpTester5.Initialized}">
                     <StackLayout Orientation="Horizontal">

@@ -144,6 +144,11 @@ namespace Dcomms.DRP
                         continue;
                     }
                 }
+                if (neighbor.RemoteRegistrationId.Equals(localDrpPeer.Configuration.LocalPeerRegistrationId))
+                {
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"skipping connection to {neighbor}: same registration ID as local peer");
+                    continue;
+                }
                 connectedNeighborsCountThatMatchReqFilters++;
                 
                 var p2pConnectionValue_withNeighbor = P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary, req.RequesterRegistrationId, req.RequesterNeighborsBusySectorIds,
