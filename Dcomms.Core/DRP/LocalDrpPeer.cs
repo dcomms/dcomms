@@ -215,6 +215,8 @@ namespace Dcomms.DRP
                             return; // avoid too frequent registrations
                         if (Engine.PowThreadQueueCount != 0) // avoid having concurrent PoW operations, it leads to 200sec+ PoW delays when mobile device has bad internet connection
                             return;
+                        if (ConnectedNeighbors.Count >= Configuration.AbsoluteMaxNumberOfNeighbors)
+                            return;
 
                         Engine.WriteToLog_reg_requesterSide_higherLevelDetail($"extending neighborhood: {connectedNeighborsForNewRequests.Count} neighbors now", null, null);
                     }
@@ -297,6 +299,8 @@ namespace Dcomms.DRP
             ConnectionToNeighbor worstNeighbor = null;
             foreach (var neighbor in ConnectedNeighborsCanBeUsedForNewRequests)
             {
+                if (this.Configuration.LocalPeerRegistrationId.Equals(neighbor.RemoteRegistrationId)) continue;
+
                 var p2pConnectionValue_withNeighbor =
                     P2pConnectionValueCalculator.GetMutualP2pConnectionValue(CryptoLibrary,
                         this.Configuration.LocalPeerRegistrationId, this.ConnectedNeighborsBusySectorIds,

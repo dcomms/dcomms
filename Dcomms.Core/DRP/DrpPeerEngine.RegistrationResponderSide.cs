@@ -175,8 +175,8 @@ namespace Dcomms.DRP
 
                     #region send ping, verify pong
                     var ping = newConnectionToNeighbor.CreatePing(true, false, acceptAt.ConnectedNeighborsBusySectorIds, acceptAt.AnotherNeighborToSameSectorExists(newConnectionToNeighbor));
-                    
-                    var pendingPingRequest = new PendingLowLevelUdpRequest("pendingPingRequest 693", newConnectionToNeighbor.RemoteEndpoint,
+
+                    newConnectionToNeighbor.InitialPendingPingRequest = new PendingLowLevelUdpRequest("pendingPingRequest 693", newConnectionToNeighbor.RemoteEndpoint,
                                     PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, ping.PingRequestId32), DateTimeNowUtc,
                                     Configuration.InitialPingRequests_ExpirationTimeoutS,
                                     ping.Encode(),
@@ -185,14 +185,14 @@ namespace Dcomms.DRP
                                 );
 
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sent PING");
-                    var pongPacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest); // wait for pong from A
+                    var pongPacketData = await SendUdpRequestAsync_Retransmit(newConnectionToNeighbor.InitialPendingPingRequest); // wait for pong from A
                     if (pongPacketData == null) throw new DrpTimeoutException($"reg. responder initial PING request to {newConnectionToNeighbor} (timeout={Configuration.InitialPingRequests_ExpirationTimeoutS}s)");
                     var pong = PongPacket.DecodeAndVerify(_cryptoLibrary,
                         pongPacketData, ping, newConnectionToNeighbor,
                         true);
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"verified PONG");
-                    newConnectionToNeighbor.OnReceivedVerifiedPong(pong, pendingPingRequest.ResponseReceivedAtUtc.Value,
-                        pendingPingRequest.ResponseReceivedAtUtc.Value - pendingPingRequest.InitialTxTimeUTC.Value);
+                    newConnectionToNeighbor.OnReceivedVerifiedPong(pong, newConnectionToNeighbor.InitialPendingPingRequest.ResponseReceivedAtUtc.Value,
+                        newConnectionToNeighbor.InitialPendingPingRequest.ResponseReceivedAtUtc.Value - newConnectionToNeighbor.InitialPendingPingRequest.InitialTxTimeUTC.Value);
                     #endregion
                 }
                 catch (Exception exc)

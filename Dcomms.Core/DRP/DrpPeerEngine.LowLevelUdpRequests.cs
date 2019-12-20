@@ -54,12 +54,12 @@ namespace Dcomms.DRP
             IPEndPoint responderEndpoint, LowLevelUdpResponseScanner responseScanner, double? expirationTimeoutS = null)
         {
             var timeoutS = expirationTimeoutS ?? Configuration.UdpLowLevelRequests_ExpirationTimeoutS;
-            var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
-                     new PendingLowLevelUdpRequest(completionActionVisibleId, responderEndpoint,
+            var pendingLowLevelUdpRequest = new PendingLowLevelUdpRequest(completionActionVisibleId, responderEndpoint,
                          responseScanner, DateTimeNowUtc, timeoutS,
                          requestPacketDataNullable,
                          Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
-                     ));
+                     );
+            var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(pendingLowLevelUdpRequest);
             if (nextHopResponsePacketData == null)
             {
                 string desc = $"no response to DRP request from '{responderVisibleDescription}' '";

@@ -211,7 +211,7 @@ namespace Dcomms.Sandbox
             userEngine.BeginRegister(localDrpPeerConfiguration, userApp, (localDrpPeer) =>
             {
                 userApp.LocalDrpPeer = localDrpPeer;
-                _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
+                _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration completed in {(int)sw.Elapsed.TotalMilliseconds}ms");
                 var waitForNeighborsSw = Stopwatch.StartNew();
 
                 // wait until number of neighbors reaches minimum
@@ -428,7 +428,7 @@ _retry:
                 {
                     tempPeerApp.LocalDrpPeer = localDrpPeer;
                     _visionChannel.Emit(tempPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, 
-                        $"registration complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
+                        $"registration completed in {(int)sw.Elapsed.TotalMilliseconds}ms");
                     TestTemporaryPeers_WaitUntilEnoughNeighbors(tempPeerApp, Stopwatch.StartNew());
                     TestTemporaryPeers_Wait();                  
                 });

@@ -94,21 +94,21 @@ namespace Dcomms.Sandbox
                 _x.BeginRegister(xLocalDrpPeerConfig, _xUser, (xLocalPeer) =>
                 {
                     _visionChannel.Emit(_x.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                        AttentionLevel.guiActivity, $"registration complete in {(int)swX.Elapsed.TotalMilliseconds}ms");
+                        AttentionLevel.guiActivity, $"registration completed in {(int)swX.Elapsed.TotalMilliseconds}ms");
                   
                     _xLocalDrpPeer = xLocalPeer;
                     var swN = Stopwatch.StartNew();
                     _n.BeginRegister(nLocalDrpPeerConfig, new DrpTesterPeerApp(_n, nLocalDrpPeerConfig), (nLocalPeer) =>
                     {
                         _visionChannel.Emit(_n.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                            AttentionLevel.guiActivity, $"registration complete in {(int)swN.Elapsed.TotalMilliseconds}ms");
+                            AttentionLevel.guiActivity, $"registration completed in {(int)swN.Elapsed.TotalMilliseconds}ms");
                         _nLocalDrpPeer = nLocalPeer;
                         _aUser = new DrpTesterPeerApp(_a, aLocalDrpPeerConfig);
                         var swA = Stopwatch.StartNew();
                         _a.BeginRegister(aLocalDrpPeerConfig, _aUser, (aLocalPeer) =>
                         {
                             _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                                AttentionLevel.guiActivity, $"registration complete in {(int)swA.Elapsed.TotalMilliseconds}ms");
+                                AttentionLevel.guiActivity, $"registration completed in {(int)swA.Elapsed.TotalMilliseconds}ms");
                             _aLocalDrpPeer = aLocalPeer;
                             if (cb != null) cb();
                         });

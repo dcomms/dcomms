@@ -19,6 +19,7 @@ namespace Dcomms.Sandbox
 
         public bool Initialized { get; private set; }
         public string LocalUdpPortString { get; set; }
+        public string MaxNeighborsCountString { get; set; }
         public string VisionChannelSourceId { get; set; } = "U";
         public int NumberOfDimensions { get; set; } = 8;
         IPEndPoint[] RemoteEpEndPoints = new IPEndPoint[0];
@@ -415,7 +416,7 @@ namespace Dcomms.Sandbox
                     VisionChannel = _visionChannel,
                     VisionChannelSourceId = VisionChannelSourceId,
                     SandboxModeOnly_NumberOfDimensions = NumberOfDimensions,
-                    LocalPort = LocalUdpPortString.ToUShortNullable()
+                    LocalPort = LocalUdpPortString.ToUShortNullable(),                     
                 });
 
                 //var user4DrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
@@ -426,6 +427,13 @@ namespace Dcomms.Sandbox
 
                 var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions,
                     LocalUser.RegistrationId_ed25519privateKey, LocalUser.RegistrationId);
+
+                if (int.TryParse(MaxNeighborsCountString, out var maxNeighborsCount))
+                {
+                    localDrpPeerConfiguration.AbsoluteMaxNumberOfNeighbors = maxNeighborsCount;
+                    localDrpPeerConfiguration.MinDesiredNumberOfNeighbors = Math.Max(1, maxNeighborsCount - 4);
+                    localDrpPeerConfiguration.SoftMaxNumberOfNeighbors = Math.Max(1, maxNeighborsCount - 2);
+                }
 
                 var epEndpoints = RemoteEpEndPoints.ToList();
                 localDrpPeerConfiguration.EntryPeerEndpoints = RemoteEpEndPoints;
@@ -445,7 +453,7 @@ namespace Dcomms.Sandbox
                 userEngine.BeginRegister(localDrpPeerConfiguration, _userApp, (localDrpPeer) =>
                 {
                     _userApp.LocalDrpPeer = localDrpPeer;
-                    _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
+                    _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration is complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
                     var waitForNeighborsSw = Stopwatch.StartNew();
 
                 // wait until number of neighbors reaches minimum

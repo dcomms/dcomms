@@ -160,8 +160,7 @@ namespace Dcomms.DRP
 
                 var newConnectionToNeighbor = new ConnectionToNeighbor(this, localDrpPeer, ConnectedDrpPeerInitiatedBy.localPeer, null);
              
-                PongPacket pong;
-                PendingLowLevelUdpRequest pendingPingRequest;
+                PongPacket pong;             
                 var req = new RegisterRequestPacket
                 {
                     RequesterRegistrationId = localDrpPeer.Configuration.LocalPeerRegistrationId,
@@ -264,7 +263,7 @@ namespace Dcomms.DRP
 
                     #region send ping request directly to neighbor N, retransmit               
                     var pingRequest = newConnectionToNeighbor.CreatePing(true, false, localDrpPeer.ConnectedNeighborsBusySectorIds, localDrpPeer.AnotherNeighborToSameSectorExists(newConnectionToNeighbor));
-                    pendingPingRequest = new PendingLowLevelUdpRequest("pingRequest 3850", newConnectionToNeighbor.RemoteEndpoint,
+                    newConnectionToNeighbor.InitialPendingPingRequest = new PendingLowLevelUdpRequest("pingRequest 3850", newConnectionToNeighbor.RemoteEndpoint,
                                     PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, pingRequest.PingRequestId32),
                                     DateTimeNowUtc,
                                     Configuration.InitialPingRequests_ExpirationTimeoutS,
@@ -274,15 +273,15 @@ namespace Dcomms.DRP
                                 );
 
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending PING neighborToken32={pingRequest.NeighborToken32}, waiting for PONG");
-                    var pongPacketData = await SendUdpRequestAsync_Retransmit(pendingPingRequest);
+                    var pongPacketData = await SendUdpRequestAsync_Retransmit(newConnectionToNeighbor.InitialPendingPingRequest);
                     if (pongPacketData == null) throw new DrpTimeoutException($"initial reg. requester PING to {newConnectionToNeighbor} (timeout={Configuration.InitialPingRequests_ExpirationTimeoutS}s)");
                     if (newConnectionToNeighbor.IsDisposed) throw new ObjectDisposedException($"initial reg. requester PING to {newConnectionToNeighbor} (special case: connection is disposed)", (Exception)null); // ping timeout already destroyed the connection, so PONG response here is too late
                     pong = PongPacket.DecodeAndVerify(_cryptoLibrary,
                         pongPacketData, pingRequest, newConnectionToNeighbor,
                         true);
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"verified PONG");
-                    newConnectionToNeighbor.OnReceivedVerifiedPong(pong, pendingPingRequest.ResponseReceivedAtUtc.Value,
-                        pendingPingRequest.ResponseReceivedAtUtc.Value - pendingPingRequest.InitialTxTimeUTC.Value);
+                    newConnectionToNeighbor.OnReceivedVerifiedPong(pong, newConnectionToNeighbor.InitialPendingPingRequest.ResponseReceivedAtUtc.Value,
+                        newConnectionToNeighbor.InitialPendingPingRequest.ResponseReceivedAtUtc.Value - newConnectionToNeighbor.InitialPendingPingRequest.InitialTxTimeUTC.Value);
                     #endregion
                 }
                 catch

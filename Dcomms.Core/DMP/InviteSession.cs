@@ -176,6 +176,8 @@ namespace Dcomms.DMP
             {
                 WriteToLog_detail($"updating remote peer DirectChannel port from {this.RemoteSessionDescription.DirectChannelEndPoint} to {remoteEndpoint} (when remote peer opens another port in NAT)");
                 this.RemoteSessionDescription.DirectChannelEndPoint = remoteEndpoint;
+                if (this.InitialPendingPingRequest != null)
+                    this.InitialPendingPingRequest.ResponderEndpoint = remoteEndpoint;
             }
 
 
@@ -214,14 +216,28 @@ namespace Dcomms.DMP
 
         #endregion
 
+        PendingLowLevelUdpRequest InitialPendingPingRequest;
         internal async Task SetupAEkeysAsync()
         {
             if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail(">> InviteSession.SetupAEkeysAsync()");
             var ping = CreatePing(true);
             var pingData = ping.Encode();
 
-            var pongUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("dmp pong 3186", "remote user",  pingData, RemoteSessionDescription.DirectChannelEndPoint,
-                DmpPongPacket.GetScanner(LocalDirectChannelToken32, ping.PingRequestId32, this)); // scanner also verifies HMAC
+
+            var timeoutS = _localDrpPeer.Engine.Configuration.UdpLowLevelRequests_ExpirationTimeoutS;
+            InitialPendingPingRequest = new PendingLowLevelUdpRequest("dmp pong 3186", RemoteSessionDescription.DirectChannelEndPoint,
+                         DmpPongPacket.GetScanner(LocalDirectChannelToken32, ping.PingRequestId32, this), // scanner also verifies HMAC 
+                         _localDrpPeer.Engine.DateTimeNowUtc, timeoutS,
+                         pingData,
+                         _localDrpPeer.Engine.Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, _localDrpPeer.Engine.Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
+                     );
+            var pongUdpData = await _localDrpPeer.Engine.SendUdpRequestAsync_Retransmit(InitialPendingPingRequest);
+            if (pongUdpData == null)
+            {
+                string desc = $"no response to DC PING from {RemoteSessionDescription.DirectChannelEndPoint}  - timeout expired ({timeoutS}s)";
+                throw new DrpTimeoutException(desc);
+            }        
+
             var pong = DmpPongPacket.Decode(pongUdpData);
 
             this.DeriveDirectChannelSharedDhSecret(pong.PublicEcdheKey.Ecdh25519PublicKey);

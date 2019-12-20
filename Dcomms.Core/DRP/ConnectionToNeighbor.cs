@@ -351,6 +351,7 @@ namespace Dcomms.DRP
         bool _disposed;
         internal bool IsDisposed => _disposed;
         internal bool IsInTeardownState { get; set; }
+        internal PendingLowLevelUdpRequest InitialPendingPingRequest; // reference to this object is stored here in order to modify remote port when remote party has NAT that changes port for every new UDP stream
 
         public ConnectionToNeighbor(DrpPeerEngine engine, LocalDrpPeer localDrpPeer, ConnectedDrpPeerInitiatedBy initiatedBy, RegistrationId remoteRegistrationId)
         {
@@ -541,6 +542,8 @@ namespace Dcomms.DRP
                 {
                     _engine.WriteToLog_p2p_higherLevelDetail(this, $"updating remote peer port from {this.RemoteEndpoint} to {remoteEndpoint} (when remote peer opens another port in NAT)", null);
                     this.RemoteEndpoint = remoteEndpoint;
+                    if (InitialPendingPingRequest != null)
+                        InitialPendingPingRequest.ResponderEndpoint = remoteEndpoint;
                 }
 
                 _latestPingReceived = pingRequestPacket;

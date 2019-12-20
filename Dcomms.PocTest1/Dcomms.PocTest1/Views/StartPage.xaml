@@ -14,11 +14,10 @@
                     <Button Text="Start U2S" Command="{Binding DrpTester5.InitializeUser2Sender}" />
                     <Button Text="Start U2E" Command="{Binding DrpTester5.InitializeUser2EchoResponder}" />
                     <Button Text="Start U3S" Command="{Binding DrpTester5.InitializeUser3Sender}" />
-                    <Button Text="Start U3E" Command="{Binding DrpTester5.InitializeUser3EchoResponder}" />
-                    <Label Text="local UDP port:" />
-                    <Entry Text="{Binding DrpTester5.LocalUdpPortString, Mode=TwoWay}" WidthRequest="60" />
+                    <Button Text="Start U3E" Command="{Binding DrpTester5.InitializeUser3EchoResponder}" />                                       
+                    <Entry Text="{Binding DrpTester5.LocalUdpPortString, Mode=TwoWay}" WidthRequest="100" Placeholder="UDP port" />
+                    <Entry Text="{Binding DrpTester5.MaxNeighborsCountString, Mode=TwoWay}" WidthRequest="100" Placeholder="max neighbors" />
                 </StackLayout>
-
                 <StackLayout IsVisible="{Binding DrpTester5.Initialized}">
                     <StackLayout Orientation="Horizontal">
                         <Button Text="Stop" Command="{Binding DrpTester5.Deinitialize}" />
