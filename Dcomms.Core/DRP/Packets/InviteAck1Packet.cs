@@ -32,7 +32,7 @@ namespace Dcomms.DRP.Packets
 
         public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.InviteAck1);
             byte flags = 0;
             w.Write(flags);
@@ -56,7 +56,7 @@ namespace Dcomms.DRP.Packets
             ResponderRegistrationId.Encode(w);
             ResponderEcdhePublicKey.Encode(w);
             if (includeToResponderSessionDescriptionEncrypted)
-                PacketProcedures.EncodeByteArray65536(w, ToResponderSessionDescriptionEncrypted);
+                BinaryProcedures.EncodeByteArray65536(w, ToResponderSessionDescriptionEncrypted);
         }
         internal void GetSignedFieldsForNeighborHMAC(BinaryWriter w)
         {
@@ -70,7 +70,7 @@ namespace Dcomms.DRP.Packets
         {
             var r = new InviteAck1Packet();
             r.DecodedUdpPayloadData = udpData;
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)
                 throw new NotImplementedException();
@@ -81,7 +81,7 @@ namespace Dcomms.DRP.Packets
             r.RequesterRegistrationId = RegistrationId.Decode(reader);
             r.ResponderRegistrationId = RegistrationId.Decode(reader);
             r.ResponderEcdhePublicKey = EcdhPublicKey.Decode(reader);
-            r.ToResponderSessionDescriptionEncrypted = PacketProcedures.DecodeByteArray65536(reader);
+            r.ToResponderSessionDescriptionEncrypted = BinaryProcedures.DecodeByteArray65536(reader);
             r.ResponderRegistrationSignature = RegistrationSignature.Decode(reader);
             r.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);
 
@@ -100,7 +100,7 @@ namespace Dcomms.DRP.Packets
         /// </param>
         public static LowLevelUdpResponseScanner GetScanner(Logger logger, InviteRequestPacket req, ConnectionToNeighbor connectionToNeighbor)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.InviteAck1);
             w.Write((byte)0); // flags
            

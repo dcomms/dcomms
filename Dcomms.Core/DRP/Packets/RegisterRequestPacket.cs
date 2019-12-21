@@ -122,7 +122,7 @@ namespace Dcomms.DRP.Packets
         /// <param name="connectionToNeighborNullable">is not null for packets between registered peers. if set, the procedure sets NeighborToken32 and NeighborHMAC</param>
         public byte[] Encode_OptionallySignNeighborHMAC(ConnectionToNeighbor connectionToNeighborNullable)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
 
             writer.Write((byte)PacketTypes.RegisterReq);
             byte flags = 0;
@@ -169,7 +169,7 @@ namespace Dcomms.DRP.Packets
             if (DirectionVectorNullable != null)
                 foreach (var sb in DirectionVectorNullable)
                     writer.Write(sb);
-            PacketProcedures.EncodeIPEndPoint(writer, EpEndpoint);
+            BinaryProcedures.EncodeIPEndPoint(writer, EpEndpoint);
             if (includeRequesterSignature) RequesterSignature.Encode(writer);
         }
         internal void GetSignedFieldsForNeighborHMAC(BinaryWriter writer)
@@ -190,7 +190,7 @@ namespace Dcomms.DRP.Packets
         {
             var r = new RegisterRequestPacket();
             r.DecodedUdpPayloadData = udpData;
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
 
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)
@@ -222,7 +222,7 @@ namespace Dcomms.DRP.Packets
                     r.DirectionVectorNullable[i] = reader.ReadSByte();
             }
 
-            r.EpEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+            r.EpEndpoint = BinaryProcedures.DecodeIPEndPoint(reader);
             r.RequesterSignature = RegistrationSignature.Decode(reader);
             
             if ((flags & Flag_AtoEP) != 0) r.ProofOfWork2 = reader.ReadBytes(64);

@@ -21,7 +21,7 @@ namespace Dcomms.DMP.Packets
 
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             writer.Write((byte)PacketTypes.MessageAck);
             writer.Write(MessageId32);
             writer.Write((byte)ReceiverStatus);
@@ -45,7 +45,7 @@ namespace Dcomms.DMP.Packets
         public static MessageAckPacket Decode(byte[] udpData)
         {
             var r = new MessageAckPacket();
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
             r.MessageId32 = reader.ReadUInt32();
             r.ReceiverStatus = (MessageSessionStatusCode)reader.ReadByte();
 
@@ -61,7 +61,7 @@ namespace Dcomms.DMP.Packets
 
         internal static LowLevelUdpResponseScanner GetScanner(uint messageId32, InviteSession session, MessageSessionStatusCode statusCode)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.MessageAck);
             w.Write(messageId32);
             w.Write((byte)statusCode);

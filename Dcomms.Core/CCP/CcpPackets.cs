@@ -36,7 +36,7 @@ namespace Dcomms.CCP
         }
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             Encode(writer);
             return ms.ToArray();
         }
@@ -46,10 +46,10 @@ namespace Dcomms.CCP
             writer.Write((byte)CcpPacketType.ClientHelloPacket0);
             writer.Write(Flags);
             if (Cnonce0.Length != Cnonce0SupportedSize) throw new CcpBadPacketException();
-            PacketProcedures.EncodeByteArray256(writer, Cnonce0);
+            BinaryProcedures.EncodeByteArray256(writer, Cnonce0);
             writer.Write((byte)StatelessProofOfWorkType);
           
-            PacketProcedures.EncodeByteArray256(writer, StatelessProofOfWorkData);
+            BinaryProcedures.EncodeByteArray256(writer, StatelessProofOfWorkData);
             return 1 + 2 + 1 + Cnonce0.Length + 1 + 1;
         }
         public readonly byte[] OriginalPacketPayload;
@@ -57,10 +57,10 @@ namespace Dcomms.CCP
         {
             OriginalPacketPayload = originalPacketPayload;
             Flags = reader.ReadUInt16();
-            Cnonce0 = PacketProcedures.DecodeByteArray256(reader);
+            Cnonce0 = BinaryProcedures.DecodeByteArray256(reader);
             if (Cnonce0.Length != Cnonce0SupportedSize) throw new CcpBadPacketException();
             StatelessProofOfWorkType = (StatelessProofOfWorkType)reader.ReadByte();
-            StatelessProofOfWorkData = PacketProcedures.DecodeByteArray256(reader);
+            StatelessProofOfWorkData = BinaryProcedures.DecodeByteArray256(reader);
         }
     }
     public enum StatelessProofOfWorkType
@@ -96,29 +96,29 @@ namespace Dcomms.CCP
         }
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             writer.Write((byte)CcpPacketType.ServerHelloPacket0);
             writer.Write(Flags);
             writer.Write((byte)Status);
-            PacketProcedures.EncodeByteArray256(writer, Cnonce0);
+            BinaryProcedures.EncodeByteArray256(writer, Cnonce0);
 
             if (Status == ServerHello0Status.OK)
             {
                 writer.Write((byte)StatefulProofOfWorkType);
-                PacketProcedures.EncodeByteArray256(writer, Snonce0);
+                BinaryProcedures.EncodeByteArray256(writer, Snonce0);
             }
             return ms.ToArray();
         }
         public ServerHelloPacket0(byte[] udpData)
         {
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
             Flags = reader.ReadUInt16();
             Status = (ServerHello0Status)reader.ReadByte();
-            Cnonce0 = PacketProcedures.DecodeByteArray256(reader);
+            Cnonce0 = BinaryProcedures.DecodeByteArray256(reader);
             if (Status == ServerHello0Status.OK)
             {
                 StatefulProofOfWorkType = (StatefulProofOfWorkType)reader.ReadByte();
-                Snonce0 = PacketProcedures.DecodeByteArray256(reader);
+                Snonce0 = BinaryProcedures.DecodeByteArray256(reader);
             }
         }
 
@@ -158,7 +158,7 @@ namespace Dcomms.CCP
         
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             Encode(writer);
             return ms.ToArray();
         }
@@ -168,10 +168,10 @@ namespace Dcomms.CCP
             writer.Write((byte)CcpPacketType.ClientHelloPacket1);
             writer.Write(Flags);
             if (Snonce0.Length != ServerHelloPacket0.Snonce0SupportedSize) throw new CcpBadPacketException();
-            PacketProcedures.EncodeByteArray256(writer, Snonce0);
+            BinaryProcedures.EncodeByteArray256(writer, Snonce0);
 
             if (StatefulProofOfWorkResponseData.Length != StatefulProofOfWorkResponseDataSupportedSize) throw new CcpBadPacketException();
-            PacketProcedures.EncodeByteArray256(writer, StatefulProofOfWorkResponseData);
+            BinaryProcedures.EncodeByteArray256(writer, StatefulProofOfWorkResponseData);
             return 1 + 1 + 1 + Snonce0.Length + 1;
         }
         public readonly byte[] OriginalPacketPayload;
@@ -179,9 +179,9 @@ namespace Dcomms.CCP
         {
             OriginalPacketPayload = originalPacketPayload;
             Flags = reader.ReadByte();
-            Snonce0 = PacketProcedures.DecodeByteArray256(reader);
+            Snonce0 = BinaryProcedures.DecodeByteArray256(reader);
             if (Snonce0.Length != ServerHelloPacket0.Snonce0SupportedSize) throw new CcpBadPacketException();
-            StatefulProofOfWorkResponseData = PacketProcedures.DecodeByteArray256(reader);
+            StatefulProofOfWorkResponseData = BinaryProcedures.DecodeByteArray256(reader);
         }
     }
     class ServerHelloPacket1
@@ -197,16 +197,16 @@ namespace Dcomms.CCP
 
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             writer.Write((byte)CcpPacketType.ServerHelloPacket1);
             writer.Write(Flags);
             writer.Write((byte)Status);
-            PacketProcedures.EncodeByteArray256(writer, Cnonce1);
+            BinaryProcedures.EncodeByteArray256(writer, Cnonce1);
 
             if (Status == ServerHello1Status.OKready)
             {
                 writer.Write((byte)StatefulProofOfWorkType);
-                PacketProcedures.EncodeByteArray256(writer, Snonce1);
+                BinaryProcedures.EncodeByteArray256(writer, Snonce1);
             }
             return ms.ToArray();
         }
@@ -218,11 +218,11 @@ namespace Dcomms.CCP
         {
             Flags = reader.ReadByte();
             Status = (ServerHello1Status)reader.ReadByte();
-            Cnonce1 = PacketProcedures.DecodeByteArray256(reader);
+            Cnonce1 = BinaryProcedures.DecodeByteArray256(reader);
             if (Status == ServerHello1Status.OKready)
             {
                 StatefulProofOfWorkType = (StatefulProofOfWorkType)reader.ReadByte();
-                Snonce1 = PacketProcedures.DecodeByteArray256(reader);
+                Snonce1 = BinaryProcedures.DecodeByteArray256(reader);
             }
         }
     }

@@ -79,7 +79,13 @@ namespace Dcomms.DMP
                 return r;
             }
         }
-
+               
+        public byte[] Encode()
+        {
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
+            Encode(writer);
+            return ms.ToArray();
+        }
         public void Encode(BinaryWriter writer)
         {
             writer.Write(Flags);
@@ -89,7 +95,11 @@ namespace Dcomms.DMP
             foreach (var rootPublicKey in RootPublicKeys)
                 writer.Write(rootPublicKey);
         }
-        static UserId Decode(BinaryReader reader)
+        public static UserId Decode(byte[] data)
+        {
+            return Decode(BinaryProcedures.CreateBinaryReader(data, 0));
+        }
+        public static UserId Decode(BinaryReader reader)
         {
             var r = new UserId();
             r.Flags = reader.ReadByte();
@@ -291,10 +301,15 @@ namespace Dcomms.DMP
                 writer.Write(userRootSignature.Signature);
             }
         }
-        /// <summary>
-        /// throws exception if the certificate is invalid for the specified userId   (the caller knows that certificate came from the userId)
-        /// </summary>
-        public static UserCertificate Decode_AssertIsValidNow(BinaryReader reader, ICryptoLibrary cryptoLibrary, UserId userId, DateTime localTimeNowUtc)
+
+        public byte[] Encode()
+        {
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
+            Encode(writer);
+            return ms.ToArray();
+        }
+
+        public static UserCertificate Decode(BinaryReader reader, UserId userId)
         {
             var r = new UserCertificate();
             r.Flags = reader.ReadByte();
@@ -312,7 +327,20 @@ namespace Dcomms.DMP
                 userRootSignature.Signature = reader.ReadBytes(userId.GetSignatureSize(userRootSignature.RootKeyIndex));
                 r.UserRootSignatures.Add(userRootSignature);
             }
+            return r;
+        }
+        public static UserCertificate Decode(byte[] data, UserId userId)
+        {
+            using var reader = BinaryProcedures.CreateBinaryReader(data, 0);
+            return Decode(reader, userId);
+        }
 
+        /// <summary>
+        /// throws exception if the certificate is invalid for the specified userId   (the caller knows that certificate came from the userId)
+        /// </summary>
+        public static UserCertificate Decode_AssertIsValidNow(BinaryReader reader, ICryptoLibrary cryptoLibrary, UserId userId, DateTime localTimeNowUtc)
+        {
+            var r = Decode(reader, userId); 
             r.AssertIsValidNow(cryptoLibrary, userId, localTimeNowUtc);
             return r;
         }

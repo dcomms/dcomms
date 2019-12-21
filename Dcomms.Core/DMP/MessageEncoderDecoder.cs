@@ -11,7 +11,7 @@ namespace Dcomms.DMP
         {
             var messageTextData = Encoding.UTF8.GetBytes(messageText);
             if (messageTextData.Length > 255) throw new ArgumentException();
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)EncodedDataType.plainTextUtf8_256);
             w.Write((byte)messageTextData.Length);
             w.Write(messageTextData);

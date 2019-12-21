@@ -36,7 +36,7 @@ namespace Dcomms.DRP.Packets
         /// <param name="reader">is positioned after first byte = packet type</param>    
         public static FailurePacket DecodeAndOptionallyVerify(byte[] failureUdpData, RequestP2pSequenceNumber16 reqP2pSeq16)
         {
-            var reader = PacketProcedures.CreateBinaryReader(failureUdpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(failureUdpData, 1);
             var failure = new FailurePacket();
             failure.DecodedUdpPayloadData = failureUdpData;
             failure.Flags = reader.ReadByte();
@@ -63,7 +63,7 @@ namespace Dcomms.DRP.Packets
         /// <param name="reqReceivedFromInP2pMode">is not null for packets between registered peers</param>
         public byte[] Encode_OpionallySignNeighborHMAC(ConnectionToNeighbor reqReceivedFromInP2pMode)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
 
             writer.Write((byte)PacketTypes.Failure);
             byte flags = 0;
@@ -104,7 +104,7 @@ namespace Dcomms.DRP.Packets
         public static LowLevelUdpResponseScanner GetScanner(Logger logger, RequestP2pSequenceNumber16 reqP2pSeq16, ConnectionToNeighbor connectionToNeighborNullable = null)
         {
             if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($">> FailurePacket.GetScanner() reqP2pSeq16={reqP2pSeq16}");
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.Failure);
             w.Write((byte)0);
             if (connectionToNeighborNullable != null)

@@ -11,6 +11,7 @@ namespace Dcomms.Cryptography
     /// </summary>
     public interface ICryptoLibrary
     {
+        Random InsecureRandom { get; }
         byte[] GetRandomBytes(int count);
 
         byte[] GetHashSHA256(byte[] data);

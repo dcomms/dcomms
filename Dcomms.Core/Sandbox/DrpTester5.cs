@@ -409,7 +409,7 @@ namespace Dcomms.Sandbox
                     RaisePropertyChanged(() => Initialized);
 
                     _visionChannel.ClearModules();
-                    this.VisionChannelSourceId = $"U{LocalUser.Name}{(LocalUser.SendOrEcho ? "S" : "R")}";
+                    this.VisionChannelSourceId = $"U{LocalUser.Name}{(LocalUser.SendOrEcho ? "S" : "E")}";
                     _visionChannel.RegisterVisibleModule(VisionChannelSourceId, "DrpTester5", this);
 
                     var userEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration

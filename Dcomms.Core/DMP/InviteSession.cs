@@ -23,7 +23,7 @@ namespace Dcomms.DMP
         {
             if (SharedInviteAckDhSecret == null) throw new NotImplementedException();
                        
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             req.GetSharedSignedFields(w);
             ack1.GetSharedSignedFields(w, true);
             ack2.GetSharedSignedFields(w);
@@ -46,7 +46,7 @@ namespace Dcomms.DMP
         }
         public HMAC GetPingPongHMAC(Action<BinaryWriter> writeSignedFields)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             writeSignedFields(w);
             return GetPingPongHMAC(ms.ToArray());
         }
@@ -72,7 +72,7 @@ namespace Dcomms.DMP
                 DirectChannelSharedDhSecret = _localDrpPeer.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalDirectChannelEcdhePrivateKey, remoteDirectChannelEcdhePublicKey);
                 
                 if (SharedPingPongHmacKey == null) throw new InvalidOperationException();
-                PacketProcedures.CreateBinaryWriter(out var msA, out var wA);
+                BinaryProcedures.CreateBinaryWriter(out var msA, out var wA);
                 wA.Write(SharedPingPongHmacKey);
                 wA.Write(DirectChannelSharedDhSecret);
                 MessageHMACkey = _localDrpPeer.CryptoLibrary.GetHashSHA256(msA.ToArray());
@@ -94,7 +94,7 @@ namespace Dcomms.DMP
         }
         public HMAC GetMessageHMAC(Action<BinaryWriter> writeSignedFields)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             writeSignedFields(w);
             return GetMessageHMAC(ms.ToArray());
         }

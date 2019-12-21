@@ -32,7 +32,7 @@ namespace Dcomms.DMP.Packets
         }
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             
             writer.Write((byte)PacketTypes.DmpPing);
             DirectChannelToken32.Encode(writer);
@@ -60,7 +60,7 @@ namespace Dcomms.DMP.Packets
 
         public static DmpPingPacket DecodeAndVerify(byte[] udpData, InviteSession session)
         {
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
 
             var r = new DmpPingPacket();
             r.DirectChannelToken32 = DirectChannelToken32.Decode(reader);
@@ -105,7 +105,7 @@ namespace Dcomms.DMP.Packets
 
         public static DmpPongPacket Decode(byte[] udpData)
         {
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
             var r = new DmpPongPacket();
             r.DirectChannelToken32 = DirectChannelToken32.Decode(reader);
             r.PingRequestId32 = reader.ReadUInt32();
@@ -128,7 +128,7 @@ namespace Dcomms.DMP.Packets
 
         public static LowLevelUdpResponseScanner GetScanner(DirectChannelToken32 senderToken32, uint pingRequestId32, InviteSession session)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             GetHeaderFields(w, senderToken32, pingRequestId32);
             return new LowLevelUdpResponseScanner
             {
@@ -162,7 +162,7 @@ namespace Dcomms.DMP.Packets
                    
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             GetHeaderFields(writer, DirectChannelToken32, PingRequestId32);           
             byte flags = 0;
             if (PublicEcdheKey != null)

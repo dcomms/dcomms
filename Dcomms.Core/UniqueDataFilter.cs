@@ -20,7 +20,7 @@ namespace Dcomms
         }
         public bool Filter(Action<BinaryWriter> writeUniqueFields)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             writeUniqueFields(w);
             var dataMustBeUnique = ms.ToArray();
             return Filter(dataMustBeUnique);

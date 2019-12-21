@@ -12,7 +12,7 @@ namespace Dcomms.DRP.Packets
 
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             writer.Write((byte)PacketTypes.NatTest1Request);
             byte flags = 0;
             writer.Write(flags);
@@ -23,7 +23,7 @@ namespace Dcomms.DRP.Packets
         public static NatTest1RequestPacket Decode(byte[] udpData)
         {
             var r = new NatTest1RequestPacket();
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
 
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)

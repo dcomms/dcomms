@@ -19,7 +19,7 @@ namespace Dcomms.DRP.Packets
 
         public static LowLevelUdpResponseScanner GetScanner(uint pow1RequestId)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             GetHeaderBytes(writer, pow1RequestId);
             return new LowLevelUdpResponseScanner { ResponseFirstBytes = ms.ToArray() };
         }
@@ -30,7 +30,7 @@ namespace Dcomms.DRP.Packets
         }
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             GetHeaderBytes(writer, Pow1RequestId);
             writer.Write(Flags);
             writer.Write((byte)StatusCode);
@@ -44,7 +44,7 @@ namespace Dcomms.DRP.Packets
         }
         public RegisterPow1ResponsePacket(byte[] rpPow1ResponsePacketData)
         {
-            var reader = PacketProcedures.CreateBinaryReader(rpPow1ResponsePacketData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(rpPow1ResponsePacketData, 1);
             Pow1RequestId = reader.ReadUInt32();
             Flags = reader.ReadByte();
             if ((Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();

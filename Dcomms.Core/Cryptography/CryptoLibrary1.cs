@@ -17,6 +17,8 @@ namespace Dcomms.Cryptography
 {
     class CryptoLibrary1 : ICryptoLibrary
     {
+        readonly Random _insecureRandom = new Random();
+        Random ICryptoLibrary.InsecureRandom => _insecureRandom;
         SecureRandom _secureRandom = new SecureRandom();
         SecureRandom _secureRandom2 = new SecureRandom();
         SecureRandom _secureRandom3 = new SecureRandom();

@@ -172,7 +172,7 @@ namespace Dcomms.CCP
                 writerPoW.Write(clientPublicIp);
             }
 
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             var powRandomDataPosition = 8 + r.Encode(writer);
             var packetData = ms.ToArray();
             var rnd = new Random();

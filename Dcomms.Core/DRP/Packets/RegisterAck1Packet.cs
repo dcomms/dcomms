@@ -73,7 +73,7 @@ namespace Dcomms.DRP.Packets
         public static RegisterAck1Packet DecodeAndOptionallyVerify(Logger logger, byte[] ack1UdpData, RegisterRequestPacket reqNullable,
             ConnectionToNeighbor newConnectionToNeighborAtRequesterNullable)
         {
-            var reader = PacketProcedures.CreateBinaryReader(ack1UdpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(ack1UdpData, 1);
             var ack1 = new RegisterAck1Packet();
             ack1.DecodedUdpPayloadData = ack1UdpData;
             ack1.Flags = reader.ReadByte();
@@ -110,7 +110,7 @@ namespace Dcomms.DRP.Packets
             }
 
             if ((ack1.Flags & Flag_EPtoA) != 0)
-                ack1.RequesterEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+                ack1.RequesterEndpoint = BinaryProcedures.DecodeIPEndPoint(reader);
             else
             {
                 ack1.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);
@@ -151,7 +151,7 @@ namespace Dcomms.DRP.Packets
         /// <param name="reqReceivedFromInP2pMode">is not null for packets between registered peers</param>
         public byte[] Encode_OpionallySignNeighborHMAC(ConnectionToNeighbor reqReceivedFromInP2pMode)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
 
             writer.Write((byte)PacketTypes.RegisterAck1);
             byte flags = 0;
@@ -173,7 +173,7 @@ namespace Dcomms.DRP.Packets
             }
             else
             {
-                PacketProcedures.EncodeIPEndPoint(writer, RequesterEndpoint);
+                BinaryProcedures.EncodeIPEndPoint(writer, RequesterEndpoint);
             }
 
             return ms.ToArray();
@@ -195,7 +195,7 @@ namespace Dcomms.DRP.Packets
         /// </param>
         public static LowLevelUdpResponseScanner GetScanner(Logger logger, RegisterRequestPacket req, ConnectionToNeighbor connectionToNeighborNullable = null)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.RegisterAck1);
             w.Write((byte)0);
             if (connectionToNeighborNullable != null)

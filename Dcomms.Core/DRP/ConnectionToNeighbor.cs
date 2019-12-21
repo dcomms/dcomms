@@ -47,7 +47,7 @@ namespace Dcomms.DRP
             SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, ack1.ResponderEcdhePublicKey.Ecdh25519PublicKey);
 
             #region iv, key
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             req.GetSharedSignedFields(writer, true);
             ack1.GetSharedSignedFields(writer, false, false);
            
@@ -64,7 +64,7 @@ namespace Dcomms.DRP
             // parse toNeighborTxParametersDecrypted
             using (var reader = new BinaryReader(new MemoryStream(toNeighborTxParametersDecrypted)))
             {
-                RemoteEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+                RemoteEndpoint = BinaryProcedures.DecodeIPEndPoint(reader);
                 RemoteNeighborToken32 = NeighborToken32.Decode(reader);
                 RemoteNatBehaviour = NatBehaviourModel.Decode(reader);
                 var magic16 = reader.ReadUInt16();
@@ -97,7 +97,7 @@ namespace Dcomms.DRP
             SharedDhSecret = _engine.CryptoLibrary.DeriveEcdh25519SharedSecret(LocalEcdhe25519PrivateKey, req.RequesterEcdhePublicKey.Ecdh25519PublicKey);
 
             #region key, iv
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             
             req.GetSharedSignedFields(writer, true);
             ack1.GetSharedSignedFields(writer, false, false);
@@ -109,8 +109,8 @@ namespace Dcomms.DRP
             #endregion
 
             // encode localRxParameters
-            PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
-            PacketProcedures.EncodeIPEndPoint(wRxParameters, localResponderEndpoint); // max 19
+            BinaryProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
+            BinaryProcedures.EncodeIPEndPoint(wRxParameters, localResponderEndpoint); // max 19
             LocalNeighborToken32.Encode(wRxParameters); // +4   max 23
             _engine.LocalNatBehaviour.Encode(wRxParameters); // +2 max 25
 
@@ -134,7 +134,7 @@ namespace Dcomms.DRP
         public void Decrypt_ack2_ToRequesterTxParametersEncrypted_AtResponder_InitializeP2pStream(Logger logger, RegisterRequestPacket req, RegisterAck1Packet ack1, RegisterAck2Packet ack2)
         {
             #region key, iv
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
            
             req.GetSharedSignedFields(writer, true);
             ack1.GetSharedSignedFields(writer, true, true);
@@ -152,7 +152,7 @@ namespace Dcomms.DRP
             // parse toRequesterTxParametersDecrypted
             using (var reader = new BinaryReader(new MemoryStream(toRequesterTxParametersDecrypted)))
             {
-                RemoteEndpoint = PacketProcedures.DecodeIPEndPoint(reader);
+                RemoteEndpoint = BinaryProcedures.DecodeIPEndPoint(reader);
                 RemoteNeighborToken32 = NeighborToken32.Decode(reader);
                 var magic16 = reader.ReadUInt16();
                 if (magic16 != Magic16_ipv4_requesterToResponder) throw new BrokenCipherException();
@@ -172,7 +172,7 @@ namespace Dcomms.DRP
                 throw new InvalidOperationException();
 
             #region aes key, iv
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);         
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);         
             req.GetSharedSignedFields(writer, true);
             ack1.GetSharedSignedFields(writer, true, true);
             ack2.GetSharedSignedFields(writer, false, false);
@@ -184,8 +184,8 @@ namespace Dcomms.DRP
             #endregion
 
             // encode localRxParameters
-            PacketProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
-            PacketProcedures.EncodeIPEndPoint(wRxParameters, LocalEndpoint); // max 19
+            BinaryProcedures.CreateBinaryWriter(out var msRxParameters, out var wRxParameters);
+            BinaryProcedures.EncodeIPEndPoint(wRxParameters, LocalEndpoint); // max 19
             LocalNeighborToken32.Encode(wRxParameters); // +4 max 23
             if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"encrypting local requester endpoint={LocalEndpoint}, localNeighborToken={LocalNeighborToken32} into ACK2");
             wRxParameters.Write(Magic16_ipv4_requesterToResponder); // +2 max 25
@@ -250,7 +250,7 @@ namespace Dcomms.DRP
         }
         public HMAC GetNeighborHMAC(Action<BinaryWriter> data)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             data(w);
             return GetNeighborHMAC(ms.ToArray());
         }

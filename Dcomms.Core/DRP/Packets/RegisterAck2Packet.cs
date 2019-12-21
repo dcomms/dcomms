@@ -57,7 +57,7 @@ namespace Dcomms.DRP.Packets
         /// </param>
         public static LowLevelUdpResponseScanner GetScanner(Logger logger, ConnectionToNeighbor connectionToNeighborNullable, RegisterRequestPacket req)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
 
             writer.Write((byte)PacketTypes.RegisterAck2);
           
@@ -102,7 +102,7 @@ namespace Dcomms.DRP.Packets
         /// <param name="connectionToNeighbor">is null for A->EP mode</param>
         public byte[] Encode_OptionallySignNeighborHMAC(ConnectionToNeighbor connectionToNeighborNullable)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             
             writer.Write((byte)PacketTypes.RegisterAck2);
             byte flags = 0;
@@ -161,7 +161,7 @@ namespace Dcomms.DRP.Packets
             ConnectionToNeighbor newConnectionAtResponderToRequesterNullable
           )
         {
-            var reader = PacketProcedures.CreateBinaryReader(registerAckPacketData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(registerAckPacketData, 1);
 
             var ack = new RegisterAck2Packet();
             ack.DecodedUdpPayloadData = registerAckPacketData;

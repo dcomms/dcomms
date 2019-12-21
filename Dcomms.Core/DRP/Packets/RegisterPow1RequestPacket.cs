@@ -33,7 +33,7 @@ namespace Dcomms.DRP.Packets
         }
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             Encode(writer);
             return ms.ToArray();
         }
@@ -50,7 +50,7 @@ namespace Dcomms.DRP.Packets
         /// <param name="reader">positioned after first byte = packet type</param>
         public RegisterPow1RequestPacket(byte[] originalPacketUdpPayload)
         {
-            var reader = PacketProcedures.CreateBinaryReader(originalPacketUdpPayload, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(originalPacketUdpPayload, 1);
             Flags = reader.ReadByte();
             if ((Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             Timestamp32S = reader.ReadUInt32();

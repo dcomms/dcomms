@@ -40,7 +40,7 @@ namespace Dcomms.DRP.Packets
 
         public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.InviteReq);
             byte flags = 0;
             w.Write(flags);
@@ -77,7 +77,7 @@ namespace Dcomms.DRP.Packets
         {
             var r = new InviteRequestPacket();
             r.DecodedUdpPayloadData = udpData;
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)
                 throw new NotImplementedException();

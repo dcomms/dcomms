@@ -59,14 +59,14 @@ namespace Dcomms.DRP.Packets
             NeighborToken32.Encode(writer);
             writer.Write(PingRequestId32);
             writer.Write(Flags);
-            PacketProcedures.EncodeString1ASCII(writer, VisionName);
+            BinaryProcedures.EncodeString1ASCII(writer, VisionName);
             writer.Write(RequesterNeighborsBusySectorIds__AnotherNeighborToSameSectorExists_Combined);
             writer.Write(RpsToUint16(MaxRxInviteRateRps));
             writer.Write(RpsToUint16(MaxRxRegisterRateRps));
         }
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);            
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);            
             GetSignedFieldsForNeighborHMAC(writer);
             NeighborHMAC.Encode(writer);
             return ms.ToArray();
@@ -79,14 +79,14 @@ namespace Dcomms.DRP.Packets
 
         public static PingPacket DecodeAndVerify(byte[] udpData, ConnectionToNeighbor connectedPeerWhoSentTheRequest)
         {
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
 
             var r = new PingPacket();
             r.NeighborToken32 = NeighborToken32.Decode(reader);
             r.PingRequestId32 = reader.ReadUInt32();
             r.Flags = reader.ReadByte();
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
-            r.VisionName = PacketProcedures.DecodeString1ASCII(reader);            
+            r.VisionName = BinaryProcedures.DecodeString1ASCII(reader);            
             r.RequesterNeighborsBusySectorIds__AnotherNeighborToSameSectorExists_Combined = reader.ReadUInt16();
             r.MaxRxInviteRateRps = RpsFromUint16(reader.ReadUInt16());
             r.MaxRxRegisterRateRps = RpsFromUint16(reader.ReadUInt16());
@@ -139,7 +139,7 @@ namespace Dcomms.DRP.Packets
             )
         {
             connectedPeerWhoSentTheResponse.AssertIsNotDisposed();
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
             var r = new PongPacket();
             r.NeighborToken32 = NeighborToken32.Decode(reader);
             r.PingRequestId32 = reader.ReadUInt32();
@@ -186,7 +186,7 @@ namespace Dcomms.DRP.Packets
 
         public static LowLevelUdpResponseScanner GetScanner(NeighborToken32 senderToken32, uint pingRequestId32)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             GetHeaderFields(w, senderToken32, pingRequestId32);
             return new LowLevelUdpResponseScanner { ResponseFirstBytes = ms.ToArray() };
         }
@@ -206,7 +206,7 @@ namespace Dcomms.DRP.Packets
                    
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             GetHeaderFields(writer, NeighborToken32, PingRequestId32);           
             byte flags = 0;
             if (ResponderRegistrationConfirmationSignature != null) flags |= Flags_ResponderRegistrationConfirmationSignatureExists;

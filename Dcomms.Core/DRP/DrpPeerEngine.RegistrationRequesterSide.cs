@@ -335,6 +335,7 @@ namespace Dcomms.DRP
         /// <returns>bytes of IP address</returns>
         async Task<byte[]> SendPublicIpAddressApiRequestAsync(string url)
         {
+            WriteToLog_drpGeneral_detail($">> SendPublicIpAddressApiRequestAsync({url})");
             string result = "";
             try
             {

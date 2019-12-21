@@ -49,7 +49,7 @@ namespace Dcomms.DMP
 
         internal void WriteSignedFields(BinaryWriter w)
         {
-            PacketProcedures.EncodeIPEndPoint(w, DirectChannelEndPoint);
+            BinaryProcedures.EncodeIPEndPoint(w, DirectChannelEndPoint);
             NatBehaviour.Encode(w);
             DirectChannelToken32.Encode(w);
             w.Write((byte)SessionType);
@@ -64,10 +64,10 @@ namespace Dcomms.DMP
             bool ack1SdIsReady
             )
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write(Flags);
             UserCertificate.Encode(w);
-            PacketProcedures.EncodeIPEndPoint(w, DirectChannelEndPoint);
+            BinaryProcedures.EncodeIPEndPoint(w, DirectChannelEndPoint);
             NatBehaviour.Encode(w);
             DirectChannelToken32.Encode(w);
             w.Write((byte)SessionType);
@@ -82,7 +82,7 @@ namespace Dcomms.DMP
             var encryptedSdData = new byte[plainTextSdData.Length];
 
             #region key, iv
-            PacketProcedures.CreateBinaryWriter(out var ms2, out var w2);
+            BinaryProcedures.CreateBinaryWriter(out var ms2, out var w2);
             req.GetSharedSignedFields(w2);
             ack1.GetSharedSignedFields(w2, ack1SdIsReady);            
             var iv = cryptoLibrary.GetHashSHA256(ms2.ToArray()).Take(16).ToArray();
@@ -106,7 +106,7 @@ namespace Dcomms.DMP
             )
         {
             #region key, iv
-            PacketProcedures.CreateBinaryWriter(out var ms2, out var w2);
+            BinaryProcedures.CreateBinaryWriter(out var ms2, out var w2);
             req.GetSharedSignedFields(w2);
             ack1.GetSharedSignedFields(w2, ack1SdIsReady);
             var iv = cryptoLibrary.GetHashSHA256(ms2.ToArray()).Take(16).ToArray();
@@ -119,11 +119,11 @@ namespace Dcomms.DMP
             cryptoLibrary.ProcessAesCbcBlocks(false, aesKey, iv, encryptedSdData, plainTextSdData);
 
             var r = new InviteSessionDescription();
-            var reader = PacketProcedures.CreateBinaryReader(plainTextSdData, 0);
+            var reader = BinaryProcedures.CreateBinaryReader(plainTextSdData, 0);
             r.Flags = reader.ReadByte();
             if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             r.UserCertificate = UserCertificate.Decode_AssertIsValidNow(reader, cryptoLibrary, receivedFromUser, localTimeNowUtc);
-            r.DirectChannelEndPoint = PacketProcedures.DecodeIPEndPoint(reader);
+            r.DirectChannelEndPoint = BinaryProcedures.DecodeIPEndPoint(reader);
             r.NatBehaviour = NatBehaviourModel.Decode(reader);
             r.DirectChannelToken32 = DirectChannelToken32.Decode(reader);
             r.SessionType = (SessionType)reader.ReadByte();

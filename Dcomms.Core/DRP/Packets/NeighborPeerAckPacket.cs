@@ -40,7 +40,7 @@ namespace Dcomms.DRP.Packets
         public static LowLevelUdpResponseScanner GetScanner(RequestP2pSequenceNumber16 reqP2pSeq16, ConnectionToNeighbor waitNpaFromNeighborNullable = null, 
             Action<BinaryWriter> npaRequestFieldsForNeighborHmacNullable = null)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             EncodeHeader(w, reqP2pSeq16);
             var r = new LowLevelUdpResponseScanner { ResponseFirstBytes = ms.ToArray() };
             if (waitNpaFromNeighborNullable != null)
@@ -64,7 +64,7 @@ namespace Dcomms.DRP.Packets
         }
         public byte[] Encode(bool epToA)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             EncodeHeader(writer, ReqP2pSeq16);
             byte flags = 0;
             if (epToA) flags |= Flag_EPtoA;
@@ -76,7 +76,7 @@ namespace Dcomms.DRP.Packets
         }
         public NeighborPeerAckPacket(byte[] nextHopResponsePacketData)
         {
-            var reader = PacketProcedures.CreateBinaryReader(nextHopResponsePacketData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(nextHopResponsePacketData, 1);
             ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();

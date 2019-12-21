@@ -23,7 +23,7 @@ namespace Dcomms.DMP
         {
             if (Status != MessageSessionStatusCode.created) throw new InvalidOperationException();
 
-            PacketProcedures.CreateBinaryWriter(out var msE, out var wE);
+            BinaryProcedures.CreateBinaryWriter(out var msE, out var wE);
             messageStart.GetSignedFieldsForMessageHMAC(wE, false);
             wE.Write(sharedPingPongHmacKey);
             _iv = cryptoLibrary.GetHashSHA256(msE.ToArray()).Take(16).ToArray();

@@ -70,7 +70,7 @@ namespace Dcomms.DRP.Packets
         /// </param>
         public static LowLevelUdpResponseScanner GetScanner(Logger logger, ConnectionToNeighbor connectionToNeighborNullable, RegisterRequestPacket req)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.RegisterConfirmation);
             
             w.Write((byte)0); // ignored flags
@@ -112,7 +112,7 @@ namespace Dcomms.DRP.Packets
         /// <param name="connectionToNeighbor">is not null for packets between registered peers</param>
         public byte[] Encode_OptionallySignNeighborHMAC(ConnectionToNeighbor connectionToNeighbor)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
 
             writer.Write((byte)PacketTypes.RegisterConfirmation);
             Flags = 0;
@@ -143,7 +143,7 @@ namespace Dcomms.DRP.Packets
 
         public static RegisterConfirmationPacket DecodeAndOptionallyVerify(byte[] regCfmUdpPayload, RegisterRequestPacket reqNullable, ConnectionToNeighbor newConnectionToRequesterAtResponderNullable)
         {
-            var reader = PacketProcedures.CreateBinaryReader(regCfmUdpPayload, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(regCfmUdpPayload, 1);
 
             var cfm = new RegisterConfirmationPacket();
             cfm.DecodedUdpPayloadData = regCfmUdpPayload;

@@ -92,7 +92,7 @@ namespace Dcomms.CCP
 
             try
             {
-                var reader = PacketProcedures.CreateBinaryReader(p.Data, 0);
+                var reader = BinaryProcedures.CreateBinaryReader(p.Data, 0);
                 var packetType = (CcpPacketType)reader.ReadByte();
                 switch (packetType)
                 {

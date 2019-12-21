@@ -30,7 +30,7 @@ namespace Dcomms.DRP.Packets
 
         public byte[] Encode_SetP2pFields(ConnectionToNeighbor transmitToNeighbor)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.InviteCfm);
             byte flags = 0;
             w.Write(flags);
@@ -66,7 +66,7 @@ namespace Dcomms.DRP.Packets
         {
             var r = new InviteConfirmationPacket();
             r.DecodedUdpPayloadData = udpData;
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)
                 throw new NotImplementedException();
@@ -95,7 +95,7 @@ namespace Dcomms.DRP.Packets
         /// </param>
         public static LowLevelUdpResponseScanner GetScanner(Logger logger, InviteRequestPacket req, ConnectionToNeighbor connectionToNeighbor)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.InviteCfm);
             w.Write((byte)0); // flags
 

@@ -20,14 +20,14 @@ namespace Dcomms.DMP.Packets
 
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             writer.Write((byte)PacketTypes.MessagePart);
             writer.Write(MessageId32);
             writer.Write((byte)SenderStatus);
             byte flags = 0;
             writer.Write(flags);
 
-            if (SenderStatus == MessageSessionStatusCode.inProgress) PacketProcedures.EncodeByteArray65536(writer, ContinuedEncryptedData);
+            if (SenderStatus == MessageSessionStatusCode.inProgress) BinaryProcedures.EncodeByteArray65536(writer, ContinuedEncryptedData);
             else if (SenderStatus == MessageSessionStatusCode.encryptionDecryptionCompleted) SenderSignature.Encode(writer);
 
             MessageHMAC.Encode(writer);
@@ -41,7 +41,7 @@ namespace Dcomms.DMP.Packets
         {
             writer.Write(MessageId32);
             writer.Write((byte)SenderStatus);
-            if (SenderStatus == MessageSessionStatusCode.inProgress) PacketProcedures.EncodeByteArray65536(writer, ContinuedEncryptedData);
+            if (SenderStatus == MessageSessionStatusCode.inProgress) BinaryProcedures.EncodeByteArray65536(writer, ContinuedEncryptedData);
             else if (SenderStatus == MessageSessionStatusCode.encryptionDecryptionCompleted) SenderSignature.Encode(writer);
         }
 
@@ -51,14 +51,14 @@ namespace Dcomms.DMP.Packets
         {
             var r = new MessagePartPacket();
             r.DecodedUdpData = udpData;
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
             r.MessageId32 = reader.ReadUInt32();
             r.SenderStatus = (MessageSessionStatusCode)reader.ReadByte();
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0)
                 throw new NotImplementedException();
                        
-            if (r.SenderStatus == MessageSessionStatusCode.inProgress) r.ContinuedEncryptedData = PacketProcedures.DecodeByteArray65536(reader);
+            if (r.SenderStatus == MessageSessionStatusCode.inProgress) r.ContinuedEncryptedData = BinaryProcedures.DecodeByteArray65536(reader);
             else if (r.SenderStatus == MessageSessionStatusCode.encryptionDecryptionCompleted)
                 r.SenderSignature = UserCertificateSignature.Decode(reader);
             
@@ -68,7 +68,7 @@ namespace Dcomms.DMP.Packets
 
         internal static LowLevelUdpResponseScanner GetScanner(uint messageId32, InviteSession session, MessageSessionStatusCode statusCode)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.MessagePart);
             w.Write(messageId32);
             w.Write((byte)statusCode);

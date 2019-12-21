@@ -23,7 +23,7 @@ namespace Dcomms.DMP.Packets
         {
             if (!session.DerivedDirectChannelSharedDhSecretsAE) throw new InvalidOperationException("DerivedDirectChannelSharedDhSecretsAE=false");
 
-            PacketProcedures.CreateBinaryWriter(out var ms, out var w);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.MessageStart);
             localDirectChannelToken32.Encode(w);            
             return new LowLevelUdpResponseScanner
@@ -47,7 +47,7 @@ namespace Dcomms.DMP.Packets
         {
             var r = new MessageStartPacket();
             r.DecodedUdpData = udpData;
-            var reader = PacketProcedures.CreateBinaryReader(udpData, 1);
+            var reader = BinaryProcedures.CreateBinaryReader(udpData, 1);
             r.DirectChannelToken32 = DirectChannelToken32.Decode(reader);
             r.MessageId32 = reader.ReadUInt32();
             
@@ -56,7 +56,7 @@ namespace Dcomms.DMP.Packets
                 throw new NotImplementedException();
             
             r.MessageTimestamp64 = reader.ReadInt64();
-            r.EncryptedMessageData = PacketProcedures.DecodeByteArray65536(reader);           
+            r.EncryptedMessageData = BinaryProcedures.DecodeByteArray65536(reader);           
             r.MessageHMAC = HMAC.Decode(reader);
             return r;
         }
@@ -64,14 +64,14 @@ namespace Dcomms.DMP.Packets
 
         public byte[] Encode()
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             writer.Write((byte)PacketTypes.MessageStart);
             DirectChannelToken32.Encode(writer);
             writer.Write(MessageId32);
             byte flags = 0;
             writer.Write(flags);
             writer.Write(MessageTimestamp64);
-            PacketProcedures.EncodeByteArray65536(writer, EncryptedMessageData);
+            BinaryProcedures.EncodeByteArray65536(writer, EncryptedMessageData);
             MessageHMAC.Encode(writer);
 
             var r = ms.ToArray();
