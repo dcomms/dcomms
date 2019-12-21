@@ -42,6 +42,8 @@
                 <Button Command="{Binding CreateDrpTester5}" Content="CreateDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
                 <Button Command="{Binding DestroyDrpTester5}" Content="DestroyDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityConverter}}"  />
 
+                <Button Command="{Binding CreateUserAppEngine}" Content="CreateUserAppEngine" Visibility="{Binding UserAppEngineIsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}"  />                               
+                
             </StackPanel>
         </StackPanel>
 

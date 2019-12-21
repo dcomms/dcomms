@@ -93,32 +93,24 @@ namespace Dcomms
             var stringData = reader.ReadBytes(length);
             return Encoding.UTF8.GetString(stringData);
         }
-        public static byte[] EncodeString2UTF8_padding32(string value, Random rnd)
+        public static byte[] EncodeString2UTF8(string value)
         {
             if (value == null) value = "";
             CreateBinaryWriter(out var ms, out var writer);
                      
             var valueBytes = Encoding.UTF8.GetBytes(value);
             if (valueBytes.Length > 65535) throw new ArgumentException(nameof(value));                              
-            var sizeWithPadding = (valueBytes.Length / 32) * 32;
-            var paddingSize = sizeWithPadding - valueBytes.Length;
             writer.Write((ushort)valueBytes.Length);
-            writer.Write(valueBytes);
-            writer.Write((byte)paddingSize);
-            var paddingBytes = new byte[paddingSize];
-            rnd.NextBytes(paddingBytes);
-            writer.Write(paddingBytes);
-            
+            writer.Write(valueBytes);            
             return ms.ToArray();
         }
-        public static string DecodeString2UTF8_padding32(byte[] encoded)
+        public static string DecodeString2UTF8(byte[] encoded)
         {
+            if (encoded == null) return null;
             using var reader = CreateBinaryReader(encoded, 0);
             var length = reader.ReadUInt16();
             var stringData = reader.ReadBytes(length);
-            var r = Encoding.UTF8.GetString(stringData);
-            var paddingLength = reader.ReadByte();
-            reader.ReadBytes(paddingLength);
+            var r = Encoding.UTF8.GetString(stringData);  
             return r;
         }
         public static uint DecodeUInt32(byte[] data, ref int index)
@@ -168,6 +160,7 @@ namespace Dcomms
         }
         public static BinaryReader CreateBinaryReader(byte[] data, int index)
         {
+            if (data == null) return null;
             return new BinaryReader(new MemoryStream(data, index, data.Length - index), Encoding.UTF8);
         }
         public static void CreateBinaryWriter(out MemoryStream ms, out BinaryWriter writer)

@@ -17,8 +17,6 @@ namespace Dcomms.Cryptography
 {
     class CryptoLibrary1 : ICryptoLibrary
     {
-        readonly Random _insecureRandom = new Random();
-        Random ICryptoLibrary.InsecureRandom => _insecureRandom;
         SecureRandom _secureRandom = new SecureRandom();
         SecureRandom _secureRandom2 = new SecureRandom();
         SecureRandom _secureRandom3 = new SecureRandom();
@@ -140,6 +138,19 @@ namespace Dcomms.Cryptography
 
             hmac.DoFinal(result, 0);
             return result;
+        }
+
+
+
+        void ICryptoLibrary.DeriveKeysRFC5869_32bytes(byte[] input, byte[] salt, out byte[] key1, out byte[] key2)
+        {
+            var hkdf = new HkdfBytesGenerator(new Sha256Digest());
+            hkdf.Init(new HkdfParameters(input, salt, null));
+
+            key1 = new byte[32];
+            hkdf.GenerateBytes(key1, 0, key1.Length);
+            key2 = new byte[32];
+            hkdf.GenerateBytes(key2, 0, key2.Length);
         }
     }
 }

@@ -97,6 +97,7 @@ namespace Dcomms.DMP
         }
         public static UserId Decode(byte[] data)
         {
+            if (data == null) return null;
             return Decode(BinaryProcedures.CreateBinaryReader(data, 0));
         }
         public static UserId Decode(BinaryReader reader)
@@ -331,6 +332,7 @@ namespace Dcomms.DMP
         }
         public static UserCertificate Decode(byte[] data, UserId userId)
         {
+            if (data == null) return null;
             using var reader = BinaryProcedures.CreateBinaryReader(data, 0);
             return Decode(reader, userId);
         }

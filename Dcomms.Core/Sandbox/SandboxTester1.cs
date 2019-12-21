@@ -3,6 +3,7 @@ using Dcomms.Cryptography;
 using Dcomms.DRP;
 using Dcomms.DRP.Packets;
 using Dcomms.Sandbox;
+using Dcomms.UserApp;
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
@@ -244,29 +245,26 @@ namespace Dcomms.Sandbox
             RaisePropertyChanged(() => DrpTester5);
             RaisePropertyChanged(() => DrpTester5IsCreated);
         });
-               
-        public DelegateCommand TestUniqueDataTracker => new DelegateCommand(() =>
-        {
-           // var t = new UniqueDataTracker();
-         //   t.TryInputData(null);
-        });
 
 
-        public DelegateCommand TestNat1 => new DelegateCommand(() =>
+        public bool UserAppEngineIsCreated => UserAppEngine != null;
+        public UserAppEngine UserAppEngine { get; set; }
+        public DelegateCommand CreateUserAppEngine => new DelegateCommand(() =>
         {
-         //   if (DrpTester5 != null) DrpTester5.TestNat1.Execute(null);
-           
+            UserAppEngine = new UserAppEngine(_visionChannel);
+            RaisePropertyChanged(() => UserAppEngine);
+            RaisePropertyChanged(() => UserAppEngineIsCreated);
         });
-       
 
 
         public void Dispose()
         {
-            if (_drpTester1 != null) _drpTester1.Dispose();
-            if (DrpTester2 != null) DrpTester2.Dispose();
-            if (DrpTester3 != null) DrpTester3.Dispose();
-            if (DrpTester4 != null) DrpTester4.Dispose();
-            if (DrpTester5 != null) DrpTester5.Dispose();
+            _drpTester1?.Dispose();
+            DrpTester2?.Dispose();
+            DrpTester3?.Dispose();
+            DrpTester4?.Dispose();
+            DrpTester5?.Dispose();
+            UserAppEngine?.Dispose();
         }
     }
 }

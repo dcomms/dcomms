@@ -11,7 +11,6 @@ namespace Dcomms.Cryptography
     /// </summary>
     public interface ICryptoLibrary
     {
-        Random InsecureRandom { get; }
         byte[] GetRandomBytes(int count);
 
         byte[] GetHashSHA256(byte[] data);
@@ -29,6 +28,8 @@ namespace Dcomms.Cryptography
 
         void ProcessAesCbcBlocks(bool encryptOrDecrypt, byte[] key, byte[] iv, byte[] input, byte[] output);
         byte[] GetSha256HMAC(byte[] key, byte[] data);
+
+        void DeriveKeysRFC5869_32bytes(byte[] input, byte[] salt, out byte[] key1, out byte[] key2);
     }
 
     public static class CryptoLibraries
