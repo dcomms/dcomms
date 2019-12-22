@@ -55,10 +55,10 @@ namespace Dcomms.MessengerV1
                         .UseKestrel()
                         .ConfigureKestrel(serverOptions =>
                         {
-                            //serverOptions.ListenLocalhost(7777);
                         })
-                        .UseIISIntegration()
-                        .CaptureStartupErrors(true)
+                      //  .UseIISIntegration()
+                     //   .CaptureStartupErrors(true)
+                        .UseUrls("http://localhost:5050")
                         .UseStartup<Startup>();
                 });
     }
