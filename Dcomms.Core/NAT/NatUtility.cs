@@ -178,11 +178,13 @@ namespace Dcomms.NAT
 
         internal void Log_deepDetail(string message)
         {
-            _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, message);
+            if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, VisionChannelModuleName) <= AttentionLevel.deepDetail)
+                _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, message);
         }
         internal void Log_higherLevelDetail(string message)
         {
-            _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail, message);
+            if (_visionChannel?.GetAttentionTo(_visionChannelSourceId, VisionChannelModuleName) <= AttentionLevel.higherLevelDetail)
+                _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail, message);
         }
         internal void Log_mediumPain(string message)
         {

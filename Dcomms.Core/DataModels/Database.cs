@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using Dcomms.Cryptography;
 using Dcomms.DMP;
+using Dcomms.Vision;
 using SQLite;
 
 namespace Dcomms.DataModels
@@ -15,25 +17,32 @@ namespace Dcomms.DataModels
     }
     public class Database: IDisposable
     {
+        const string VisionChannelModuleName = "db";
         SQLiteConnection _db;
     
         readonly ICryptoLibrary _cryptoLibrary;
         readonly IDatabaseKeyProvider _keyProvider;
-        public Database(ICryptoLibrary cryptoLibrary, IDatabaseKeyProvider keyProvider)
+        readonly VisionChannel _visionChannel;
+        readonly string _visionChannelSourceId;
+        public Database(ICryptoLibrary cryptoLibrary, IDatabaseKeyProvider keyProvider, VisionChannel visionChannel, string visionChannelSourceId)
         {
             _keyProvider = keyProvider;
             _cryptoLibrary = cryptoLibrary;
-            string dbPath = Path.Combine(
-                 Environment.GetFolderPath(Environment.SpecialFolder.Personal),
-                 "dcomms.db3");
+            _visionChannel = visionChannel;
 
-            _db = new SQLiteConnection(dbPath);               
-            _db.CreateTable<User>(CreateFlags.None);  
+            var basePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            var databaseFileName = Path.Combine(basePath,  "dcomms.db");
+            WriteToLog_deepDetail($"basePath={basePath}, databaseFileName={databaseFileName}");
+
+            _db = new SQLiteConnection(databaseFileName);               
+            _db.CreateTable<User>(CreateFlags.None);
+            WriteToLog_deepDetail($"initialized sqlite database");
         }
         public void Dispose()
         {
             _db?.Dispose();
             _db = null;
+            WriteToLog_deepDetail($"disposed sqlite database");
         }
         void GetIVandKeys(int id, EncryptedFieldIds fieldId, out byte[] iv, out byte[] aesKey, out byte[] hmacKey)
         {
@@ -108,12 +117,13 @@ namespace Dcomms.DataModels
             
             EncryptAndSign(BinaryProcedures.EncodeString2UTF8(user.AliasID), user.Id, EncryptedFieldIds.User_AliasID, out e, out a); 
             user.AliasID_encrypted = e; user.AliasID_hmac = a;
-
-
+            
             EncryptAndSign(user.LocalUserCertificate?.Encode(), user.Id, EncryptedFieldIds.User_LocalUserCertificate, out e, out a);
             user.LocalUserCertificate_encrypted = e; user.LocalUserCertificate_hmac = a;
                                  
             _db.Update(user);
+
+            WriteToLog_deepDetail($"inserted user '{user.AliasID}'");
         }
 
         public List<User> GetUsers()
@@ -126,18 +136,32 @@ namespace Dcomms.DataModels
                     u.UserID = UserId.Decode(DecryptAndVerify(u.UserID_encrypted, u.UserID_hmac, u.Id, EncryptedFieldIds.User_UserID));                                   
                     u.AliasID = BinaryProcedures.DecodeString2UTF8(DecryptAndVerify(u.AliasID_encrypted, u.AliasID_hmac, u.Id, EncryptedFieldIds.User_AliasID));
                     u.LocalUserCertificate = UserCertificate.Decode(DecryptAndVerify(u.LocalUserCertificate_encrypted, u.LocalUserCertificate_hmac, u.Id, EncryptedFieldIds.User_LocalUserCertificate), u.UserID);
+                    WriteToLog_deepDetail($"decrypted user '{u.AliasID}'");
                 }
                 catch (Exception exc)
                 {
-                    HandleDecryptionVerificationException(exc);
+                    HandleException($"can not decrypt/verify user ID={u.UserID}: ", exc);
                 }
             }
             return users;
           //  var user = db.Get<UserId>(5); // primary key id of 5
         }
-        void HandleDecryptionVerificationException(Exception exc)
+        void HandleException(string prefix, Exception exc)
         {
-            throw new NotImplementedException();
+            WriteToLog_mediumPain($"{prefix}{exc}");
+        }
+
+
+
+        internal bool WriteToLog_deepDetail_enabled => _visionChannel?.GetAttentionTo(_visionChannelSourceId, VisionChannelModuleName) <= AttentionLevel.deepDetail;
+        void WriteToLog_deepDetail(string msg)
+        {
+            if (WriteToLog_deepDetail_enabled)
+                _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, msg);
+        }
+        void WriteToLog_mediumPain(string msg)
+        {
+            _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.mediumPain, msg);
         }
     }
 
@@ -162,6 +186,7 @@ namespace Dcomms.DataModels
         public byte[] AliasID_hmac { get; set; }
         
         [Ignore]
+        ///////////////////////////////////[SQLite.Indexed]
         public bool IsLocal => LocalUserCertificate_encrypted != null;
         [Ignore]
         public UserCertificate LocalUserCertificate { get; set; }      
