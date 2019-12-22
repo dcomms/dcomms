@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -36,6 +38,7 @@ namespace Dcomms.MessengerV1
             {
                 app.UseExceptionHandler("/Home/Error");
             }
+            app.UseMiddleware<IpWhitelistMiddleware>();
             app.UseStaticFiles();
 
             app.UseRouting();
@@ -48,7 +51,28 @@ namespace Dcomms.MessengerV1
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
             });
-            
+        }
+    }
+
+    public class IpWhitelistMiddleware
+    {
+        private readonly RequestDelegate _next;
+
+        public IpWhitelistMiddleware(RequestDelegate next)
+        {
+            _next = next;
+        }
+
+        public async Task Invoke(HttpContext context)
+        {
+            var remoteIp = context.Connection.RemoteIpAddress;
+            if (!remoteIp.Equals(IPAddress.Loopback) && !remoteIp.Equals(IPAddress.IPv6Loopback))
+            {
+                Console.WriteLine($"Forbidden HTTP request from {remoteIp}. Please access only from localhost");
+                context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                return;
+            }
+            await _next.Invoke(context);
         }
     }
 }

@@ -13,6 +13,7 @@ namespace Dcomms.MessengerV1
 {
     public class Program
     {
+        const string Url = "http://localhost:5050";
         public static VisionChannel1 VisionChannel;
         public static void Main(string[] args)
         {
@@ -28,10 +29,16 @@ namespace Dcomms.MessengerV1
             
             try
             {
-                VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, "creating user app...");
+                VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, "creating user app");
                 using var userAppEngine = new UserAppEngine(VisionChannel);
-                VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, "creating web host...");
-                CreateHostBuilder(args).Build().Run();
+                VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, $"creating web host at {Url}");
+                var host = CreateHostBuilder(Url, args).Build();
+                VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, $"created web host at {Url}");
+
+                Console.WriteLine($"please access messenger web UI from same machine in browser: {Url}");
+
+                VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, $"running web host at {Url}");
+                host.Run();
             }
             catch (Exception exc)
             {
@@ -39,7 +46,7 @@ namespace Dcomms.MessengerV1
             }
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
+        public static IHostBuilder CreateHostBuilder(string url, string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .ConfigureLogging((context, logging) =>
                 {
@@ -58,7 +65,7 @@ namespace Dcomms.MessengerV1
                         })
                       //  .UseIISIntegration()
                      //   .CaptureStartupErrors(true)
-                        .UseUrls("http://localhost:5050")
+                        .UseUrls(url)
                         .UseStartup<Startup>();
                 });
     }
