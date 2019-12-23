@@ -9,7 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Dcomms.MessengerV1
+namespace Dcomms.MessengerT
 {
     public class Program
     {

@@ -1,6 +1,6 @@
 using System;
 
-namespace Dcomms.MessengerV1.Models
+namespace Dcomms.MessengerT.Models
 {
     public class ErrorViewModel
     {

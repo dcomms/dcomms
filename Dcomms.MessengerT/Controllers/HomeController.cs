@@ -5,9 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Dcomms.MessengerV1.Models;
+using Dcomms.MessengerT.Models;
 
-namespace Dcomms.MessengerV1.Controllers
+namespace Dcomms.MessengerT.Controllers
 {
     public class HomeController : Controller
     {
