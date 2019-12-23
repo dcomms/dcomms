@@ -27,15 +27,15 @@ namespace Dcomms.P2PTP
                 Flags = reader.ReadByte(),
                 Longitude = reader.ReadDouble(),
                 Latitude = reader.ReadDouble(),
-                Country = PacketProcedures.DecodeString1UTF8(reader),
-                CountryCode = PacketProcedures.DecodeString1UTF8(reader),
-                City = PacketProcedures.DecodeString1UTF8(reader),
-                State = PacketProcedures.DecodeString1UTF8(reader),
-                StateCode = PacketProcedures.DecodeString1UTF8(reader),
-                ZIP = PacketProcedures.DecodeString1UTF8(reader),
-                Organization_ISP = PacketProcedures.DecodeString1UTF8(reader),
-                AS = PacketProcedures.DecodeString1UTF8(reader),
-                ASname = PacketProcedures.DecodeString1UTF8(reader),
+                Country = BinaryProcedures.DecodeString1UTF8(reader),
+                CountryCode = BinaryProcedures.DecodeString1UTF8(reader),
+                City = BinaryProcedures.DecodeString1UTF8(reader),
+                State = BinaryProcedures.DecodeString1UTF8(reader),
+                StateCode = BinaryProcedures.DecodeString1UTF8(reader),
+                ZIP = BinaryProcedures.DecodeString1UTF8(reader),
+                Organization_ISP = BinaryProcedures.DecodeString1UTF8(reader),
+                AS = BinaryProcedures.DecodeString1UTF8(reader),
+                ASname = BinaryProcedures.DecodeString1UTF8(reader),
             };
         }
         public void Encode(BinaryWriter writer)
@@ -43,15 +43,15 @@ namespace Dcomms.P2PTP
             writer.Write(Flags);
             writer.Write(Longitude);
             writer.Write(Latitude);
-            PacketProcedures.EncodeString1UTF8(writer, Country);
-            PacketProcedures.EncodeString1UTF8(writer, CountryCode);
-            PacketProcedures.EncodeString1UTF8(writer, City);
-            PacketProcedures.EncodeString1UTF8(writer, State);
-            PacketProcedures.EncodeString1UTF8(writer, StateCode);
-            PacketProcedures.EncodeString1UTF8(writer, ZIP);
-            PacketProcedures.EncodeString1UTF8(writer, Organization_ISP);
-            PacketProcedures.EncodeString1UTF8(writer, AS);
-            PacketProcedures.EncodeString1UTF8(writer, ASname);
+            BinaryProcedures.EncodeString1UTF8(writer, Country);
+            BinaryProcedures.EncodeString1UTF8(writer, CountryCode);
+            BinaryProcedures.EncodeString1UTF8(writer, City);
+            BinaryProcedures.EncodeString1UTF8(writer, State);
+            BinaryProcedures.EncodeString1UTF8(writer, StateCode);
+            BinaryProcedures.EncodeString1UTF8(writer, ZIP);
+            BinaryProcedures.EncodeString1UTF8(writer, Organization_ISP);
+            BinaryProcedures.EncodeString1UTF8(writer, AS);
+            BinaryProcedures.EncodeString1UTF8(writer, ASname);
         }
     }
 }

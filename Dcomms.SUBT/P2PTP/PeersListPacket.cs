@@ -70,7 +70,7 @@ namespace Dcomms.P2PTP
             return new PeersListPacket_SharedPeerIpv4(   
                 StreamId.Decode(data, ref index),
                 PeerId.Decode(data, ref index),
-                new IPEndPoint(new IPAddress(PacketProcedures.DecodeUInt32(data, ref index)), PacketProcedures.DecodeUInt16(data, ref index))
+                new IPEndPoint(new IPAddress(BinaryProcedures.DecodeUInt32(data, ref index)), BinaryProcedures.DecodeUInt16(data, ref index))
             );
         }
         internal void Encode(byte[] data, ref int index)
@@ -80,9 +80,9 @@ namespace Dcomms.P2PTP
             if (ToEndPoint.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
                 throw new NotSupportedException("only IPv4 is supported");            
 #pragma warning disable CS0618 // Type or member is obsolete
-            PacketProcedures.EncodeUInt32(data, ref index, (uint)ToEndPoint.Address.Address);
+            BinaryProcedures.EncodeUInt32(data, ref index, (uint)ToEndPoint.Address.Address);
 #pragma warning restore CS0618 // Type or member is obsolete
-            PacketProcedures.EncodeUInt16(data, ref index, (ushort)ToEndPoint.Port);
+            BinaryProcedures.EncodeUInt16(data, ref index, (ushort)ToEndPoint.Port);
         }
     }
 }

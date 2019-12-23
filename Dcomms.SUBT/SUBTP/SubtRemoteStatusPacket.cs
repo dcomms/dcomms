@@ -54,7 +54,7 @@ namespace Dcomms.SUBT.SUBTP
         }
         public byte[] Encode(SubtConnectedPeerStream connectedStream)
         {
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);           
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);           
             
             ExtensionProcedures.InitializeExtensionSignalingPacket(writer, connectedStream.SubtLocalPeer.LocalPeer.LocalPeerId, connectedStream.SubtConnectedPeer.RemotePeerId, connectedStream.StreamId, connectedStream.SubtLocalPeer.ExtensionId);
             writer.Write((byte)SubtPacketType.RemoteStatus);

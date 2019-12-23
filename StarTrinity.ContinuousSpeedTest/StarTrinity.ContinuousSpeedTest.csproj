@@ -1,169 +1,33 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0BC6BFB9-7E70-414E-B831-454BD962493A}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>StarTrinity.ContinuousSpeedTest</RootNamespace>
-    <AssemblyName>StarTrinity.ContinuousSpeedTest</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <WarningLevel>4</WarningLevel>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Deterministic>true</Deterministic>
-    <TargetFrameworkProfile />
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <PackageIcon>icon.ico</PackageIcon>
+    <PackageIconUrl />
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
-  </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xaml">
-      <RequiredTargetFramework>4.0</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="WindowsBase" />
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
-  </ItemGroup>
-  <ItemGroup>
-    <ApplicationDefinition Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </ApplicationDefinition>
-    <Compile Include="EasyGuiView.xaml.cs">
-      <DependentUpon>EasyGuiView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="MeasurementsView.xaml.cs">
-      <DependentUpon>MeasurementsView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="SocketWithReceiversView.xaml.cs">
-      <DependentUpon>SocketWithReceiversView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="tt\VersionAndCompiledDateCs.cs" />
-    <Page Include="ConnectedPeersView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="EasyGuiView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="LocalPeerConfigurationView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="LogView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Compile Include="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="ConnectedPeersView.xaml.cs">
-      <DependentUpon>ConnectedPeersView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Converters.cs" />
-    <Compile Include="LocalPeerConfigurationView.xaml.cs">
-      <DependentUpon>LocalPeerConfigurationView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="LogView.xaml.cs">
-      <DependentUpon>LogView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Page Include="MeasurementsView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="SocketWithReceiversView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    <None Remove="icon.ico" />
+    <None Include="icon.ico">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
     </None>
   </ItemGroup>
+
   <ItemGroup>
-    <None Include="App.config" />
+    <ProjectReference Include="..\Dcomms.SUBT\Dcomms.SUBT.csproj" />
   </ItemGroup>
+
   <ItemGroup>
     <Resource Include="icon.ico" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Dcomms.Core\Dcomms.Core.csproj">
-      <Project>{19cea71c-9eaa-4e77-9dc8-ec0623d8d30b}</Project>
-      <Name>Dcomms.Core</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Dcomms.SUBT\Dcomms.SUBT.csproj">
-      <Project>{008c120b-493b-4151-a089-7f03d27d276a}</Project>
-      <Name>Dcomms.SUBT</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>"$(SolutionDir)signtool.exe" sign /n "Sergei Vladimirovich Aleshin IP" /t http://timestamp.comodoca.com /a  "$(TargetDir)Dcomms.Core.dll"
-"$(SolutionDir)signtool.exe" sign /n "Sergei Vladimirovich Aleshin IP" /t http://timestamp.comodoca.com /a  "$(TargetDir)Dcomms.SUBT.dll"
-"$(SolutionDir)signtool.exe" sign /n "Sergei Vladimirovich Aleshin IP" /t http://timestamp.comodoca.com /a  "$(TargetPath)"</PostBuildEvent>
-  </PropertyGroup>
-  <PropertyGroup>
-    <PreBuildEvent>"$(DevEnvDir)TextTransform.exe" "$(ProjectDir)tt\VersionAndCompiledDateCs.tt"</PreBuildEvent>
-  </PropertyGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="&quot;$(SolutionDir)signtool.exe&quot; sign /n &quot;Sergei Vladimirovich Aleshin IP&quot; /t http://timestamp.comodoca.com /a  &quot;$(TargetDir)Dcomms.Core.dll&quot;&#xD;&#xA;&quot;$(SolutionDir)signtool.exe&quot; sign /n &quot;Sergei Vladimirovich Aleshin IP&quot; /t http://timestamp.comodoca.com /a  &quot;$(TargetDir)Dcomms.SUBT.dll&quot;&#xD;&#xA;&quot;$(SolutionDir)signtool.exe&quot; sign /n &quot;Sergei Vladimirovich Aleshin IP&quot; /t http://timestamp.comodoca.com /a  &quot;$(TargetPath)&quot;&#xD;&#xA;&quot;$(SolutionDir)signtool.exe&quot; sign /n &quot;Sergei Vladimirovich Aleshin IP&quot; /t http://timestamp.comodoca.com /a  &quot;$(TargetDir)StarTrinity.ContinuousSpeedTest.exe&quot;" />
+  </Target>
+
 </Project>

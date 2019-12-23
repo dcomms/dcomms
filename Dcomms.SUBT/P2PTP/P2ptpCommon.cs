@@ -149,21 +149,21 @@ namespace Dcomms.P2PTP
         public const int EncodedSize = 4;
         public static void Encode(StreamId streamId, byte[] data, ref int index)
         {
-            PacketProcedures.EncodeUInt32(data, ref index, streamId?.Id ?? 0);
+            BinaryProcedures.EncodeUInt32(data, ref index, streamId?.Id ?? 0);
         }
         public static void Encode(BinaryWriter writer, StreamId streamId)
         {
-            PacketProcedures.EncodeUInt32(writer, streamId?.Id ?? 0);
+            BinaryProcedures.EncodeUInt32(writer, streamId?.Id ?? 0);
         }
         public static StreamId Decode(byte[] data, ref int index)
         {
-            var id = PacketProcedures.DecodeUInt32(data, ref index);
+            var id = BinaryProcedures.DecodeUInt32(data, ref index);
             if (id == 0) return null;
             else return new StreamId(id);
         }
         public static StreamId Decode(BinaryReader reader)
         {
-            var id = PacketProcedures.DecodeUInt32(reader);
+            var id = BinaryProcedures.DecodeUInt32(reader);
             if (id == 0) return null;
             else return new StreamId(id);
         }

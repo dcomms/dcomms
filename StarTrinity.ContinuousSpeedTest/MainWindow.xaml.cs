@@ -46,17 +46,14 @@ namespace StarTrinity.ContinuousSpeedTest
                 _notifyIcon.Icon = new System.Drawing.Icon(iconStream);
 
                 
-                var contextMenu = new System.Windows.Forms.ContextMenu();
-                var menuItem1 = new System.Windows.Forms.MenuItem
-                {
-                    Index = 0,
-                    Text = "E&xit"
-                };
+                var contextMenu = new System.Windows.Forms.ContextMenuStrip();
+                var menuItem1 = new System.Windows.Forms.ToolStripMenuItem("E&xit");
+               
                 menuItem1.Click += (s, e) => { _exitMenuItemClicked = true; this.Close(); };
-                contextMenu.MenuItems.AddRange(new [] { menuItem1 });
+                contextMenu.Items.AddRange(new [] { menuItem1 });
 
 
-                _notifyIcon.ContextMenu = contextMenu;
+                _notifyIcon.ContextMenuStrip = contextMenu;
                 _notifyIcon.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(NotifyIcon_MouseDoubleClick);
                 this.WindowState = WindowState.Minimized;
                 this.Hide();
@@ -207,7 +204,9 @@ namespace StarTrinity.ContinuousSpeedTest
                     var localPcInstallationFolder = LocalPcInstallationFolder;
                     if (!Directory.Exists(localPcInstallationFolder)) Directory.CreateDirectory(localPcInstallationFolder);
                     var currentProcessDirectory = CurrentProcessDirectory;
-                    foreach (var dllFileName in Directory.GetFiles(currentProcessDirectory, "*.*").Where(s => s.EndsWith(".config") || s.EndsWith(".dll")))
+                    foreach (var dllFileName in Directory.GetFiles(currentProcessDirectory, "*.*")
+                        .Select(x => x.ToLower())
+                        .Where(s => s.EndsWith(".config") || s.EndsWith(".dll") || s.EndsWith(".exe") || s.EndsWith(".json")))
                         File.Copy(dllFileName, Path.Combine(localPcInstallationFolder, Path.GetFileName(dllFileName)), true);
 
                     mainExeFileName = Path.Combine(localPcInstallationFolder, Path.GetFileName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName));
@@ -361,7 +360,7 @@ namespace StarTrinity.ContinuousSpeedTest
                     netshProcess.StartInfo.UseShellExecute = false;
                     netshProcess.StartInfo.CreateNoWindow = true;
                     netshProcess.StartInfo.RedirectStandardOutput = true;
-                    netshProcess.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(System.Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage);                 
+                  //  netshProcess.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(System.Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage);  //this leads to error               
                     netshProcess.Start();
 
                     var stdOutput = "";                  

@@ -56,3 +56,7 @@
 /Dcomms.MessengerV1/obj
 /Dcomms.MessengerT/bin
 /Dcomms.MessengerT/obj
+/StarTrinity.ContinuousSpeedTest/obj
+/StarTrinity.ContinuousSpeedTest2/bin/Release/netcoreapp3.1
+/StarTrinity.ContinuousSpeedTest2/obj
+/StarTrinity.CST/StarTrinity.CST/bin/Release/netstandard2.1

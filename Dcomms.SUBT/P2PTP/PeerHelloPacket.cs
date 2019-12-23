@@ -112,21 +112,21 @@ namespace Dcomms.P2PTP
             FromPeerId = PeerId.Decode(packetUdpPayloadData, ref index);
             StreamId = StreamId.Decode(packetUdpPayloadData, ref index);
             ToPeerId = PeerId.Decode(packetUdpPayloadData, ref index);         
-            LibraryVersion = PacketProcedures.DecodeUInt32(packetUdpPayloadData, ref index);
-            ProtocolVersion = PacketProcedures.DecodeUInt16(packetUdpPayloadData, ref index);
+            LibraryVersion = BinaryProcedures.DecodeUInt32(packetUdpPayloadData, ref index);
+            ProtocolVersion = BinaryProcedures.DecodeUInt16(packetUdpPayloadData, ref index);
             Status = (PeerHelloRequestStatus)packetUdpPayloadData[index++];
-            RequestTime32 = PacketProcedures.DecodeUInt32(packetUdpPayloadData, ref index);
+            RequestTime32 = BinaryProcedures.DecodeUInt32(packetUdpPayloadData, ref index);
             Flags = packetUdpPayloadData[index++];
             var extensionIdsLength = packetUdpPayloadData[index++];
             ExtensionIds = new string[extensionIdsLength];
             for (byte i = 0; i < extensionIdsLength; i++)
-                ExtensionIds[i] = PacketProcedures.DecodeString1ASCII(packetUdpPayloadData, ref index);
+                ExtensionIds[i] = BinaryProcedures.DecodeString1ASCII(packetUdpPayloadData, ref index);
             if (index < packetUdpPayloadData.Length)
             { // after version 190608
-                RequestSequenceNumber = PacketProcedures.DecodeUInt16(packetUdpPayloadData, ref index);
-                ResponseCpuDelayMs = PacketProcedures.DecodeUInt16(packetUdpPayloadData, ref index);
-                RequestedFromIp = PacketProcedures.DecodeString1ASCII(packetUdpPayloadData, ref index);
-                var reader = PacketProcedures.CreateBinaryReader(packetUdpPayloadData, index);
+                RequestSequenceNumber = BinaryProcedures.DecodeUInt16(packetUdpPayloadData, ref index);
+                ResponseCpuDelayMs = BinaryProcedures.DecodeUInt16(packetUdpPayloadData, ref index);
+                RequestedFromIp = BinaryProcedures.DecodeString1ASCII(packetUdpPayloadData, ref index);
+                var reader = BinaryProcedures.CreateBinaryReader(packetUdpPayloadData, index);
                 if (FlagIshareMyIpLocation)
                     IpLocationData = IpLocationData.Decode(reader);
             }
@@ -153,7 +153,7 @@ namespace Dcomms.P2PTP
             //    size += OptionalEncodedSize + requestedFromIp.Length;
 
             //  byte[] data = new byte[size];
-            PacketProcedures.CreateBinaryWriter(out var ms, out var writer);
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
             P2ptpCommon.EncodeHeader(writer, PacketTypes.hello);
           //  int index = P2ptpCommon.HeaderSize;
             PeerId.Encode(writer, FromPeerId);
@@ -167,11 +167,11 @@ namespace Dcomms.P2PTP
             writer.Write((byte)(ExtensionIds?.Length ?? 0));
             if (ExtensionIds != null)
                 foreach (var extensionId in ExtensionIds)
-                    PacketProcedures.EncodeString1ASCII(writer, extensionId);
+                    BinaryProcedures.EncodeString1ASCII(writer, extensionId);
 
             writer.Write(RequestSequenceNumber ?? 0);
             writer.Write(ResponseCpuDelayMs ?? 0);
-            PacketProcedures.EncodeString1ASCII(writer, requestedFromIp);
+            BinaryProcedures.EncodeString1ASCII(writer, requestedFromIp);
 
             if (FlagIshareMyIpLocation)
                 IpLocationData.Encode(writer);
