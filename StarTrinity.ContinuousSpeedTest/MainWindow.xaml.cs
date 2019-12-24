@@ -223,10 +223,10 @@ namespace StarTrinity.ContinuousSpeedTest
                     linkFile.Save(StartMenuShortcutFileName, false);
 
                     // show message box
-                    MessageBox.Show($"Installation succeeded.\r\nPress OK to start the new installed program.\r\n\r\nInstallation folder: {localPcInstallationFolder}");
+                    MessageBox.Show($"Installation succeeded.\r\nPress OK to start the new installed program.\r\n\r\nCreated shortcut on desktop and in Start menu\r\nInstallation folder: {localPcInstallationFolder}");
 
                     // start new process
-                    System.Diagnostics.Process.Start(mainExeFileName);
+                    Process.Start(mainExeFileName);
 
                     closeThisProcess = true;
                 }
@@ -375,13 +375,13 @@ namespace StarTrinity.ContinuousSpeedTest
 
                     netshProcess.WaitForExit();
                   
-                    _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.deepDetail, $"getting rule: netsh exited with code {netshProcess.ExitCode}. output:\r\n{stdOutput}");
+                    _cstApp.VisionChannel?.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.deepDetail, $"getting rule: netsh exited with code {netshProcess.ExitCode}. output:\r\n{stdOutput}");
                     ruleAlreadyExists = (netshProcess.ExitCode == 0) && stdOutput.Contains(processName);
-                    _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.deepDetail, $"ruleAlreadyExists={ruleAlreadyExists}");
+                    _cstApp.VisionChannel?.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.deepDetail, $"ruleAlreadyExists={ruleAlreadyExists}");
                 }
                 catch (Exception exc)
                 {
-                    _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.lightPain, $"could not get existing rule in firewall: {exc.Message}");
+                    _cstApp.VisionChannel?.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.lightPain, $"could not get existing rule in firewall: {exc.Message}");
                 }
 
 
@@ -395,14 +395,14 @@ namespace StarTrinity.ContinuousSpeedTest
                     netshProcess.Start();
                     netshProcess.WaitForExit();
                     if (netshProcess.ExitCode == 0)
-                        _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.deepDetail, $"adding rule: netsh exited with code {netshProcess.ExitCode}");
-                    else _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.lightPain, $"adding rule: netsh exited with code {netshProcess.ExitCode}");
-                    _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.higherLevelDetail, $"successfully configured firewall");
+                        _cstApp.VisionChannel?.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.deepDetail, $"adding rule: netsh exited with code {netshProcess.ExitCode}");
+                    else _cstApp.VisionChannel?.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.lightPain, $"adding rule: netsh exited with code {netshProcess.ExitCode}");
+                    _cstApp.VisionChannel?.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.higherLevelDetail, $"successfully configured firewall");
                 }
             }
             catch (Exception exc)
             {
-                _cstApp.VisionChannel.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.lightPain, $"could not configure firewall: {exc.Message}");
+                _cstApp?.VisionChannel?.Emit("", visionChannelModuleName, Dcomms.Vision.AttentionLevel.lightPain, $"could not configure firewall: {exc.Message}");
             }
         }
     }
