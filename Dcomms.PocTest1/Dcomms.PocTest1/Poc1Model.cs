@@ -15,7 +15,7 @@ namespace Dcomms.PocTest1
             VisionChannel.AttentionLevel = AttentionLevel.deepDetail;
             VisionChannel.DisplayedLogMessagesMaxCount = 1000;
             VisionChannel.ClearLog_RamSizeMB = 100;
-            VisionChannel.ClearLog_MessagesCount = 1000;
+            VisionChannel.ClearLog_MessagesCount = 1000; 
 
             DrpTester5 = new DrpTester5(VisionChannel);
             if (drpTester5_InitializeUser1EchoResponder)

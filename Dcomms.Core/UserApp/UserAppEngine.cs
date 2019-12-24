@@ -16,7 +16,7 @@ namespace Dcomms.UserApp
         readonly VisionChannel _visionChannel;
         public string Status => $"todo";
 
-        public UserAppEngine(VisionChannel visionChannel)
+        public UserAppEngine(VisionChannel visionChannel, string databaseBasePath)
         {
             _visionChannel = visionChannel;
             _visionChannel.ClearModules();
@@ -29,7 +29,7 @@ namespace Dcomms.UserApp
                 VisionChannelSourceId = VisionChannelSourceId              
             });
 
-            _db = new Database(_drpPeerEngine.CryptoLibrary, new EmptyDatabaseKeyProvider(), _visionChannel, VisionChannelSourceId);
+            _db = new Database(_drpPeerEngine.CryptoLibrary, new EmptyDatabaseKeyProvider(), _visionChannel, VisionChannelSourceId, databaseBasePath);
 
             Test();
         }

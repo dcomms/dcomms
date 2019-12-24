@@ -30,7 +30,7 @@ namespace Dcomms.MessengerT
             try
             {
                 VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, "creating user app");
-                using var userAppEngine = new UserAppEngine(VisionChannel);
+                using var userAppEngine = new UserAppEngine(VisionChannel, null);
                 VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, $"creating web host at {Url}");
                 var host = CreateHostBuilder(Url, args).Build();
                 VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, $"created web host at {Url}");

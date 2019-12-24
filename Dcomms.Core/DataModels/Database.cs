@@ -24,13 +24,15 @@ namespace Dcomms.DataModels
         readonly IDatabaseKeyProvider _keyProvider;
         readonly VisionChannel _visionChannel;
         readonly string _visionChannelSourceId;
-        public Database(ICryptoLibrary cryptoLibrary, IDatabaseKeyProvider keyProvider, VisionChannel visionChannel, string visionChannelSourceId)
+        public Database(ICryptoLibrary cryptoLibrary, IDatabaseKeyProvider keyProvider, VisionChannel visionChannel, string visionChannelSourceId, string basePath)
         {
             _keyProvider = keyProvider;
             _cryptoLibrary = cryptoLibrary;
             _visionChannel = visionChannel;
 
-            var basePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            if (basePath == null)
+                basePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             var databaseFileName = Path.Combine(basePath,  "dcomms.db");
             WriteToLog_deepDetail($"basePath={basePath}, databaseFileName={databaseFileName}");
 

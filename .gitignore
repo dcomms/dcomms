@@ -60,3 +60,8 @@
 /StarTrinity.ContinuousSpeedTest2/bin/Release/netcoreapp3.1
 /StarTrinity.ContinuousSpeedTest2/obj
 /StarTrinity.CST/StarTrinity.CST/bin/Release/netstandard2.1
+/Dcomms.MessengerA/Dcomms.MessengerA/bin/Release/netstandard2.1
+/Dcomms.MessengerA/Dcomms.MessengerA/obj
+/Dcomms.MessengerA/Dcomms.MessengerA.Android/bin/Release
+/Dcomms.MessengerA/Dcomms.MessengerA.Android/obj
+/Dcomms.MessengerA/Dcomms.MessengerA.iOS/obj
