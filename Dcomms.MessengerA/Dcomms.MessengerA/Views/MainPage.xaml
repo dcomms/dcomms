@@ -4,11 +4,12 @@
             xmlns:d="http://xamarin.com/schemas/2014/forms/design"
             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
             mc:Ignorable="d"
+            
             xmlns:views="clr-namespace:Dcomms.MessengerA.Views"
             x:Class="Dcomms.MessengerA.Views.MainPage">
 
     <TabbedPage.Children>
-        <NavigationPage Title="Browse">
+        <!--<NavigationPage Title="Browse">
             <NavigationPage.Icon>
                 <OnPlatform x:TypeArguments="FileImageSource">
                     <On Platform="iOS" Value="tab_feed.png"/>
@@ -17,16 +18,27 @@
             <x:Arguments>
                 <views:ItemsPage />
             </x:Arguments>
-        </NavigationPage>
+        </NavigationPage>-->
         
-        <NavigationPage Title="About">
+        <NavigationPage Title="Chats">
             <NavigationPage.Icon>
                 <OnPlatform x:TypeArguments="FileImageSource">
                     <On Platform="iOS" Value="tab_about.png"/>
                 </OnPlatform>
             </NavigationPage.Icon>
             <x:Arguments>
-                <views:AboutPage />
+                <views:ChatsPage />
+            </x:Arguments>
+        </NavigationPage>
+
+        <NavigationPage Title="System Log" >
+            <NavigationPage.Icon>
+                <OnPlatform x:TypeArguments="FileImageSource">
+                    <On Platform="iOS" Value="tab_about.png"/>
+                </OnPlatform>
+            </NavigationPage.Icon>
+            <x:Arguments>
+                <views:VisionChannelPage x:Name="VisionChannelPage"/>
             </x:Arguments>
         </NavigationPage>
     </TabbedPage.Children>

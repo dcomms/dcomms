@@ -15,10 +15,7 @@ namespace Dcomms.MessengerA
         {
             InitializeComponent();
             DependencyService.Register<MockDataStore>();
-            MainPage = new MainPage();
-            MainPage.BindingContext = userAppEngine;
-
-            // visionChannel
+            MainPage = new MainPage(userAppEngine, visionChannel);
         }
 
         protected override void OnStart()

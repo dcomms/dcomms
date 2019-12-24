@@ -6,12 +6,16 @@
              mc:Ignorable="d"
              x:Class="Dcomms.MessengerA.Views.AboutPage"
              xmlns:vm="clr-namespace:Dcomms.MessengerA.ViewModels"
-             Title="{Binding Title}">
+             Title="Dcomms">
     
     <ContentPage.BindingContext>
         <vm:AboutViewModel />
     </ContentPage.BindingContext>
-    
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Add"  />
+    </ContentPage.ToolbarItems>
+
     <ContentPage.Resources>
         <ResourceDictionary>
             <Color x:Key="Primary">#2196F3</Color>

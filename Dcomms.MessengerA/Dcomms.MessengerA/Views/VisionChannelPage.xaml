@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:d="http://xamarin.com/schemas/2014/forms/design"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             NavigationPage.HasNavigationBar="False"
+             x:Class="Dcomms.MessengerA.Views.VisionChannelPage"
+          >
+    <ContentPage.Content>
+        <StackLayout>
+            <StackLayout>
+                <StackLayout Orientation="Horizontal">
+                    <Button Text="refresh" Command="{Binding RefreshDisplayedLogMessages}" />
+                    <Button Text="clear" Command="{Binding ClearLogMessages}" />
+                    <Picker SelectedItem="{Binding DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding DisplayFilterMinLevels}" WidthRequest="70" />
+
+                    <Entry Text="{Binding DisplayFilterMessageContainsString, Mode=TwoWay}" WidthRequest="50" />
+                </StackLayout>
+
+                <ListView ItemsSource="{Binding DisplayedLogMessages}" SeparatorVisibility="None" 
+                      BackgroundColor="Transparent" HasUnevenRows="True" >
+                    <ListView.ItemTemplate> 
+                        <DataTemplate>
+                            <ViewCell>
+                                <ViewCell.View>
+                                    <Grid Margin="0,0,0,3" Padding="0" RowSpacing="1" ColumnSpacing="1">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"></RowDefinition>
+                                            <RowDefinition Height="Auto"></RowDefinition>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30*"></ColumnDefinition>
+                                            <ColumnDefinition Width="100*"></ColumnDefinition>
+                                        </Grid.ColumnDefinitions>
+                                        <StackLayout>
+                                            <Label Text="{Binding TimeStr, Mode=OneTime}" BackgroundColor="{Binding AttentionLevelColor, Mode=OneTime}" ></Label>
+                                        </StackLayout>
+                                        <Label Text="{Binding ModuleName, Mode=OneTime}" Grid.Row="1" ></Label>
+                                        <Label Grid.Column="1" Grid.RowSpan="2" Text="{Binding Message, Mode=OneTime}" />
+                                    </Grid>
+                                </ViewCell.View>
+                            </ViewCell>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+            </StackLayout>
+        </StackLayout>
+    </ContentPage.Content>
+</ContentPage>

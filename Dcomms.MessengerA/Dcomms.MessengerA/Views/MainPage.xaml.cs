@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Dcomms.UserApp;
+using Dcomms.Vision;
+using System;
 using System.ComponentModel;
 using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
@@ -10,9 +12,12 @@ namespace Dcomms.MessengerA.Views
     [DesignTimeVisible(false)]
     public partial class MainPage : TabbedPage
     {
-        public MainPage()
+        public MainPage(UserAppEngine userAppEngine, VisionChannel1 visionChannel)
         {
             InitializeComponent();
+            this.BindingContext = userAppEngine;
+            VisionChannelPage.BindingContext = visionChannel;
         }
+
     }
 }
