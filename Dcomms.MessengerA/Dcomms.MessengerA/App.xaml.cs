@@ -3,18 +3,22 @@ using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
 using Dcomms.MessengerA.Services;
 using Dcomms.MessengerA.Views;
+using Dcomms.UserApp;
+using Dcomms.Vision;
 
 namespace Dcomms.MessengerA
 {
     public partial class App : Application
     {
 
-        public App(string databaseBasePath)
+        public App(UserAppEngine userAppEngine, VisionChannel1 visionChannel)
         {
             InitializeComponent();
-
             DependencyService.Register<MockDataStore>();
             MainPage = new MainPage();
+            MainPage.BindingContext = userAppEngine;
+
+            // visionChannel
         }
 
         protected override void OnStart()
