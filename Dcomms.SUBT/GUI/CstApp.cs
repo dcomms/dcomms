@@ -239,7 +239,7 @@ namespace Dcomms.SUBT.GUI
                         LocalPeerConfiguration.VisionChannel = VisionChannel;
 
                         if (LocalPeerConfiguration.RoleAsUser)
-                            MiscProcedures.MinPeerCompilationDateTimeUtc = new DateTime(2019, 05, 01);
+                            MiscProcedures.MinPeerCompilationDateTimeUtcExclusive = new DateTime(2019, 12, 24);
                         
                         LocalPeer = new LocalPeer(LocalPeerConfiguration);
                         RaisePropertyChanged(() => Initialized);

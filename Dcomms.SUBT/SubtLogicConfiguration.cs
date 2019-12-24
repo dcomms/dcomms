@@ -11,8 +11,8 @@ namespace Dcomms.SUBT
         internal const double RecentPacketLossDecayTimeTicks = TimeSpan.TicksPerMillisecond * 700; // is feed back to sender with delay = RTT + JB length
         internal const double RecenRxBandwidthDecayTimeTicks = TimeSpan.TicksPerMillisecond * 700; // is feed back to sender with delay = RTT + JB length
         internal const double RecentTxBandwidthDecayTimeTicks = TimeSpan.TicksPerMillisecond * 700; // self-test at sender side
-        internal const uint SubtRemoteStatusPacketTransmissionIntervalTicks = (uint)(TimeSpan.TicksPerMillisecond * 100);
-        internal const uint SubtAdjustmentRequestTransmissionIntervalTicks = (uint)(TimeSpan.TicksPerMillisecond * 200);
+        internal const uint SubtRemoteStatusPacketTransmissionIntervalTicks = (uint)(TimeSpan.TicksPerMillisecond * 300);
+        internal const uint SubtAdjustmentRequestRetransmissionIntervalTicks = (uint)(TimeSpan.TicksPerMillisecond * 200);
         internal const long MeasurementsIntervalTicks = TimeSpan.TicksPerSecond * 1;
         internal const long MeasurementInitializationTimeTicks = TimeSpan.TicksPerSecond * 5;
 

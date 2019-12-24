@@ -23,4 +23,8 @@
     <Exec Command="&quot;$(SolutionDir)signtool.exe&quot; sign /n &quot;Sergei Vladimirovich Aleshin IP&quot; /t http://timestamp.comodoca.com /a  &quot;$(TargetDir)Dcomms.Core.dll&quot;&#xD;&#xA;&quot;$(SolutionDir)signtool.exe&quot; sign /n &quot;Sergei Vladimirovich Aleshin IP&quot; /t http://timestamp.comodoca.com /a  &quot;$(TargetDir)Dcomms.SUBT.dll&quot;&#xD;&#xA;&quot;$(SolutionDir)signtool.exe&quot; sign /n &quot;Sergei Vladimirovich Aleshin IP&quot; /t http://timestamp.comodoca.com /a  &quot;$(TargetPath)&quot;&#xD;&#xA;&quot;$(SolutionDir)signtool.exe&quot; sign /n &quot;Sergei Vladimirovich Aleshin IP&quot; /t http://timestamp.comodoca.com /a  &quot;$(TargetDir)StarTrinity.ContinuousSpeedTest.exe&quot;" />
   </Target>
 
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="&quot;$(DevEnvDir)TextTransform.exe&quot; &quot;$(ProjectDir)tt\VersionAndCompiledDateCs.tt&quot;" />
+  </Target>
+
 </Project>

@@ -313,6 +313,7 @@ namespace Dcomms.SUBT
 
         #region send status/measurements
         uint? _lastTimeSentStatus = null;
+        SubtRemoteStatusPacket _lastSentSubtStatusPacket;
         void SendStatusIfNeeded(uint timestamp32) // sender thread
         {
             if (_lastTimeSentStatus == null ||
@@ -323,13 +324,27 @@ namespace Dcomms.SUBT
                 var remotePeerId = SubtConnectedPeer.RemotePeerId;
                 if (remotePeerId != null)
                 {
-                    var statusPacket = new SubtRemoteStatusPacket(_rxMeasurement.RecentBandwidth, _rxMeasurement.RecentPacketLoss,
-                            this.RecentTxBandwidth,
-                            SubtLocalPeer.LocalPeer.Configuration.RoleAsSharedPassive,
-                            SubtLocalPeer.ImHealthyAndReadyFor100kbpsU2uSymbiosis
-                            );
-                    var data = statusPacket.Encode(this);
-                    _stream.SendPacket(data, data.Length);
+                    bool samePacketAlreadySent = false;
+                    if (_lastSentSubtStatusPacket != null)
+                    {
+                        if (_lastSentSubtStatusPacket.ImHealthyAndReadyFor100kbpsU2uSymbiosis == SubtLocalPeer.ImHealthyAndReadyFor100kbpsU2uSymbiosis &&
+                            _lastSentSubtStatusPacket.RecentTxBandwidth == this.RecentTxBandwidth &&
+                            _lastSentSubtStatusPacket.RecentRxBandwidth == _rxMeasurement.RecentBandwidth)
+                                samePacketAlreadySent = true;
+                    }
+
+                    if (!samePacketAlreadySent)
+                    {
+                        var statusPacket = new SubtRemoteStatusPacket(_rxMeasurement.RecentBandwidth, _rxMeasurement.RecentPacketLoss,
+                                this.RecentTxBandwidth,
+                                SubtLocalPeer.LocalPeer.Configuration.RoleAsSharedPassive,
+                                SubtLocalPeer.ImHealthyAndReadyFor100kbpsU2uSymbiosis
+                                );
+                      //  SubtLocalPeer.WriteToLog_deepDetail($"sending SUBT status packet: {statusPacket} to peer {SubtConnectedPeer.RemotePeerId}");
+                        var data = statusPacket.Encode(this);
+                        _stream.SendPacket(data, data.Length);
+                        _lastSentSubtStatusPacket = statusPacket;
+                    }
                 }
             }
         }        
@@ -353,7 +368,7 @@ namespace Dcomms.SUBT
             {
                 case SubtPacketType.RemoteStatus:
                     var p = new SubtRemoteStatusPacket(reader);
-                 //   SubtLocalPeer.WriteToLog($"received from peer {SubtConnectedPeer.RemotePeerId}: SUBT status packet: {p}");
+                   // SubtLocalPeer.WriteToLog_deepDetail($"received from peer {SubtConnectedPeer.RemotePeerId}: SUBT status packet: {p}");
                     LatestRemoteStatus = p;
                     _stream.MarkAsActiveByExtension();
 
@@ -435,7 +450,7 @@ namespace Dcomms.SUBT
         {
             var p = PendingAdjustmentRequestPacketData; // save it to this (sender) thread
             if (p != null && _lastTimeSentBandwidthAdjustmentRequest != null &&
-                MiscProcedures.TimeStamp1IsLess(_lastTimeSentBandwidthAdjustmentRequest.Value + SubtLogicConfiguration.SubtAdjustmentRequestTransmissionIntervalTicks, timestamp32)
+                MiscProcedures.TimeStamp1IsLess(_lastTimeSentBandwidthAdjustmentRequest.Value + SubtLogicConfiguration.SubtAdjustmentRequestRetransmissionIntervalTicks, timestamp32)
                 )
             {
                 _lastTimeSentBandwidthAdjustmentRequest = timestamp32;

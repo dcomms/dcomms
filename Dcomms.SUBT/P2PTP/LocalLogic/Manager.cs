@@ -234,7 +234,7 @@ namespace Dcomms.P2PTP.LocalLogic
 
         bool RemoteVersionIsAcceptableForNewConnection(PeerHelloPacket remoteHello)
         {
-            return MiscProcedures.Uint32secondsToDateTime(remoteHello.LibraryVersion) > MiscProcedures.MinPeerCompilationDateTimeUtc;
+            return MiscProcedures.Uint32secondsToDateTime(remoteHello.LibraryVersion) > MiscProcedures.MinPeerCompilationDateTimeUtcExclusive;
         }
 
         /// <summary>

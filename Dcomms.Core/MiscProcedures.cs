@@ -15,7 +15,7 @@ namespace Dcomms
         {
             if (!_compilationDateTimeUtc.HasValue) throw new InvalidOperationException("Dcomms module is not initialized");            
         }
-        public static DateTime MinPeerCompilationDateTimeUtc = DateTime.MinValue;
+        public static DateTime MinPeerCompilationDateTimeUtcExclusive = DateTime.MinValue;
         public static DateTime CompilationDateTimeUtc
         {
             get
