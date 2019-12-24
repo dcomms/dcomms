@@ -37,6 +37,7 @@ namespace Dcomms.Cryptography
         public static ICryptoLibrary Library => new CryptoLibrary1();
 
         public static readonly int Ed25519PublicKeySize = Ed25519.PublicKeySize;
+        public static readonly int Ed25519PrivateKeySize = Ed25519.SecretKeySize;
         public static readonly int Ed25519SignatureSize = Ed25519.SignatureSize;
 
         public static readonly int Ecdh25519PrivateKeySize = Org.BouncyCastle.Crypto.Parameters.X25519PrivateKeyParameters.KeySize;

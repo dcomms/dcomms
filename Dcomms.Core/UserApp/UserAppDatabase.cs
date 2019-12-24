@@ -6,44 +6,43 @@ using System.Linq;
 using System.Text;
 using Dcomms.Cryptography;
 using Dcomms.DMP;
+using Dcomms.DRP;
 using Dcomms.Vision;
 using SQLite;
 
 namespace Dcomms.DataModels
 {
-    public interface IDatabaseKeyProvider
-    {
-        byte[] HsmOperation(byte[] input); // 16 bytes
-    }
-    public class Database: IDisposable
+    public class UserAppDatabase: IDisposable
     {
         const string VisionChannelModuleName = "db";
-        SQLiteConnection _db;
-    
+        SQLiteConnection _db_main;
+        SQLiteConnection _db_messages;
+
         readonly ICryptoLibrary _cryptoLibrary;
         readonly IDatabaseKeyProvider _keyProvider;
         readonly VisionChannel _visionChannel;
         readonly string _visionChannelSourceId;
-        public Database(ICryptoLibrary cryptoLibrary, IDatabaseKeyProvider keyProvider, VisionChannel visionChannel, string visionChannelSourceId, string basePath)
+        public UserAppDatabase(ICryptoLibrary cryptoLibrary, IDatabaseKeyProvider keyProvider, VisionChannel visionChannel, string visionChannelSourceId, string basePath)
         {
             _keyProvider = keyProvider;
             _cryptoLibrary = cryptoLibrary;
             _visionChannel = visionChannel;
-
-
+            
             if (basePath == null)
                 basePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            var databaseFileName = Path.Combine(basePath,  "dcomms.db");
-            WriteToLog_deepDetail($"basePath={basePath}, databaseFileName={databaseFileName}");
+            var mainDatabaseFileName = Path.Combine(basePath,  "dcomms_main.db");
+            WriteToLog_deepDetail($"basePath={basePath}, databaseFileName={mainDatabaseFileName}");
 
-            _db = new SQLiteConnection(databaseFileName);               
-            _db.CreateTable<User>(CreateFlags.None);
+            _db_main = new SQLiteConnection(mainDatabaseFileName);
+            _db_main.CreateTable<User>(CreateFlags.None);
+            _db_main.CreateTable<RootUserKeys>(CreateFlags.None);
+            _db_main.CreateTable<UserRegistrationID>(CreateFlags.None);
             WriteToLog_deepDetail($"initialized sqlite database");
         }
         public void Dispose()
         {
-            _db?.Dispose();
-            _db = null;
+            _db_main?.Dispose();
+            _db_main = null;
             WriteToLog_deepDetail($"disposed sqlite database");
         }
         void GetIVandKeys(int id, EncryptedFieldIds fieldId, out byte[] iv, out byte[] aesKey, out byte[] hmacKey)
@@ -106,13 +105,15 @@ namespace Dcomms.DataModels
             var dataLength = reader.ReadUInt16();
             return reader.ReadBytes(dataLength);
         }
+
+        #region insert & query
         /// <summary>
         /// encrypts, signs, inserts data
         /// </summary>
         public void InsertUser(User user)
         {
             // get ID of the new record
-            _db.Insert(user);
+            _db_main.Insert(user);
 
             EncryptAndSign(user.UserID.Encode(), user.Id, EncryptedFieldIds.User_UserID, out var e, out var a);
             user.UserID_encrypted = e; user.UserID_hmac = a;
@@ -123,14 +124,13 @@ namespace Dcomms.DataModels
             EncryptAndSign(user.LocalUserCertificate?.Encode(), user.Id, EncryptedFieldIds.User_LocalUserCertificate, out e, out a);
             user.LocalUserCertificate_encrypted = e; user.LocalUserCertificate_hmac = a;
                                  
-            _db.Update(user);
+            _db_main.Update(user);
 
             WriteToLog_deepDetail($"inserted user '{user.AliasID}'");
         }
-
         public List<User> GetUsers()
         {      
-            var users = _db.Table<User>().ToList();
+            var users = _db_main.Table<User>().ToList();
             foreach (var u in users)
             {
                 try
@@ -148,12 +148,78 @@ namespace Dcomms.DataModels
             return users;
           //  var user = db.Get<UserId>(5); // primary key id of 5
         }
+        
+        public void InsertRootUserKeys(RootUserKeys rootUserKeys)
+        {
+            // get ID of the new record
+            _db_main.Insert(rootUserKeys);
+
+            EncryptAndSign(rootUserKeys.UserRootPrivateKeys.Encode(), rootUserKeys.Id, EncryptedFieldIds.User_UserID, out var e, out var a);
+            rootUserKeys.UserRootPrivateKeys_encrypted = e; rootUserKeys.UserRootPrivateKeys_hmac = a;
+
+            _db_main.Update(rootUserKeys);
+
+            WriteToLog_deepDetail($"inserted rootUserKeys '{rootUserKeys.UserId}'");
+        }
+        public List<RootUserKeys> GetRootUserKeys()
+        {
+            var rootUserKeys = _db_main.Table<RootUserKeys>().ToList();
+            foreach (var k in rootUserKeys)
+            {
+                try
+                {
+                    k.UserRootPrivateKeys = UserRootPrivateKeys.Decode(DecryptAndVerify(k.UserRootPrivateKeys_encrypted, k.UserRootPrivateKeys_hmac, k.Id, EncryptedFieldIds.RootUserKeys_UserRootPrivateKeys));
+                    WriteToLog_deepDetail($"decrypted RootUserKeys '{k.Id}'");
+                }
+                catch (Exception exc)
+                {
+                    HandleException($"can not decrypt/verify RootUserKeys ID={k.Id}: ", exc);
+                }
+            }
+            return rootUserKeys;
+        }
+
+
+        public void InsertUserRegistrationID(UserRegistrationID userRegistrationID)
+        {
+            // get ID of the new record
+            _db_main.Insert(userRegistrationID);
+
+            EncryptAndSign(userRegistrationID.RegistrationId.Encode(), userRegistrationID.Id, EncryptedFieldIds.UserRegistrationID_RegistrationId, out var e, out var a);
+            userRegistrationID.RegistrationId_encrypted = e; userRegistrationID.RegistrationId_hmac = a;
+
+            EncryptAndSign(userRegistrationID.RegistrationPrivateKey.Encode(), userRegistrationID.Id, EncryptedFieldIds.UserRegistrationID_RegistrationPrivateKey, out e, out a);
+            userRegistrationID.RegistrationPrivateKey_encrypted = e; userRegistrationID.RegistrationPrivateKey_hmac = a;
+
+            _db_main.Update(userRegistrationID);
+
+            WriteToLog_deepDetail($"inserted userRegistrationID '{userRegistrationID.UserId}'");
+        }
+        public List<UserRegistrationID> GetUserRegistrationID()
+        {
+            var userRegistrationIDs = _db_main.Table<UserRegistrationID>().ToList();
+            foreach (var r in userRegistrationIDs)
+            {
+                try
+                {
+                    r.RegistrationId = RegistrationId.Decode(DecryptAndVerify(r.RegistrationId_encrypted, r.RegistrationId_hmac, r.Id, EncryptedFieldIds.UserRegistrationID_RegistrationId));
+                    r.RegistrationPrivateKey = RegistrationPrivateKey.Decode(DecryptAndVerify(r.RegistrationId_encrypted, r.RegistrationId_hmac, r.Id, EncryptedFieldIds.UserRegistrationID_RegistrationPrivateKey));
+                    WriteToLog_deepDetail($"decrypted userRegistrationID '{r.Id}'");
+                }
+                catch (Exception exc)
+                {
+                    HandleException($"can not decrypt/verify userRegistrationID ID={r.Id}: ", exc);
+                }
+            }
+            return userRegistrationIDs;
+        }
+        #endregion
+
+        #region vision
         void HandleException(string prefix, Exception exc)
         {
             WriteToLog_mediumPain($"{prefix}{exc}");
         }
-
-
 
         internal bool WriteToLog_deepDetail_enabled => _visionChannel?.GetAttentionTo(_visionChannelSourceId, VisionChannelModuleName) <= AttentionLevel.deepDetail;
         void WriteToLog_deepDetail(string msg)
@@ -165,37 +231,13 @@ namespace Dcomms.DataModels
         {
             _visionChannel?.Emit(_visionChannelSourceId, VisionChannelModuleName, AttentionLevel.mediumPain, msg);
         }
+        #endregion
     }
 
 
-    /// <summary>
-    /// both local user IDs and remote user IDs (=contact book)
-    /// </summary>
-    [Table("Users")]
-    public class User
+    public interface IDatabaseKeyProvider
     {
-        [PrimaryKey, AutoIncrement]
-        public int Id { get; set; }
-
-        [Ignore]
-        public UserId UserID { get; set; }
-        public byte[] UserID_encrypted { get; set; }      
-        public byte[] UserID_hmac { get; set; }
-
-        [Ignore]
-        public string AliasID { get; set; }
-        public byte[] AliasID_encrypted { get; set; }
-        public byte[] AliasID_hmac { get; set; }
-        
-        [Ignore]
-        ///////////////////////////////////[SQLite.Indexed]
-        public bool IsLocal => LocalUserCertificate_encrypted != null;
-        [Ignore]
-        public UserCertificate LocalUserCertificate { get; set; }      
-        public byte[] LocalUserCertificate_encrypted { get; set; }
-        public byte[] LocalUserCertificate_hmac { get; set; }
-
-        public override string ToString() => AliasID;
+        byte[] HsmOperation(byte[] input); // 16 bytes
     }
        
 
@@ -203,6 +245,12 @@ namespace Dcomms.DataModels
     {
         User_UserID = 1,
         User_AliasID = 2,
-        User_LocalUserCertificate = 3,        
+        User_LocalUserCertificate = 3,
+
+        RootUserKeys_UserRootPrivateKeys = 4,
+
+
+        UserRegistrationID_RegistrationId = 5,
+        UserRegistrationID_RegistrationPrivateKey = 6,
     }
 }

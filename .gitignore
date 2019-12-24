@@ -65,3 +65,5 @@
 /Dcomms.MessengerA/Dcomms.MessengerA.Android/bin/Release
 /Dcomms.MessengerA/Dcomms.MessengerA.Android/obj
 /Dcomms.MessengerA/Dcomms.MessengerA.iOS/obj
+/Dcomms.MessengerA/Dcomms.MessengerA/bin/Debug/netstandard2.1
+/Dcomms.MessengerA/Dcomms.MessengerA.Android/bin/Debug

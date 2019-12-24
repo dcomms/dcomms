@@ -16,7 +16,7 @@ namespace Dcomms.DMP
         /// includes "root keys digital signature algorithm type": "ed25519", "rsa2048"
         /// </summary>
         byte Flags;
-        const byte FlagsMask_MustBeZero = 0b11110000;
+        const byte FlagsMask_MustBeZero = 0b11100000;
         public const byte FlagsMask_UserIdReplacementIsAllowed = 0b00000001;
 
         /// <summary>
@@ -93,7 +93,10 @@ namespace Dcomms.DMP
             writer.Write(MinimalRequiredRootSignaturesCountInCertificate);
             writer.Write((byte)RootPublicKeys.Count);
             foreach (var rootPublicKey in RootPublicKeys)
+            {
+                if (rootPublicKey.Length != CryptoLibraries.Ed25519PublicKeySize) throw new Exception("e984376");
                 writer.Write(rootPublicKey);
+            }
         }
         public static UserId Decode(byte[] data)
         {
@@ -119,6 +122,8 @@ namespace Dcomms.DMP
 
     public class UserRootPrivateKeys
     {
+        const byte FlagsMask_MustBeZero = 0b11100000;
+
         /// <summary>
         /// are used to sign (intermediate) UserCertificate's
         /// signature of every private key is required
@@ -160,6 +165,44 @@ namespace Dcomms.DMP
                 return r;
             }
         }
+
+        public byte[] Encode()
+        {
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
+            Encode(writer);
+            return ms.ToArray();
+        }
+        public void Encode(BinaryWriter writer)
+        {
+            byte flags = 0;
+            writer.Write(flags);
+            writer.Write((byte)ed25519privateKeys.Count);
+            foreach (var ed25519privateKey in ed25519privateKeys)
+            {
+                if (ed25519privateKey.Length != CryptoLibraries.Ed25519PrivateKeySize) throw new Exception("e23473473");
+                writer.Write(ed25519privateKey);
+            }
+        }
+
+        public static UserRootPrivateKeys Decode(byte[] data)
+        {
+            if (data == null) return null;
+            return Decode(BinaryProcedures.CreateBinaryReader(data, 0));
+        }
+        public static UserRootPrivateKeys Decode(BinaryReader reader)
+        {
+            var r = new UserRootPrivateKeys();
+            byte flags = reader.ReadByte();
+            if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
+
+            var count = reader.ReadByte();
+            r.ed25519privateKeys = new List<byte[]>();
+            for (int i = 0; i < count; i++)
+                r.ed25519privateKeys.Add(reader.ReadBytes(CryptoLibraries.Ed25519PrivateKeySize));
+
+            return r;
+        }
+
     }
 
     /// <summary>

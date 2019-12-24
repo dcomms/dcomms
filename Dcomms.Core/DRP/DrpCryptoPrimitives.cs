@@ -30,12 +30,23 @@ namespace Dcomms.DRP
             if (Ed25519publicKey.Length != CryptoLibraries.Ed25519PublicKeySize) throw new ArgumentException();
             writer.Write(Ed25519publicKey);
         }
+        public byte[] Encode()
+        {
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
+            Encode(writer);
+            return ms.ToArray();
+        }
         public static RegistrationId Decode(BinaryReader reader)
         {
             var flags = reader.ReadByte();
             if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
             var r = new RegistrationId(reader.ReadBytes(CryptoLibraries.Ed25519PublicKeySize));        
             return r;
+        }
+        public static RegistrationId Decode(byte[] data)
+        {
+            if (data == null) return null;
+            return Decode(BinaryProcedures.CreateBinaryReader(data, 0));
         }
         public override bool Equals(object obj)
         {
@@ -725,8 +736,35 @@ namespace Dcomms.DRP
 
     public class RegistrationPrivateKey
     {
+        const byte FlagsMask_MustBeZero = 0b11100000;
         public byte[] ed25519privateKey;
         public string ToCsharpDeclaration => MiscProcedures.ByteArrayToCsharpDeclaration(ed25519privateKey);
+        
+        public void Encode(BinaryWriter writer)
+        {
+            byte flags = 0;
+            writer.Write(flags);
+            if (ed25519privateKey.Length != CryptoLibraries.Ed25519PrivateKeySize) throw new ArgumentException();
+            writer.Write(ed25519privateKey);
+        }
+        public byte[] Encode()
+        {
+            BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
+            Encode(writer);
+            return ms.ToArray();
+        }
+        public static RegistrationPrivateKey Decode(BinaryReader reader)
+        {
+            var flags = reader.ReadByte();
+            if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
+            var r = new RegistrationPrivateKey { ed25519privateKey = reader.ReadBytes(CryptoLibraries.Ed25519PrivateKeySize) };
+            return r;
+        }
+        public static RegistrationPrivateKey Decode(byte[] data)
+        {
+            if (data == null) return null;
+            return Decode(BinaryProcedures.CreateBinaryReader(data, 0));
+        }
     }
     public class RegistrationSignature
     {

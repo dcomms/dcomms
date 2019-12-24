@@ -12,7 +12,7 @@ namespace Dcomms.UserApp
     {
         const string VisionChannelSourceId = "UA";
         DrpPeerEngine _drpPeerEngine;
-        Database _db;
+        UserAppDatabase _db;
         readonly VisionChannel _visionChannel;
         public string Status => $"todo";
 
@@ -29,7 +29,7 @@ namespace Dcomms.UserApp
                 VisionChannelSourceId = VisionChannelSourceId              
             });
 
-            _db = new Database(_drpPeerEngine.CryptoLibrary, new EmptyDatabaseKeyProvider(), _visionChannel, VisionChannelSourceId, databaseBasePath);
+            _db = new UserAppDatabase(_drpPeerEngine.CryptoLibrary, new EmptyDatabaseKeyProvider(), _visionChannel, VisionChannelSourceId, databaseBasePath);
 
             Test();
         }
