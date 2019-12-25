@@ -1,0 +1,22 @@
+﻿@model Dcomms.UserApp.LocalUser
+@{
+    ViewData["Title"] = "Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h3>Local user account details</h3>
+<table>
+    <tr>
+        <td>Alias</td>
+        <td>@Model.User.AliasID</td>
+    </tr>
+    <tr>
+        <td></td>
+        <td></td>
+    </tr>
+</table>
+
+@*<a href="/">Save</a> |*@
+<a href="/">Delete</a> |
+<a href="/">Back</a>
+
