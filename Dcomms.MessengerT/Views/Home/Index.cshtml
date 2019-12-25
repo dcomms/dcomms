@@ -1,7 +1,72 @@
-﻿@{
+﻿<style>
+    .localUserButtons {
+        opacity: 0
+    }
+
+    .localUserTitle:hover .localUserButtons {
+        opacity: 1;
+    }
+</style>
+
+
+@{
     ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
+    @*<h1 class="display-4">Welcome</h1>*@
+    <table>
+        <tr>
+            <td valign="top">
+                <div style="min-width: 150px; text-align: left; background-color: #EEE; padding: 10px">
+                    
+
+                    @*  <div class="display-4">LocalUsers/Chats</div>
+        top-level hierarchy: grop by local User ID
+                    *@
+
+
+                    @foreach (var localUser in Program.UserAppEngine.LocalUsers)
+                    {
+                    <div>
+                        <span class="localUserTitle">
+                            <a href="/">@localUser.User.AliasID</a>
+                            <span class="localUserButtons"><a href="/">delete</a></span>
+                            
+                        </span>
+
+                        <div style="margin-left: 20px">
+                            <a href="/">contact1</a><br />
+                            <a href="/">contact2</a><br />
+                            <a href="/">contact3</a><br />
+                            <a href="/">contact4</a><br/>
+
+                            <a href="/">add new contact</a>
+                        </div>
+                    </div>
+                    }
+
+                    <div><a href="/">register new account</a></div>
+                </div>
+            </td>
+            <td valign="top">
+                <div style="min-width: 300px; text-align: left; padding: 10px">
+                    <div style="min-height: 400px">
+                        <div>message1</div>
+                        <div>message2</div>
+                        <div>message3</div>
+                        <div>message4</div>
+                        <div>message5</div>
+                        <div>message6</div>
+                    </div>
+                    <table>
+                        <tr>
+                            <td><textarea rows="2" cols="50" placeholder="Enter your message here"></textarea></td>
+                            <td valign="bottom">&emsp;<a href="/">Send</a></td>
+                        </tr>                        
+                    </table>                    
+                </div>                
+            </td>
+        </tr>
+    </table>
 </div>

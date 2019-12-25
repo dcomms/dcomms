@@ -15,6 +15,7 @@ namespace Dcomms.MessengerT
     {
         const string Url = "http://localhost:5050";
         public static VisionChannel1 VisionChannel;
+        public static UserAppEngine UserAppEngine;
         public static void Main(string[] args)
         {
             VisionChannel = new VisionChannel1()
@@ -30,7 +31,7 @@ namespace Dcomms.MessengerT
             try
             {
                 VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, "creating user app");
-                using var userAppEngine = new UserAppEngine(VisionChannel, null);
+                UserAppEngine = new UserAppEngine(VisionChannel, null);
                 VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, $"creating web host at {Url}");
                 var host = CreateHostBuilder(Url, args).Build();
                 VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, $"created web host at {Url}");
@@ -39,10 +40,12 @@ namespace Dcomms.MessengerT
 
                 VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, $"running web host at {Url}");
                 host.Run();
+                UserAppEngine?.Dispose();
             }
             catch (Exception exc)
             {
                 VisionChannel.Emit("", "", AttentionLevel.strongPain, $"error in Program.Main(): {exc}");
+                UserAppEngine?.Dispose();
             }
         }
 

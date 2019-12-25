@@ -435,12 +435,25 @@ namespace Dcomms.DRP
 
         public static LocalDrpPeerConfiguration  Create(ICryptoLibrary cryptoLibrary, int numberOfDimensions, byte[] ed25519privateKey = null, RegistrationId registrationId = null)
         {
-            var privatekey = new RegistrationPrivateKey { ed25519privateKey = ed25519privateKey ?? cryptoLibrary.GeneratePrivateKeyEd25519() };
-            var r = new LocalDrpPeerConfiguration
+            LocalDrpPeerConfiguration r;
+            if (ed25519privateKey != null && registrationId != null)
             {
-                LocalPeerRegistrationPrivateKey = privatekey,
-                LocalPeerRegistrationId = new RegistrationId(registrationId?.Ed25519publicKey ?? cryptoLibrary.GetPublicKeyEd25519(privatekey.ed25519privateKey))
-            };
+                r = new LocalDrpPeerConfiguration
+                {
+                    LocalPeerRegistrationPrivateKey = new RegistrationPrivateKey { ed25519privateKey = ed25519privateKey },
+                    LocalPeerRegistrationId = registrationId
+                };
+            }
+            else
+            {
+                RegistrationId.CreateNew(cryptoLibrary, out var newPrivateKey, out var newRegistrationId);
+                r = new LocalDrpPeerConfiguration
+                {
+                    LocalPeerRegistrationPrivateKey = newPrivateKey,
+                    LocalPeerRegistrationId = newRegistrationId
+                };
+            }
+
             if (numberOfDimensions == 2)
             {
                 r.MinDesiredNumberOfNeighbors = 5;

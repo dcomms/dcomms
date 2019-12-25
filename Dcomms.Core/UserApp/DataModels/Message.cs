@@ -6,5 +6,15 @@ namespace Dcomms.DataModels
 {
     class Message
     {
+        /*
+         
+         FromUserID32
+ToUserID32
+LocalTimeCreatedUTC
+MessagePlainText
+MessageHtml
+MessageGroupID
+         
+         */
     }
 }

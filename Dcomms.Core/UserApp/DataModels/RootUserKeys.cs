@@ -12,6 +12,7 @@ namespace Dcomms.DataModels
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
                
+        [Indexed]
         public int UserId { get; set; } // FK to Users table
         
         [Ignore]

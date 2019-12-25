@@ -72,6 +72,12 @@ namespace Dcomms.DRP
         }
         public static float[] GetDifferenceVectorF(RegistrationId from, RegistrationId to, ICryptoLibrary cryptoLibrary, int numberOfDimensions)
             => GetDifferenceVector(from, to, cryptoLibrary, numberOfDimensions).Select(x => (float)x).ToArray();
+
+        public static void CreateNew(ICryptoLibrary cryptoLibrary, out RegistrationPrivateKey privateKey, out RegistrationId registrationId)
+        {
+            privateKey = new RegistrationPrivateKey { ed25519privateKey = cryptoLibrary.GeneratePrivateKeyEd25519() };
+            registrationId = new RegistrationId(cryptoLibrary.GetPublicKeyEd25519(privateKey.ed25519privateKey));          
+        }
     }
 
 

@@ -16,6 +16,9 @@ namespace Dcomms.DataModels
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
 
+        [Indexed]
+        public int OwnerLocalUserId { get; set; } // = 0 means NULL (this user is local)
+
         [Ignore]
         public UserId UserID { get; set; }
         public byte[] UserID_encrypted { get; set; }
