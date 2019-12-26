@@ -37,14 +37,14 @@ namespace Dcomms.UserApp
             foreach (var u in _db.GetLocalUsers())
             {
                 var rootUserKeys = _db.GetRootUserKeys(u.Id);
-                var userRegistrationID = _db.GetUserRegistrationID(u.Id);
-                if (rootUserKeys != null && userRegistrationID != null)
+                var userRegistrationIDs = _db.GetUserRegistrationIDs(u.Id);
+                if (rootUserKeys != null)
                 {
                     LocalUsers.Add(new LocalUser
                     {
                         User = u,
                         RootUserKeys = rootUserKeys,
-                        UserRegistrationID = userRegistrationID,
+                        UserRegistrationIDs = userRegistrationIDs,
                     });
                 }
             }
@@ -86,14 +86,22 @@ namespace Dcomms.UserApp
         }
 
         public List<LocalUser> LocalUsers;
+        public void DeleteLocalUser(LocalUser localUser)
+        {
+            foreach (var regId in localUser.UserRegistrationIDs)
+                _db.DeleteRegistrationId(regId.Id);
+            if (localUser.RootUserKeys != null) _db.DeleteRootUserKeys(localUser.RootUserKeys.Id);
+            _db.DeleteUser(localUser.User.Id);
 
+            LocalUsers.Remove(localUser);
+        }
     }
 
     public class LocalUser
     {
         public User User;
         public RootUserKeys RootUserKeys;
-        public UserRegistrationID UserRegistrationID;
+        public List<UserRegistrationID> UserRegistrationIDs;
     }
 
     class EmptyDatabaseKeyProvider : IDatabaseKeyProvider

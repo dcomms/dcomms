@@ -1,15 +1,11 @@
 ﻿<style>
-    /*.localUserButtons {
+    .localUserButtons {
         opacity: 0
     }
     .localUserTitle:hover .localUserButtons {
         opacity: 1;
     }
-        <span class="localUserTitle">
-                            <a href="/">xx</a>
-                            <span class="localUserButtons"><a href="/">delete</a></span>                            
-                        </span>
-    */
+  
 </style>
 
 
@@ -17,36 +13,36 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    @*<h1 class="display-4">Welcome</h1>*@
+<div class="text-center" style="">
     <table>
         <tr>
             <td valign="top">
-                <div style="min-width: 150px; text-align: left; background-color: #EEE; padding: 10px">
-                    
-
+                <div style=" min-width: 150px;  min-height: 470px; text-align: left; background-color: #EEE; padding: 10px">
                     @foreach (var localUser in Program.UserAppEngine.LocalUsers)
                     {
-                    <div>                        
-                        <a asp-action="Details" asp-controller="LocalUsers" asp-route-id="@localUser.User.Id">@localUser.User.AliasID</a>                            
-
+                    <div>
+                                              
+                        <span class="localUserTitle">
+                            <a asp-action="Details" asp-controller="LocalUsers" asp-route-id="@localUser.User.Id">@localUser.User.AliasID</a>
+                            <span class="localUserButtons"><a asp-action="Delete" asp-controller="LocalUsers" asp-route-id="@localUser.User.Id">delete</a></span>
+                        </span>
                         <div style="margin-left: 20px">
                             <a href="/">contact1</a><br />
                             <a href="/">contact2</a><br />
                             <a href="/">contact3</a><br />
-                            <a href="/">contact4</a><br/>
+                            <a href="/">contact4</a><br />
 
                             <a href="/">add new contact</a>
                         </div>
                     </div>
                     }
 
-                    <div><a href="/">create new account</a></div>
+                    <div><a asp-action="Create" asp-controller="LocalUsers">create new account</a></div>
                 </div>
             </td>
             <td valign="top">
                 <div style="min-width: 300px; text-align: left; padding: 10px">
-                    <div style="min-height: 400px">
+                    <div style="min-height: 400px;">
                         <div>message1</div>
                         <div>message2</div>
                         <div>message3</div>

@@ -1,0 +1,15 @@
+﻿@model Dcomms.UserApp.LocalUser
+
+@{
+    ViewData["Title"] = "Delete account";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h3>Are you sure you want to delete account @Model.User.AliasID?</h3>
+<div>  
+    
+    <form asp-action="Delete">
+        <input type="submit" value="Delete" class="btn btn-danger" /> |
+        <a href="javascript:history.back()">Back</a>
+    </form>
+</div>

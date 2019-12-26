@@ -164,7 +164,7 @@ namespace Dcomms.DataModels
         public RootUserKeys GetRootUserKeys(int userId)
         {
             var r = _db_main.Table<RootUserKeys>().FirstOrDefault(x => x.UserId == userId);
-            if (r == null) throw new Exception($"RootUserKeys record was not found for UserID={userId}");
+            if (r == null) return null;
             
             r.UserRootPrivateKeys = UserRootPrivateKeys.Decode(DecryptAndVerify(r.UserRootPrivateKeys_encrypted, r.UserRootPrivateKeys_hmac, r.Id, EncryptedFieldIds.RootUserKeys_UserRootPrivateKeys));
              //       WriteToLog_deepDetail($"decrypted RootUserKeys '{k.Id}'");               
@@ -187,16 +187,35 @@ namespace Dcomms.DataModels
 
             WriteToLog_deepDetail($"inserted userRegistrationID '{userRegistrationID.UserId}'");
         }
-        public UserRegistrationID GetUserRegistrationID(int userId)
+        public List<UserRegistrationID> GetUserRegistrationIDs(int userId)
         {
-            var r = _db_main.Table<UserRegistrationID>().FirstOrDefault(x => x.UserId == userId);
-            if (r == null) throw new Exception($"UserRegistrationID record was not found for UserID={userId}");
-                      
-            r.RegistrationId = RegistrationId.Decode(DecryptAndVerify(r.RegistrationId_encrypted, r.RegistrationId_hmac, r.Id, EncryptedFieldIds.UserRegistrationID_RegistrationId));
-            r.RegistrationPrivateKey = RegistrationPrivateKey.Decode(DecryptAndVerify(r.RegistrationPrivateKey_encrypted, r.RegistrationPrivateKey_hmac, r.Id, EncryptedFieldIds.UserRegistrationID_RegistrationPrivateKey));
-            //  WriteToLog_deepDetail($"decrypted userRegistrationID '{r.Id}'");
-               
-            return r;
+            var list = new List<UserRegistrationID>();
+            foreach (var r in _db_main.Table<UserRegistrationID>().Where(x => x.UserId == userId))
+            {
+                r.RegistrationId = RegistrationId.Decode(DecryptAndVerify(r.RegistrationId_encrypted, r.RegistrationId_hmac, r.Id, EncryptedFieldIds.UserRegistrationID_RegistrationId));
+                r.RegistrationPrivateKey = RegistrationPrivateKey.Decode(DecryptAndVerify(r.RegistrationPrivateKey_encrypted, r.RegistrationPrivateKey_hmac, r.Id, EncryptedFieldIds.UserRegistrationID_RegistrationPrivateKey));
+                //  WriteToLog_deepDetail($"decrypted userRegistrationID '{r.Id}'");
+            }
+            
+            return list;
+        }
+        #endregion
+
+        #region delete
+        public void DeleteUser(int userId)
+        {
+            _db_main.Delete<User>(userId);
+        }
+
+        public void DeleteRegistrationId(int registrationId)
+        {
+            _db_main.Delete<UserRegistrationID>(registrationId);
+
+        }
+        public void DeleteRootUserKeys(int rootUserKeysId)
+        {
+            _db_main.Delete<RootUserKeys>(rootUserKeysId);
+
         }
         #endregion
 

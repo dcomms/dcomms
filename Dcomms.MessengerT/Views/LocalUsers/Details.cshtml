@@ -4,19 +4,36 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h3>Local user account details</h3>
+<h3>Account details</h3>
 <table>
     <tr>
-        <td>Alias</td>
+        <td style="min-width: 150px">Account ID</td>
         <td>@Model.User.AliasID</td>
     </tr>
-    <tr>
-        <td></td>
-        <td></td>
-    </tr>
+    @for (int i = 0; i < @Model.User.UserID.RootPublicKeys.Count; i++)
+    {
+        <tr>
+            <td>Public key #@(i + 1)</td>
+            <td>@Dcomms.MiscProcedures.ByteArrayToString(Model.User.UserID.RootPublicKeys[i])</td>
+        </tr>
+    }
+
+    @for (int i = 0; i < @Model.UserRegistrationIDs.Count; i++)
+    {
+        <tr>
+            <td>Registration ID #@(i + 1)</td>
+            <td>@Dcomms.MiscProcedures.ByteArrayToString(Model.UserRegistrationIDs[i].RegistrationId.Ed25519publicKey)</td>
+        </tr>
+    }
+
 </table>
 
+<hr />
+<dl class="row">
+</dl>
+
 @*<a href="/">Save</a> |*@
-<a href="/">Delete</a> |
-<a href="/">Back</a>
+
+<a asp-action="Delete" asp-route-id="@Model.User.Id">Delete</a> |
+<a href="javascript:history.back()">Back</a>
 

@@ -360,6 +360,7 @@ namespace Dcomms
         }
         public static string ByteArrayToString(byte[] a)
         {
+            if (a == null) return null;
             return String.Join("", a.Select(x => x.ToString("X2")));
         }
         public static string ByteArrayToCsharpDeclaration(byte[] a)
