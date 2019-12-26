@@ -1,4 +1,4 @@
-﻿using Dcomms.DataModels;
+﻿using Dcomms.UserApp.DataModels;
 using Dcomms.DMP;
 using Dcomms.DRP;
 using Dcomms.Vision;
@@ -49,36 +49,6 @@ namespace Dcomms.UserApp
                 }
             }
         }
-        void TestAddLocalUser()
-        {
-            UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), _drpPeerEngine.CryptoLibrary, out var userRootPrivateKeys, out var userId);           
-            var userCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_drpPeerEngine.CryptoLibrary, userId, userRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddYears(1));
-
-            var u = new User
-            {
-                AliasID = $"localUser{new Random().Next(1000)}",
-                UserID = userId,
-                OwnerLocalUserId = 0,
-                LocalUserCertificate = userCertificateWithPrivateKey,
-            };
-            _db.InsertUser(u);
-
-            _db.InsertRootUserKeys(new RootUserKeys
-            {
-                UserId = u.Id,
-                UserRootPrivateKeys = userRootPrivateKeys
-            });
-
-            RegistrationId.CreateNew(_drpPeerEngine.CryptoLibrary, out var regPrivateKey, out var registrationId);
-
-            _db.InsertUserRegistrationID(new UserRegistrationID
-            {
-                UserId = u.Id,
-                RegistrationId = registrationId,
-                RegistrationPrivateKey = regPrivateKey
-            });
-
-        }
         public void Dispose()
         {
             _db?.Dispose();
@@ -95,13 +65,49 @@ namespace Dcomms.UserApp
 
             LocalUsers.Remove(localUser);
         }
-    }
+        public void AddLocalUser(string aliasId)
+        {
+            UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), _drpPeerEngine.CryptoLibrary, out var userRootPrivateKeys, out var userId);           
+            var userCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_drpPeerEngine.CryptoLibrary, userId, userRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddYears(1));
 
-    public class LocalUser
-    {
-        public User User;
-        public RootUserKeys RootUserKeys;
-        public List<UserRegistrationID> UserRegistrationIDs;
+            var u = new User
+            {
+                AliasID = aliasId,
+                UserID = userId,
+                OwnerLocalUserId = 0,
+                LocalUserCertificate = userCertificateWithPrivateKey,
+            };
+            _db.InsertUser(u);
+
+            var ruk = new RootUserKeys
+            {
+                UserId = u.Id,
+                UserRootPrivateKeys = userRootPrivateKeys
+            };
+            _db.InsertRootUserKeys(ruk);
+
+            RegistrationId.CreateNew(_drpPeerEngine.CryptoLibrary, out var regPrivateKey, out var registrationId);
+
+            var regId = new UserRegistrationID
+            {
+                UserId = u.Id,
+                RegistrationId = registrationId,
+                RegistrationPrivateKey = regPrivateKey
+            };
+            _db.InsertUserRegistrationID(regId);
+
+            LocalUsers.Add(new LocalUser
+            {
+                User = u,
+                RootUserKeys = ruk,
+                UserRegistrationIDs = new List<UserRegistrationID> { regId }
+            });
+        }
+        public void UpdateLocalUser(LocalUser user, LocalUser newFieldsUser)
+        {
+            user.User.AliasID = newFieldsUser.UserAliasID;
+            _db.UpdateUser(user.User);
+        }
     }
 
     class EmptyDatabaseKeyProvider : IDatabaseKeyProvider

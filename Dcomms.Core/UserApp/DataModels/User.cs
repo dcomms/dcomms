@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Dcomms.DataModels
+namespace Dcomms.UserApp.DataModels
 {
 
     /// <summary>
@@ -24,13 +24,12 @@ namespace Dcomms.DataModels
         public byte[] UserID_encrypted { get; set; }
         public byte[] UserID_hmac { get; set; }
 
-        [Ignore]
+        [Ignore]        
         public string AliasID { get; set; }
         public byte[] AliasID_encrypted { get; set; }
         public byte[] AliasID_hmac { get; set; }
 
         [Ignore]
-        ///////////////////////////////////[SQLite.Indexed]
         public bool IsLocal => LocalUserCertificate_encrypted != null;
         [Ignore]
         public UserCertificate LocalUserCertificate { get; set; }

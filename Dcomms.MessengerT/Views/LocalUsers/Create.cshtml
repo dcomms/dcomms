@@ -1,4 +1,4 @@
-﻿@model Dcomms.UserApp.LocalUser
+﻿@model Dcomms.UserApp.DataModels.User
 
 @{
     ViewData["Title"] = "Create";
@@ -11,7 +11,13 @@
 <div class="row">
     <div class="col-md-4">
         <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                Account ID (visible for you only):
+                <input asp-for="AliasID" class="form-control" />
+                <span asp-validation-for="AliasID" class="text-danger"></span>
+            </div>
+
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>

@@ -5,35 +5,40 @@
 }
 
 <h3>Account details</h3>
-<table>
-    <tr>
-        <td style="min-width: 150px">Account ID</td>
-        <td>@Model.User.AliasID</td>
-    </tr>
-    @for (int i = 0; i < @Model.User.UserID.RootPublicKeys.Count; i++)
-    {
+
+
+<form asp-action="Details" asp-route-id="@Model.User.Id">
+    <table>
         <tr>
-            <td>Public key #@(i + 1)</td>
-            <td>@Dcomms.MiscProcedures.ByteArrayToString(Model.User.UserID.RootPublicKeys[i])</td>
+            <td style="min-width: 150px">Account ID</td>
+            <td>
+                <input asp-for="UserAliasID" class="form-control" />
+                <span asp-validation-for="UserAliasID" class="text-danger"></span>
+            </td>
         </tr>
-    }
+        @for (int i = 0; i < @Model.User.UserID.RootPublicKeys.Count; i++)
+        {
+            <tr>
+                <td>Public key #@(i + 1)</td>
+                <td>@Dcomms.MiscProcedures.ByteArrayToString(Model.User.UserID.RootPublicKeys[i])</td>
+            </tr>
+        }
 
-    @for (int i = 0; i < @Model.UserRegistrationIDs.Count; i++)
-    {
-        <tr>
-            <td>Registration ID #@(i + 1)</td>
-            <td>@Dcomms.MiscProcedures.ByteArrayToString(Model.UserRegistrationIDs[i].RegistrationId.Ed25519publicKey)</td>
-        </tr>
-    }
+        @for (int i = 0; i < @Model.UserRegistrationIDs.Count; i++)
+        {
+            <tr>
+                <td>Registration ID #@(i + 1)</td>
+                <td>@Dcomms.MiscProcedures.ByteArrayToString(Model.UserRegistrationIDs[i].RegistrationId.Ed25519publicKey)</td>
+            </tr>
+        }
 
-</table>
+    </table>
 
-<hr />
-<dl class="row">
-</dl>
-
-@*<a href="/">Save</a> |*@
-
-<a asp-action="Delete" asp-route-id="@Model.User.Id">Delete</a> |
-<a href="javascript:history.back()">Back</a>
-
+    <hr />
+    <dl class="row">
+    </dl>
+   
+    <input type="submit" value="Save" class="btn btn-primary" /> |
+    <a asp-action="Delete" asp-route-id="@Model.User.Id">Delete</a> |
+    <a href="javascript:history.back()">Back</a>
+</form>

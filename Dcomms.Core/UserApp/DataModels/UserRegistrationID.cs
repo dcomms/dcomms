@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Dcomms.DataModels
+namespace Dcomms.UserApp.DataModels
 {
 
     [Table("UserRegistrationIDs")]

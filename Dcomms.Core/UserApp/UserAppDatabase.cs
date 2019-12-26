@@ -10,7 +10,7 @@ using Dcomms.DRP;
 using Dcomms.Vision;
 using SQLite;
 
-namespace Dcomms.DataModels
+namespace Dcomms.UserApp.DataModels
 {
     public class UserAppDatabase: IDisposable
     {
@@ -27,7 +27,9 @@ namespace Dcomms.DataModels
             _keyProvider = keyProvider;
             _cryptoLibrary = cryptoLibrary;
             _visionChannel = visionChannel;
-            
+            _visionChannelSourceId = visionChannelSourceId;
+
+
             if (basePath == null)
                 basePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             var mainDatabaseFileName = Path.Combine(basePath,  "dcomms_main.db");
@@ -195,6 +197,7 @@ namespace Dcomms.DataModels
                 r.RegistrationId = RegistrationId.Decode(DecryptAndVerify(r.RegistrationId_encrypted, r.RegistrationId_hmac, r.Id, EncryptedFieldIds.UserRegistrationID_RegistrationId));
                 r.RegistrationPrivateKey = RegistrationPrivateKey.Decode(DecryptAndVerify(r.RegistrationPrivateKey_encrypted, r.RegistrationPrivateKey_hmac, r.Id, EncryptedFieldIds.UserRegistrationID_RegistrationPrivateKey));
                 //  WriteToLog_deepDetail($"decrypted userRegistrationID '{r.Id}'");
+                list.Add(r);
             }
             
             return list;
@@ -206,7 +209,6 @@ namespace Dcomms.DataModels
         {
             _db_main.Delete<User>(userId);
         }
-
         public void DeleteRegistrationId(int registrationId)
         {
             _db_main.Delete<UserRegistrationID>(registrationId);
@@ -216,6 +218,18 @@ namespace Dcomms.DataModels
         {
             _db_main.Delete<RootUserKeys>(rootUserKeysId);
 
+        }
+        #endregion
+
+        #region update
+        public void UpdateUser(User user)
+        {
+            // we update only following fields:
+
+            EncryptAndSign(BinaryProcedures.EncodeString2UTF8(user.AliasID), user.Id, EncryptedFieldIds.User_AliasID, out var e, out var a);
+            user.AliasID_encrypted = e; user.AliasID_hmac = a;
+                       
+            _db_main.Update(user);
         }
         #endregion
 
