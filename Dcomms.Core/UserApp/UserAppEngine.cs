@@ -33,8 +33,8 @@ namespace Dcomms.UserApp
 
             _db = new UserAppDatabase(_drpPeerEngine.CryptoLibrary, configuration.DatabaseKeyProvider, _visionChannel, VisionChannelSourceId, configuration.DatabaseBasePathNullable);
             
-            LocalUsers = new List<LocalUser>();
-            foreach (var u in _db.GetLocalUsers())
+            LocalUsers = new Dictionary<int, LocalUser>();
+            foreach (var u in _db.GetUsers(true))
             {
                 var rootUserKeys = _db.GetRootUserKeys(u.Id);
                 var userRegistrationIDs = _db.GetUserRegistrationIDs(u.Id);
@@ -46,17 +46,27 @@ namespace Dcomms.UserApp
                         RootUserKeys = rootUserKeys,
                         UserRegistrationIDs = userRegistrationIDs,
                     };
-                    LocalUsers.Add(localUser);
+                    LocalUsers.Add(u.Id, localUser);
                     localUser.CreateLocalDrpPeers(this);
                 }
             }
             WriteToLog_deepDetail($"loaded {LocalUsers.Count} local users");
+
+
+            foreach (var contactUser in _db.GetUsers(false))
+                if (LocalUsers.TryGetValue(contactUser.OwnerLocalUserId, out var localUser))
+                {
+                    localUser.Contacts.Add(new Contact
+                    {
+                        User = contactUser
+                    });
+                }
         }
         public void Dispose()
         {
             WriteToLog_deepDetail(">> UserAppEngine.Dispose()");
             WriteToLog_deepDetail($"destroying local users...");
-            foreach (var localUser in LocalUsers)
+            foreach (var localUser in LocalUsers.Values)
                 localUser.Dispose();
 
             WriteToLog_deepDetail($"destroying DRP peer engine...");
@@ -69,7 +79,7 @@ namespace Dcomms.UserApp
         }
 
         #region database entities, operations
-        public List<LocalUser> LocalUsers;
+        public Dictionary<int,LocalUser> LocalUsers;
         public void DeleteLocalUser(LocalUser localUser)
         {
             try
@@ -79,7 +89,7 @@ namespace Dcomms.UserApp
                 if (localUser.RootUserKeys != null) _db.DeleteRootUserKeys(localUser.RootUserKeys.Id);
                 _db.DeleteUser(localUser.User.Id);
 
-                LocalUsers.Remove(localUser);
+                LocalUsers.Remove(localUser.User.Id);
                 localUser.Dispose();
             }
             catch (Exception exc)
@@ -126,7 +136,7 @@ namespace Dcomms.UserApp
                     RootUserKeys = ruk,
                     UserRegistrationIDs = new List<UserRegistrationID> { regId }
                 };
-                LocalUsers.Add(newLocalUser);
+                LocalUsers.Add(u.Id, newLocalUser);
                 newLocalUser.CreateLocalDrpPeers(this);
             }
             catch (Exception exc)

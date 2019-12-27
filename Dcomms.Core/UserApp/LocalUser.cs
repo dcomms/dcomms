@@ -30,6 +30,8 @@ namespace Dcomms.UserApp
         public User User;
         public RootUserKeys RootUserKeys;
         public List<UserRegistrationID> UserRegistrationIDs;
+
+        public readonly List<Contact> Contacts = new List<Contact>();
         #endregion
 
         UserAppEngine _userAppEngine;

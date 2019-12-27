@@ -130,9 +130,12 @@ namespace Dcomms.UserApp.DataModels
 
             WriteToLog_deepDetail($"inserted user '{user.AliasID}'");
         }
-        public List<User> GetLocalUsers()
-        {      
-            var users = _db_main.Table<User>().Where(x => x.OwnerLocalUserId == 0).ToList();
+        public List<User> GetUsers(bool local)
+        {
+            var query = _db_main.Table<User>();
+            if (local) query = query.Where(x => x.OwnerLocalUserId == 0);
+            else query = query.Where(x => x.OwnerLocalUserId != 0);
+            var users = query.ToList();
             foreach (var u in users)
             {
                 try

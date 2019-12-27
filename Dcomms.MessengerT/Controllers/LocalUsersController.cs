@@ -31,8 +31,7 @@ namespace Dcomms.MessengerT.Controllers
 
         public IActionResult Details(int id)
         {
-            var localUser = Program.UserAppEngine.LocalUsers.FirstOrDefault(x => x.User.Id == id);
-            if (localUser == null) return NotFound();
+            if (!Program.UserAppEngine.LocalUsers.TryGetValue(id, out var localUser)) return NotFound();
             return View(localUser);
         }
         [HttpPost]
@@ -42,8 +41,8 @@ namespace Dcomms.MessengerT.Controllers
             if (String.IsNullOrEmpty(newFieldsUser.UserAliasID))
                 ModelState.AddModelError("UserAliasID", "Please enter account ID");
 
-            var localUser = Program.UserAppEngine.LocalUsers.FirstOrDefault(x => x.User.Id == id);
-            if (localUser == null) return NotFound();
+
+            if (!Program.UserAppEngine.LocalUsers.TryGetValue(id, out var localUser)) return NotFound();
             if (ModelState.IsValid)
             {
                 Program.UserAppEngine.UpdateLocalUser(localUser, newFieldsUser);                  
@@ -60,16 +59,14 @@ namespace Dcomms.MessengerT.Controllers
 
         public IActionResult Delete(int id)
         {
-            var localUser = Program.UserAppEngine.LocalUsers.FirstOrDefault(x => x.User.Id == id);
-            if (localUser == null) return NotFound();
+            if (!Program.UserAppEngine.LocalUsers.TryGetValue(id, out var localUser)) return NotFound();           
             return View(localUser);
         }
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var localUser = Program.UserAppEngine.LocalUsers.FirstOrDefault(x => x.User.Id == id);
-            if (localUser == null) return NotFound();
+            if (!Program.UserAppEngine.LocalUsers.TryGetValue(id, out var localUser)) return NotFound();
             Program.UserAppEngine.DeleteLocalUser(localUser);
             return RedirectToAction(nameof(HomeController.Index), "Home");
         }
