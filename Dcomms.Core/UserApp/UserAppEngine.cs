@@ -11,13 +11,15 @@ namespace Dcomms.UserApp
     public class UserAppEngine :IDisposable, IVisibleModule
     {
         const string VisionChannelSourceId = "UA";
+        internal const string VisionChannelModuleName = "UA";
         DrpPeerEngine _drpPeerEngine;
+        public DrpPeerEngine Engine => _drpPeerEngine;
         UserAppDatabase _db;
-        readonly VisionChannel _visionChannel;
         public string Status => $"todo";
-
-        public UserAppEngine(VisionChannel visionChannel, string databaseBasePath)
+        internal readonly UserAppConfiguration Configuration;
+        public UserAppEngine(UserAppConfiguration configuration, VisionChannel visionChannel)
         {
+            Configuration = configuration;
             _visionChannel = visionChannel;
             _visionChannel.ClearModules();
          
@@ -26,13 +28,11 @@ namespace Dcomms.UserApp
             _drpPeerEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 VisionChannel = _visionChannel,
-                VisionChannelSourceId = VisionChannelSourceId              
+                VisionChannelSourceId = VisionChannelSourceId  
             });
 
-            _db = new UserAppDatabase(_drpPeerEngine.CryptoLibrary, new EmptyDatabaseKeyProvider(), _visionChannel, VisionChannelSourceId, databaseBasePath);
-
-           // TestAddLocalUser();
-
+            _db = new UserAppDatabase(_drpPeerEngine.CryptoLibrary, configuration.DatabaseKeyProvider, _visionChannel, VisionChannelSourceId, configuration.DatabaseBasePathNullable);
+            
             LocalUsers = new List<LocalUser>();
             foreach (var u in _db.GetLocalUsers())
             {
@@ -40,74 +40,134 @@ namespace Dcomms.UserApp
                 var userRegistrationIDs = _db.GetUserRegistrationIDs(u.Id);
                 if (rootUserKeys != null)
                 {
-                    LocalUsers.Add(new LocalUser
+                    var localUser = new LocalUser
                     {
                         User = u,
                         RootUserKeys = rootUserKeys,
                         UserRegistrationIDs = userRegistrationIDs,
-                    });
+                    };
+                    LocalUsers.Add(localUser);
+                    localUser.CreateLocalDrpPeers(this);
                 }
             }
+            WriteToLog_deepDetail($"loaded {LocalUsers.Count} local users");
         }
         public void Dispose()
         {
+            WriteToLog_deepDetail(">> UserAppEngine.Dispose()");
+            WriteToLog_deepDetail($"destroying local users...");
+            foreach (var localUser in LocalUsers)
+                localUser.Dispose();
+
+            WriteToLog_deepDetail($"destroying DRP peer engine...");
+            _drpPeerEngine.Dispose();
+
+            WriteToLog_deepDetail($"destroying database...");
             _db?.Dispose();
             _db = null;
+            WriteToLog_deepDetail("<< UserAppEngine.Dispose()");
         }
 
+        #region database entities, operations
         public List<LocalUser> LocalUsers;
         public void DeleteLocalUser(LocalUser localUser)
         {
-            foreach (var regId in localUser.UserRegistrationIDs)
-                _db.DeleteRegistrationId(regId.Id);
-            if (localUser.RootUserKeys != null) _db.DeleteRootUserKeys(localUser.RootUserKeys.Id);
-            _db.DeleteUser(localUser.User.Id);
+            try
+            {
+                foreach (var regId in localUser.UserRegistrationIDs)
+                    _db.DeleteRegistrationId(regId.Id);
+                if (localUser.RootUserKeys != null) _db.DeleteRootUserKeys(localUser.RootUserKeys.Id);
+                _db.DeleteUser(localUser.User.Id);
 
-            LocalUsers.Remove(localUser);
+                LocalUsers.Remove(localUser);
+                localUser.Dispose();
+            }
+            catch (Exception exc)
+            {
+                HandleException("error when deleting local user: ", exc);
+            }
         }
         public void AddLocalUser(string aliasId)
         {
-            UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), _drpPeerEngine.CryptoLibrary, out var userRootPrivateKeys, out var userId);           
-            var userCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_drpPeerEngine.CryptoLibrary, userId, userRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddYears(1));
-
-            var u = new User
+            try
             {
-                AliasID = aliasId,
-                UserID = userId,
-                OwnerLocalUserId = 0,
-                LocalUserCertificate = userCertificateWithPrivateKey,
-            };
-            _db.InsertUser(u);
+                UserRootPrivateKeys.CreateUserId(1, 1, TimeSpan.FromDays(3670), _drpPeerEngine.CryptoLibrary, out var userRootPrivateKeys, out var userId);
+                var userCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_drpPeerEngine.CryptoLibrary, userId, userRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddYears(9));
 
-            var ruk = new RootUserKeys
+                var u = new User
+                {
+                    AliasID = aliasId,
+                    UserID = userId,
+                    OwnerLocalUserId = 0,
+                    LocalUserCertificate = userCertificateWithPrivateKey,
+                };
+                _db.InsertUser(u);
+
+                var ruk = new RootUserKeys
+                {
+                    UserId = u.Id,
+                    UserRootPrivateKeys = userRootPrivateKeys
+                };
+                _db.InsertRootUserKeys(ruk);
+
+                RegistrationId.CreateNew(_drpPeerEngine.CryptoLibrary, out var regPrivateKey, out var registrationId);
+
+                var regId = new UserRegistrationID
+                {
+                    UserId = u.Id,
+                    RegistrationId = registrationId,
+                    RegistrationPrivateKey = regPrivateKey
+                };
+                _db.InsertUserRegistrationID(regId);
+
+                var newLocalUser = new LocalUser
+                {
+                    User = u,
+                    RootUserKeys = ruk,
+                    UserRegistrationIDs = new List<UserRegistrationID> { regId }
+                };
+                LocalUsers.Add(newLocalUser);
+                newLocalUser.CreateLocalDrpPeers(this);
+            }
+            catch (Exception exc)
             {
-                UserId = u.Id,
-                UserRootPrivateKeys = userRootPrivateKeys
-            };
-            _db.InsertRootUserKeys(ruk);
-
-            RegistrationId.CreateNew(_drpPeerEngine.CryptoLibrary, out var regPrivateKey, out var registrationId);
-
-            var regId = new UserRegistrationID
-            {
-                UserId = u.Id,
-                RegistrationId = registrationId,
-                RegistrationPrivateKey = regPrivateKey
-            };
-            _db.InsertUserRegistrationID(regId);
-
-            LocalUsers.Add(new LocalUser
-            {
-                User = u,
-                RootUserKeys = ruk,
-                UserRegistrationIDs = new List<UserRegistrationID> { regId }
-            });
+                HandleException("error when adding new local user: ", exc);
+            }
         }
         public void UpdateLocalUser(LocalUser user, LocalUser newFieldsUser)
         {
-            user.User.AliasID = newFieldsUser.UserAliasID;
-            _db.UpdateUser(user.User);
+            try
+            {
+                user.User.AliasID = newFieldsUser.UserAliasID;
+                _db.UpdateUser(user.User);
+            }
+            catch (Exception exc)
+            {
+                HandleException("error when updating local user: ", exc);
+            }
         }
+        #endregion
+
+        #region vision
+        readonly VisionChannel _visionChannel;
+        internal VisionChannel VisionChannel => _visionChannel;
+        void HandleException(string prefix, Exception exc)
+        {
+            WriteToLog_mediumPain($"{prefix}{exc}");
+        }
+
+        internal bool WriteToLog_deepDetail_enabled => _visionChannel?.GetAttentionTo(VisionChannelSourceId, VisionChannelModuleName) <= AttentionLevel.deepDetail;
+        void WriteToLog_deepDetail(string msg)
+        {
+            if (WriteToLog_deepDetail_enabled)
+                _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, msg);
+        }
+        void WriteToLog_mediumPain(string msg)
+        {
+            _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.mediumPain, msg);
+        }
+        #endregion
+
     }
 
     class EmptyDatabaseKeyProvider : IDatabaseKeyProvider

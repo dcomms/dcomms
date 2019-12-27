@@ -44,7 +44,7 @@ namespace Dcomms.DRP
         internal readonly DrpPeerEngine Engine;
         internal ICryptoLibrary CryptoLibrary => Engine.CryptoLibrary;
 
-        string IVisibleModule.Status => $"connected neighbors: {ConnectedNeighbors.Count}/{_configuration.MinDesiredNumberOfNeighbors}. {CurrentRegistrationOperationsCount} pending reg.";
+        public string Status => $"connected neighbors: {ConnectedNeighbors.Count}/{_configuration.MinDesiredNumberOfNeighbors}. {CurrentRegistrationOperationsCount} pending reg.";
 
         public LocalDrpPeer(DrpPeerEngine engine, LocalDrpPeerConfiguration configuration, IDrpRegisteredPeerApp drpPeerApp)
         {
@@ -433,7 +433,7 @@ namespace Dcomms.DRP
         public double? MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = 120;
         public double TestDirectionsMinIntervalS = 30;
 
-        public static LocalDrpPeerConfiguration  Create(ICryptoLibrary cryptoLibrary, int numberOfDimensions, byte[] ed25519privateKey = null, RegistrationId registrationId = null)
+        public static LocalDrpPeerConfiguration  Create(ICryptoLibrary cryptoLibrary, int? numberOfDimensions = null, byte[] ed25519privateKey = null, RegistrationId registrationId = null)
         {
             LocalDrpPeerConfiguration r;
             if (ed25519privateKey != null && registrationId != null)

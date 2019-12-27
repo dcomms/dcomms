@@ -251,7 +251,7 @@ namespace Dcomms.Sandbox
         public UserAppEngine UserAppEngine { get; set; }
         public DelegateCommand CreateUserAppEngine => new DelegateCommand(() =>
         {
-            UserAppEngine = new UserAppEngine(_visionChannel, null);
+            UserAppEngine = new UserAppEngine(UserAppConfiguration.Default, _visionChannel);
             RaisePropertyChanged(() => UserAppEngine);
             RaisePropertyChanged(() => UserAppEngineIsCreated);
         });

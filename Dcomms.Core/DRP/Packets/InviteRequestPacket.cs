@@ -14,7 +14,8 @@ namespace Dcomms.DRP.Packets
     public class InviteRequestPacket
     {
         // byte Flags;
-        const byte FlagsMask_MustBeZero = 0b11110000;
+        const byte FlagsMask_MustBeZero = 0b11100000;
+        const byte FlagsMask_ContactInvitationTokenExists = 0b00000001;
 
         /// <summary>
         /// authorizes peer that sends the packet
@@ -26,6 +27,8 @@ namespace Dcomms.DRP.Packets
         public RegistrationId ResponderRegistrationId; // B public key
         public EcdhPublicKey RequesterEcdhePublicKey; // for ephemeral private EC key generated at requester (A) specifically for the new DirectChannel connection
         public NatBehaviourModel RequesterNatBehaviour;
+        public byte[] ContactInvitationTokenNullable;
+        public const int ContactInvitationTokenSize = 16;
         public RegistrationSignature RequesterRegistrationSignature;
 
         public byte NumberOfHopsRemaining; // is decremented by peers
@@ -43,6 +46,8 @@ namespace Dcomms.DRP.Packets
             BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write((byte)PacketTypes.InviteReq);
             byte flags = 0;
+            if (ContactInvitationTokenNullable != null)
+                flags |= FlagsMask_ContactInvitationTokenExists;
             w.Write(flags);
 
             ReqP2pSeq16 = transmitToNeighbor.GetNewRequestP2pSeq16_P2P();
@@ -70,6 +75,8 @@ namespace Dcomms.DRP.Packets
             ResponderRegistrationId.Encode(w);
             RequesterEcdhePublicKey.Encode(w);
             RequesterNatBehaviour.Encode(w);
+            if (ContactInvitationTokenNullable != null)
+                w.Write(ContactInvitationTokenNullable);
         }
 
         internal byte[] DecodedUdpPayloadData;
@@ -91,6 +98,8 @@ namespace Dcomms.DRP.Packets
             r.ResponderRegistrationId = RegistrationId.Decode(reader);
             r.RequesterEcdhePublicKey = EcdhPublicKey.Decode(reader);
             r.RequesterNatBehaviour = NatBehaviourModel.Decode(reader);
+            if ((flags & FlagsMask_ContactInvitationTokenExists) != 0)
+                r.ContactInvitationTokenNullable = reader.ReadBytes(ContactInvitationTokenSize);
             r.RequesterRegistrationSignature = RegistrationSignature.Decode(reader);
             r.NumberOfHopsRemaining = reader.ReadByte();
             r.ReqP2pSeq16 = RequestP2pSequenceNumber16.Decode(reader);

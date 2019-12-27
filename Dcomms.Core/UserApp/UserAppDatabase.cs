@@ -22,7 +22,7 @@ namespace Dcomms.UserApp.DataModels
         readonly IDatabaseKeyProvider _keyProvider;
         readonly VisionChannel _visionChannel;
         readonly string _visionChannelSourceId;
-        public UserAppDatabase(ICryptoLibrary cryptoLibrary, IDatabaseKeyProvider keyProvider, VisionChannel visionChannel, string visionChannelSourceId, string basePath)
+        public UserAppDatabase(ICryptoLibrary cryptoLibrary, IDatabaseKeyProvider keyProvider, VisionChannel visionChannel, string visionChannelSourceId, string basePathNullable)
         {
             _keyProvider = keyProvider;
             _cryptoLibrary = cryptoLibrary;
@@ -30,10 +30,10 @@ namespace Dcomms.UserApp.DataModels
             _visionChannelSourceId = visionChannelSourceId;
 
 
-            if (basePath == null)
-                basePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            var mainDatabaseFileName = Path.Combine(basePath,  "dcomms_main.db");
-            WriteToLog_deepDetail($"basePath={basePath}, databaseFileName={mainDatabaseFileName}");
+            if (basePathNullable == null)
+                basePathNullable = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            var mainDatabaseFileName = Path.Combine(basePathNullable,  "dcomms_main.db");
+            WriteToLog_deepDetail($"basePath={basePathNullable}, databaseFileName={mainDatabaseFileName}");
 
             _db_main = new SQLiteConnection(mainDatabaseFileName);
             _db_main.CreateTable<User>(CreateFlags.None);

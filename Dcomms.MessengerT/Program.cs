@@ -26,12 +26,12 @@ namespace Dcomms.MessengerT
                 ClearLog_RamSizeMB = 100,
                 ClearLog_MessagesCount = 1000,
             };
-            VisionChannel.SevereMessageEmitted += (msg) => Console.WriteLine(msg);
+            VisionChannel.SevereMessageEmitted += (msg) => Console.WriteLine(msg.Message);
             
             try
             {
                 VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, "creating user app");
-                UserAppEngine = new UserAppEngine(VisionChannel, null);
+                UserAppEngine = new UserAppEngine(UserAppConfiguration.Default, VisionChannel);
                 VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, $"creating web host at {Url}");
                 var host = CreateHostBuilder(Url, args).Build();
                 VisionChannel.Emit("", "", AttentionLevel.higherLevelDetail, $"created web host at {Url}");

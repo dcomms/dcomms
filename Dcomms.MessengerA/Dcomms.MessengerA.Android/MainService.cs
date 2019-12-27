@@ -94,7 +94,9 @@ namespace Dcomms.MessengerA.Droid
                     //   handler.PostDelayed(runnable, Constants.DELAY_BETWEEN_LOG_MESSAGES);
                     //   isStarted = true;
 
-                    _userAppEngine = new UserAppEngine(_visionChannel, System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal));
+                    var config = UserAppConfiguration.Default;
+                    config.DatabaseBasePathNullable = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
+                    _userAppEngine = new UserAppEngine(config, _visionChannel);
                     _visionChannel.SevereMessageEmitted += (errorMsg) =>
                     {
                         Android.Util.Log.Error("Dcomms", errorMsg.Message);

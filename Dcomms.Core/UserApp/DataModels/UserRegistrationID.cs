@@ -27,6 +27,7 @@ namespace Dcomms.UserApp.DataModels
         public byte[] RegistrationPrivateKey_encrypted { get; set; }
         public byte[] RegistrationPrivateKey_hmac { get; set; }
 
+        public LocalDrpPeer LocalDrpPeer;
 
     }
 }
