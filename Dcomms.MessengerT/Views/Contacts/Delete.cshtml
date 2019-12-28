@@ -1,0 +1,12 @@
+﻿@model Dcomms.UserApp.Contact
+@{
+    ViewData["Title"] = "Delete contact";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h3>Are you sure you want to delete contact "@Model.UserAliasID"?</h3>
+<div>
+    <form asp-action="Delete" asp-route-userId="@Model.OwnerLocalUserId" asp-route-contactId="@Model.ContactId">
+        <input type="submit" value="Delete" class="btn btn-danger" />&emsp;<a href="javascript:history.back()">Back</a>
+    </form>
+</div>

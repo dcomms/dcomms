@@ -5,6 +5,7 @@ using Dcomms.UserApp.DataModels;
 using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Dcomms.UserApp
@@ -30,23 +31,50 @@ namespace Dcomms.UserApp
         public User User;
         public RootUserKeys RootUserKeys;
         public List<UserRegistrationID> UserRegistrationIDs;
+        #endregion
 
+        #region contacts
         public readonly Dictionary<int, Contact> Contacts = new Dictionary<int, Contact>();
         int _unconfirmedContactIdCounter = -1;
         public string NewContactAliasID { get; set; }
         public string NewContact_RemotelyInitiatedInvitationKey { get; set; }
-        public string NewContact_LocallyInitiatedInvitationKey_NewValueEveryTime => "todo new invitation " + new Random().Next();
+        public string NewContact_LocallyInitiatedInvitationKey_NewValueEveryTime => ContactInvitation.CreateNew(_userAppEngine.Engine.CryptoLibrary, UserRegistrationIDs.Single().RegistrationId).EncodeForUI();
+        
         public string NewContact_LocallyInitiatedInvitationKey { get; set; } // is set by UI
         public void AddNewContact_LocallyInitiated(string aliasID, string locallyInitiatedInvitationKey)
         {
             var unconfirmedContactId = _unconfirmedContactIdCounter--;
             Contacts.Add(unconfirmedContactId, new Contact() { UnconfirmedContactId = unconfirmedContactId, UnconfirmedContactOwnerLocalUserId = User.Id, LocallyGeneratedInvitationKey = locallyInitiatedInvitationKey, UserAliasID = aliasID });
+
+
+            // todo wait for invite
+            // verify token
+            // exchange keys
+            // save to database,   change ID to confirmed, not temporary
         }
         public void AddNewContact_RemotelyInitiated(string aliasID, string remotelyInitiatedInvitationKey)
         {
             var unconfirmedContactId = _unconfirmedContactIdCounter--;
             Contacts.Add(unconfirmedContactId, new Contact() { UnconfirmedContactId = unconfirmedContactId, UnconfirmedContactOwnerLocalUserId = User.Id, RemotelyGeneratedInvitationKey = remotelyInitiatedInvitationKey, UserAliasID = aliasID });
+
+            // todo send invite with remote inv key  (token + reg ID)
+            // verify token
+            // exchange keys
+            // save to database,   change ID to confirmed, not temporary
         }
+
+
+        public void DeleteContact(Contact contact)
+        {
+            if (contact.IsConfirmed)
+                throw new NotImplementedException();
+            else
+            {
+                Contacts.Remove(contact.ContactId);
+            }
+        }
+            
+
         #endregion
 
         UserAppEngine _userAppEngine;

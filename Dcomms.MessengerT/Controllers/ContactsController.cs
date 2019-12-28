@@ -56,5 +56,17 @@ namespace Dcomms.MessengerT.Controllers
             if (!localUser.Contacts.TryGetValue(contactId, out var contact)) return NotFound();
             return View(contact);
         }
+
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int userId, int contactId)
+        {
+            if (!Program.UserAppEngine.LocalUsers.TryGetValue(userId, out var localUser)) return NotFound();
+            if (!localUser.Contacts.TryGetValue(contactId, out var contact)) return NotFound();
+                      
+            localUser.DeleteContact(contact);           
+
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+        }
     }
 }
