@@ -26,7 +26,7 @@
 
         @for (int i = 0; i < @Model.UserRegistrationIDs.Count; i++)
         {
-            var regId = Model.UserRegistrationIDs[i]; 
+            var regId = Model.UserRegistrationIDs[i];
             <tr>
                 <td>Registration ID #@(i + 1)</td>
                 <td>@Dcomms.MiscProcedures.ByteArrayToString(regId.RegistrationId.Ed25519publicKey)</td>
@@ -44,8 +44,6 @@
     <hr />
     <dl class="row">
     </dl>
-   
-    <input type="submit" value="Save" class="btn btn-primary" /> |
-    <a asp-action="Delete" asp-route-id="@Model.User.Id">Delete</a> |
-    <a href="javascript:history.back()">Back</a>
+
+    <input type="submit" value="Save" class="btn btn-primary" />&emsp;<a asp-action="Delete" asp-route-id="@Model.User.Id" class="btn btn-primary">Delete</a>&emsp;<a href="javascript:history.back()">Back</a>
 </form>

@@ -1,8 +1,38 @@
-﻿
+﻿@model Dcomms.UserApp.LocalUser
 @{
-    ViewData["Title"] = "Add";
+    ViewData["Title"] = "Add contact";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Add new contact</h1>
+<h3>Add new contact to account '@Model.UserAliasID'</h3>
 
+
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Add">
+
+            <div class="form-group">
+                Contact ID (visible for you only):
+                <input asp-for="NewContactAliasID" class="form-control" />
+                <span asp-validation-for="NewContactAliasID" class="text-danger"></span>
+            </div>
+            <p>Mode:  1) you send invitation  2) you accept invitation</p>
+
+            <div class="form-group">
+                1) Invitation key to accept:
+                <input asp-for="NewContactInvitationToAccept" class="form-control" />
+                <span asp-validation-for="NewContactInvitationToAccept" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                2) Invitation key to send:
+                <p style="background-color: #EEE">@Model.NewContactInvitationToSend</p>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Add contact" class="btn btn-primary" />&emsp;<a href="javascript:history.back()">Back</a>
+            </div>
+        </form>
+    </div>
+</div>

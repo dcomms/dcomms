@@ -23,16 +23,13 @@
                     <div>
                                               
                         <span class="localUserTitle">
-                            <a asp-action="Details" asp-controller="LocalUsers" asp-route-id="@localUser.User.Id">@localUser.User.AliasID</a>
+                            <a asp-action="Details" asp-controller="LocalUsers" asp-route-id="@localUser.User.Id" title="Your own account '@localUser.User.AliasID'">@localUser.User.AliasID</a>
                             <span class="localUserButtons"><a asp-action="Delete" asp-controller="LocalUsers" asp-route-id="@localUser.User.Id">delete</a></span>
                         </span>
                         <div style="margin-left: 20px">
                             <a href="/">contact1</a><br />
                             <a href="/">contact2</a><br />
-                            <a href="/">contact3</a><br />
-                            <a href="/">contact4</a><br />
-
-                            <a href="/">add new contact</a>
+                            <a asp-route-id="@localUser.User.Id" asp-controller="Contacts" asp-action="Add">add new contact</a>
                         </div>
                     </div>
                     }

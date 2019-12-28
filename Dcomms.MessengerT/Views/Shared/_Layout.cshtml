@@ -10,18 +10,14 @@
 <body>
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
+            <div class="container">             
                 
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
-                    <img src="~/logo.png" style="max-height: 70px" />               
-                    Messenger T
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index" >
+                    <img src="~/Dmsg.png" style="max-height: 70px" />
+                    Messenger "T"
                 </a>
-                
 
-                @*<button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>*@
+
                 <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
@@ -30,7 +26,7 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="SystemLog" asp-action="Index">System log</a>
                         </li>
-                       
+
                     </ul>
                 </div>
             </div>
@@ -42,12 +38,21 @@
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; <a href="http://dcomms.org">Dcomms.org</a> |
-            <a  asp-controller="Home" asp-action="Privacy">Privacy</a> |
-            <a  asp-controller="SystemLog" asp-action="Index">System log</a>
-        </div>
+    <footer class="border-top footer">
+        <table style="margin-right: auto; margin-left: auto; background-color: #FFF">
+            <tr>
+                <td>
+                    <a href="http://dcomms.org" title="Dcomms project home page">
+                        <img src="~/logo.png" style="max-height: 160px; margin-right: 30px" />
+                    </a>
+                </td>
+                <td valign="top" style="opacity: 0.5">
+                    &copy; <a href="http://dcomms.org">Dcomms.org</a> - <a href="https://github.com/dcomms/dcomms">open-source</a>, cross-platform, decentralized crypto messaging framework<br />
+                    <a asp-controller="Home" asp-action="Privacy">Privacy</a><br />
+                    <a asp-controller="SystemLog" asp-action="Index">System log</a>
+                </td>
+            </tr>
+        </table>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

@@ -8,9 +8,20 @@ namespace Dcomms.MessengerT.Controllers
 {
     public class ContactsController : Controller
     {
-        public IActionResult Add()
+        public IActionResult Add(int id)
         {
-            return View();
+            if (!Program.UserAppEngine.LocalUsers.TryGetValue(id, out var localUser)) return NotFound();
+            return View(localUser);
+        }
+        [HttpPost, ActionName("Add")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddConfirmed(int id)
+        {
+            if (!Program.UserAppEngine.LocalUsers.TryGetValue(id, out var localUser)) return NotFound();
+
+            localUser.AddNewContact();
+
+            return RedirectToAction(nameof(HomeController.Index), "Home");
         }
     }
 }

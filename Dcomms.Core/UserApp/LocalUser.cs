@@ -32,6 +32,13 @@ namespace Dcomms.UserApp
         public List<UserRegistrationID> UserRegistrationIDs;
 
         public readonly List<Contact> Contacts = new List<Contact>();
+        public string NewContactAliasID { get; set; }
+        public string NewContactInvitationToAccept { get; set; }
+        public string NewContactInvitationToSend => "todo new invitation " + new Random().Next();
+        public void AddNewContact()
+        {
+           // xx
+        }
         #endregion
 
         UserAppEngine _userAppEngine;

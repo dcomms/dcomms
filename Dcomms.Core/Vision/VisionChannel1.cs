@@ -142,13 +142,14 @@ namespace Dcomms.Vision
                 Message = message,                
                 PeersListDisplayMode = peersList_RoutingPath != null ? VisiblePeersDisplayMode.routingPath : VisiblePeersDisplayMode.allPeers,
             };
-            try
-            {
-                msg.PeersList = peersList_RoutingPath ?? ClonedVisiblePeer.Clone(VisiblePeersDelegate(), selectedPeer);
-            }
-            catch // intentionally ignore
-            {
-            }
+            if (VisiblePeersDelegate != null)
+                try
+                {
+                    msg.PeersList = peersList_RoutingPath ?? ClonedVisiblePeer.Clone(VisiblePeersDelegate(), selectedPeer);
+                }
+                catch // intentionally ignore
+                {
+                }
 
             lock (_logMessagesNewestFirst)
             {
