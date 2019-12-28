@@ -34,18 +34,19 @@ namespace Dcomms.UserApp
             _db = new UserAppDatabase(_drpPeerEngine.CryptoLibrary, configuration.DatabaseKeyProvider, _visionChannel, VisionChannelSourceId, configuration.DatabaseBasePathNullable);
             
             LocalUsers = new Dictionary<int, LocalUser>();
+            var userRegistrationIDs = _db.GetUserRegistrationIDs();
             foreach (var u in _db.GetUsers(true))
             {
                 var rootUserKeys = _db.GetRootUserKeys(u.Id);
-                var userRegistrationIDs = _db.GetUserRegistrationIDs(u.Id);
                 if (rootUserKeys != null)
                 {
                     var localUser = new LocalUser
                     {
                         User = u,
                         RootUserKeys = rootUserKeys,
-                        UserRegistrationIDs = userRegistrationIDs,
                     };
+                    if (!userRegistrationIDs.TryGetValue(u.Id, out localUser.UserRegistrationIDs))
+                        localUser.UserRegistrationIDs = new List<UserRegistrationID>();
                     LocalUsers.Add(u.Id, localUser);
                     localUser.CreateLocalDrpPeers(this);
                 }
@@ -56,10 +57,13 @@ namespace Dcomms.UserApp
             foreach (var contactUser in _db.GetUsers(false))
                 if (LocalUsers.TryGetValue(contactUser.OwnerLocalUserId, out var localUser))
                 {
-                    localUser.Contacts.Add(new Contact
+                    var contact = new Contact
                     {
                         User = contactUser
-                    });
+                    };
+                    if (!userRegistrationIDs.TryGetValue(contact.User.Id, out contact.RegistrationIDs))
+                        contact.RegistrationIDs = new List<UserRegistrationID>();
+                    localUser.Contacts.Add(contact.User.Id, contact);
                 }
         }
         public void Dispose()
@@ -177,7 +181,6 @@ namespace Dcomms.UserApp
             _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.mediumPain, msg);
         }
         #endregion
-
     }
 
     class EmptyDatabaseKeyProvider : IDatabaseKeyProvider

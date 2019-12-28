@@ -40,8 +40,7 @@ namespace Dcomms.MessengerT.Controllers
         {
             if (String.IsNullOrEmpty(newFieldsUser.UserAliasID))
                 ModelState.AddModelError("UserAliasID", "Please enter account ID");
-
-
+            
             if (!Program.UserAppEngine.LocalUsers.TryGetValue(id, out var localUser)) return NotFound();
             if (ModelState.IsValid)
             {

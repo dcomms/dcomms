@@ -192,18 +192,22 @@ namespace Dcomms.UserApp.DataModels
 
             WriteToLog_deepDetail($"inserted userRegistrationID '{userRegistrationID.UserId}'");
         }
-        public List<UserRegistrationID> GetUserRegistrationIDs(int userId)
-        {
-            var list = new List<UserRegistrationID>();
-            foreach (var r in _db_main.Table<UserRegistrationID>().Where(x => x.UserId == userId))
+        public Dictionary<int,List<UserRegistrationID>> GetUserRegistrationIDs()
+        {          
+            var r = new Dictionary<int, List<UserRegistrationID>>();
+            foreach (var regId in _db_main.Table<UserRegistrationID>())
             {
-                r.RegistrationId = RegistrationId.Decode(DecryptAndVerify(r.RegistrationId_encrypted, r.RegistrationId_hmac, r.Id, EncryptedFieldIds.UserRegistrationID_RegistrationId));
-                r.RegistrationPrivateKey = RegistrationPrivateKey.Decode(DecryptAndVerify(r.RegistrationPrivateKey_encrypted, r.RegistrationPrivateKey_hmac, r.Id, EncryptedFieldIds.UserRegistrationID_RegistrationPrivateKey));
+                regId.RegistrationId = RegistrationId.Decode(DecryptAndVerify(regId.RegistrationId_encrypted, regId.RegistrationId_hmac, regId.Id, EncryptedFieldIds.UserRegistrationID_RegistrationId));
+                regId.RegistrationPrivateKey = RegistrationPrivateKey.Decode(DecryptAndVerify(regId.RegistrationPrivateKey_encrypted, regId.RegistrationPrivateKey_hmac, regId.Id, EncryptedFieldIds.UserRegistrationID_RegistrationPrivateKey));
                 //  WriteToLog_deepDetail($"decrypted userRegistrationID '{r.Id}'");
-                list.Add(r);
+                if (!r.TryGetValue(regId.UserId, out var list))
+                {
+                    list = new List<UserRegistrationID>();
+                    r.Add(regId.UserId, list);
+                }                
+                list.Add(regId);
             }
-            
-            return list;
+            return r;
         }
         #endregion
 

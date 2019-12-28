@@ -6,7 +6,6 @@
 
 <h3>Account details</h3>
 
-
 <form asp-action="Details" asp-route-id="@Model.User.Id">
     <table>
         <tr>
@@ -36,14 +35,9 @@
                 <td>@regId.LocalDrpPeer?.Status</td>
             </tr>
         }
-
-
-
     </table>
 
     <hr />
-    <dl class="row">
-    </dl>
 
     <input type="submit" value="Save" class="btn btn-primary" />&emsp;<a asp-action="Delete" asp-route-id="@Model.User.Id" class="btn btn-primary">Delete</a>&emsp;<a href="javascript:history.back()">Back</a>
 </form>

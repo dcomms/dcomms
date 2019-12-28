@@ -6,33 +6,44 @@
 
 <h3>Add new contact to account '@Model.UserAliasID'</h3>
 
-
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Add">
-
-            <div class="form-group">
-                Contact ID (visible for you only):
-                <input asp-for="NewContactAliasID" class="form-control" />
-                <span asp-validation-for="NewContactAliasID" class="text-danger"></span>
-            </div>
-            <p>Mode:  1) you send invitation  2) you accept invitation</p>
-
-            <div class="form-group">
-                1) Invitation key to accept:
-                <input asp-for="NewContactInvitationToAccept" class="form-control" />
-                <span asp-validation-for="NewContactInvitationToAccept" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                2) Invitation key to send:
-                <p style="background-color: #EEE">@Model.NewContactInvitationToSend</p>
-            </div>
-
-            <div class="form-group">
-                <input type="submit" value="Add contact" class="btn btn-primary" />&emsp;<a href="javascript:history.back()">Back</a>
-            </div>
-        </form>
+<form asp-action="Add" style="max-width: 500px">
+    <div class="form-group">
+        Contact ID (visible for you only):
+        <input asp-for="NewContactAliasID" class="form-control" />
+        <span asp-validation-for="NewContactAliasID" class="text-danger"></span>
     </div>
+
+    <div class="form-group" style="background-color: #EEE; padding: 10px">
+        You send invitation key to another user <b>via secure channel</b>:
+        <div style="border: 1px solid #777; margin-bottom: 10px">
+            @{var locallyInitiatedInvitationKey = Model.NewContact_LocallyInitiatedInvitationKey_NewValueEveryTime; }
+            @locallyInitiatedInvitationKey
+        </div>
+
+        <input type="hidden" asp-for="NewContact_LocallyInitiatedInvitationKey" value="@locallyInitiatedInvitationKey" />
+        <input type="submit" value="Add contact" class="btn btn-primary" asp-route-initiated="locally" />
+        &emsp;<a href="javascript:history.back()">Back</a>
+    </div>
+
+    <div class="form-group" style="background-color: #EEE; padding: 10px">
+        You accept invitation key from another user:
+        <input asp-for="NewContact_RemotelyInitiatedInvitationKey" class="form-control" placeholder="enter invitation key" />
+        <span asp-validation-for="NewContact_RemotelyInitiatedInvitationKey" class="text-danger"></span>
+        <br />
+
+        <input type="submit" value="Accept invitation" class="btn btn-primary" asp-route-initiated="remotely" />
+        &emsp;<a href="javascript:history.back()">Back</a>
+    </div>
+
+</form>
+
+<div style="color: #666">
+    <h4>How it works</h4>
+    <ul>
+        <li>User #1 creates contact, generates a temporary "invitation key"</li>
+        <li>User #1 sends the "invitation key" to user #2 <b>via secure channel</b>: e.g. protonmail.com email, direct file transfer, bluetooth, direct meeting, etc</li>
+        <li>User #2 creates contact, enters the "invitation key"</li>
+        <li>Both users exchange keys and update contact books</li>
+        @*<li>No one is able to send you contact requests if you don't add the contact yourself</li>*@
+    </ul>
 </div>
