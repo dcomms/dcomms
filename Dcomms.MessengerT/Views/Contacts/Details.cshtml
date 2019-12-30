@@ -29,13 +29,13 @@
                 <td>Status</td>
                 <td>Contact is not confirmed yet by both users</td>
             </tr>
-            if (Model.LocallyGeneratedInvitationKey != null)
+            if (Model.LocallyGeneratedInvitation != null)
             {
                 <tr>
                     <td>Instructions</td>
                     <td>
                         Send this invitation key to another person via a secure channel:<br />
-                        <div style="background-color: #eee">@Model.LocallyGeneratedInvitationKey</div>
+                        <div style="background-color: #eee">@Model.LocallyGeneratedInvitation.EncodeForUI()</div>
                     </td>
                 </tr>
             }

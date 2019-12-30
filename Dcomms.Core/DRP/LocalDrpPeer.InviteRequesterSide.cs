@@ -23,7 +23,7 @@ _retry:
                 try
                 {
                     var sw2 = Stopwatch.StartNew();
-                    var session = await SendInviteAsync(requesterUserCertificate, responderRegistrationId, responderUserId, SessionType.asyncShortSingleMessage, (logger2)=>
+                    var session = await SendInviteAsync(requesterUserCertificate, responderRegistrationId, responderUserId, SessionType.asyncShortSingleMessage, null, (logger2)=>
                     {
                         logger = logger2;
                         if (Engine.Configuration.SandboxModeOnly_EnableInsecureLogs) if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"creating an invite session to send a message '{messageText}'");
@@ -58,19 +58,69 @@ _retry:
                 }
             }, "BeginSendShortSingleMessage6342");
         }
-        
+
+        public void BeginSendContactInvitation(UserCertificate requesterUserCertificate, UserId localUserId, RegistrationId[] localRegistrationIds, UserApp.ContactInvitation remotelyInitiatedInvitation, 
+            TimeSpan? retryOnFailureUntilThisTimeout, Action<Exception, UserId, RegistrationId[], IPEndPoint> cb)
+        {
+            Engine.EngineThreadQueue.Enqueue(async () =>
+            {
+                var sw1 = Stopwatch.StartNew();
+
+            _retry:
+                Logger logger = null;
+                try
+                {
+                    var sw2 = Stopwatch.StartNew();
+                    var session = await SendInviteAsync(requesterUserCertificate, remotelyInitiatedInvitation.InvitationInitiatorRegistrationId, null, 
+                        SessionType.contactInvitation, remotelyInitiatedInvitation.ContactInvitationToken, (logger2) =>
+                    {
+                        logger = logger2;
+                        if (Engine.Configuration.SandboxModeOnly_EnableInsecureLogs) if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"creating an invite session to send contact invitation request");
+                    });
+                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"invite session is ready to set up direct channel and send contact invitation request");
+                    try
+                    {
+                        if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"remote peer accepted invite session in {(int)sw2.Elapsed.TotalMilliseconds}ms: {session.RemoteSessionDescription}");
+
+                        await session.SetupAEkeysAsync();
+
+                        var (remoteUserId, remoteRegistrationIds) = await session.ExchangeContactInvitationsAsync_AtInviteRequester(requesterUserCertificate, localUserId, localRegistrationIds, session.RemoteSessionDescription.UserCertificate);
+                        session.RemoteSessionDescription.UserCertificate.AssertIsValidNow(Engine.CryptoLibrary, remoteUserId, Engine.DateTimeNowUtc);
+                        cb?.Invoke(null, remoteUserId, remoteRegistrationIds, session.RemoteSessionDescription.DirectChannelEndPoint);
+                    }
+                    finally
+                    {
+                        session.Dispose();
+                    }
+                }
+                catch (Exception exc)
+                {
+                    var tryAgain = retryOnFailureUntilThisTimeout.HasValue && sw1.Elapsed < retryOnFailureUntilThisTimeout.Value;
+                    logger?.WriteToLog_mediumPain($"sending INVITE failed (tryAgain={tryAgain}): {exc}");
+                    logger?.WriteToLog_mediumPain_EmitListOfPeers($"sending INVITE failed (tryAgain={tryAgain}): {exc}");
+                    if (tryAgain)
+                    {
+                        logger?.WriteToLog_higherLevelDetail($"trying again to send message: sw1={sw1.Elapsed.TotalSeconds}s < retryOnFailureUntilThisTimeout={retryOnFailureUntilThisTimeout.Value.TotalSeconds}s");
+                        goto _retry;
+                    }
+                    cb?.Invoke(exc, null, null, null);
+                }
+            }, "BeginSendContactInvitation4534");
+        }
+
         /// <summary>
         /// sends INVITE, autenticates users, returns Session to be used to create direct cannel
         /// </summary>
         /// <param name="responderUserId">
         /// comes from local contact book
+        /// is null when sending contact invitation request
         /// </param>
         /// <param name="responderRegId">
         /// comes from local contact book
         /// </param>
         /// <param name="loggerCb">may be invoked more than one time (in case of retrying)</param>
-        public async Task<InviteSession> SendInviteAsync(UserCertificate requesterUserCertificate, RegistrationId responderRegistrationId, UserId responderUserId,
-            SessionType sessionType, Action<Logger> loggerCb = null)
+        public async Task<InviteSession> SendInviteAsync(UserCertificate requesterUserCertificate, RegistrationId responderRegistrationId, UserId responderUserIdNullable,
+            SessionType sessionType, byte[] contactInvitationTokenNullable, Action<Logger> loggerCb = null)
         {
             InviteSession session = null;
             try
@@ -92,6 +142,7 @@ _retry:
                     RequesterNatBehaviour = Engine.LocalNatBehaviour,
                     ResponderRegistrationId = responderRegistrationId,
                     ReqTimestamp32S = Engine.Timestamp32S,
+                    ContactInvitationTokenNullable = contactInvitationTokenNullable
                 };
                 var logger = new Logger(Engine, this, req, DrpPeerEngine.VisionChannelModuleName_inv_requesterSide);
                 if (!Engine.RecentUniqueInviteRequests.Filter(req.GetUniqueRequestIdFields))
@@ -159,7 +210,7 @@ _retry:
                 session.RemoteSessionDescription = InviteSessionDescription.Decrypt_Verify(Engine.CryptoLibrary,
                     ack1.ToResponderSessionDescriptionEncrypted,
                     req, ack1, false, session,
-                    responderUserId, Engine.DateTimeNowUtc);
+                    responderUserIdNullable, Engine.DateTimeNowUtc);
 
                 // sign and encode local SD
                 session.LocalSessionDescription = new InviteSessionDescription

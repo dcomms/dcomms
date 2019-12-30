@@ -263,7 +263,7 @@ namespace Dcomms.DMP
         /// throws exception if the certificate is invalid for the specified userId   (the caller knows that certificate came from the userId)
         /// also checks userId - expired or not
         /// </summary>
-        void AssertIsValidNow(ICryptoLibrary cryptoLibrary, UserId userId, DateTime localTimeNowUtc)
+        public void AssertIsValidNow(ICryptoLibrary cryptoLibrary, UserId userId, DateTime localTimeNowUtc)
         {                      
             if (localTimeNowUtc > ValidToUtc)
                 throw new CertificateOutOfDateException($"localTimeNowUtc={localTimeNowUtc} > ValidToUtc={ValidToUtc}");
@@ -324,7 +324,6 @@ namespace Dcomms.DMP
             }
             return r;
         }
-
         public void Encode(BinaryWriter writer)
         {
             writer.Write(Flags);
@@ -342,10 +341,11 @@ namespace Dcomms.DMP
                 if (userRootSignature.SignatureSalt.Length != UserRootSignature.SignatureSaltSize) throw new ArgumentException();
                 writer.Write(userRootSignature.SignatureSalt);
                 if (userRootSignature.Signature.Length != CryptoLibraries.Ed25519SignatureSize) throw new ArgumentException();
+                if (userRootSignature.Signature.Length >= byte.MaxValue) throw new ArgumentException();
+                writer.Write((byte)userRootSignature.Signature.Length);
                 writer.Write(userRootSignature.Signature);
             }
         }
-
         public byte[] Encode()
         {
             BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
@@ -353,7 +353,7 @@ namespace Dcomms.DMP
             return ms.ToArray();
         }
 
-        public static UserCertificate Decode(BinaryReader reader, UserId userId)
+        public static UserCertificate Decode(BinaryReader reader)
         {
             var r = new UserCertificate();
             r.Flags = reader.ReadByte();
@@ -368,25 +368,27 @@ namespace Dcomms.DMP
                 var userRootSignature = new UserRootSignature();
                 userRootSignature.RootKeyIndex = reader.ReadByte();
                 userRootSignature.SignatureSalt = reader.ReadBytes(UserRootSignature.SignatureSaltSize);
-                userRootSignature.Signature = reader.ReadBytes(userId.GetSignatureSize(userRootSignature.RootKeyIndex));
+                var signatureSize = reader.ReadByte();
+                userRootSignature.Signature = reader.ReadBytes(signatureSize);
                 r.UserRootSignatures.Add(userRootSignature);
             }
             return r;
         }
-        public static UserCertificate Decode(byte[] data, UserId userId)
+        public static UserCertificate Decode(byte[] data)
         {
             if (data == null) return null;
             using var reader = BinaryProcedures.CreateBinaryReader(data, 0);
-            return Decode(reader, userId);
+            return Decode(reader);
         }
 
         /// <summary>
         /// throws exception if the certificate is invalid for the specified userId   (the caller knows that certificate came from the userId)
         /// </summary>
-        public static UserCertificate Decode_AssertIsValidNow(BinaryReader reader, ICryptoLibrary cryptoLibrary, UserId userId, DateTime localTimeNowUtc)
+        /// <param name="userId">is null when it is contact invitation</param>
+        public static UserCertificate Decode_AssertIsValidNow(BinaryReader reader, ICryptoLibrary cryptoLibrary, UserId userIdNullable, DateTime localTimeNowUtc)
         {
-            var r = Decode(reader, userId); 
-            r.AssertIsValidNow(cryptoLibrary, userId, localTimeNowUtc);
+            var r = Decode(reader); 
+            if (userIdNullable != null) r.AssertIsValidNow(cryptoLibrary, userIdNullable, localTimeNowUtc);
             return r;
         }
     }

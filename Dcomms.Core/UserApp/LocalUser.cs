@@ -6,6 +6,7 @@ using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 
 namespace Dcomms.UserApp
@@ -38,29 +39,75 @@ namespace Dcomms.UserApp
         int _unconfirmedContactIdCounter = -1;
         public string NewContactAliasID { get; set; }
         public string NewContact_RemotelyInitiatedInvitationKey { get; set; }
-        public string NewContact_LocallyInitiatedInvitationKey_NewValueEveryTime => ContactInvitation.CreateNew(_userAppEngine.Engine.CryptoLibrary, UserRegistrationIDs.Single().RegistrationId).EncodeForUI();
-        
+        public string NewContact_LocallyInitiatedInvitationKey_NewValueEveryTime => ContactInvitation.CreateNew(_userAppEngine.Engine.CryptoLibrary, UserRegistrationIDs.First().RegistrationId).EncodeForUI();        
         public string NewContact_LocallyInitiatedInvitationKey { get; set; } // is set by UI
         public void AddNewContact_LocallyInitiated(string aliasID, string locallyInitiatedInvitationKey)
         {
             var unconfirmedContactId = _unconfirmedContactIdCounter--;
-            Contacts.Add(unconfirmedContactId, new Contact() { UnconfirmedContactId = unconfirmedContactId, UnconfirmedContactOwnerLocalUserId = User.Id, LocallyGeneratedInvitationKey = locallyInitiatedInvitationKey, UserAliasID = aliasID });
-
+            var locallyInitiatedInvitation = ContactInvitation.DecodeFromUI(locallyInitiatedInvitationKey);
+            Contacts.Add(unconfirmedContactId, new Contact()
+            {
+                UnconfirmedContactId = unconfirmedContactId,
+                UnconfirmedContactOwnerLocalUserId = User.Id, 
+                LocallyGeneratedInvitation = locallyInitiatedInvitation,
+                UserAliasID = aliasID
+            });
 
             // todo wait for invite
             // verify token
             // exchange keys
+            // verify that certificate matches to received userId and is valid now, and that it really signs SD
+            // save to database,   change ID to confirmed, not temporary
+        }
+
+        Contact GetUnconfirmedContactByToken(byte[] contactInvitationToken)
+        {
+            return Contacts.Values.FirstOrDefault(x => MiscProcedures.EqualByteArrays(x.LocallyGeneratedInvitation.ContactInvitationToken, contactInvitationToken) == true);
+        }
+        (UserId, RegistrationId[]) IDrpRegisteredPeerApp.OnReceivedInvite_ContactInvitation_GetLocal(byte[] contactInvitationToken)
+        {
+            var unconfirmedContact = GetUnconfirmedContactByToken(contactInvitationToken);
+            if (unconfirmedContact == null) return (null, null);
+            return (User.UserID, UserRegistrationIDs.Select(x => x.RegistrationId).ToArray());
+        }
+        void IDrpRegisteredPeerApp.OnReceivedInvite_ContactInvitation_SetRemote(byte[] contactInvitationToken, (UserId, RegistrationId[], IPEndPoint) remoteContactInvitation)
+        {
+            var unconfirmedContact = GetUnconfirmedContactByToken(contactInvitationToken);
+            if (unconfirmedContact == null) throw new BadSignatureException();
+
+            unconfirmedContact.User = new User { AliasID = unconfirmedContact.UserAliasID, UserID = remoteContactInvitation.Item1 };
+            unconfirmedContact.RegistrationIDs = remoteContactInvitation.Item2.Select(x => new UserRegistrationID { RegistrationId = x, UserId = unconfirmedContact.User.Id }).ToList();
+            // todo save to database, with remoteEndpoint   in "metadata"
             // save to database,   change ID to confirmed, not temporary
         }
         public void AddNewContact_RemotelyInitiated(string aliasID, string remotelyInitiatedInvitationKey)
         {
-            var unconfirmedContactId = _unconfirmedContactIdCounter--;
-            Contacts.Add(unconfirmedContactId, new Contact() { UnconfirmedContactId = unconfirmedContactId, UnconfirmedContactOwnerLocalUserId = User.Id, RemotelyGeneratedInvitationKey = remotelyInitiatedInvitationKey, UserAliasID = aliasID });
+            var localDrpPeer = UserRegistrationIDs.Select(x => x.LocalDrpPeer).FirstOrDefault();
+            if (localDrpPeer == null) throw new InvalidOperationException("no local DRP peers found to send INVITE");
 
-            // todo send invite with remote inv key  (token + reg ID)
-            // verify token
-            // exchange keys
-            // save to database,   change ID to confirmed, not temporary
+            var unconfirmedContactId = _unconfirmedContactIdCounter--;
+            var remotelyInitiatedInvitation = ContactInvitation.DecodeFromUI(remotelyInitiatedInvitationKey);
+            var newContact = new Contact()
+            {
+                UnconfirmedContactId = unconfirmedContactId,
+                UnconfirmedContactOwnerLocalUserId = User.Id,
+                RemotelyGeneratedInvitation = remotelyInitiatedInvitation,
+                UserAliasID = aliasID
+            };
+            Contacts.Add(unconfirmedContactId, newContact);
+
+            // send invite with remote inv. key  (token + reg ID)
+            localDrpPeer.BeginSendContactInvitation(User.LocalUserCertificate, User.UserID, 
+                UserRegistrationIDs.Select(x => x.RegistrationId).ToArray(), 
+                remotelyInitiatedInvitation,
+                TimeSpan.FromMinutes(10),
+                (exc, remoteUserId, remoteRegistrationIds, remoteEndpoint) =>
+                {
+                    newContact.User = new User { AliasID = newContact.UserAliasID, UserID = remoteUserId };
+                    newContact.RegistrationIDs = remoteRegistrationIds.Select(x => new UserRegistrationID { RegistrationId = x, UserId = newContact.User.Id }).ToList();
+                    // todo save to database, with remoteEndpoint   in "metadata"
+                    // save to database,   change ID to confirmed, not temporary
+                });
         }
 
 
@@ -72,9 +119,7 @@ namespace Dcomms.UserApp
             {
                 Contacts.Remove(contact.ContactId);
             }
-        }
-            
-
+        }     
         #endregion
 
         UserAppEngine _userAppEngine;
@@ -125,8 +170,6 @@ namespace Dcomms.UserApp
                     HandleException("error when destroying local DRP peer: ", exc);
                 }
         }
-
-
         #region vision
         VisionChannel VisionChannel => _userAppEngine.VisionChannel;
         string VisionChannelSourceId => UserAliasID;
@@ -145,18 +188,19 @@ namespace Dcomms.UserApp
         {
             VisionChannel?.Emit(VisionChannelSourceId, UserAppEngine.VisionChannelModuleName, AttentionLevel.mediumPain, msg);
         }
+        #endregion
+
+
+
 
         void IDrpRegisteredPeerApp.OnReceivedShortSingleMessage(string messageText, InviteRequestPacket req)
         {
             throw new NotImplementedException();
         }
-
         void IDrpRegisteredPeerApp.OnReceivedInvite(RegistrationId remoteRegistrationId, out UserId remoteUserId, out UserCertificate localUserCertificateWithPrivateKey, out bool autoReceiveShortSingleMessage)
         {
             throw new NotImplementedException();
         }
-        #endregion
 
     }
-
 }

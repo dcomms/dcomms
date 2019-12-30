@@ -554,5 +554,8 @@ namespace Dcomms.DRP
         /// searches for a known user in local contact book
         /// </summary>
         void OnReceivedInvite(RegistrationId remoteRegistrationId, out DMP.UserId remoteUserId, out DMP.UserCertificate localUserCertificateWithPrivateKey, out bool autoReceiveShortSingleMessage);
+
+        (DMP.UserId, RegistrationId[]) OnReceivedInvite_ContactInvitation_GetLocal(byte[] contactInvitationToken);
+        void OnReceivedInvite_ContactInvitation_SetRemote(byte[] contactInvitationToken, (DMP.UserId, RegistrationId[],IPEndPoint) remoteContactInvitation);
     }
 }

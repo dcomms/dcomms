@@ -60,6 +60,32 @@ namespace Dcomms.DMP
             return messageText;
         }
 
+
+        internal byte[] EncryptContactInvitation(ICryptoLibrary cryptoLibrary, UserId localUserId, DRP.RegistrationId[] localRegistrationIds)
+        {
+            if (Status != MessageSessionStatusCode.inProgress) throw new InvalidOperationException();
+
+            var decryptedMessageData = MessageEncoderDecoder.EncodeContactInvitationWithPadding(cryptoLibrary, localUserId, localRegistrationIds);
+            var encryptedMessageData = new byte[decryptedMessageData.Length];
+
+            cryptoLibrary.ProcessAesCbcBlocks(true, _aesKey, _iv, decryptedMessageData, encryptedMessageData);
+
+            Status = MessageSessionStatusCode.encryptionDecryptionCompleted;
+            return encryptedMessageData;
+        }
+        internal (UserId, DRP.RegistrationId[]) DecryptContactInvitation(ICryptoLibrary cryptoLibrary, byte[] encryptedMessageData)
+        {
+            if (Status != MessageSessionStatusCode.inProgress) throw new InvalidOperationException();
+
+            var decryptedMessageData = new byte[encryptedMessageData.Length];
+            cryptoLibrary.ProcessAesCbcBlocks(false, _aesKey, _iv, encryptedMessageData, decryptedMessageData);
+
+            var r = MessageEncoderDecoder.DecodeContactInvitationWithPadding(decryptedMessageData);
+            
+            Status = MessageSessionStatusCode.encryptionDecryptionCompleted;
+            return r;
+        }
+
     }
 
 

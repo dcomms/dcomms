@@ -88,7 +88,7 @@ namespace Dcomms.DRP
                         ResponderRegistrationId = req.ResponderRegistrationId,
                         ResponderEcdhePublicKey = new EcdhPublicKey(session.LocalInviteAckEcdhePublicKey),
                     };
-                    session.LocalSessionDescription.UserCertificateSignature = DMP.UserCertificateSignature.Sign(Engine.CryptoLibrary,
+                    session.LocalSessionDescription.UserCertificateSignature = UserCertificateSignature.Sign(Engine.CryptoLibrary,
                         w =>
                         {
 
@@ -132,10 +132,16 @@ namespace Dcomms.DRP
                         ack2.ToRequesterSessionDescriptionEncrypted,
                         req, ack1, true, session, remoteRequesterUserIdFromLocalContactBook, Engine.DateTimeNowUtc);
 
-
-                    if (session.RemoteSessionDescription.SessionType != SessionType.asyncShortSingleMessage)
-                        throw new NotImplementedException();
-
+                    
+                    switch (session.RemoteSessionDescription.SessionType)
+                    {
+                        case SessionType.asyncShortSingleMessage: break;
+                        case SessionType.contactInvitation:
+                            if (_drpPeerApp.OnReceivedInvite_ContactInvitation_GetLocal(req.ContactInvitationTokenNullable).Item1 == null)
+                                throw new BadSignatureException("bad ContactInvitationToken 21379");
+                            break;
+                        default: throw new NotImplementedException();
+                    }
 
                     // send NPACK to ACK2
                     if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"sending NPACK to ACK2 to source peer");
@@ -171,13 +177,22 @@ namespace Dcomms.DRP
                 }
 
 
-                if (autoReceiveShortSingleMessage == true)
+                switch (session.RemoteSessionDescription.SessionType)
                 {
-                    if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"autoReceiveShortSingleMessage=true: receiving message");
-                    _ = ReceiveShortSingleMessageAsync(session, req);
+                    case SessionType.asyncShortSingleMessage:
+                        if (autoReceiveShortSingleMessage == true)
+                        {
+                            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"autoReceiveShortSingleMessage=true: receiving message");
+                            _ = ReceiveShortSingleMessageAsync(session, req);
+                        }
+                        else
+                            session.Dispose(); // todo implement other things
+                        break;
+                    case SessionType.contactInvitation:
+                        _ = ExchangeContactInvitationsAsync_AtInviteResponder(session, req);
+                        break;
+                    default: throw new NotImplementedException();
                 }
-                else
-                    session.Dispose(); // todo implement other things
             }
             catch (DrpTimeoutException exc)
             {
@@ -208,6 +223,22 @@ namespace Dcomms.DRP
 
             // call app
             _drpPeerApp.OnReceivedShortSingleMessage(receivedMessage, req);
+        }
+
+        async Task ExchangeContactInvitationsAsync_AtInviteResponder(InviteSession session, InviteRequestPacket req)
+        {
+            try
+            {
+                var localInvitation = _drpPeerApp.OnReceivedInvite_ContactInvitation_GetLocal(req.ContactInvitationTokenNullable);
+                var remoteContactInvitation = await session.ExchangeContactInvitationsAsync_AtInviteResponder(session.LocalSessionDescription.UserCertificate,
+                    localInvitation.Item1, localInvitation.Item2, session.RemoteSessionDescription.UserCertificate);           
+                _drpPeerApp.OnReceivedInvite_ContactInvitation_SetRemote(req.ContactInvitationTokenNullable, (remoteContactInvitation.Item1, remoteContactInvitation.Item2, session.RemoteSessionDescription.DirectChannelEndPoint));
+            }
+            finally
+            {
+                session.Dispose();
+            }
+
         }
     }
 }

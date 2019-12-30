@@ -84,6 +84,15 @@ namespace Dcomms.Sandbox
             autoReceiveShortSingleMessage = true;
         }
 
+        public (UserId, RegistrationId[]) OnReceivedInvite_ContactInvitation_GetLocal(byte[] contactInvitationToken)
+        {
+            throw new NotImplementedException();
+        }
+        public void OnReceivedInvite_ContactInvitation_SetRemote(byte[] contactInvitationToken, (UserId, RegistrationId[], IPEndPoint) remoteContactInvitation)
+        {
+            throw new NotImplementedException();
+        }
+
 
         #region status
         int _receivedInvites = 0;

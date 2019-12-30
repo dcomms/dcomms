@@ -28,7 +28,15 @@ namespace Dcomms.UserApp
         public User User; // = null if the contact is in "unconfirmed" state
         public List<UserRegistrationID> RegistrationIDs; // = null if the contact is in "unconfirmed" state
 
-        public string LocallyGeneratedInvitationKey { get; set; } // is not null when the contact is in "pending" state and if the contact is initiated by local side
-        public string RemotelyGeneratedInvitationKey { get; set; } // is not null when the contact is in "pending" state and if the contact is initiated by remote side
+        /// <summary>
+        /// is not null when the contact is in "pending" state and if the contact is initiated by local side
+        /// is not saved to database
+        /// </summary>
+        public ContactInvitation LocallyGeneratedInvitation { get; set; }
+        /// <summary>
+        /// is not null when the contact is in "pending" state and if the contact is initiated by remote side
+        /// is not saved to database
+        /// </summary>
+        public ContactInvitation RemotelyGeneratedInvitation { get; set; }
     }
 }
