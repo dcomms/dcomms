@@ -52,12 +52,6 @@ namespace Dcomms.UserApp
                 LocallyGeneratedInvitation = locallyInitiatedInvitation,
                 UserAliasID = aliasID
             });
-
-            // todo wait for invite
-            // verify token
-            // exchange keys
-            // verify that certificate matches to received userId and is valid now, and that it really signs SD
-            // save to database,   change ID to confirmed, not temporary
         }
 
         Contact GetUnconfirmedContactByToken(byte[] contactInvitationToken)
@@ -72,13 +66,21 @@ namespace Dcomms.UserApp
         }
         void IDrpRegisteredPeerApp.OnReceivedInvite_ContactInvitation_SetRemote(byte[] contactInvitationToken, (UserId, RegistrationId[], IPEndPoint) remoteContactInvitation)
         {
-            var unconfirmedContact = GetUnconfirmedContactByToken(contactInvitationToken);
-            if (unconfirmedContact == null) throw new BadSignatureException();
+            var contact = GetUnconfirmedContactByToken(contactInvitationToken);
+            if (contact == null) throw new BadSignatureException();
 
-            unconfirmedContact.User = new User { AliasID = unconfirmedContact.UserAliasID, UserID = remoteContactInvitation.Item1 };
-            unconfirmedContact.RegistrationIDs = remoteContactInvitation.Item2.Select(x => new UserRegistrationID { RegistrationId = x, UserId = unconfirmedContact.User.Id }).ToList();
-            // todo save to database, with remoteEndpoint   in "metadata"
-            // save to database,   change ID to confirmed, not temporary
+            contact.User = new User
+            {
+                OwnerLocalUserId = this.User.Id,
+                AliasID = contact.UserAliasID, 
+                UserID = remoteContactInvitation.Item1,
+                Metadata = new UserMetadata { ContactCreatedAtUTC = _userAppEngine.Engine.DateTimeNowUtc, ContactCreatedWithRemoteEndpoint = remoteContactInvitation.Item3 }
+            };
+            contact.RegistrationIDs = remoteContactInvitation.Item2.Select(x => new UserRegistrationID { RegistrationId = x, UserId = contact.User.Id }).ToList();
+            _userAppEngine.ConfirmContact(contact);
+
+            Contacts.Remove(contact.UnconfirmedContactId.Value);
+            Contacts.Add(contact.User.Id, contact);
         }
         public void AddNewContact_RemotelyInitiated(string aliasID, string remotelyInitiatedInvitationKey)
         {
@@ -103,10 +105,17 @@ namespace Dcomms.UserApp
                 TimeSpan.FromMinutes(10),
                 (exc, remoteUserId, remoteRegistrationIds, remoteEndpoint) =>
                 {
-                    newContact.User = new User { AliasID = newContact.UserAliasID, UserID = remoteUserId };
+                    newContact.User = new User 
+                    {
+                        OwnerLocalUserId = this.User.Id,
+                        AliasID = newContact.UserAliasID, 
+                        UserID = remoteUserId,
+                        Metadata = new UserMetadata { ContactCreatedAtUTC = _userAppEngine.Engine.DateTimeNowUtc, ContactCreatedWithRemoteEndpoint = remoteEndpoint }
+                    };
                     newContact.RegistrationIDs = remoteRegistrationIds.Select(x => new UserRegistrationID { RegistrationId = x, UserId = newContact.User.Id }).ToList();
-                    // todo save to database, with remoteEndpoint   in "metadata"
-                    // save to database,   change ID to confirmed, not temporary
+                    
+                    Contacts.Remove(newContact.UnconfirmedContactId.Value);
+                    Contacts.Add(newContact.User.Id, newContact);
                 });
         }
 

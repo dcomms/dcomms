@@ -160,6 +160,18 @@ namespace Dcomms.UserApp
                 HandleException("error when updating local user: ", exc);
             }
         }
+        /// <summary>
+        /// inserts User record and RegistrationIds
+        /// </summary>
+        public void ConfirmContact(Contact contact)
+        {
+            _db.InsertUser(contact.User);
+            foreach (var regId in contact.RegistrationIDs)
+            {
+                regId.UserId = contact.User.Id;
+                _db.InsertUserRegistrationID(regId);
+            }
+        }
         #endregion
 
         #region vision

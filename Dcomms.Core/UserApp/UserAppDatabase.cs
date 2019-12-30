@@ -28,8 +28,7 @@ namespace Dcomms.UserApp.DataModels
             _cryptoLibrary = cryptoLibrary;
             _visionChannel = visionChannel;
             _visionChannelSourceId = visionChannelSourceId;
-
-
+            
             if (basePathNullable == null)
                 basePathNullable = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             var mainDatabaseFileName = Path.Combine(basePathNullable,  "dcomms_main.db");
@@ -125,7 +124,10 @@ namespace Dcomms.UserApp.DataModels
             
             EncryptAndSign(user.LocalUserCertificate?.Encode(), user.Id, EncryptedFieldIds.User_LocalUserCertificate, out e, out a);
             user.LocalUserCertificate_encrypted = e; user.LocalUserCertificate_hmac = a;
-                                 
+
+            EncryptAndSign(user.Metadata?.Encode(), user.Id, EncryptedFieldIds.User_Metadata, out e, out a);
+            user.Metadata_encrypted = e; user.Metadata_hmac = a;
+
             _db_main.Update(user);
 
             WriteToLog_deepDetail($"inserted user '{user.AliasID}'");
@@ -143,6 +145,7 @@ namespace Dcomms.UserApp.DataModels
                     u.UserID = UserId.Decode(DecryptAndVerify(u.UserID_encrypted, u.UserID_hmac, u.Id, EncryptedFieldIds.User_UserID));                                   
                     u.AliasID = BinaryProcedures.DecodeString2UTF8(DecryptAndVerify(u.AliasID_encrypted, u.AliasID_hmac, u.Id, EncryptedFieldIds.User_AliasID));
                     u.LocalUserCertificate = UserCertificate.Decode(DecryptAndVerify(u.LocalUserCertificate_encrypted, u.LocalUserCertificate_hmac, u.Id, EncryptedFieldIds.User_LocalUserCertificate));
+                    u.Metadata = UserMetadata.Decode(DecryptAndVerify(u.Metadata_encrypted, u.Metadata_hmac, u.Id, EncryptedFieldIds.User_Metadata));
                     WriteToLog_deepDetail($"decrypted user '{u.AliasID}'");
                 }
                 catch (Exception exc)
@@ -273,9 +276,10 @@ namespace Dcomms.UserApp.DataModels
         User_LocalUserCertificate = 3,
 
         RootUserKeys_UserRootPrivateKeys = 4,
-
-
+        
         UserRegistrationID_RegistrationId = 5,
         UserRegistrationID_RegistrationPrivateKey = 6,
+
+        User_Metadata = 7,
     }
 }

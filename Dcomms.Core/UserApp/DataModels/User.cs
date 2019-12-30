@@ -2,6 +2,7 @@
 using SQLite;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 
 namespace Dcomms.UserApp.DataModels
@@ -35,7 +36,13 @@ namespace Dcomms.UserApp.DataModels
         public UserCertificate LocalUserCertificate { get; set; }
         public byte[] LocalUserCertificate_encrypted { get; set; }
         public byte[] LocalUserCertificate_hmac { get; set; }
+        
+        [Ignore]
+        public UserMetadata Metadata { get; set; }
+        public byte[] Metadata_encrypted { get; set; }
+        public byte[] Metadata_hmac { get; set; }
 
         public override string ToString() => AliasID;
     }
+
 }

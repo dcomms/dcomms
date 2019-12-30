@@ -303,7 +303,6 @@ _retry:
             var npAckUdpData = npAck.Encode(false);
 
             Engine.RespondToRequestAndRetransmissions(ack1.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
-
         }
         void SendNeighborPeerAckResponseToAck2(InviteAck2Packet ack2, ConnectionToNeighbor neighbor)
         {
@@ -332,7 +331,6 @@ _retry:
             var npAckUdpData = npAck.Encode(false);
 
             Engine.RespondToRequestAndRetransmissions(cfm.DecodedUdpPayloadData, npAckUdpData, neighbor.RemoteEndpoint);
-
         }
 
         //void if (logger.WriteToLog_detail2_enabled) logger.WriteToLog_detail(string msg, object req)
