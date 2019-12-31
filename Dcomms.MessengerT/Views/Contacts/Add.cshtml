@@ -16,19 +16,19 @@
     <div class="form-group" style="background-color: #EEE; padding: 10px">
         You send invitation key to another user <b>via secure channel</b>:
         <div style="border: 1px solid #777; margin-bottom: 10px; word-wrap: break-word">
-            @{var locallyInitiatedInvitationKey = Model.NewContact_LocallyInitiatedInvitationKey_NewValueEveryTime; }
-            @locallyInitiatedInvitationKey
+            @{var locallyInitiatedIke1Invitation = Model.NewContact_LocallyInitiatedIke1Invitation_NewRandomValue; }
+            @locallyInitiatedIke1Invitation
         </div>
 
-        <input type="hidden" asp-for="NewContact_LocallyInitiatedInvitationKey" value="@locallyInitiatedInvitationKey" />
+        <input type="hidden" asp-for="NewContact_LocallyInitiatedIke1Invitation" value="@locallyInitiatedIke1Invitation" />
         <input type="submit" value="Add contact" class="btn btn-primary" asp-route-initiated="locally" />
         &emsp;<a href="javascript:history.back()">Back</a>
     </div>
 
     <div class="form-group" style="background-color: #EEE; padding: 10px">
         You accept invitation key from another user:
-        <input asp-for="NewContact_RemotelyInitiatedInvitationKey" class="form-control" placeholder="enter invitation key" />
-        <span asp-validation-for="NewContact_RemotelyInitiatedInvitationKey" class="text-danger"></span>
+        <input asp-for="NewContact_RemotelyInitiatedIke1Invitation" class="form-control" placeholder="enter invitation key" />
+        <span asp-validation-for="NewContact_RemotelyInitiatedIke1Invitation" class="text-danger"></span>
         <br />
 
         <input type="submit" value="Accept invitation" class="btn btn-primary" asp-route-initiated="remotely" />

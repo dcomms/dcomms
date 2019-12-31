@@ -61,11 +61,11 @@ namespace Dcomms.DMP
         }
 
 
-        internal byte[] EncryptContactInvitation(ICryptoLibrary cryptoLibrary, UserId localUserId, DRP.RegistrationId[] localRegistrationIds)
+        internal byte[] EncryptIke1Data(ICryptoLibrary cryptoLibrary, Ike1Data ike1Data)
         {
             if (Status != MessageSessionStatusCode.inProgress) throw new InvalidOperationException();
 
-            var decryptedMessageData = MessageEncoderDecoder.EncodeContactInvitationWithPadding(cryptoLibrary, localUserId, localRegistrationIds);
+            var decryptedMessageData = MessageEncoderDecoder.EncodeIke1DataWithPadding(cryptoLibrary, ike1Data);
             var encryptedMessageData = new byte[decryptedMessageData.Length];
 
             cryptoLibrary.ProcessAesCbcBlocks(true, _aesKey, _iv, decryptedMessageData, encryptedMessageData);
@@ -73,19 +73,18 @@ namespace Dcomms.DMP
             Status = MessageSessionStatusCode.encryptionDecryptionCompleted;
             return encryptedMessageData;
         }
-        internal (UserId, DRP.RegistrationId[]) DecryptContactInvitation(ICryptoLibrary cryptoLibrary, byte[] encryptedMessageData)
+        internal Ike1Data DecryptIke1Data(ICryptoLibrary cryptoLibrary, byte[] encryptedMessageData)
         {
             if (Status != MessageSessionStatusCode.inProgress) throw new InvalidOperationException();
 
             var decryptedMessageData = new byte[encryptedMessageData.Length];
             cryptoLibrary.ProcessAesCbcBlocks(false, _aesKey, _iv, encryptedMessageData, decryptedMessageData);
 
-            var r = MessageEncoderDecoder.DecodeContactInvitationWithPadding(decryptedMessageData);
+            var r = MessageEncoderDecoder.DecodeIke1DataWithPadding(decryptedMessageData);
             
             Status = MessageSessionStatusCode.encryptionDecryptionCompleted;
             return r;
         }
-
     }
 
 

@@ -32,11 +32,11 @@ namespace Dcomms.UserApp
         /// is not null when the contact is in "pending" state and if the contact is initiated by local side
         /// is not saved to database
         /// </summary>
-        public ContactInvitation LocallyGeneratedInvitation { get; set; }
+        public Ike1Invitation LocallyInitiatedIke1Invitation { get; set; }
         /// <summary>
         /// is not null when the contact is in "pending" state and if the contact is initiated by remote side
         /// is not saved to database
         /// </summary>
-        public ContactInvitation RemotelyGeneratedInvitation { get; set; }
+        public Ike1Invitation RemotelyInitiatedIke1Invitation { get; set; }
     }
 }

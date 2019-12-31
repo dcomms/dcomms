@@ -59,8 +59,8 @@ _retry:
             }, "BeginSendShortSingleMessage6342");
         }
 
-        public void BeginSendContactInvitation(UserCertificate requesterUserCertificate, UserId localUserId, RegistrationId[] localRegistrationIds, UserApp.ContactInvitation remotelyInitiatedInvitation, 
-            TimeSpan? retryOnFailureUntilThisTimeout, Action<Exception, UserId, RegistrationId[], IPEndPoint> cb)
+        public void BeginIke1(UserCertificate localUserCertificate, Ike1Data localIke1Data, UserApp.Ike1Invitation remotelyInitiatedIke1Invitation, 
+            TimeSpan? retryOnFailureUntilThisTimeout, Action<Exception, Ike1Data> remoteIke1DataCb)
         {
             Engine.EngineThreadQueue.Enqueue(async () =>
             {
@@ -71,8 +71,9 @@ _retry:
                 try
                 {
                     var sw2 = Stopwatch.StartNew();
-                    var session = await SendInviteAsync(requesterUserCertificate, remotelyInitiatedInvitation.InvitationInitiatorRegistrationId, null, 
-                        SessionType.contactInvitation, remotelyInitiatedInvitation.ContactInvitationToken, (logger2) =>
+                    var session = await SendInviteAsync(localUserCertificate, remotelyInitiatedIke1Invitation.InvitationInitiatorRegistrationId,
+                        null, // certificate authenticity in remote SessionDescription is not verified here
+                        SessionType.ike1, remotelyInitiatedIke1Invitation.ContactInvitationToken, (logger2) =>
                     {
                         logger = logger2;
                         if (Engine.Configuration.SandboxModeOnly_EnableInsecureLogs) if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"creating an invite session to send contact invitation request");
@@ -84,9 +85,13 @@ _retry:
 
                         await session.SetupAEkeysAsync();
 
-                        var (remoteUserId, remoteRegistrationIds) = await session.ExchangeContactInvitationsAsync_AtInviteRequester(requesterUserCertificate, localUserId, localRegistrationIds, session.RemoteSessionDescription.UserCertificate);
-                        session.RemoteSessionDescription.UserCertificate.AssertIsValidNow(Engine.CryptoLibrary, remoteUserId, Engine.DateTimeNowUtc);
-                        cb?.Invoke(null, remoteUserId, remoteRegistrationIds, session.RemoteSessionDescription.DirectChannelEndPoint);
+                        var remoteIke1Data = await session.Ike1Async_AtInviteRequester(localUserCertificate, localIke1Data, session.RemoteSessionDescription.UserCertificate);
+
+                        // authenticate certificate in remote SessionDescription, now we know remote UserID from IKE1 data
+                        session.RemoteSessionDescription.UserCertificate.AssertIsValidNow(Engine.CryptoLibrary, remoteIke1Data.UserId, Engine.DateTimeNowUtc);
+
+                        remoteIke1Data.RemoteEndPoint = session.RemoteSessionDescription.DirectChannelEndPoint;
+                        remoteIke1DataCb?.Invoke(null, remoteIke1Data);
                     }
                     finally
                     {
@@ -103,9 +108,9 @@ _retry:
                         logger?.WriteToLog_higherLevelDetail($"trying again to send message: sw1={sw1.Elapsed.TotalSeconds}s < retryOnFailureUntilThisTimeout={retryOnFailureUntilThisTimeout.Value.TotalSeconds}s");
                         goto _retry;
                     }
-                    cb?.Invoke(exc, null, null, null);
+                    remoteIke1DataCb?.Invoke(exc, null);
                 }
-            }, "BeginSendContactInvitation4534");
+            }, "BeginIke1 4534");
         }
 
         /// <summary>

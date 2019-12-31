@@ -35,14 +35,14 @@ namespace Dcomms.DMP
         }
 
 
-        internal static byte[] EncodeContactInvitationWithPadding(ICryptoLibrary cryptoLibrary, UserId userId, DRP.RegistrationId[] registrationIds)
+        internal static byte[] EncodeIke1DataWithPadding(ICryptoLibrary cryptoLibrary, Ike1Data ike1Data)
         {
             BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             byte flags = 0;
             w.Write(flags);
-            userId.Encode(w);
-            w.Write((byte)registrationIds.Length);
-            foreach (var localRegistrationId in registrationIds)
+            ike1Data.UserId.Encode(w);
+            w.Write((byte)ike1Data.RegistrationIds.Length);
+            foreach (var localRegistrationId in ike1Data.RegistrationIds)
                 localRegistrationId.Encode(w);
 
             // add padding with random data
@@ -55,7 +55,7 @@ namespace Dcomms.DMP
 
             return ms.ToArray();
         }
-        internal static (UserId,DRP.RegistrationId[]) DecodeContactInvitationWithPadding(byte[] decryptedMessageData)
+        internal static Ike1Data DecodeIke1DataWithPadding(byte[] decryptedMessageData)
         {
             const byte flags_mustBeZero = 0b11100000;
             var reader = BinaryProcedures.CreateBinaryReader(decryptedMessageData, 0);
@@ -68,11 +68,21 @@ namespace Dcomms.DMP
             for (int i = 0; i < regIdsCount; i++)
                 regIds.Add(DRP.RegistrationId.Decode(reader));
 
-            return (userId, regIds.ToArray());
+            return new Ike1Data { UserId = userId, RegistrationIds = regIds.ToArray() };
         }
 
     }
 
+
+    public class Ike1Data
+    {
+        public UserId UserId; // is sent via DC
+        public DRP.RegistrationId[] RegistrationIds; // is sent via DC
+        public System.Net.IPEndPoint RemoteEndPoint; // comes from remote SessionDescription
+
+
+        // todo add EP endpoints
+    }
 
 
     enum EncodedDataType

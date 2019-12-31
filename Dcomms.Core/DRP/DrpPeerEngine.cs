@@ -555,7 +555,7 @@ namespace Dcomms.DRP
         /// </summary>
         void OnReceivedInvite(RegistrationId remoteRegistrationId, out DMP.UserId remoteUserId, out DMP.UserCertificate localUserCertificateWithPrivateKey, out bool autoReceiveShortSingleMessage);
 
-        (DMP.UserId, RegistrationId[]) OnReceivedInvite_ContactInvitation_GetLocal(byte[] contactInvitationToken);
-        void OnReceivedInvite_ContactInvitation_SetRemote(byte[] contactInvitationToken, (DMP.UserId, RegistrationId[],IPEndPoint) remoteContactInvitation);
+        DMP.Ike1Data OnReceivedInvite_GetLocalIke1Data(byte[] contactInvitationToken);
+        void OnReceivedInvite_SetRemoteIke1Data(byte[] contactInvitationToken, DMP.Ike1Data remoteIke1Data);
     }
 }

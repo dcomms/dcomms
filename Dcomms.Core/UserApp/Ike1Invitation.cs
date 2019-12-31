@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Dcomms.UserApp
 {
-    public class ContactInvitation
+    public class Ike1Invitation
     {
         const byte Flags_MustBeZero = 0b11100000;
         /// <summary>
@@ -16,26 +16,26 @@ namespace Dcomms.UserApp
         public RegistrationId InvitationInitiatorRegistrationId;
         public byte[] ContactInvitationToken;
         
-        public static ContactInvitation CreateNew(ICryptoLibrary cryptoLibrary, RegistrationId registrationId)
+        public static Ike1Invitation CreateNew(ICryptoLibrary cryptoLibrary, RegistrationId registrationId)
         {
-            return new ContactInvitation
+            return new Ike1Invitation
             {
                 ContactInvitationToken = cryptoLibrary.GetRandomBytes(InviteRequestPacket.ContactInvitationTokenSize),
                 InvitationInitiatorRegistrationId = registrationId
             };
         }
 
-        private ContactInvitation()
+        private Ike1Invitation()
         {
         }
-        public static ContactInvitation DecodeFromUI(string encoded)
+        public static Ike1Invitation DecodeFromUI(string encoded)
         {
             var data = Convert.FromBase64String(encoded);
             using var reader = BinaryProcedures.CreateBinaryReader(data, 0);
             var flags = reader.ReadByte();
             if ((flags & Flags_MustBeZero) != 0) throw new NotImplementedException();
             
-            return new ContactInvitation
+            return new Ike1Invitation
             {
                 InvitationInitiatorRegistrationId = RegistrationId.Decode(reader),
                 ContactInvitationToken = reader.ReadBytes(InviteRequestPacket.ContactInvitationTokenSize)

@@ -366,251 +366,146 @@ namespace Dcomms.DMP
         }
         #endregion
 
+        #region IKE1
+        /// <summary>
+        /// sends MSG with local IKE1 data
+        /// </summary>
+        private async Task SendIke1DataAsync(UserCertificate localUserCertificateWithPrivateKeys, Ike1Data localIke1Data)
+        {
+            var messageSession = new MessageSession();
+            var messageStart = new MessageStartPacket()
+            {
+                MessageId32 = (uint)_insecureRandom.Next(),
+                DirectChannelToken32 = RemoteSessionDescription.DirectChannelToken32,
+                MessageTimestamp64 = _localDrpPeer.Engine.Timestamp64,
+            };
+            messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecret);
+            messageStart.EncryptedMessageData = messageSession.EncryptIke1Data(_localDrpPeer.CryptoLibrary, localIke1Data);
 
-        /// <returns>remote user ID, reg IDs</returns>
-        internal async Task<(UserId, RegistrationId[])> ExchangeContactInvitationsAsync_AtInviteRequester(UserCertificate localUserCertificateWithPrivateKeys, UserId localUserId, RegistrationId[] localRegistrationIds, UserCertificate remoteUserCertificate)
+            // sign with HMAC
+            messageStart.MessageHMAC = GetMessageHMAC(w => messageStart.GetSignedFieldsForMessageHMAC(w, true));
+
+            // send msgstart, wait for msgack
+            var messageStartUdpData = messageStart.Encode();
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("sending MSGSTART and waiting for MSGACK");
+            var messageAckUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 2345", "remote user",
+                messageStartUdpData, RemoteSessionDescription.DirectChannelEndPoint,
+                MessageAckPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.encryptionDecryptionCompleted) // scanner also verifies HMAC
+                );
+            var messageAck = MessageAckPacket.Decode(messageAckUdpData);
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("decoded MSGACK");
+
+            // send msgpart with status=encryptionDecryptionCompleted and signature
+            if (messageSession.Status != MessageSessionStatusCode.encryptionDecryptionCompleted) throw new InvalidOperationException();
+            var messagePart = new MessagePartPacket
+            {
+                MessageId32 = messageStart.MessageId32,
+                SenderStatus = messageSession.Status,
+                SenderSignature = UserCertificateSignature.Sign(_localDrpPeer.CryptoLibrary, w =>
+                {
+                    w.Write(MessageHMACkey);
+                    w.Write(messageSession.AesKey);
+                    w.Write(messageStart.EncryptedMessageData);
+                    w.Write(messageAck.ReceiverFinalNonce);
+                }, localUserCertificateWithPrivateKeys)
+            };
+            messagePart.MessageHMAC = GetMessageHMAC(messagePart.GetSignedFieldsForMessageHMAC);
+            var messagePartUdpData = messagePart.Encode();
+
+            // wait for msgack status=finalSignatureVerified
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("sending MSGPART with message data, waiting for MSGACK");
+            await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgpart 8178", "remote user", messagePartUdpData,
+                RemoteSessionDescription.DirectChannelEndPoint,
+                MessageAckPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.finalSignatureVerified) // scanner also verifies HMAC
+                );
+        }
+
+        /// <summary>
+        /// receive MSG with IKE1 data
+        /// </summary>
+        /// <returns>remote IKE1 data</returns>
+        private async Task<Ike1Data> ReceiveIke1DataAsync(UserCertificate remoteUserCertificate)
+        {
+            var messageSession = new MessageSession();
+
+            // wait for msgstart
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("waiting for MSGSTART");
+            var messageStartUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 5678", "remote user", null, RemoteSessionDescription.DirectChannelEndPoint,
+                MessageStartPacket.GetScanner(LocalDirectChannelToken32, this) // scanner verifies MessageHMAC
+                );
+            var messageStart = MessageStartPacket.Decode(messageStartUdpData);
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("decoded MSGSTART");
+
+            messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecret);
+
+            // decrypt
+            var remoteIke1Data = messageSession.DecryptIke1Data(_localDrpPeer.CryptoLibrary, messageStart.EncryptedMessageData);
+
+            // respond with msgack + ReceiverFinalNonce
+            if (messageSession.Status != MessageSessionStatusCode.encryptionDecryptionCompleted) throw new InvalidOperationException();
+            var messageAck = new MessageAckPacket
+            {
+                MessageId32 = messageStart.MessageId32,
+                ReceiverStatus = messageSession.Status,
+                ReceiverFinalNonce = _localDrpPeer.CryptoLibrary.GetRandomBytes(MessageAckPacket.ReceiverFinalNonceSize),
+            };
+            messageAck.MessageHMAC = GetMessageHMAC(messageAck.GetSignedFieldsForMessageHMAC);
+            var messageAckUdpData = messageAck.Encode();
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("responding with MSGACK to MSGSTART");
+            _localDrpPeer.Engine.RespondToRequestAndRetransmissions(messageStart.DecodedUdpData, messageAckUdpData, RemoteSessionDescription.DirectChannelEndPoint);
+
+            // wait for msgpart with status=encryptionDecryptionCompleted
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("waiting for with MSGPART");
+            var messagePartUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgpart 7807", "remote user", null,
+                RemoteSessionDescription.DirectChannelEndPoint,
+                MessagePartPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.encryptionDecryptionCompleted)
+                // scanner verifies MessageHMAC
+                );
+            var messagePart = MessagePartPacket.Decode(messagePartUdpData);
+
+            // verify signature of sender user
+            if (!messagePart.SenderSignature.Verify(_localDrpPeer.CryptoLibrary, w =>
+            {
+                w.Write(MessageHMACkey);
+                w.Write(messageSession.AesKey);
+                w.Write(messageStart.EncryptedMessageData);
+                w.Write(messageAck.ReceiverFinalNonce);
+            }, remoteUserCertificate))
+                throw new BadSignatureException("bad MSGPART sender signature 5497");
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("verified sender signature");
+
+            // send msgack status=finalSignatureVerified
+            messageSession.Status = MessageSessionStatusCode.finalSignatureVerified;
+            var messageAck_finalSignatureVerified = new MessageAckPacket
+            {
+                MessageId32 = messageStart.MessageId32,
+                ReceiverStatus = messageSession.Status,
+            };
+            messageAck_finalSignatureVerified.MessageHMAC = GetMessageHMAC(messageAck_finalSignatureVerified.GetSignedFieldsForMessageHMAC);
+            var messageAck_finalSignatureVerified_UdpData = messageAck_finalSignatureVerified.Encode();
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("sending MSGACK response to MSGPART");
+            _localDrpPeer.Engine.RespondToRequestAndRetransmissions(messagePart.DecodedUdpData, messageAck_finalSignatureVerified_UdpData, RemoteSessionDescription.DirectChannelEndPoint);
+
+            return remoteIke1Data;
+        }
+
+        /// <returns>remote IKE1 data: user ID, reg IDs</returns>
+        internal async Task<Ike1Data> Ike1Async_AtInviteRequester(UserCertificate localUserCertificateWithPrivateKeys, Ike1Data localIke1Data, UserCertificate remoteUserCertificate)
         {
             if (!DerivedDirectChannelSharedDhSecretsAE) throw new InvalidOperationException("DerivedDirectChannelSharedDhSecretsAE = false");
-            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail(">> InviteSession.ExchangeContactInvitationsAsync_AtInviteRequester()");
+            if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail(">> InviteSession.Ike1Async_AtInviteRequester()");
 
-            { // send MSG with contact invitation
-                var messageSession = new MessageSession();
-                var messageStart = new MessageStartPacket()
-                {
-                    MessageId32 = (uint)_insecureRandom.Next(),
-                    DirectChannelToken32 = RemoteSessionDescription.DirectChannelToken32,
-                    MessageTimestamp64 = _localDrpPeer.Engine.Timestamp64,
-                };
-                messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecret);
-                messageStart.EncryptedMessageData = messageSession.EncryptContactInvitation(_localDrpPeer.CryptoLibrary, localUserId, localRegistrationIds);
-
-                // sign with HMAC
-                messageStart.MessageHMAC = GetMessageHMAC(w => messageStart.GetSignedFieldsForMessageHMAC(w, true));
-
-                // send msgstart, wait for msgack
-                var messageStartUdpData = messageStart.Encode();
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("sending MSGSTART and waiting for MSGACK");
-                var messageAckUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 2345", "remote user",
-                    messageStartUdpData, RemoteSessionDescription.DirectChannelEndPoint,
-                    MessageAckPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.encryptionDecryptionCompleted) // scanner also verifies HMAC
-                    );
-                var messageAck = MessageAckPacket.Decode(messageAckUdpData);
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("decoded MSGACK");
-
-                // send msgpart with status=encryptionDecryptionCompleted and signature
-                if (messageSession.Status != MessageSessionStatusCode.encryptionDecryptionCompleted) throw new InvalidOperationException();
-                var messagePart = new MessagePartPacket
-                {
-                    MessageId32 = messageStart.MessageId32,
-                    SenderStatus = messageSession.Status,
-                    SenderSignature = UserCertificateSignature.Sign(_localDrpPeer.CryptoLibrary, w =>
-                    {
-                        w.Write(MessageHMACkey);
-                        w.Write(messageSession.AesKey);
-                        w.Write(messageStart.EncryptedMessageData);
-                        w.Write(messageAck.ReceiverFinalNonce);
-                    }, localUserCertificateWithPrivateKeys)
-                };
-                messagePart.MessageHMAC = GetMessageHMAC(messagePart.GetSignedFieldsForMessageHMAC);
-                var messagePartUdpData = messagePart.Encode();
-
-                // wait for msgack status=finalSignatureVerified
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("sending MSGPART with message data, waiting for MSGACK");
-                await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgpart 8178", "remote user", messagePartUdpData,
-                    RemoteSessionDescription.DirectChannelEndPoint,
-                    MessageAckPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.finalSignatureVerified) // scanner also verifies HMAC
-                    );
-            }
-
-          
-            { // receive MSG with contact invitation
-                var messageSession = new MessageSession();
-
-                // wait for msgstart
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("waiting for MSGSTART");
-                var messageStartUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 5678", "remote user", null, RemoteSessionDescription.DirectChannelEndPoint,
-                    MessageStartPacket.GetScanner(LocalDirectChannelToken32, this) // scanner verifies MessageHMAC
-                    );
-                var messageStart = MessageStartPacket.Decode(messageStartUdpData);
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("decoded MSGSTART");
-
-                messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecret);
-
-                // decrypt
-                var remoteInvitation = messageSession.DecryptContactInvitation(_localDrpPeer.CryptoLibrary, messageStart.EncryptedMessageData);
-
-                // respond with msgack + ReceiverFinalNonce
-                if (messageSession.Status != MessageSessionStatusCode.encryptionDecryptionCompleted) throw new InvalidOperationException();
-                var messageAck = new MessageAckPacket
-                {
-                    MessageId32 = messageStart.MessageId32,
-                    ReceiverStatus = messageSession.Status,
-                    ReceiverFinalNonce = _localDrpPeer.CryptoLibrary.GetRandomBytes(MessageAckPacket.ReceiverFinalNonceSize),
-                };
-                messageAck.MessageHMAC = GetMessageHMAC(messageAck.GetSignedFieldsForMessageHMAC);
-                var messageAckUdpData = messageAck.Encode();
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("responding with MSGACK to MSGSTART");
-                _localDrpPeer.Engine.RespondToRequestAndRetransmissions(messageStart.DecodedUdpData, messageAckUdpData, RemoteSessionDescription.DirectChannelEndPoint);
-
-                // wait for msgpart with status=encryptionDecryptionCompleted
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("waiting for with MSGPART");
-                var messagePartUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgpart 7807", "remote user", null,
-                    RemoteSessionDescription.DirectChannelEndPoint,
-                    MessagePartPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.encryptionDecryptionCompleted)
-                    // scanner verifies MessageHMAC
-                    );
-                var messagePart = MessagePartPacket.Decode(messagePartUdpData);
-
-                // verify signature of sender user
-                if (!messagePart.SenderSignature.Verify(_localDrpPeer.CryptoLibrary, w =>
-                {
-                    w.Write(MessageHMACkey);
-                    w.Write(messageSession.AesKey);
-                    w.Write(messageStart.EncryptedMessageData);
-                    w.Write(messageAck.ReceiverFinalNonce);
-                }, remoteUserCertificate))
-                    throw new BadSignatureException("bad MSGPART sender signature 5497");
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("verified sender signature");
-
-                // send msgack status=finalSignatureVerified
-                messageSession.Status = MessageSessionStatusCode.finalSignatureVerified;
-                var messageAck_finalSignatureVerified = new MessageAckPacket
-                {
-                    MessageId32 = messageStart.MessageId32,
-                    ReceiverStatus = messageSession.Status,
-                };
-                messageAck_finalSignatureVerified.MessageHMAC = GetMessageHMAC(messageAck_finalSignatureVerified.GetSignedFieldsForMessageHMAC);
-                var messageAck_finalSignatureVerified_UdpData = messageAck_finalSignatureVerified.Encode();
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("sending MSGACK response to MSGPART");
-                _localDrpPeer.Engine.RespondToRequestAndRetransmissions(messagePart.DecodedUdpData, messageAck_finalSignatureVerified_UdpData, RemoteSessionDescription.DirectChannelEndPoint);
-
-                return remoteInvitation;
-            }
-        }
-        
-
-
-        /// <returns>remote user ID, reg IDs</returns>
-        internal async Task<(UserId, RegistrationId[])> ExchangeContactInvitationsAsync_AtInviteResponder(UserCertificate localUserCertificateWithPrivateKeys, UserId localUserId, RegistrationId[] localRegistrationIds, UserCertificate remoteUserCertificate)
+            await SendIke1DataAsync(localUserCertificateWithPrivateKeys, localIke1Data);
+            return await ReceiveIke1DataAsync(remoteUserCertificate);
+        }               
+    
+        /// <returns>remote IKE1 data</returns>
+        internal async Task<Ike1Data> Ike1Async_AtInviteResponder(UserCertificate localUserCertificateWithPrivateKeys, Ike1Data localIke1Data, UserCertificate remoteUserCertificate)
         {
-            (UserId, RegistrationId[]) remoteInvitation;
-            { // receive MSG with contact invitation
-                var messageSession = new MessageSession();
-
-                // wait for msgstart
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("waiting for MSGSTART");
-                var messageStartUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 981", "remote user", null, RemoteSessionDescription.DirectChannelEndPoint,
-                    MessageStartPacket.GetScanner(LocalDirectChannelToken32, this) // scanner verifies MessageHMAC
-                    );
-                var messageStart = MessageStartPacket.Decode(messageStartUdpData);
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("decoded MSGSTART");
-
-                messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecret);
-
-                // decrypt
-                remoteInvitation = messageSession.DecryptContactInvitation(_localDrpPeer.CryptoLibrary, messageStart.EncryptedMessageData);
-
-                // respond with msgack + ReceiverFinalNonce
-                if (messageSession.Status != MessageSessionStatusCode.encryptionDecryptionCompleted) throw new InvalidOperationException();
-                var messageAck = new MessageAckPacket
-                {
-                    MessageId32 = messageStart.MessageId32,
-                    ReceiverStatus = messageSession.Status,
-                    ReceiverFinalNonce = _localDrpPeer.CryptoLibrary.GetRandomBytes(MessageAckPacket.ReceiverFinalNonceSize),
-                };
-                messageAck.MessageHMAC = GetMessageHMAC(messageAck.GetSignedFieldsForMessageHMAC);
-                var messageAckUdpData = messageAck.Encode();
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("responding with MSGACK to MSGSTART");
-                _localDrpPeer.Engine.RespondToRequestAndRetransmissions(messageStart.DecodedUdpData, messageAckUdpData, RemoteSessionDescription.DirectChannelEndPoint);
-
-                // wait for msgpart with status=encryptionDecryptionCompleted
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("waiting for with MSGPART");
-                var messagePartUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgpart 2687", "remote user", null,
-                    RemoteSessionDescription.DirectChannelEndPoint,
-                    MessagePartPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.encryptionDecryptionCompleted)
-                    // scanner verifies MessageHMAC
-                    );
-                var messagePart = MessagePartPacket.Decode(messagePartUdpData);
-
-                // verify signature of sender user
-                if (!messagePart.SenderSignature.Verify(_localDrpPeer.CryptoLibrary, w =>
-                {
-                    w.Write(MessageHMACkey);
-                    w.Write(messageSession.AesKey);
-                    w.Write(messageStart.EncryptedMessageData);
-                    w.Write(messageAck.ReceiverFinalNonce);
-                }, remoteUserCertificate))
-                    throw new BadSignatureException("bad MSGPART sender signature 98412");
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("verified sender signature");
-
-                // send msgack status=finalSignatureVerified
-                messageSession.Status = MessageSessionStatusCode.finalSignatureVerified;
-                var messageAck_finalSignatureVerified = new MessageAckPacket
-                {
-                    MessageId32 = messageStart.MessageId32,
-                    ReceiverStatus = messageSession.Status,
-                };
-                messageAck_finalSignatureVerified.MessageHMAC = GetMessageHMAC(messageAck_finalSignatureVerified.GetSignedFieldsForMessageHMAC);
-                var messageAck_finalSignatureVerified_UdpData = messageAck_finalSignatureVerified.Encode();
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("sending MSGACK response to MSGPART");
-                _localDrpPeer.Engine.RespondToRequestAndRetransmissions(messagePart.DecodedUdpData, messageAck_finalSignatureVerified_UdpData, RemoteSessionDescription.DirectChannelEndPoint);
-
-            }
-
-
-            { // send MSG with contact invitation
-                var messageSession = new MessageSession();
-                var messageStart = new MessageStartPacket()
-                {
-                    MessageId32 = (uint)_insecureRandom.Next(),
-                    DirectChannelToken32 = RemoteSessionDescription.DirectChannelToken32,
-                    MessageTimestamp64 = _localDrpPeer.Engine.Timestamp64,
-                };
-                messageSession.DeriveKeys(_localDrpPeer.CryptoLibrary, SharedPingPongHmacKey, messageStart, DirectChannelSharedDhSecret);
-                messageStart.EncryptedMessageData = messageSession.EncryptContactInvitation(_localDrpPeer.CryptoLibrary, localUserId, localRegistrationIds);
-
-                // sign with HMAC
-                messageStart.MessageHMAC = GetMessageHMAC(w => messageStart.GetSignedFieldsForMessageHMAC(w, true));
-
-                // send msgstart, wait for msgack
-                var messageStartUdpData = messageStart.Encode();
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("sending MSGSTART and waiting for MSGACK");
-                var messageAckUdpData = await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgstart 974", "remote user",
-                    messageStartUdpData, RemoteSessionDescription.DirectChannelEndPoint,
-                    MessageAckPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.encryptionDecryptionCompleted) // scanner also verifies HMAC
-                    );
-                var messageAck = MessageAckPacket.Decode(messageAckUdpData);
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("decoded MSGACK");
-
-                // send msgpart with status=encryptionDecryptionCompleted and signature
-                if (messageSession.Status != MessageSessionStatusCode.encryptionDecryptionCompleted) throw new InvalidOperationException();
-                var messagePart = new MessagePartPacket
-                {
-                    MessageId32 = messageStart.MessageId32,
-                    SenderStatus = messageSession.Status,
-                    SenderSignature = UserCertificateSignature.Sign(_localDrpPeer.CryptoLibrary, w =>
-                    {
-                        w.Write(MessageHMACkey);
-                        w.Write(messageSession.AesKey);
-                        w.Write(messageStart.EncryptedMessageData);
-                        w.Write(messageAck.ReceiverFinalNonce);
-                    }, localUserCertificateWithPrivateKeys)
-                };
-                messagePart.MessageHMAC = GetMessageHMAC(messagePart.GetSignedFieldsForMessageHMAC);
-                var messagePartUdpData = messagePart.Encode();
-
-                // wait for msgack status=finalSignatureVerified
-                if (Logger.WriteToLog_detail_enabled) Logger.WriteToLog_detail("sending MSGPART with message data, waiting for MSGACK");
-                await _localDrpPeer.Engine.OptionallySendUdpRequestAsync_Retransmit_WaitForResponse("msgpart 34563", "remote user", messagePartUdpData,
-                    RemoteSessionDescription.DirectChannelEndPoint,
-                    MessageAckPacket.GetScanner(messageStart.MessageId32, this, MessageSessionStatusCode.finalSignatureVerified) // scanner also verifies HMAC
-                    );
-            }
-
-
-
-
-            return remoteInvitation;
+            var remoteIke1Data = await ReceiveIke1DataAsync(remoteUserCertificate);                     
+            await SendIke1DataAsync(localUserCertificateWithPrivateKeys, localIke1Data);                       
+            return remoteIke1Data;
         }
+        #endregion
     }
 }

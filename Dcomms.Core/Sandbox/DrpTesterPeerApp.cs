@@ -84,11 +84,11 @@ namespace Dcomms.Sandbox
             autoReceiveShortSingleMessage = true;
         }
 
-        public (UserId, RegistrationId[]) OnReceivedInvite_ContactInvitation_GetLocal(byte[] contactInvitationToken)
+        public Ike1Data OnReceivedInvite_GetLocalIke1Data(byte[] contactInvitationToken)
         {
             throw new NotImplementedException();
         }
-        public void OnReceivedInvite_ContactInvitation_SetRemote(byte[] contactInvitationToken, (UserId, RegistrationId[], IPEndPoint) remoteContactInvitation)
+        public void OnReceivedInvite_SetRemoteIke1Data(byte[] contactInvitationToken, Ike1Data remoteIke1Data)
         {
             throw new NotImplementedException();
         }

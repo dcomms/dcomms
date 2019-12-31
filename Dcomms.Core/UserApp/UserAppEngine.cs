@@ -161,7 +161,7 @@ namespace Dcomms.UserApp
             }
         }
         /// <summary>
-        /// inserts User record and RegistrationIds
+        /// inserts User record and RegistrationId records
         /// </summary>
         public void ConfirmContact(Contact contact)
         {
@@ -177,7 +177,7 @@ namespace Dcomms.UserApp
         #region vision
         readonly VisionChannel _visionChannel;
         internal VisionChannel VisionChannel => _visionChannel;
-        void HandleException(string prefix, Exception exc)
+        internal void HandleException(string prefix, Exception exc)
         {
             WriteToLog_mediumPain($"{prefix}{exc}");
         }

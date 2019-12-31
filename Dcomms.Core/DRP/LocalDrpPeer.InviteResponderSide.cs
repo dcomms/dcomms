@@ -136,8 +136,8 @@ namespace Dcomms.DRP
                     switch (session.RemoteSessionDescription.SessionType)
                     {
                         case SessionType.asyncShortSingleMessage: break;
-                        case SessionType.contactInvitation:
-                            if (_drpPeerApp.OnReceivedInvite_ContactInvitation_GetLocal(req.ContactInvitationTokenNullable).Item1 == null)
+                        case SessionType.ike1:
+                            if (_drpPeerApp.OnReceivedInvite_GetLocalIke1Data(req.ContactInvitationTokenNullable) == null)
                                 throw new BadSignatureException("bad ContactInvitationToken 21379");
                             break;
                         default: throw new NotImplementedException();
@@ -188,8 +188,8 @@ namespace Dcomms.DRP
                         else
                             session.Dispose(); // todo implement other things
                         break;
-                    case SessionType.contactInvitation:
-                        _ = ExchangeContactInvitationsAsync_AtInviteResponder(session, req);
+                    case SessionType.ike1:
+                        _ = Ike1Async_AtInviteResponder(session, req);
                         break;
                     default: throw new NotImplementedException();
                 }
@@ -225,20 +225,21 @@ namespace Dcomms.DRP
             _drpPeerApp.OnReceivedShortSingleMessage(receivedMessage, req);
         }
 
-        async Task ExchangeContactInvitationsAsync_AtInviteResponder(InviteSession session, InviteRequestPacket req)
+        async Task Ike1Async_AtInviteResponder(InviteSession session, InviteRequestPacket req)
         {
             try
             {
-                var localInvitation = _drpPeerApp.OnReceivedInvite_ContactInvitation_GetLocal(req.ContactInvitationTokenNullable);
-                var remoteContactInvitation = await session.ExchangeContactInvitationsAsync_AtInviteResponder(session.LocalSessionDescription.UserCertificate,
-                    localInvitation.Item1, localInvitation.Item2, session.RemoteSessionDescription.UserCertificate);           
-                _drpPeerApp.OnReceivedInvite_ContactInvitation_SetRemote(req.ContactInvitationTokenNullable, (remoteContactInvitation.Item1, remoteContactInvitation.Item2, session.RemoteSessionDescription.DirectChannelEndPoint));
+                var localIke1Data = _drpPeerApp.OnReceivedInvite_GetLocalIke1Data(req.ContactInvitationTokenNullable);
+                if (localIke1Data == null) throw new BadSignatureException();
+                var remoteIke1Data = await session.Ike1Async_AtInviteResponder(session.LocalSessionDescription.UserCertificate,
+                    localIke1Data, session.RemoteSessionDescription.UserCertificate);
+                remoteIke1Data.RemoteEndPoint = session.RemoteSessionDescription.DirectChannelEndPoint;
+                _drpPeerApp.OnReceivedInvite_SetRemoteIke1Data(req.ContactInvitationTokenNullable, remoteIke1Data);
             }
             finally
             {
                 session.Dispose();
             }
-
         }
     }
 }

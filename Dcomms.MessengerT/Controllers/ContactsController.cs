@@ -17,7 +17,7 @@ namespace Dcomms.MessengerT.Controllers
         [HttpPost, ActionName("Add")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddConfirmed(int id, string initiated, 
-            [Bind("NewContactAliasID", "NewContact_LocallyInitiatedInvitationKey", "NewContact_RemotelyInitiatedInvitationKey")] LocalUser newFieldsUser
+            [Bind("NewContactAliasID", "NewContact_LocallyInitiatedIke1Invitation", "NewContact_RemotelyInitiatedIke1Invitation")] LocalUser newFieldsUser
             )
         {
             if (!Program.UserAppEngine.LocalUsers.TryGetValue(id, out var localUser)) return NotFound();
@@ -31,13 +31,13 @@ namespace Dcomms.MessengerT.Controllers
             switch (initiated)
             {
                 case "locally":
-                    localUser.AddNewContact_LocallyInitiated(newFieldsUser.NewContactAliasID, newFieldsUser.NewContact_LocallyInitiatedInvitationKey);
+                    localUser.AddNewContact_LocallyInitiatedInvitation(newFieldsUser.NewContactAliasID, newFieldsUser.NewContact_LocallyInitiatedIke1Invitation);
                     break;
                 case "remotely":
-                    if (String.IsNullOrEmpty(newFieldsUser.NewContact_RemotelyInitiatedInvitationKey))
-                        ModelState.AddModelError("NewContact_RemotelyInitiatedInvitationKey", "Please enter invitation key");
+                    if (String.IsNullOrEmpty(newFieldsUser.NewContact_RemotelyInitiatedIke1Invitation))
+                        ModelState.AddModelError("NewContact_RemotelyInitiatedIke1Invitation", "Please enter invitation key");
                     if (!ModelState.IsValid) return View(localUser);
-                    localUser.AddNewContact_RemotelyInitiated(newFieldsUser.NewContactAliasID, newFieldsUser.NewContact_RemotelyInitiatedInvitationKey);
+                    localUser.AddNewContact_RemotelyInitiated(newFieldsUser.NewContactAliasID, newFieldsUser.NewContact_RemotelyInitiatedIke1Invitation);
                     break;
             }
                        

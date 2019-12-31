@@ -38,33 +38,34 @@ namespace Dcomms.UserApp
         public readonly Dictionary<int, Contact> Contacts = new Dictionary<int, Contact>();
         int _unconfirmedContactIdCounter = -1;
         public string NewContactAliasID { get; set; }
-        public string NewContact_RemotelyInitiatedInvitationKey { get; set; }
-        public string NewContact_LocallyInitiatedInvitationKey_NewValueEveryTime => ContactInvitation.CreateNew(_userAppEngine.Engine.CryptoLibrary, UserRegistrationIDs.First().RegistrationId).EncodeForUI();        
-        public string NewContact_LocallyInitiatedInvitationKey { get; set; } // is set by UI
-        public void AddNewContact_LocallyInitiated(string aliasID, string locallyInitiatedInvitationKey)
+        public string NewContact_RemotelyInitiatedIke1Invitation { get; set; }
+        public string NewContact_LocallyInitiatedIke1Invitation_NewRandomValue => Ike1Invitation.CreateNew(_userAppEngine.Engine.CryptoLibrary, UserRegistrationIDs.First().RegistrationId).EncodeForUI();        
+        public string NewContact_LocallyInitiatedIke1Invitation { get; set; } // is set by UI
+        public void AddNewContact_LocallyInitiatedInvitation(string aliasID, string locallyInitiatedIke1Invitation)
         {
             var unconfirmedContactId = _unconfirmedContactIdCounter--;
-            var locallyInitiatedInvitation = ContactInvitation.DecodeFromUI(locallyInitiatedInvitationKey);
+            var locallyInitiatedInvitation = Ike1Invitation.DecodeFromUI(locallyInitiatedIke1Invitation);
             Contacts.Add(unconfirmedContactId, new Contact()
             {
                 UnconfirmedContactId = unconfirmedContactId,
                 UnconfirmedContactOwnerLocalUserId = User.Id, 
-                LocallyGeneratedInvitation = locallyInitiatedInvitation,
+                LocallyInitiatedIke1Invitation = locallyInitiatedInvitation,
                 UserAliasID = aliasID
             });
+            // next we wait for INVITE with specific ContactInvitationToken
         }
 
         Contact GetUnconfirmedContactByToken(byte[] contactInvitationToken)
         {
-            return Contacts.Values.FirstOrDefault(x => MiscProcedures.EqualByteArrays(x.LocallyGeneratedInvitation.ContactInvitationToken, contactInvitationToken) == true);
+            return Contacts.Values.FirstOrDefault(x => MiscProcedures.EqualByteArrays(x.LocallyInitiatedIke1Invitation.ContactInvitationToken, contactInvitationToken) == true);
         }
-        (UserId, RegistrationId[]) IDrpRegisteredPeerApp.OnReceivedInvite_ContactInvitation_GetLocal(byte[] contactInvitationToken)
+        Ike1Data IDrpRegisteredPeerApp.OnReceivedInvite_GetLocalIke1Data(byte[] contactInvitationToken)
         {
             var unconfirmedContact = GetUnconfirmedContactByToken(contactInvitationToken);
-            if (unconfirmedContact == null) return (null, null);
-            return (User.UserID, UserRegistrationIDs.Select(x => x.RegistrationId).ToArray());
+            if (unconfirmedContact == null) return null;
+            return new Ike1Data { UserId = User.UserID, RegistrationIds = UserRegistrationIDs.Select(x => x.RegistrationId).ToArray() };
         }
-        void IDrpRegisteredPeerApp.OnReceivedInvite_ContactInvitation_SetRemote(byte[] contactInvitationToken, (UserId, RegistrationId[], IPEndPoint) remoteContactInvitation)
+        void IDrpRegisteredPeerApp.OnReceivedInvite_SetRemoteIke1Data(byte[] contactInvitationToken, Ike1Data remoteIke1Data)
         {
             var contact = GetUnconfirmedContactByToken(contactInvitationToken);
             if (contact == null) throw new BadSignatureException();
@@ -73,52 +74,57 @@ namespace Dcomms.UserApp
             {
                 OwnerLocalUserId = this.User.Id,
                 AliasID = contact.UserAliasID, 
-                UserID = remoteContactInvitation.Item1,
-                Metadata = new UserMetadata { ContactCreatedAtUTC = _userAppEngine.Engine.DateTimeNowUtc, ContactCreatedWithRemoteEndpoint = remoteContactInvitation.Item3 }
+                UserID = remoteIke1Data.UserId,
+                Metadata = new UserMetadata { ContactCreatedAtUTC = _userAppEngine.Engine.DateTimeNowUtc, ContactCreatedWithRemoteEndpoint = remoteIke1Data.RemoteEndPoint }
             };
-            contact.RegistrationIDs = remoteContactInvitation.Item2.Select(x => new UserRegistrationID { RegistrationId = x, UserId = contact.User.Id }).ToList();
-            _userAppEngine.ConfirmContact(contact);
+            contact.RegistrationIDs = remoteIke1Data.RegistrationIds.Select(x => new UserRegistrationID { RegistrationId = x }).ToList();
+            _userAppEngine.ConfirmContact(contact); // insert new records into database
 
             Contacts.Remove(contact.UnconfirmedContactId.Value);
             Contacts.Add(contact.User.Id, contact);
         }
-        public void AddNewContact_RemotelyInitiated(string aliasID, string remotelyInitiatedInvitationKey)
+        public void AddNewContact_RemotelyInitiated(string aliasID, string remotelyInitiatedIke1InvitationStr)
         {
             var localDrpPeer = UserRegistrationIDs.Select(x => x.LocalDrpPeer).FirstOrDefault();
-            if (localDrpPeer == null) throw new InvalidOperationException("no local DRP peers found to send INVITE");
+            if (localDrpPeer == null) throw new InvalidOperationException("no local DRP peers found to send INVITE with contact invitation");
 
             var unconfirmedContactId = _unconfirmedContactIdCounter--;
-            var remotelyInitiatedInvitation = ContactInvitation.DecodeFromUI(remotelyInitiatedInvitationKey);
+            var remotelyInitiatedIke1Invitation = Ike1Invitation.DecodeFromUI(remotelyInitiatedIke1InvitationStr);
             var newContact = new Contact()
             {
                 UnconfirmedContactId = unconfirmedContactId,
                 UnconfirmedContactOwnerLocalUserId = User.Id,
-                RemotelyGeneratedInvitation = remotelyInitiatedInvitation,
+                RemotelyInitiatedIke1Invitation = remotelyInitiatedIke1Invitation,
                 UserAliasID = aliasID
             };
             Contacts.Add(unconfirmedContactId, newContact);
 
-            // send invite with remote inv. key  (token + reg ID)
-            localDrpPeer.BeginSendContactInvitation(User.LocalUserCertificate, User.UserID, 
-                UserRegistrationIDs.Select(x => x.RegistrationId).ToArray(), 
-                remotelyInitiatedInvitation,
+            localDrpPeer.BeginIke1(User.LocalUserCertificate, 
+                new Ike1Data { UserId = User.UserID, RegistrationIds = UserRegistrationIDs.Select(x => x.RegistrationId).ToArray() }, 
+                remotelyInitiatedIke1Invitation,
                 TimeSpan.FromMinutes(10),
-                (exc, remoteUserId, remoteRegistrationIds, remoteEndpoint) =>
+                (exc, remoteIke1Data) =>
                 {
+                    if (exc != null)
+                    {
+                        _userAppEngine.HandleException("IKE1 failed: ", exc);
+                        return;
+                    }
+
                     newContact.User = new User 
                     {
                         OwnerLocalUserId = this.User.Id,
                         AliasID = newContact.UserAliasID, 
-                        UserID = remoteUserId,
-                        Metadata = new UserMetadata { ContactCreatedAtUTC = _userAppEngine.Engine.DateTimeNowUtc, ContactCreatedWithRemoteEndpoint = remoteEndpoint }
+                        UserID = remoteIke1Data.UserId,
+                        Metadata = new UserMetadata { ContactCreatedAtUTC = _userAppEngine.Engine.DateTimeNowUtc, ContactCreatedWithRemoteEndpoint = remoteIke1Data.RemoteEndPoint }
                     };
-                    newContact.RegistrationIDs = remoteRegistrationIds.Select(x => new UserRegistrationID { RegistrationId = x, UserId = newContact.User.Id }).ToList();
-                    
+                    newContact.RegistrationIDs = remoteIke1Data.RegistrationIds.Select(x => new UserRegistrationID { RegistrationId = x }).ToList();
+                    _userAppEngine.ConfirmContact(newContact); // insert new records into database
+
                     Contacts.Remove(newContact.UnconfirmedContactId.Value);
                     Contacts.Add(newContact.User.Id, newContact);
                 });
         }
-
 
         public void DeleteContact(Contact contact)
         {
