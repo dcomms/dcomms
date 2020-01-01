@@ -122,7 +122,7 @@ namespace Dcomms.UserApp.DataModels
             EncryptAndSign(BinaryProcedures.EncodeString2UTF8(user.AliasID), user.Id, EncryptedFieldIds.User_AliasID, out e, out a); 
             user.AliasID_encrypted = e; user.AliasID_hmac = a;
             
-            EncryptAndSign(user.LocalUserCertificate?.Encode(), user.Id, EncryptedFieldIds.User_LocalUserCertificate, out e, out a);
+            EncryptAndSign(user.LocalUserCertificate?.Encode(true), user.Id, EncryptedFieldIds.User_LocalUserCertificate, out e, out a);
             user.LocalUserCertificate_encrypted = e; user.LocalUserCertificate_hmac = a;
 
             EncryptAndSign(user.Metadata?.Encode(), user.Id, EncryptedFieldIds.User_Metadata, out e, out a);

@@ -378,6 +378,26 @@ namespace Dcomms
             if (ushort.TryParse(str, out var r)) return r;
             return null;
         }
+
+        static char[] hexDigits = {
+         '0', '1', '2', '3', '4', '5', '6', '7',
+         '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+        public static string ColorToCssStyle(System.Drawing.Color color)
+        {
+            if (color == Color.Transparent) return "background: none";
+            var bytes = new byte[3];
+            bytes[0] = color.R;
+            bytes[1] = color.G;
+            bytes[2] = color.B;
+            var chars = new char[bytes.Length * 2];
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                int b = bytes[i];
+                chars[i * 2] = hexDigits[b >> 4];
+                chars[i * 2 + 1] = hexDigits[b & 0xF];
+            }
+            return "background: #" + new string(chars);
+        }
     }
     public class AverageSingle
     {

@@ -33,7 +33,7 @@ namespace Dcomms.UserApp.DataModels
         [Ignore]
         public bool IsLocal => LocalUserCertificate_encrypted != null;
         [Ignore]
-        public UserCertificate LocalUserCertificate { get; set; }
+        public UserCertificate LocalUserCertificate { get; set; } // if not null then must contain provate key
         public byte[] LocalUserCertificate_encrypted { get; set; }
         public byte[] LocalUserCertificate_hmac { get; set; }
         

@@ -239,8 +239,9 @@ namespace Dcomms.DMP
     /// </summary>
     public class UserCertificate
     {
-        byte Flags; // will include CertificatePublicKey algorithm type = "ed25519" by default
-        const byte FlagsMask_MustBeZero = 0b11110000;
+        // byte Flags; // will include CertificatePublicKey algorithm type = "ed25519" by default
+        const byte FlagsMask_MustBeZero = 0b11100000;
+        const byte FlagsMask_PrivateKey = 0b00000001;
 
         uint _validFromUtc32minutes;
         public DateTime ValidFromUtc => MiscProcedures.Uint32minutesToDateTime(_validFromUtc32minutes);
@@ -255,6 +256,11 @@ namespace Dcomms.DMP
         /// is null for certificates received from remote side
         /// </summary>
         public byte[] LocalCertificatePrivateKey;
+        public void AssertHasPrivateKey()
+        {
+            if (LocalCertificatePrivateKey == null)
+                throw new ArgumentException("certificate does not contain private key");
+        }
 
         public List<UserRootSignature> UserRootSignatures;
 
@@ -324,13 +330,18 @@ namespace Dcomms.DMP
             }
             return r;
         }
-        public void Encode(BinaryWriter writer)
+        public void Encode(BinaryWriter writer, bool encodePrivateKey)
         {
-            writer.Write(Flags);
+            if (encodePrivateKey) AssertHasPrivateKey();
+            byte flags = 0;
+            if (encodePrivateKey) flags |= FlagsMask_PrivateKey;
+            writer.Write(flags);
             writer.Write(_validFromUtc32minutes);
             writer.Write(_validToUtc32minutes);
             if (CertificatePublicKey.Length != CryptoLibraries.Ed25519PublicKeySize) throw new ArgumentException();
             writer.Write(CertificatePublicKey);
+            if (encodePrivateKey)
+                BinaryProcedures.EncodeByteArray256(writer, LocalCertificatePrivateKey);
 
             if (UserRootSignatures.Count > 255) throw new ArgumentException();
 
@@ -346,21 +357,25 @@ namespace Dcomms.DMP
                 writer.Write(userRootSignature.Signature);
             }
         }
-        public byte[] Encode()
+        public byte[] Encode(bool encodePrivateKey)
         {
             BinaryProcedures.CreateBinaryWriter(out var ms, out var writer);
-            Encode(writer);
+            Encode(writer, encodePrivateKey);
             return ms.ToArray();
         }
 
         public static UserCertificate Decode(BinaryReader reader)
         {
             var r = new UserCertificate();
-            r.Flags = reader.ReadByte();
-            if ((r.Flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
+            var flags = reader.ReadByte();
+            if ((flags & FlagsMask_MustBeZero) != 0) throw new NotImplementedException();
+           
             r._validFromUtc32minutes = reader.ReadUInt32();
             r._validToUtc32minutes = reader.ReadUInt32();
             r.CertificatePublicKey = reader.ReadBytes(CryptoLibraries.Ed25519PublicKeySize);
+            if ((flags & FlagsMask_PrivateKey) != 0)
+                r.LocalCertificatePrivateKey = BinaryProcedures.DecodeByteArray256(reader);
+
             var userRootSignaturesCount = reader.ReadByte();
             r.UserRootSignatures = new List<UserRootSignature>(userRootSignaturesCount);
             for (int i = 0; i < userRootSignaturesCount; i++)
@@ -400,6 +415,8 @@ namespace Dcomms.DMP
         public byte[] CertificateSignature;
         public static UserCertificateSignature Sign(ICryptoLibrary cryptoLibrary, Action<BinaryWriter> writeSignedFields, UserCertificate userCertificateWithPrivateKey)
         {
+            userCertificateWithPrivateKey.AssertHasPrivateKey();
+           
             var r = new UserCertificateSignature();
             var ms = new MemoryStream(); using (var writer = new BinaryWriter(ms)) writeSignedFields(writer);
             r.CertificateSignature = cryptoLibrary.SignEd25519(

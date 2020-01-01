@@ -362,6 +362,7 @@ namespace Dcomms.Vision
                     }
                 }
             }
+            public string AttentionLevelColorCssStyle => MiscProcedures.ColorToCssStyle(AttentionLevelColor);
             public DateTime Time { get; set; }
             public string TimeStr => Time.ToString("dd-HH:mm:ss.fff");
             public int ManagedThreadId { get; set; }

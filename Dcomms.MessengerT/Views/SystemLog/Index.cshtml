@@ -6,8 +6,17 @@
 
 <h1>System Log</h1>
 
+<table class="table1">
 
-@foreach (var msg in Program.VisionChannel.DisplayedLogMessages)
-{
-    <div>@msg.TimeStr @msg.Message</div>
-}
+    @foreach (var msg in Program.VisionChannel.DisplayedLogMessages)
+    {
+    <tr>
+        <td style="white-space: nowrap">@msg.TimeStr</td>
+        <td style="@msg.AttentionLevelColorCssStyle">@msg.AttentionLevel</td>
+        <td>@msg.ModuleName</td>
+        <td>@msg.Message</td>
+    </tr>
+    }
+
+</table>
+<div style="height: 200px" />

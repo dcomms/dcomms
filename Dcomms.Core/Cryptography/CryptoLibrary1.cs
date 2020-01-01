@@ -54,6 +54,8 @@ namespace Dcomms.Cryptography
 
         byte[] ICryptoLibrary.SignEd25519(byte[] plainText, byte[] privateKey)
         {
+            if (privateKey == null) throw new ArgumentException(nameof(privateKey));
+            if (plainText == null) throw new ArgumentException(nameof(plainText));
             var signer = new Ed25519Signer();
             signer.Init(true, new Ed25519PrivateKeyParameters(privateKey, 0));
             signer.BlockUpdate(plainText, 0, plainText.Length);

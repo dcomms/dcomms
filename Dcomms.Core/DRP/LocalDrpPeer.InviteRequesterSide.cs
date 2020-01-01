@@ -14,6 +14,7 @@ namespace Dcomms.DRP
         public void BeginSendShortSingleMessage(UserCertificate requesterUserCertificate, RegistrationId responderRegistrationId, UserId responderUserId,            
             string messageText, TimeSpan? retryOnFailureUntilThisTimeout, Action<Exception> cb)
         {
+            requesterUserCertificate.AssertHasPrivateKey();
             Engine.EngineThreadQueue.Enqueue(async () =>
             {
                 var sw1 = Stopwatch.StartNew();
@@ -62,6 +63,7 @@ _retry:
         public void BeginIke1(UserCertificate localUserCertificate, Ike1Data localIke1Data, UserApp.Ike1Invitation remotelyInitiatedIke1Invitation, 
             TimeSpan? retryOnFailureUntilThisTimeout, Action<Exception, Ike1Data> remoteIke1DataCb)
         {
+            localUserCertificate.AssertHasPrivateKey();
             Engine.EngineThreadQueue.Enqueue(async () =>
             {
                 var sw1 = Stopwatch.StartNew();
@@ -124,9 +126,10 @@ _retry:
         /// comes from local contact book
         /// </param>
         /// <param name="loggerCb">may be invoked more than one time (in case of retrying)</param>
-        public async Task<InviteSession> SendInviteAsync(UserCertificate requesterUserCertificate, RegistrationId responderRegistrationId, UserId responderUserIdNullable,
+        public async Task<InviteSession> SendInviteAsync(UserCertificate requesterUserCertificateWithPrivateKey, RegistrationId responderRegistrationId, UserId responderUserIdNullable,
             SessionType sessionType, byte[] contactInvitationTokenNullable, Action<Logger> loggerCb = null)
         {
+            requesterUserCertificateWithPrivateKey.AssertHasPrivateKey();
             InviteSession session = null;
             try
             {
@@ -226,7 +229,7 @@ _retry:
                     DirectChannelToken32 = session.LocalDirectChannelToken32
                 };
 
-                session.LocalSessionDescription.UserCertificate = requesterUserCertificate;
+                session.LocalSessionDescription.UserCertificate = requesterUserCertificateWithPrivateKey;
 
                 session.LocalSessionDescription.UserCertificateSignature = UserCertificateSignature.Sign(Engine.CryptoLibrary,
                     w =>
@@ -235,7 +238,7 @@ _retry:
                         ack1.GetSharedSignedFields(w, true);
                         session.LocalSessionDescription.WriteSignedFields(w);
                     },
-                    requesterUserCertificate
+                    requesterUserCertificateWithPrivateKey
                     );
 
                 #region send ack2

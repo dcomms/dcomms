@@ -25,8 +25,9 @@ namespace Dcomms.DRP
             
             // check if regID exists in contact book, get userID from the local contact book
             // ignore the REQ packet if no such user in contacts
-             this._drpPeerApp.OnReceivedInvite(req.RequesterRegistrationId, req.ContactInvitationTokenNullable, out var remoteRequesterUserIdFromLocalContactBookNullable, out var localUserCertificateWithPrivateKey, out var autoReply);
-            
+            this._drpPeerApp.OnReceivedInvite(req.RequesterRegistrationId, req.ContactInvitationTokenNullable, out var remoteRequesterUserIdFromLocalContactBookNullable, out var localUserCertificateWithPrivateKey, out var autoReply);
+            localUserCertificateWithPrivateKey.AssertHasPrivateKey();
+
             if (autoReply == false)
             {
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"ignored invite: autoReply = false, other session types are not implemented");
@@ -66,7 +67,6 @@ namespace Dcomms.DRP
 
                     session.LocalSessionDescription = new InviteSessionDescription
                     {
-                        SessionType = SessionType.asyncShortSingleMessage,
                         DirectChannelEndPoint = routedRequest.ReceivedFromNeighborNullable.LocalEndpoint,
                         NatBehaviour = Engine.LocalNatBehaviour,
                         DirectChannelToken32 = session.LocalDirectChannelToken32
@@ -86,7 +86,6 @@ namespace Dcomms.DRP
                     session.LocalSessionDescription.UserCertificateSignature = UserCertificateSignature.Sign(Engine.CryptoLibrary,
                         w =>
                         {
-
                             req.GetSharedSignedFields(w);
                             ack1.GetSharedSignedFields(w, false);
                             session.LocalSessionDescription.WriteSignedFields(w);
@@ -126,8 +125,8 @@ namespace Dcomms.DRP
                     session.RemoteSessionDescription = InviteSessionDescription.Decrypt_Verify(Engine.CryptoLibrary,
                         ack2.ToRequesterSessionDescriptionEncrypted,
                         req, ack1, true, session, remoteRequesterUserIdFromLocalContactBookNullable, Engine.DateTimeNowUtc);
+                    session.LocalSessionDescription.SessionType = session.RemoteSessionDescription.SessionType;
 
-                    
                     switch (session.RemoteSessionDescription.SessionType)
                     {
                         case SessionType.asyncShortSingleMessage: break;

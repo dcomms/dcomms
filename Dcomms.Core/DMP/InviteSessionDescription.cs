@@ -66,7 +66,7 @@ namespace Dcomms.DMP
         {
             BinaryProcedures.CreateBinaryWriter(out var ms, out var w);
             w.Write(Flags);
-            UserCertificate.Encode(w);
+            UserCertificate.Encode(w, false);
             BinaryProcedures.EncodeIPEndPoint(w, DirectChannelEndPoint);
             NatBehaviour.Encode(w);
             DirectChannelToken32.Encode(w);
@@ -145,7 +145,7 @@ namespace Dcomms.DMP
     /// </summary>
     public enum SessionType
     {
-        technicalMessages = 0,
+        unknown = 0,
         asyncShortSingleMessage = 1, // 3 packets: msgstart, msgack, msgpart(final)
         ike1 = 2, // 6 packets: 1) same as asyncShortSingleMessage from INVITE requester to responder, with IKE1 data; 2) same as asyncShortSingleMessage from INVITE responder to requester, with IKE1 data
 
