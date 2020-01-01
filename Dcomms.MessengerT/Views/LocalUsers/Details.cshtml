@@ -23,6 +23,12 @@
             </tr>
         }
 
+        <tr>
+            <td>Certificate</td>
+            <td>valid from @Model.User.LocalUserCertificate.ValidFromUtc to @Model.User.LocalUserCertificate.ValidToUtc</td>
+        </tr>
+        
+
         @for (int i = 0; i < @Model.UserRegistrationIDs.Count; i++)
         {
             var regId = Model.UserRegistrationIDs[i];

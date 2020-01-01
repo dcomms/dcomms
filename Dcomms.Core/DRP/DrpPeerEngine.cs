@@ -553,7 +553,7 @@ namespace Dcomms.DRP
         /// <summary>
         /// searches for a known user in local contact book
         /// </summary>
-        void OnReceivedInvite(RegistrationId remoteRegistrationId, out DMP.UserId remoteUserId, out DMP.UserCertificate localUserCertificateWithPrivateKey, out bool autoReceiveShortSingleMessage);
+        void OnReceivedInvite(RegistrationId remoteRegistrationId, byte[] contactInvitationToken, out DMP.UserId remoteUserIdNullable, out DMP.UserCertificate localUserCertificateWithPrivateKey, out bool autoReply);
 
         DMP.Ike1Data OnReceivedInvite_GetLocalIke1Data(byte[] contactInvitationToken);
         void OnReceivedInvite_SetRemoteIke1Data(byte[] contactInvitationToken, DMP.Ike1Data remoteIke1Data);

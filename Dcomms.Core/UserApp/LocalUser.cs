@@ -59,6 +59,23 @@ namespace Dcomms.UserApp
         {
             return Contacts.Values.FirstOrDefault(x => MiscProcedures.EqualByteArrays(x.LocallyInitiatedIke1Invitation.ContactInvitationToken, contactInvitationToken) == true);
         }
+
+        void IDrpRegisteredPeerApp.OnReceivedInvite(RegistrationId remoteRegistrationId, byte[] contactInvitationToken, out UserId remoteUserIdNullable, out UserCertificate localUserCertificateWithPrivateKey, out bool autoReply)
+        {
+            remoteUserIdNullable = null;
+
+            var contact = GetUnconfirmedContactByToken(contactInvitationToken);
+            if (contact == null)
+            {
+                autoReply = false;
+                localUserCertificateWithPrivateKey = null;
+            }
+            else
+            {
+                autoReply = true;
+                localUserCertificateWithPrivateKey = User.LocalUserCertificate;
+            }
+        }
         Ike1Data IDrpRegisteredPeerApp.OnReceivedInvite_GetLocalIke1Data(byte[] contactInvitationToken)
         {
             var unconfirmedContact = GetUnconfirmedContactByToken(contactInvitationToken);
@@ -212,10 +229,5 @@ namespace Dcomms.UserApp
         {
             throw new NotImplementedException();
         }
-        void IDrpRegisteredPeerApp.OnReceivedInvite(RegistrationId remoteRegistrationId, out UserId remoteUserId, out UserCertificate localUserCertificateWithPrivateKey, out bool autoReceiveShortSingleMessage)
-        {
-            throw new NotImplementedException();
-        }
-
     }
 }

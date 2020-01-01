@@ -76,12 +76,12 @@ namespace Dcomms.Sandbox
             }
         }
         public Dictionary<RegistrationId, UserId> ContactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
-        public void OnReceivedInvite(RegistrationId remoteRegistrationId, out DMP.UserId remoteUserId, out DMP.UserCertificate localUserCertificateWithPrivateKey, out bool autoReceiveShortSingleMessage)
+        public void OnReceivedInvite(RegistrationId remoteRegistrationId, byte[] contactInvitationToken, out DMP.UserId remoteUserIdNullable, out DMP.UserCertificate localUserCertificateWithPrivateKey, out bool autoReply)
         {
             _receivedInvites++;
-            remoteUserId = ContactBookUsersByRegId[remoteRegistrationId];
+            remoteUserIdNullable = ContactBookUsersByRegId[remoteRegistrationId];
             localUserCertificateWithPrivateKey = UserCertificateWithPrivateKey;
-            autoReceiveShortSingleMessage = true;
+            autoReply = true;
         }
 
         public Ike1Data OnReceivedInvite_GetLocalIke1Data(byte[] contactInvitationToken)

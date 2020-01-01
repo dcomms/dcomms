@@ -25,21 +25,16 @@ namespace Dcomms.DRP
             
             // check if regID exists in contact book, get userID from the local contact book
             // ignore the REQ packet if no such user in contacts
-            this._drpPeerApp.OnReceivedInvite(req.RequesterRegistrationId, out var remoteRequesterUserIdFromLocalContactBook, out var localUserCertificateWithPrivateKey, out var autoReceiveShortSingleMessage);
-            if (remoteRequesterUserIdFromLocalContactBook == null)
-            { // ignore INVITEs from unknown users
-                logger.WriteToLog_lightPain($"ignored invite from unknown user (no user found in local contact book by requester regID)");
-                return;
-            }
-
-            if (autoReceiveShortSingleMessage == false)
+             this._drpPeerApp.OnReceivedInvite(req.RequesterRegistrationId, req.ContactInvitationTokenNullable, out var remoteRequesterUserIdFromLocalContactBookNullable, out var localUserCertificateWithPrivateKey, out var autoReply);
+            
+            if (autoReply == false)
             {
-                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"ignored invite: autoReceiveShortSingleMessage = false, other session types are not implemented");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"ignored invite: autoReply = false, other session types are not implemented");
                 return;
             }
 
-
-            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"resolved user {remoteRequesterUserIdFromLocalContactBook} by requester regID={req.RequesterRegistrationId}");
+            if (remoteRequesterUserIdFromLocalContactBookNullable != null)
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"resolved user {remoteRequesterUserIdFromLocalContactBookNullable} by requester regID={req.RequesterRegistrationId}");
 
             if (!Engine.RecentUniquePublicEcdhKeys.Filter(req.RequesterEcdhePublicKey.Ecdh25519PublicKey))
             {
@@ -130,7 +125,7 @@ namespace Dcomms.DRP
                     // decrypt, verify SD remote user's certificate and signature
                     session.RemoteSessionDescription = InviteSessionDescription.Decrypt_Verify(Engine.CryptoLibrary,
                         ack2.ToRequesterSessionDescriptionEncrypted,
-                        req, ack1, true, session, remoteRequesterUserIdFromLocalContactBook, Engine.DateTimeNowUtc);
+                        req, ack1, true, session, remoteRequesterUserIdFromLocalContactBookNullable, Engine.DateTimeNowUtc);
 
                     
                     switch (session.RemoteSessionDescription.SessionType)
@@ -176,23 +171,21 @@ namespace Dcomms.DRP
                     throw;
                 }
 
-
-                switch (session.RemoteSessionDescription.SessionType)
-                {
-                    case SessionType.asyncShortSingleMessage:
-                        if (autoReceiveShortSingleMessage == true)
-                        {
-                            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"autoReceiveShortSingleMessage=true: receiving message");
-                            _ = ReceiveShortSingleMessageAsync(session, req);
-                        }
-                        else
-                            session.Dispose(); // todo implement other things
-                        break;
-                    case SessionType.ike1:
-                        _ = Ike1Async_AtInviteResponder(session, req);
-                        break;
-                    default: throw new NotImplementedException();
-                }
+                if (autoReply)
+                    switch (session.RemoteSessionDescription.SessionType)
+                    {
+                        case SessionType.asyncShortSingleMessage:                           
+                            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"autoReply=true: receiving message");
+                            _ = ReceiveShortSingleMessageAsync(session, req);                           
+                            break;
+                        case SessionType.ike1:
+                            if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"autoReply=true: starting IKE1");
+                            _ = Ike1Async_AtInviteResponder(session, req);
+                            break;
+                        default: throw new NotImplementedException();
+                    }
+                else
+                    session.Dispose(); // todo implement other cases
             }
             catch (DrpTimeoutException exc)
             {
