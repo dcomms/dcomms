@@ -188,7 +188,7 @@ namespace Dcomms.UserApp.DataModels
             EncryptAndSign(userRegistrationID.RegistrationId.Encode(), userRegistrationID.Id, EncryptedFieldIds.UserRegistrationID_RegistrationId, out var e, out var a);
             userRegistrationID.RegistrationId_encrypted = e; userRegistrationID.RegistrationId_hmac = a;
 
-            EncryptAndSign(userRegistrationID.RegistrationPrivateKey.Encode(), userRegistrationID.Id, EncryptedFieldIds.UserRegistrationID_RegistrationPrivateKey, out e, out a);
+            EncryptAndSign(userRegistrationID.RegistrationPrivateKey?.Encode(), userRegistrationID.Id, EncryptedFieldIds.UserRegistrationID_RegistrationPrivateKey, out e, out a);
             userRegistrationID.RegistrationPrivateKey_encrypted = e; userRegistrationID.RegistrationPrivateKey_hmac = a;
 
             _db_main.Update(userRegistrationID);

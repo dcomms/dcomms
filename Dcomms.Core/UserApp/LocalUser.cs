@@ -144,13 +144,10 @@ namespace Dcomms.UserApp
         }
 
         public void DeleteContact(Contact contact)
-        {
-            if (contact.IsConfirmed)
-                throw new NotImplementedException();
-            else
-            {
-                Contacts.Remove(contact.ContactId);
-            }
+        {            
+            Contacts.Remove(contact.ContactId);          
+            if (contact.IsConfirmed) 
+                _userAppEngine.DeleteContact(contact);
         }     
         #endregion
 

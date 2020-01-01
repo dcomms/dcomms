@@ -5,6 +5,7 @@ using Dcomms.Vision;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 namespace Dcomms.UserApp
 {
@@ -88,6 +89,9 @@ namespace Dcomms.UserApp
         {
             try
             {
+                foreach (var contact in localUser.Contacts.Values.ToList())
+                    DeleteContact(contact);
+
                 foreach (var regId in localUser.UserRegistrationIDs)
                     _db.DeleteRegistrationId(regId.Id);
                 if (localUser.RootUserKeys != null) _db.DeleteRootUserKeys(localUser.RootUserKeys.Id);
@@ -171,6 +175,13 @@ namespace Dcomms.UserApp
                 regId.UserId = contact.User.Id;
                 _db.InsertUserRegistrationID(regId);
             }
+        }
+        public void DeleteContact(Contact contact)
+        {
+            if (!contact.IsConfirmed) return;
+            foreach (var regId in contact.RegistrationIDs)
+                _db.DeleteRegistrationId(regId.Id);
+            _db.DeleteUser(contact.User.Id);
         }
         #endregion
 
