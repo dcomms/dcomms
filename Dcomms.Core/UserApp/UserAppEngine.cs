@@ -175,6 +175,8 @@ namespace Dcomms.UserApp
                 regId.UserId = contact.User.Id;
                 _db.InsertUserRegistrationID(regId);
             }
+            contact.LocallyInitiatedIke1Invitation = null;
+            contact.RemotelyInitiatedIke1Invitation = null;
         }
         public void DeleteContact(Contact contact)
         {

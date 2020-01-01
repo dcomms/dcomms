@@ -62,7 +62,7 @@
         {
             <tr>
                 <td>Registration ID #@(i + 1)</td>
-                <td>@Dcomms.MiscProcedures.ByteArrayToString(Model.RegistrationIDs[i].RegistrationId.Ed25519publicKey)</td>
+                <td>@Dcomms.MiscProcedures.ByteArrayToString(Model.RegistrationIDs[i].RegistrationId?.Ed25519publicKey)</td>
             </tr>
         }
     </table>
