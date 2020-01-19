@@ -123,11 +123,11 @@ namespace Dcomms.DRP
         /// <summary>
         /// is used to make sure that processed ECDH keys are unique
         /// </summary>
-        internal readonly UniqueDataFilter RecentUniquePublicEcdhKeys = new UniqueDataFilter(10000);
-        internal readonly UniqueDataFilter RecentUniqueProxiedRegistrationRequests_NonRandomHop = new UniqueDataFilter(1000);
-        internal readonly UniqueDataFilter RecentUniqueProxiedRegistrationRequests_RandomHop = new UniqueDataFilter(1000);
-        internal readonly UniqueDataFilter RecentUniqueAcceptedRegistrationRequests = new UniqueDataFilter(1000);
-        internal readonly UniqueDataFilter RecentUniqueInviteRequests = new UniqueDataFilter(1000);
+        internal readonly UniqueDataFilter RecentUniquePublicEcdhKeys = new UniqueDataFilter(1000);
+        internal readonly UniqueDataFilter RecentUniqueProxiedRegistrationRequests_NonRandomHop = new UniqueDataFilter(500);
+        internal readonly UniqueDataFilter RecentUniqueProxiedRegistrationRequests_RandomHop = new UniqueDataFilter(500);
+        internal readonly UniqueDataFilter RecentUniqueAcceptedRegistrationRequests = new UniqueDataFilter(500);
+        internal readonly UniqueDataFilter RecentUniqueInviteRequests = new UniqueDataFilter(500);
         #endregion
 
         public readonly VectorSectorIndexCalculator VSIC;
