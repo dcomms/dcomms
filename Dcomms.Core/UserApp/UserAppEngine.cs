@@ -169,6 +169,9 @@ namespace Dcomms.UserApp
         /// </summary>
         public void ConfirmContact(Contact contact)
         {
+            if (contact.LocallyInitiatedIke1Invitation == null && contact.RemotelyInitiatedIke1Invitation == null)
+                throw new InvalidOperationException("can not insert contact: invitations = null");
+
             _db.InsertUser(contact.User);
             foreach (var regId in contact.RegistrationIDs)
             {
