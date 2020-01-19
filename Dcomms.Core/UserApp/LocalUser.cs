@@ -43,6 +43,12 @@ namespace Dcomms.UserApp
         public string NewContact_LocallyInitiatedIke1Invitation { get; set; } // is set by UI
         public void AddNewContact_LocallyInitiatedInvitation(string aliasID, string locallyInitiatedIke1Invitation)
         {
+            if (String.IsNullOrEmpty(locallyInitiatedIke1Invitation))
+                throw new ArgumentNullException(nameof(locallyInitiatedIke1Invitation));
+
+            this.User.LocalUserCertificate.AssertHasPrivateKey();
+            this.User.LocalUserCertificate.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.DateTimeNowUtc);
+            
             var unconfirmedContactId = _unconfirmedContactIdCounter--;
             var locallyInitiatedInvitation = Ike1Invitation.DecodeFromUI(locallyInitiatedIke1Invitation);
             Contacts.Add(unconfirmedContactId, new Contact()
@@ -57,7 +63,7 @@ namespace Dcomms.UserApp
 
         Contact GetUnconfirmedContactByToken(byte[] contactInvitationToken)
         {
-            return Contacts.Values.FirstOrDefault(x => MiscProcedures.EqualByteArrays(x.LocallyInitiatedIke1Invitation.ContactInvitationToken, contactInvitationToken) == true);
+            return Contacts.Values.FirstOrDefault(x => x.LocallyInitiatedIke1Invitation != null && MiscProcedures.EqualByteArrays(x.LocallyInitiatedIke1Invitation.ContactInvitationToken, contactInvitationToken) == true);
         }
 
         void IDrpRegisteredPeerApp.OnReceivedInvite(RegistrationId remoteRegistrationId, byte[] contactInvitationToken, out UserId remoteUserIdNullable, out UserCertificate localUserCertificateWithPrivateKey, out bool autoReply)
@@ -67,13 +73,17 @@ namespace Dcomms.UserApp
             var contact = GetUnconfirmedContactByToken(contactInvitationToken);
             if (contact == null)
             {
+                _userAppEngine.WriteToLog_needsAtttention($"unconfirmed contact was not found by contactInvitationToken={MiscProcedures.ByteArrayToString(contactInvitationToken)}");
                 autoReply = false;
                 localUserCertificateWithPrivateKey = null;
             }
             else
             {
+                _userAppEngine.WriteToLog_higherLevelDetail($"unconfirmed contact '{contact.UserAliasID}' was found by contactInvitationToken={MiscProcedures.ByteArrayToString(contactInvitationToken)}");
                 autoReply = true;
                 localUserCertificateWithPrivateKey = User.LocalUserCertificate;
+                localUserCertificateWithPrivateKey.AssertHasPrivateKey();
+                localUserCertificateWithPrivateKey.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.DateTimeNowUtc);
             }
         }
         Ike1Data IDrpRegisteredPeerApp.OnReceivedInvite_GetLocalIke1Data(byte[] contactInvitationToken)
@@ -104,6 +114,10 @@ namespace Dcomms.UserApp
         {
             var localDrpPeer = UserRegistrationIDs.Select(x => x.LocalDrpPeer).FirstOrDefault();
             if (localDrpPeer == null) throw new InvalidOperationException("no local DRP peers found to send INVITE with contact invitation");
+
+            this.User.LocalUserCertificate.AssertHasPrivateKey();
+            this.User.LocalUserCertificate.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.DateTimeNowUtc);
+
 
             var unconfirmedContactId = _unconfirmedContactIdCounter--;
             var remotelyInitiatedIke1Invitation = Ike1Invitation.DecodeFromUI(remotelyInitiatedIke1InvitationStr);

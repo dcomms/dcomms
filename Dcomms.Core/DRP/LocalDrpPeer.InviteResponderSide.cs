@@ -26,13 +26,12 @@ namespace Dcomms.DRP
             // check if regID exists in contact book, get userID from the local contact book
             // ignore the REQ packet if no such user in contacts
             this._drpPeerApp.OnReceivedInvite(req.RequesterRegistrationId, req.ContactInvitationTokenNullable, out var remoteRequesterUserIdFromLocalContactBookNullable, out var localUserCertificateWithPrivateKey, out var autoReply);
-            localUserCertificateWithPrivateKey.AssertHasPrivateKey();
-
             if (autoReply == false)
             {
-                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"ignored invite: autoReply = false, other session types are not implemented");
+                if (logger.WriteToLog_detail_enabled) logger.WriteToLog_needsAttention($"ignored invite: autoReply = false");
                 return;
             }
+            localUserCertificateWithPrivateKey?.AssertHasPrivateKey();
 
             if (remoteRequesterUserIdFromLocalContactBookNullable != null)
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"resolved user {remoteRequesterUserIdFromLocalContactBookNullable} by requester regID={req.RequesterRegistrationId}");

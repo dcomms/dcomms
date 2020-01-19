@@ -111,6 +111,8 @@ namespace Dcomms.UserApp
             {
                 UserRootPrivateKeys.CreateUserId(1, 1, TimeSpan.FromDays(3670), _drpPeerEngine.CryptoLibrary, out var userRootPrivateKeys, out var userId);
                 var userCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_drpPeerEngine.CryptoLibrary, userId, userRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddYears(9));
+                userCertificateWithPrivateKey.AssertHasPrivateKey();
+                userCertificateWithPrivateKey.AssertIsValidNow(_drpPeerEngine.CryptoLibrary, userId, _drpPeerEngine.DateTimeNowUtc);
 
                 var u = new User
                 {
@@ -204,9 +206,17 @@ namespace Dcomms.UserApp
             if (WriteToLog_deepDetail_enabled)
                 _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, msg);
         }
+        internal void WriteToLog_higherLevelDetail(string msg)
+        {
+            _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail, msg);
+        }
         void WriteToLog_mediumPain(string msg)
         {
             _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.mediumPain, msg);
+        }
+        internal void WriteToLog_needsAtttention(string msg)
+        {
+            _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.needsAttention, msg);
         }
         #endregion
     }
