@@ -27,7 +27,13 @@ namespace Dcomms.DMP
         public TimeSpan MaxCertificateDuration
         {
             get => TimeSpan.FromHours(_maxCertificateDurationHours);
-            set { _maxCertificateDurationHours = (ushort)value.TotalHours; }
+            set
+            {
+                var h = value.TotalHours;
+                if (h > ushort.MaxValue || h <= 0)
+                    throw new ArgumentOutOfRangeException();
+                _maxCertificateDurationHours = (ushort)h;
+            }
         }
         ushort _maxCertificateDurationHours; 
 
