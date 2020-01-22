@@ -100,7 +100,7 @@ namespace Dcomms.Sandbox
         {
             _visionChannel = visionChannel;
             _visionChannel.VisiblePeersDelegate = () => { return VisiblePeers.ToList(); };
-            RemoteEpEndPointsString = "192.99.160.225:12000;195.154.173.208:12000;5.135.179.50:12000";
+            RemoteEpEndPointsString = "192.99.160.225:12000;195.154.173.208:12000";
         }
 
         public ICommand Initialize => new DelegateCommand(() =>

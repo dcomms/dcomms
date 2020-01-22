@@ -22,7 +22,7 @@ namespace Dcomms.DRP
     /// </summary>
     public partial class DrpPeerEngine : IDisposable, IVisibleModule
     {
-        readonly ICryptoLibrary _cryptoLibrary = CryptoLibraries.Library;
+        ICryptoLibrary _cryptoLibrary = CryptoLibraries.Library;
         internal ICryptoLibrary CryptoLibrary => _cryptoLibrary;
 
         (DateTime, Stopwatch) _startTimeUtc = (DateTime.UtcNow, Stopwatch.StartNew());
@@ -123,11 +123,11 @@ namespace Dcomms.DRP
         /// <summary>
         /// is used to make sure that processed ECDH keys are unique
         /// </summary>
-        internal readonly UniqueDataFilter RecentUniquePublicEcdhKeys = new UniqueDataFilter(1000);
-        internal readonly UniqueDataFilter RecentUniqueProxiedRegistrationRequests_NonRandomHop = new UniqueDataFilter(500);
-        internal readonly UniqueDataFilter RecentUniqueProxiedRegistrationRequests_RandomHop = new UniqueDataFilter(500);
-        internal readonly UniqueDataFilter RecentUniqueAcceptedRegistrationRequests = new UniqueDataFilter(500);
-        internal readonly UniqueDataFilter RecentUniqueInviteRequests = new UniqueDataFilter(500);
+        internal UniqueDataFilter RecentUniquePublicEcdhKeys = new UniqueDataFilter(1000);
+        internal UniqueDataFilter RecentUniqueProxiedRegistrationRequests_NonRandomHop = new UniqueDataFilter(500);
+        internal UniqueDataFilter RecentUniqueProxiedRegistrationRequests_RandomHop = new UniqueDataFilter(500);
+        internal UniqueDataFilter RecentUniqueAcceptedRegistrationRequests = new UniqueDataFilter(500);
+        internal UniqueDataFilter RecentUniqueInviteRequests = new UniqueDataFilter(500);
         #endregion
 
         public readonly VectorSectorIndexCalculator VSIC;
@@ -186,6 +186,14 @@ namespace Dcomms.DRP
             _socket.Close();
             _socket.Dispose();
             _receiverThread.Join();
+
+            _cryptoLibrary = null;
+            _pow2RequestsTable = null;
+            RecentUniqueAcceptedRegistrationRequests = null;
+            RecentUniqueInviteRequests = null;
+            RecentUniqueProxiedRegistrationRequests_NonRandomHop = null;
+            RecentUniqueProxiedRegistrationRequests_RandomHop = null;
+            RecentUniquePublicEcdhKeys = null;
         }
         public void DisposeDrpPeers()
         {

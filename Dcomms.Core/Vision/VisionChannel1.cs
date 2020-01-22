@@ -90,7 +90,7 @@ namespace Dcomms.Vision
 
         public LinkedList<LogMessage> _logMessagesNewestFirst = new LinkedList<LogMessage>(); // locked
         public bool EnableNewLogMessages { get; set; } = true;
-        public int ClearLog_RamSizeMB { get; set; } = 1000;
+        public int ClearLog_RamSizeMB { get; set; } = 3000;
         public int? ClearLog_MessagesCount { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
