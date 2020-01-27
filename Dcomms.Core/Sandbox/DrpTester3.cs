@@ -31,7 +31,7 @@ namespace Dcomms.Sandbox
             }
             set
             {
-                if (String.IsNullOrEmpty(value)) RemoteEpEndPoints = null;
+                if (String.IsNullOrEmpty(value)) RemoteEpEndPoints = new IPEndPoint[0];
                 else RemoteEpEndPoints = (from valueStr in value.Split(';')
                                      let pos = valueStr.IndexOf(':')
                                      where pos != -1
