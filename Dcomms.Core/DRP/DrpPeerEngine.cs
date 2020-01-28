@@ -187,6 +187,7 @@ namespace Dcomms.DRP
             _socket.Dispose();
             _receiverThread.Join();
 
+            // free memory (against memory leak in DRP tester #3)
             _cryptoLibrary = null;
             _pow2RequestsTable = null;
             RecentUniqueAcceptedRegistrationRequests = null;
@@ -194,6 +195,13 @@ namespace Dcomms.DRP
             RecentUniqueProxiedRegistrationRequests_NonRandomHop = null;
             RecentUniqueProxiedRegistrationRequests_RandomHop = null;
             RecentUniquePublicEcdhKeys = null;
+            _recentUniquePow1Data = null;
+            _pow2RequestsTable = null;
+
+            LocalPeers = null; 
+            ConnectedPeersByToken16 = null;
+            InviteSessionsByToken16 = null;
+
         }
         public void DisposeDrpPeers()
         {
