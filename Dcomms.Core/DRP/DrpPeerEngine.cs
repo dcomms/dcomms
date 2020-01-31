@@ -420,7 +420,48 @@ namespace Dcomms.DRP
             // remove expired responders
             RespondersToRetransmittedRequests_OnTimer100ms(timeNowUTC);
 
-            ConfigureRouterNatIfNeeded(timeNowUTC);
+            _ = ConfigureRouterNatIfNeeded(timeNowUTC);
+
+            SelfTestIfNeeded(timeNowUTC);
+        }
+
+        DateTime? _lastTimeSelfTested = null;
+        void SelfTestIfNeeded(DateTime timeNowUTC)
+        {
+            if (_lastTimeSelfTested == null || (timeNowUTC - _lastTimeSelfTested.Value).TotalMinutes > 10)
+            {
+                try
+                {
+                    _lastTimeSelfTested = timeNowUTC;
+                    try
+                    {
+                        /*
+                            sometimes it generates exception:
+                            error in SIP Tester: 'WPF GUI thread' failed: System.Reflection.TargetInvocationException: 
+                            Exception has been thrown by the target of an invocation. ---> 
+                            System.InvalidOperationException: Couldn't get process information from performance counter. ---> 
+                            System.ComponentModel.Win32Exception: Unknown error (0xc0000017)     
+                            --- End of inner exception stack trace ---     
+                            at System.Diagnostics.NtProcessInfoHelper.GetProcessInfos()  
+                            at System.Diagnostics.ProcessManager.GetProcessInfos(String machineName)  
+                            at System.Diagnostics.Process.EnsureState(State state)     
+                            at System.Diagnostics.Process.get_PagedMemorySize64() 
+                        */
+                        var consumedMemoryMb = Process.GetCurrentProcess().PagedMemorySize64 / 1024 / 1024;
+
+                        if (consumedMemoryMb > 4000) WriteToLog_drpGeneral_mediumPain($"consumed memory: {consumedMemoryMb}MB");                        
+                        else if (consumedMemoryMb > 2000) WriteToLog_drpGeneral_lightPain($"consumed memory: {consumedMemoryMb}MB");                       
+                    }
+                    catch (Exception)
+                    {/// intentionally ignore
+                    }
+                }
+                catch (Exception exc)
+                {
+                    HandleGeneralException("error when configuring NAT", exc);
+                }
+            }
+
         }
         #endregion
         void ProcessNatTest1Request(IPEndPoint remoteEndpoint, byte[] udpData) // receiver thread

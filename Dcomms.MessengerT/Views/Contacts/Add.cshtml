@@ -14,11 +14,18 @@
     </div>
 
     <div class="form-group" style="background-color: #EEE; padding: 10px">
-        You send invitation key to another user <b>via secure channel</b>:
-        <div style="border: 1px solid #777; margin-bottom: 10px; word-wrap: break-word">
-            @{var locallyInitiatedIke1Invitation = Model.NewContact_LocallyInitiatedIke1Invitation_NewRandomValue; }
-            @locallyInitiatedIke1Invitation
-        </div>
+        You send invitation key to another user via <b>secure channel</b>:
+        <table style="margin-bottom: 10px; word-wrap: break-word; padding: 5px">
+            <tr>
+                <td>
+                    @{var locallyInitiatedIke1Invitation = Model.NewContact_LocallyInitiatedIke1Invitation_NewRandomValue; }
+                    <input style="width:430px" id="invitation1232" type="text" readonly value="@locallyInitiatedIke1Invitation" onClick="this.setSelectionRange(0, this.value.length);" />
+                </td>
+                <td >
+                    &nbsp;<a style="height: 30px" href="javascript:copyToClipboard('invitation1232')"><img style="height: 30px" src="~/svg/copy-clipboard.svg" /></a>
+                </td>
+            </tr>
+        </table>       
 
         <input type="hidden" asp-for="NewContact_LocallyInitiatedIke1Invitation" value="@locallyInitiatedIke1Invitation" />
         <input type="submit" value="Add contact" class="btn btn-primary" asp-route-initiated="locally" />
