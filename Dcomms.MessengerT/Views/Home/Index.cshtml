@@ -1,5 +1,6 @@
 ﻿<style>
     .localUserButtons {
+        margin-left: 5px;
         opacity: 0
     }
     .localUserTitle:hover .localUserButtons {
@@ -10,32 +11,46 @@
 
 
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Dcomms Messenger T";
 }
 
-<div class="text-center" style="">
+<div class="text-center" >
     <table>
         <tr>
             <td valign="top">
-                <div style=" min-width: 150px;  min-height: 470px; text-align: left; background-color: #EEE; padding: 10px">
-                    @foreach (var localUser in Program.UserAppEngine.LocalUsers.Values)
-                    {
-                    <div>                                              
-                        <span class="localUserTitle">
-                            <a asp-action="Details" asp-controller="LocalUsers" asp-route-id="@localUser.User.Id" title="Your own account '@localUser.User.AliasID'">@localUser.User.AliasID</a>
-                            <span class="localUserButtons"><a asp-action="Delete" asp-controller="LocalUsers" asp-route-id="@localUser.User.Id">delete</a></span>
-                        </span>
-                        <div style="margin-left: 20px">
-                            @foreach (var contact in localUser.Contacts.Values)
-                            {
-                                <a asp-action="Details" asp-controller="Contacts" asp-route-userId="@contact.OwnerLocalUserId" asp-route-contactId="@contact.ContactId" title="Details">@contact.UserAliasID</a><br />
-                            }
-                            
-                            <a asp-route-id="@localUser.User.Id" asp-controller="Contacts" asp-action="Add">add new contact</a>
-                        </div>
-                    </div>
-                    }
+                <script type="text/javascript">
+                    $(document).ready(function () {
+                        $.getJSON('/XHR/LocalUsersAndContacts', function (r) {
+                            $.each(r, function (i0, localUser) {
+                                var userDiv = $("<div/>");
+                                var userSpan = $('<span/>'); userSpan.attr('class', 'localUserTitle');
+                                var userA = $('<a/>');
+                                userA.html(localUser.UserAliasID);
+                                userA.attr('href', '/LocalUsers/Details/' + localUser.Id);
+                                userA.attr('title', 'Your own account ' + localUser.UserAliasID);
+                                userSpan.append(userA);
 
+                                var userButtonsSpan = $('<span/>'); userButtonsSpan.attr('class', 'localUserButtons');
+                                var deleteButton = $('<a>delete</a>');
+                                deleteButton.attr('href', '/LocalUsers/Delete/' + localUser.Id);
+                                userButtonsSpan.append(deleteButton);  
+                                userSpan.append(userButtonsSpan);
+                                userDiv.append(userSpan);
+                                
+                                var contactsDiv = $("<div style='margin-left: 20px'/>");
+                                $.each(localUser.Contacts, function (i1, contact) {
+                                    contactsDiv.append("<a href='/Contacts/Details?userId=" + localUser.Id +"&contactId=" + contact.Id + "' title='Details'>" + contact.UserAliasID + "</a><br/>");
+                                });
+                                contactsDiv.append("<a href='/Contacts/Add/" + localUser.Id + "'>add new contact</a>");
+                                userDiv.append(contactsDiv);
+
+                                $('#leftPanel').append(userDiv);
+                            });
+                        });
+                    });
+                </script>
+                <div style="min-width: 150px;  min-height: 470px; text-align: left; background-color: #EEE; padding: 10px" >                   
+                    <div id="leftPanel"></div>
                     <div><a asp-action="Create" asp-controller="LocalUsers">create new account</a></div>
                 </div>
             </td>
