@@ -1,11 +1,24 @@
 ﻿<style>
-    .localUserButtons {
+    .itemButtons {
         margin-left: 5px;
         opacity: 0
     }
-    .localUserTitle:hover .localUserButtons {
+    .itemTitle:hover .itemButtons {
         opacity: 1;
     }
+
+    .contactDiv {
+        cursor: pointer;
+    }
+
+    .contactDiv:hover {
+        background-color: #f8e493;
+    }
+
+    .contactDivSelected {
+        background-color: #f8db69;
+    }
+
   
 </style>
 
@@ -23,25 +36,47 @@
                         $.getJSON('/XHR/LocalUsersAndContacts', function (r) {
                             $.each(r, function (i0, localUser) {
                                 var userDiv = $("<div/>");
-                                var userSpan = $('<span/>'); userSpan.attr('class', 'localUserTitle');
+                                var userSpan = $('<span/>'); userSpan.attr('class', 'itemTitle');
                                 var userA = $('<a/>');
                                 userA.html(localUser.UserAliasID);
                                 userA.attr('href', '/LocalUsers/Details/' + localUser.Id);
-                                userA.attr('title', 'Your own account ' + localUser.UserAliasID);
+                                userA.attr('title', 'Your own account "' + localUser.UserAliasID + '"');
                                 userSpan.append(userA);
 
-                                var userButtonsSpan = $('<span/>'); userButtonsSpan.attr('class', 'localUserButtons');
-                                var deleteButton = $('<a>delete</a>');
+                                var userButtonsSpan = $('<span/>'); userButtonsSpan.attr('class', 'itemButtons');
+                                var addNewContactButton = $('<a title="Add new contact"><img src="/svg/add-contact.svg" style="height: 18px" /></a>');
+                                addNewContactButton.attr('href', '/Contacts/Add/' + localUser.Id);
+                                userButtonsSpan.append(addNewContactButton); 
+                                var deleteButton = $('<a style="margin-left: 5px" title="Delete"><img src="/svg/delete.svg" style="height: 15px" /></a>');
                                 deleteButton.attr('href', '/LocalUsers/Delete/' + localUser.Id);
-                                userButtonsSpan.append(deleteButton);  
+                                userButtonsSpan.append(deleteButton);                
                                 userSpan.append(userButtonsSpan);
                                 userDiv.append(userSpan);
                                 
-                                var contactsDiv = $("<div style='margin-left: 20px'/>");
-                                $.each(localUser.Contacts, function (i1, contact) {
-                                    contactsDiv.append("<a href='/Contacts/Details?userId=" + localUser.Id +"&contactId=" + contact.Id + "' title='Details'>" + contact.UserAliasID + "</a><br/>");
+                                var contactsDiv = $("<div></div>");
+                                $.each(localUser.Contacts, function (i1, contact) {                                    
+                                    var contactDiv = $('<div title="Select the contact to send/receive messages" style="padding-left: 20px" class="itemTitle contactDiv" />');
+                                   
+                                    contactDiv.append('<span><img style="margin-right: 3px; height: 18px" src="/svg/contact.svg" />' + contact.UserAliasID + '</span>');
+                                    
+                                    var contactButtonsSpan = $('<span/>'); contactButtonsSpan.attr('class', 'itemButtons');
+                                    var detailsButton = $('<a title="Details"><img src="/svg/details.svg" style="height: 18px" /></a>');
+                                    detailsButton.attr('href', '/Contacts/Details?userId=' + localUser.Id +'&contactId=' + contact.Id);
+                                    contactButtonsSpan.append(detailsButton);
+                                    var deleteContactButton = $('<a style="margin-left: 5px" title="Delete contact"><img src="/svg/delete.svg" style="height: 15px" /></a>');
+                                    deleteContactButton.attr('href', '/Contacts/Delete/' + contact.Id);
+                                    contactButtonsSpan.append(deleteContactButton); 
+                                    contactDiv.append(contactButtonsSpan);
+                                    
+                                    contactDiv.click(function() {
+                                        $('.contactDivSelected').attr('class', 'itemTitle contactDiv');
+                                        contactDiv.attr('class', 'itemTitle contactDivSelected');
+                                        // todo XHR load msgs by contact ID
+                                    });
+
+                                    contactsDiv.append(contactDiv);
                                 });
-                                contactsDiv.append("<a href='/Contacts/Add/" + localUser.Id + "'>add new contact</a>");
+                           
                                 userDiv.append(contactsDiv);
 
                                 $('#leftPanel').append(userDiv);
@@ -49,7 +84,7 @@
                         });
                     });
                 </script>
-                <div style="min-width: 150px;  min-height: 470px; text-align: left; background-color: #EEE; padding: 10px" >                   
+                <div style="min-width: 150px;  min-height: 470px; text-align: left; background-color: #FFF; padding: 10px; border-right: 1px solid #DDD" >                   
                     <div id="leftPanel"></div>
                     <div><a asp-action="Create" asp-controller="LocalUsers">create new account</a></div>
                 </div>
