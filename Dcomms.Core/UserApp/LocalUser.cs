@@ -162,9 +162,9 @@ namespace Dcomms.UserApp
             Contacts.Remove(contact.ContactId);          
             if (contact.IsConfirmed) 
                 _userAppEngine.DeleteContact(contact);
-        }     
+        }
         #endregion
-
+        
         UserAppEngine _userAppEngine;
         
         /// <summary>
@@ -232,13 +232,25 @@ namespace Dcomms.UserApp
             VisionChannel?.Emit(VisionChannelSourceId, UserAppEngine.VisionChannelModuleName, AttentionLevel.mediumPain, msg);
         }
         #endregion
-
-
-
-
+        
         void IDrpRegisteredPeerApp.OnReceivedShortSingleMessage(string messageText, InviteRequestPacket req)
         {
-            throw new NotImplementedException();
+            var contact = Contacts.Values.FirstOrDefault(x => x.RegistrationIDs.Any(rid => rid.RegistrationId.Equals(req.RequesterRegistrationId)));
+            if (contact != null)
+                contact.Messages.Add(new MessageForUI { Text = messageText });
+        }
+        public void SendMessage(Contact contact, string message)
+        {
+            var localDrpPeer = UserRegistrationIDs.Where(x => x.LocalDrpPeer != null).Select(x => x.LocalDrpPeer).FirstOrDefault();
+            if (localDrpPeer == null) throw new Exception();
+            localDrpPeer.BeginSendShortSingleMessage(this.User.LocalUserCertificate,
+                contact.RegistrationIDs.Select(x => x.RegistrationId).First(), 
+                contact.User.UserID, message,
+                TimeSpan.FromSeconds(60), (exc) =>
+            {
+                //todo status
+            });
+            contact.Messages.Add(new MessageForUI { Text = message   });
         }
     }
 }

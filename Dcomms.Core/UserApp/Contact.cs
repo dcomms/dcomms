@@ -38,5 +38,9 @@ namespace Dcomms.UserApp
         /// is not saved to database
         /// </summary>
         public Ike1Invitation RemotelyInitiatedIke1Invitation { get; set; }
+
+
+
+        public List<MessageForUI> Messages { get; set; } = new List<MessageForUI>();
     }
 }

@@ -32,7 +32,7 @@
         <tr>
             <td valign="top">
                 <script type="text/javascript">
-                    function loadMessages(contactId) {
+                    function loadMessages(contactId, localUserId) {
                         $('#messagesPleaseSelectContact').css('display', 'none');
                         $('#messagesLoading').css('display', 'none');
                         $('#messagesPanel').css('display', 'none');
@@ -44,7 +44,7 @@
                         }
                         else {
                             $('#messagesLoading').css('display', '');
-                            $.getJSON('/XHR/Messages?contactId=' + contactId, function (r) {
+                            $.getJSON('/XHR/Messages?contactId=' + contactId + '&localUserId=' + localUserId, function (r) {
                                 var messagesList = $('#messagesList');
                                 messagesList.html('');
                                 $.each(r, function (i0, msg) {
@@ -96,7 +96,7 @@
                                     contactDiv.click(function() {
                                         $('.contactDivSelected').attr('class', 'itemTitle contactDiv');
                                         contactDiv.attr('class', 'itemTitle contactDivSelected');
-                                        loadMessages(contact.Id);
+                                        loadMessages(contact.Id, localUser.Id);
                                     });
 
                                     contactsDiv.append(contactDiv);

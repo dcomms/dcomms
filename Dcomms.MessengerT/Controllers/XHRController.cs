@@ -39,12 +39,6 @@ namespace Dcomms.MessengerT.Controllers
             }
         }
 
-        private IEnumerable<ContactForWebUI> GetInternal()
-        {
-            foreach (var u in Program.UserAppEngine.LocalUsers.Values)
-                foreach (var c in u.Contacts.Values)
-                    yield return new ContactForWebUI(c);
-        }
         public IActionResult LocalUsersAndContacts()
         {
             return Json(Program.UserAppEngine.LocalUsers.Values.Select(x => new LocalUserForWebUI(x)).ToArray(), new JsonSerializerOptions
@@ -54,20 +48,34 @@ namespace Dcomms.MessengerT.Controllers
         }
 
 
-        public class MessageForWebUI
-        {
-            public string Text { get; set; }
-        }
 
-        public IActionResult Messages(int contactId)
+        public IActionResult Messages(int localUserId, int contactId)
         {
-            var r = new List<MessageForWebUI>();
-            for (int i = 0; i < 10; i++)
-                r.Add(new MessageForWebUI { Text = $"msg{i} for contacct ID={contactId}" });
-            return Json(r.ToArray(), new JsonSerializerOptions
+            if (!Program.UserAppEngine.LocalUsers.TryGetValue(localUserId, out var localUser))
+                return NotFound();
+            if (!localUser.Contacts.TryGetValue(contactId, out var contact))
+                return NotFound();
+
+            //var r = new List<MessageForWebUI>();
+            //for (int i = 0; i < 10; i++)
+            //    r.Add(new MessageForWebUI { Text = $"msg{i} for contacct ID={contactId}" });
+
+            return Json(contact.Messages.ToArray(), new JsonSerializerOptions
             {
                 WriteIndented = true
             });
+        }
+
+        public IActionResult SendMessage(int localUserId, int contactId, string message)
+        {
+            if (!Program.UserAppEngine.LocalUsers.TryGetValue(localUserId, out var localUser))
+                return NotFound();
+            if (!localUser.Contacts.TryGetValue(contactId, out var contact))
+                return NotFound();
+
+            localUser.SendMessage(contact, message);
+                       
+            return Ok();
         }
 
     }
