@@ -32,6 +32,7 @@
         <tr>
             <td valign="top">
                 <script type="text/javascript">
+                    var selectedContactId, selectedLocalUserId;
                     function loadMessages(contactId, localUserId) {
                         $('#messagesPleaseSelectContact').css('display', 'none');
                         $('#messagesLoading').css('display', 'none');
@@ -46,7 +47,7 @@
                             $('#messagesLoading').css('display', '');
                             $.getJSON('/XHR/Messages?contactId=' + contactId + '&localUserId=' + localUserId, function (r) {
                                 var messagesList = $('#messagesList');
-                                messagesList.html('');
+                                messagesList.html('');// todo race condition check
                                 $.each(r, function (i0, msg) {
                                     var msgDiv = $("<div/>");
                                     msgDiv.html(msg.Text);
@@ -54,8 +55,17 @@
                                 });
                                 $('#messagesLoading').css('display', 'none');
                                 $('#messagesPanel').css('display', '');
+                                selectedContactId = contactId; 
+                                selectedLocalUserId = localUserId;
                             });
                         }
+                    }
+                    function sendMessage() {
+                        var message = $('#message').val();
+                        $.getJSON('/XHR/SendMessage?contactId=' + selectedContactId + '&localUserId=' + selectedLocalUserId + '&message=' + encodeURI(message), function (r) {
+                            loadMessages(contactId, localUserId);
+                        });
+                        $('#message').val('');
                     }
 
                     $(document).ready(function () {
@@ -130,8 +140,8 @@
                     </div>
                     <table>
                         <tr>
-                            <td><textarea rows="2" cols="50" placeholder="Enter your message here"></textarea></td>
-                            <td valign="bottom">&emsp;<a href="/">Send</a></td>
+                            <td><textarea rows="2" cols="50" placeholder="Enter your message here" id="message"></textarea></td>
+                            <td valign="bottom">&emsp;<a href="javascript:sendMessage()">Send</a></td>
                         </tr>
                     </table>
                 </div>
