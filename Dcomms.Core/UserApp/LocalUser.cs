@@ -65,25 +65,43 @@ namespace Dcomms.UserApp
         {
             return Contacts.Values.FirstOrDefault(x => x.LocallyInitiatedIke1Invitation != null && MiscProcedures.EqualByteArrays(x.LocallyInitiatedIke1Invitation.ContactInvitationToken, contactInvitationToken) == true);
         }
+        Contact GetContactByRegistrationId(RegistrationId remoteRegistrationId)
+        {
+            return Contacts.Values.FirstOrDefault(x => x.RegistrationIDs.Any(rid => rid.RegistrationId.Equals(remoteRegistrationId)));
+
+        }
 
         void IDrpRegisteredPeerApp.OnReceivedInvite(RegistrationId remoteRegistrationId, byte[] contactInvitationToken, out UserId remoteUserIdNullable, out UserCertificate localUserCertificateWithPrivateKey, out bool autoReply)
         {
             remoteUserIdNullable = null;
 
-            var contact = GetUnconfirmedContactByToken(contactInvitationToken);
-            if (contact == null)
+            var contact = GetContactByRegistrationId(remoteRegistrationId);
+            if (contact != null)
             {
-                _userAppEngine.WriteToLog_needsAtttention($"unconfirmed contact was not found by contactInvitationToken={MiscProcedures.ByteArrayToString(contactInvitationToken)}");
-                autoReply = false;
-                localUserCertificateWithPrivateKey = null;
-            }
-            else
-            {
-                _userAppEngine.WriteToLog_higherLevelDetail($"unconfirmed contact '{contact.UserAliasID}' was found by contactInvitationToken={MiscProcedures.ByteArrayToString(contactInvitationToken)}");
+                _userAppEngine.WriteToLog_higherLevelDetail($"confirmed contact '{contact.UserAliasID}' was found by registrationId={remoteRegistrationId}");
                 autoReply = true;
+                remoteUserIdNullable = contact.User.UserID;
                 localUserCertificateWithPrivateKey = User.LocalUserCertificate;
                 localUserCertificateWithPrivateKey.AssertHasPrivateKey();
                 localUserCertificateWithPrivateKey.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.DateTimeNowUtc);
+            }
+            else
+            {
+                contact = GetUnconfirmedContactByToken(contactInvitationToken);
+                if (contact == null)
+                {
+                    _userAppEngine.WriteToLog_needsAtttention($"unconfirmed contact was not found by contactInvitationToken={MiscProcedures.ByteArrayToString(contactInvitationToken)}");
+                    autoReply = false;
+                    localUserCertificateWithPrivateKey = null;
+                }
+                else
+                {
+                    _userAppEngine.WriteToLog_higherLevelDetail($"unconfirmed contact '{contact.UserAliasID}' was found by contactInvitationToken={MiscProcedures.ByteArrayToString(contactInvitationToken)}");
+                    autoReply = true;
+                    localUserCertificateWithPrivateKey = User.LocalUserCertificate;
+                    localUserCertificateWithPrivateKey.AssertHasPrivateKey();
+                    localUserCertificateWithPrivateKey.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.DateTimeNowUtc);
+                }
             }
         }
         Ike1Data IDrpRegisteredPeerApp.OnReceivedInvite_GetLocalIke1Data(byte[] contactInvitationToken)
@@ -238,6 +256,7 @@ namespace Dcomms.UserApp
             var contact = Contacts.Values.FirstOrDefault(x => x.RegistrationIDs.Any(rid => rid.RegistrationId.Equals(req.RequesterRegistrationId)));
             if (contact != null)
                 contact.Messages.Add(new MessageForUI { Text = messageText });
+            else throw new InvalidOperationException("contact was no found 234sdfs");
         }
         public void SendMessage(Contact contact, string message)
         {
