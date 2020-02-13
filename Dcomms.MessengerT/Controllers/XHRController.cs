@@ -53,5 +53,22 @@ namespace Dcomms.MessengerT.Controllers
             });
         }
 
+
+        public class MessageForWebUI
+        {
+            public string Text { get; set; }
+        }
+
+        public IActionResult Messages(int contactId)
+        {
+            var r = new List<MessageForWebUI>();
+            for (int i = 0; i < 10; i++)
+                r.Add(new MessageForWebUI { Text = $"msg{i} for contacct ID={contactId}" });
+            return Json(r.ToArray(), new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+        }
+
     }
 }

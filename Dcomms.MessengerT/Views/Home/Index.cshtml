@@ -32,6 +32,32 @@
         <tr>
             <td valign="top">
                 <script type="text/javascript">
+                    function loadMessages(contactId) {
+                        $('#messagesPleaseSelectContact').css('display', 'none');
+                        $('#messagesLoading').css('display', 'none');
+                        $('#messagesPanel').css('display', 'none');
+                        $('#messagesContactIsUnconfirmed').css('display', 'none');
+
+                        if (contactId < 0) // if "temporary" contact
+                        {
+                            $('#messagesContactIsUnconfirmed').css('display', '');
+                        }
+                        else {
+                            $('#messagesLoading').css('display', '');
+                            $.getJSON('/XHR/Messages?contactId=' + contactId, function (r) {
+                                var messagesList = $('#messagesList');
+                                messagesList.html('');
+                                $.each(r, function (i0, msg) {
+                                    var msgDiv = $("<div/>");
+                                    msgDiv.html(msg.Text);
+                                    messagesList.append(msgDiv);
+                                });
+                                $('#messagesLoading').css('display', 'none');
+                                $('#messagesPanel').css('display', '');
+                            });
+                        }
+                    }
+
                     $(document).ready(function () {
                         $.getJSON('/XHR/LocalUsersAndContacts', function (r) {
                             $.each(r, function (i0, localUser) {
@@ -56,7 +82,6 @@
                                 var contactsDiv = $("<div></div>");
                                 $.each(localUser.Contacts, function (i1, contact) {                                    
                                     var contactDiv = $('<div title="Select the contact to send/receive messages" style="padding-left: 20px" class="itemTitle contactDiv" />');
-                                   
                                     contactDiv.append('<span><img style="margin-right: 3px; height: 18px" src="/svg/contact.svg" />' + contact.UserAliasID + '</span>');
                                     
                                     var contactButtonsSpan = $('<span/>'); contactButtonsSpan.attr('class', 'itemButtons');
@@ -71,7 +96,7 @@
                                     contactDiv.click(function() {
                                         $('.contactDivSelected').attr('class', 'itemTitle contactDiv');
                                         contactDiv.attr('class', 'itemTitle contactDivSelected');
-                                        // todo XHR load msgs by contact ID
+                                        loadMessages(contact.Id);
                                     });
 
                                     contactsDiv.append(contactDiv);
@@ -89,23 +114,27 @@
                     <div><a asp-action="Create" asp-controller="LocalUsers">create new account</a></div>
                 </div>
             </td>
-            <td valign="top">
-                <div style="min-width: 300px; text-align: left; padding: 10px">
-                    <div style="min-height: 400px;">
-                        <div>message1</div>
-                        <div>message2</div>
-                        <div>message3</div>
-                        <div>message4</div>
-                        <div>message5</div>
-                        <div>message6</div>
+            <td valign="top" style="min-width: 300px">
+                <div id="messagesPleaseSelectContact">
+                    <span style="vertical-align: central; text-align: center">please select contact</span>
+                </div>
+                <div id="messagesContactIsUnconfirmed" style="display: none">
+                    <span style="vertical-align: central; text-align: center">contact is not confirmed by remote side</span>
+                </div>
+                <div id="messagesLoading" style="display: none">
+                    <span style="vertical-align: central; text-align: center">loading...</span>
+                </div>
+
+                <div id="messagesPanel" style="text-align: left; padding: 10px; display: none">
+                    <div style="min-height: 400px;" id="messagesList">                      
                     </div>
                     <table>
                         <tr>
                             <td><textarea rows="2" cols="50" placeholder="Enter your message here"></textarea></td>
                             <td valign="bottom">&emsp;<a href="/">Send</a></td>
-                        </tr>                        
-                    </table>                    
-                </div>                
+                        </tr>
+                    </table>
+                </div>
             </td>
         </tr>
     </table>
