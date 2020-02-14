@@ -75,7 +75,7 @@ namespace Dcomms.MessengerT.Controllers
 
             localUser.SendMessage(contact, message);
                        
-            return Ok();
+            return Json(new { success = true });
         }
 
     }

@@ -278,8 +278,12 @@ namespace Dcomms.UserApp
                 contact.User.UserID, message,
                 TimeSpan.FromSeconds(60), (exc) =>
             {
-                msg.IsDelivered = true;
-                _userAppEngine.InvokeOnMessagesUpdated(contact);
+                if (exc == null)
+                {
+                    msg.IsDelivered = true;
+                    _userAppEngine.InvokeOnMessagesUpdated(contact);
+                }
+                //else   TODO168719
             });
             contact.Messages.Add(msg);
         }

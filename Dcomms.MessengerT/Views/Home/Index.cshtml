@@ -50,8 +50,12 @@
                                 messagesList.html('');// todo race condition check
                                 $.each(r, function (i0, msg) {
                                     var msgDiv = $("<div/>");
-                                    msgDiv.html(msg.Text + "&nbsp;delivered:" + msg.IsDelivered);
-                                    if (msg.IsOutgoing == true) msgDiv.css('text-align', 'right');
+                                    msgDiv.html(msg.Text);
+                                    if (msg.IsOutgoing == true) {
+                                        msgDiv.css('text-align', 'right');
+                                        if (msg.IsDelivered) msgDiv.append($("<img src='/svg/tick.svg' style='margin-left: 4px; height:18px' title='The message is delivered' />"));
+                                        else msgDiv.append($("<img src='/svg/hourglass.svg' style='margin-left: 4px; height:11px' title='The message not delivered yet'  />"));                                      
+                                    }
                                     else msgDiv.css('text-align', 'left');
                                     messagesList.append(msgDiv);
                                 });
