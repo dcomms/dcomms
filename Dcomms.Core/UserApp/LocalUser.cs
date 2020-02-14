@@ -253,23 +253,35 @@ namespace Dcomms.UserApp
         
         void IDrpRegisteredPeerApp.OnReceivedShortSingleMessage(string messageText, InviteRequestPacket req)
         {
-            var contact = Contacts.Values.FirstOrDefault(x => x.RegistrationIDs.Any(rid => rid.RegistrationId.Equals(req.RequesterRegistrationId)));
-            if (contact != null)
-                contact.Messages.Add(new MessageForUI { Text = messageText });
-            else throw new InvalidOperationException("contact was no found 234sdfs");
+            try
+            {
+                var contact = Contacts.Values.FirstOrDefault(x => x.RegistrationIDs.Any(rid => rid.RegistrationId.Equals(req.RequesterRegistrationId)));
+                if (contact != null)
+                {
+                    contact.Messages.Add(new MessageForUI { Text = messageText });
+                    _userAppEngine.InvokeOnMessagesUpdated(contact);
+                }
+                else throw new InvalidOperationException("contact was no found 234sdfs");
+            }
+            catch (Exception exc)
+            {
+                HandleException("error when processing message: ", exc);
+            }
         }
         public void SendMessage(Contact contact, string message)
         {
             var localDrpPeer = UserRegistrationIDs.Where(x => x.LocalDrpPeer != null).Select(x => x.LocalDrpPeer).FirstOrDefault();
-            if (localDrpPeer == null) throw new Exception();
+            if (localDrpPeer == null) throw new Exception("local DRP peer is null 123fdsf");
+            var msg = new MessageForUI { Text = message, IsOutgoing = true };
             localDrpPeer.BeginSendShortSingleMessage(this.User.LocalUserCertificate,
                 contact.RegistrationIDs.Select(x => x.RegistrationId).First(), 
                 contact.User.UserID, message,
                 TimeSpan.FromSeconds(60), (exc) =>
             {
-                //todo status
+                msg.IsDelivered = true;
+                _userAppEngine.InvokeOnMessagesUpdated(contact);
             });
-            contact.Messages.Add(new MessageForUI { Text = message   });
+            contact.Messages.Add(msg);
         }
     }
 }

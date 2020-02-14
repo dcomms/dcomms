@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Dcomms.UserApp
 {
-    public class UserAppEngine :IDisposable, IVisibleModule
+    public class UserAppEngine : IDisposable, IVisibleModule
     {
         const string VisionChannelSourceId = "UA";
         internal const string VisionChannelModuleName = "UA";
@@ -83,7 +83,7 @@ namespace Dcomms.UserApp
             WriteToLog_deepDetail("<< UserAppEngine.Dispose()");
         }
 
-        #region database entities, operations
+        #region database entities, operations, events
         public Dictionary<int,LocalUser> LocalUsers;
         public void DeleteLocalUser(LocalUser localUser)
         {
@@ -190,6 +190,13 @@ namespace Dcomms.UserApp
                 _db.DeleteRegistrationId(regId.Id);
             _db.DeleteUser(contact.User.Id);
         }
+
+        /// <summary>
+        /// new message received; status changed
+        /// invokes a "refresh" event in GUI (passed via SignalR in Messenger "T")
+        /// </summary>
+        public event Action<Contact> OnMessagesUpdated = null;
+        internal void InvokeOnMessagesUpdated(Contact contact) => OnMessagesUpdated?.Invoke(contact);
         #endregion
 
         #region vision
