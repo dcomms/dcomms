@@ -258,7 +258,11 @@ namespace Dcomms.UserApp
                 var contact = Contacts.Values.FirstOrDefault(x => x.RegistrationIDs.Any(rid => rid.RegistrationId.Equals(req.RequesterRegistrationId)));
                 if (contact != null)
                 {
-                    contact.Messages.Add(new MessageForUI { Text = messageText });
+                    var msg = new MessageForUI { Text = messageText, IsOutgoing = false, LocalCreationTimeUTC = _userAppEngine.Engine.DateTimeNowUtc_SystemClock };
+                    contact.Messages.Add(msg);
+                                      
+                    _userAppEngine.WriteToLog_higherLevelDetail($"{msg} is being sent to {contact}. calling InvokeOnMessagesUpdated()");
+
                     _userAppEngine.InvokeOnMessagesUpdated(contact);
                 }
                 else throw new InvalidOperationException("contact was no found 234sdfs");
@@ -272,7 +276,7 @@ namespace Dcomms.UserApp
         {
             var localDrpPeer = UserRegistrationIDs.Where(x => x.LocalDrpPeer != null).Select(x => x.LocalDrpPeer).FirstOrDefault();
             if (localDrpPeer == null) throw new Exception("local DRP peer is null 123fdsf");
-            var msg = new MessageForUI { Text = message, IsOutgoing = true };
+            var msg = new MessageForUI { Text = message, IsOutgoing = true, LocalCreationTimeUTC = _userAppEngine.Engine.DateTimeNowUtc_SystemClock };
             localDrpPeer.BeginSendShortSingleMessage(this.User.LocalUserCertificate,
                 contact.RegistrationIDs.Select(x => x.RegistrationId).First(), 
                 contact.User.UserID, message,
@@ -281,6 +285,7 @@ namespace Dcomms.UserApp
                 if (exc == null)
                 {
                     msg.IsDelivered = true;
+                    _userAppEngine.WriteToLog_higherLevelDetail($"{msg} is delivered to {contact}. calling InvokeOnMessagesUpdated()");
                     _userAppEngine.InvokeOnMessagesUpdated(contact);
                 }
                 //else   TODO168719

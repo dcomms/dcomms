@@ -202,7 +202,7 @@ namespace Dcomms.UserApp
         #region vision
         readonly VisionChannel _visionChannel;
         internal VisionChannel VisionChannel => _visionChannel;
-        internal void HandleException(string prefix, Exception exc)
+        public void HandleException(string prefix, Exception exc)
         {
             WriteToLog_mediumPain($"{prefix}{exc}");
         }
@@ -213,7 +213,7 @@ namespace Dcomms.UserApp
             if (WriteToLog_deepDetail_enabled)
                 _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.deepDetail, msg);
         }
-        internal void WriteToLog_higherLevelDetail(string msg)
+        public void WriteToLog_higherLevelDetail(string msg)
         {
             _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail, msg);
         }

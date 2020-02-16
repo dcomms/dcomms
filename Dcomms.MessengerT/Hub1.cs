@@ -8,9 +8,9 @@ namespace Dcomms.MessengerT
 {
     public class Hub1 : Hub
     {
-        public async Task OnMessagesUpdated(int localUserId, int contactId)
-        {
-            await Clients.All.SendAsync("OnMessagesUpdated", localUserId, contactId);
-        }
+        //public async Task OnMessagesUpdated(int localUserId, int contactId)
+        //{
+        //    await Clients.All.SendAsync("OnMessagesUpdated", localUserId, contactId);
+        //}
     }
 }

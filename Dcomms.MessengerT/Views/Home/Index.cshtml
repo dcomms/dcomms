@@ -28,7 +28,7 @@
 }
 
 <div class="text-center">
-    <table>
+    <table style="width: 100%">
         <tr>
             <td valign="top">
                 <script type="text/javascript">   
@@ -46,8 +46,8 @@
                         else {
                             $('#messagesLoading').css('display', '');
                             $.getJSON('/XHR/Messages?contactId=' + contactId + '&localUserId=' + localUserId, function (r) {
-                                var messagesList = $('#messagesList');
-                                messagesList.html('');// todo race condition check
+                                var messagesTable = $('#messagesTable').find('tbody');
+                                messagesTable.html('');// todo race condition check 1684
                                 $.each(r, function (i0, msg) {
                                     var msgDiv = $("<div/>");
                                     msgDiv.html(msg.Text);
@@ -57,17 +57,33 @@
                                         else msgDiv.append($("<img src='/svg/hourglass.svg' style='margin-left: 4px; height:11px' title='The message not delivered yet'  />"));                                      
                                     }
                                     else msgDiv.css('text-align', 'left');
-                                    messagesList.append(msgDiv);
+                                    
+                                    var msgTR = $("<tr/>");
+                                    var msgTD1 = $('<td/>'); msgTD1.append(msgDiv);
+                                    msgTR.append(msgTD1);
+                                    var dt = new Date(msg.LocalCreationTimeUTC);
+                                    var time = dt.toLocaleTimeString();
+                                    var msgTD2 = $('<td />'); msgTD2.append("<div style='color: #888;'>" + time + "</div>");
+                                    msgTR.append(msgTD2);
+                                                                    
+                                    messagesTable.append(msgTR);
                                 });
+                                                          
                                 $('#messagesLoading').css('display', 'none');
                                 $('#messagesPanel').css('display', '');
+                                
+                                $('#messagesTableDiv').scrollTop(
+                                    $('#messagesTableDiv')[0].scrollHeight - $('#messagesTableDiv')[0].clientHeight
+                                );
+                                $('#message').focus();
+                            
                                 selectedContactId = contactId;
                                 selectedLocalUserId = localUserId;
                             });
                         }
                     }    
 
-                    (function () {
+                    (function () { // set up signalR
                         var connection = new signalR.HubConnectionBuilder().withUrl("/hub1").build();                    
                         connection.on("OnMessagesUpdated", function (localUserId, contactId) {
                             if (localUserId == selectedLocalUserId && contactId == selectedContactId)
@@ -84,12 +100,25 @@
                     function sendMessage() {
                         var message = $('#message').val();
                         $.getJSON('/XHR/SendMessage?contactId=' + selectedContactId + '&localUserId=' + selectedLocalUserId + '&message=' + encodeURI(message), function (r) {
-                            loadMessages(selectedContactId, selectedLocalUserId);
+                            if (r.success) {
+                                loadMessages(selectedContactId, selectedLocalUserId);
+                            }
+                            else {
+                                alert('can not send message: ' + r.errorDescription);
+                            }
                         });
                         $('#message').val('');
                     }
 
                     $(document).ready(function () {
+                        $("#message").keypress(function (e) {
+                            var code = (e.keyCode ? e.keyCode : e.which);
+                            if (code == 13) {
+                                e.preventDefault();
+                                sendMessage();
+                            }
+                        });                     
+
                         $.getJSON('/XHR/LocalUsersAndContacts', function (r) {
                             $.each(r, function (i0, localUser) {
                                 var userDiv = $("<div/>");
@@ -157,12 +186,13 @@
                 </div>
 
                 <div id="messagesPanel" style="text-align: left; padding: 10px; display: none">
-                    <div style="min-height: 400px;" id="messagesList">
+                    <div style="height: 400px; overflow-y: auto; width: 100%" id="messagesTableDiv">
+                        <table id="messagesTable" style="width: 100%"><tbody /></table>
                     </div>
                     <table>
                         <tr>
                             <td><textarea rows="2" cols="50" placeholder="Enter your message here" id="message"></textarea></td>
-                            <td valign="bottom">&emsp;<a href="javascript:sendMessage()">Send</a></td>
+                            <td valign="center"><a href="javascript:sendMessage()" title="Send message" style="margin-left: 5px"><img src="/svg/send.svg" style="height: 20px" /></a></td>
                         </tr>
                     </table>
                 </div>

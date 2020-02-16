@@ -32,7 +32,8 @@ namespace Dcomms.DRP
         /// <summary>
         /// is interrupted (makes a gap) on some (android) devices when OS puts this app into idle mode
         /// </summary>
-        public DateTime DateTimeNowUtc { get { return _startTimeUtc.Item1 + _startTimeUtc.Item2.Elapsed; } } 
+        public DateTime DateTimeNowUtc { get { return _startTimeUtc.Item1 + _startTimeUtc.Item2.Elapsed; } }
+        public DateTime DateTimeNowUtc_SystemClock => DateTime.UtcNow; // not very accurate
 
         void SyncDateTimeNowUtc() // engine thread
         {

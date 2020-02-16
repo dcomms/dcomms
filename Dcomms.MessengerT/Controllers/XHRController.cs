@@ -56,14 +56,13 @@ namespace Dcomms.MessengerT.Controllers
             if (!localUser.Contacts.TryGetValue(contactId, out var contact))
                 return NotFound();
 
-            //var r = new List<MessageForWebUI>();
-            //for (int i = 0; i < 10; i++)
-            //    r.Add(new MessageForWebUI { Text = $"msg{i} for contacct ID={contactId}" });
-
-            return Json(contact.Messages.ToArray(), new JsonSerializerOptions
+            var r = contact.Messages.ToArray();
+            Program.UserAppEngine.WriteToLog_higherLevelDetail($"XHR/Messages returns {String.Join(';', r.Select(x => x.ToString()))}");
+            return Json(r, new JsonSerializerOptions
             {
                 WriteIndented = true
-            });
+            }
+            );
         }
 
         public IActionResult SendMessage(int localUserId, int contactId, string message)
@@ -73,9 +72,16 @@ namespace Dcomms.MessengerT.Controllers
             if (!localUser.Contacts.TryGetValue(contactId, out var contact))
                 return NotFound();
 
-            localUser.SendMessage(contact, message);
-                       
-            return Json(new { success = true });
+            try
+            {
+                localUser.SendMessage(contact, message);
+                return Json(new { success = true });
+            }
+            catch (Exception exc)
+            {
+                Program.UserAppEngine.HandleException($"can not send message to {contact}: ", exc);
+                return Json(new { success = false, errorDescription = exc.Message });
+            }
         }
 
     }

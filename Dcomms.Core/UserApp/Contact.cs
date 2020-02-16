@@ -40,5 +40,10 @@ namespace Dcomms.UserApp
         public Ike1Invitation RemotelyInitiatedIke1Invitation { get; set; }
                 
         public List<MessageForUI> Messages { get; set; } = new List<MessageForUI>();
+
+        public override string ToString()
+        {
+            return $"contact{ContactId}@user{OwnerLocalUserId}";
+        }
     }
 }
