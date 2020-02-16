@@ -275,7 +275,8 @@ namespace Dcomms.UserApp
         public void SendMessage(Contact contact, string message)
         {
             var localDrpPeer = UserRegistrationIDs.Where(x => x.LocalDrpPeer != null).Select(x => x.LocalDrpPeer).FirstOrDefault();
-            if (localDrpPeer == null) throw new Exception("local DRP peer is null 123fdsf");
+            if (localDrpPeer == null || localDrpPeer.ConnectedNeighborsCanBeUsedForNewRequests.Any() == false)
+                throw new ApplicationException("Local peer is not connected to DRP P2P network. Please check connection to the network and try again later");
             var msg = new MessageForUI { Text = message, IsOutgoing = true, LocalCreationTimeUTC = _userAppEngine.Engine.DateTimeNowUtc_SystemClock };
             localDrpPeer.BeginSendShortSingleMessage(this.User.LocalUserCertificate,
                 contact.RegistrationIDs.Select(x => x.RegistrationId).First(), 

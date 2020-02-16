@@ -108,7 +108,7 @@
                             }
                         });
                         $('#message').val('');
-                    }
+                    }                   
 
                     $(document).ready(function () {
                         $("#message").keypress(function (e) {
@@ -117,7 +117,11 @@
                                 e.preventDefault();
                                 sendMessage();
                             }
-                        });                     
+                        });         
+
+                        setInterval(function () { // reload messages every 20 secs   in case of signalR failure
+                            loadMessages(selectedContactId, selectedLocalUserId);
+                        }, 20000);
 
                         $.getJSON('/XHR/LocalUsersAndContacts', function (r) {
                             $.each(r, function (i0, localUser) {
@@ -192,7 +196,7 @@
                     <table>
                         <tr>
                             <td><textarea rows="2" cols="50" placeholder="Enter your message here" id="message"></textarea></td>
-                            <td valign="center"><a href="javascript:sendMessage()" title="Send message" style="margin-left: 5px"><img src="/svg/send.svg" style="height: 20px" /></a></td>
+                            <td valign="center"><a href="javascript:sendMessage()" title="Send message" style="margin-left: 5px"><img src="/svg/send.svg" style="height: 24px" /></a></td>
                         </tr>
                     </table>
                 </div>
