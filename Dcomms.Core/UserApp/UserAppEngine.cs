@@ -217,13 +217,17 @@ namespace Dcomms.UserApp
         {
             _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.higherLevelDetail, msg);
         }
-        void WriteToLog_mediumPain(string msg)
-        {
-            _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.mediumPain, msg);
-        }
         internal void WriteToLog_needsAtttention(string msg)
         {
             _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.needsAttention, msg);
+        }
+        public void WriteToLog_lightPain(string msg)
+        {
+            _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.lightPain, msg);
+        }
+        void WriteToLog_mediumPain(string msg)
+        {
+            _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.mediumPain, msg);
         }
         #endregion
     }
