@@ -10,7 +10,16 @@ namespace Dcomms.MessengerT.Controllers
     {
         public IActionResult Index()
         {
-            return View();
+            return View(Program.VisionChannel);
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Index([Bind("DisplayedLogMessagesMaxCount,DisplayFilterModuleContainsStrings,ClearLog_MessagesCount")] Vision.VisionChannel1 model)
+        {
+            Program.VisionChannel.DisplayedLogMessagesMaxCount = model.DisplayedLogMessagesMaxCount;
+            Program.VisionChannel.DisplayFilterModuleContainsStrings = model.DisplayFilterModuleContainsStrings;
+            Program.VisionChannel.ClearLog_MessagesCount = model.ClearLog_MessagesCount;
+            return View(Program.VisionChannel);
         }
     }
 }

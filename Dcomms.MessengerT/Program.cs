@@ -18,13 +18,13 @@ namespace Dcomms.MessengerT
         public static UserAppEngine UserAppEngine;
         public static void Main(string[] args)
         {
-            VisionChannel = new VisionChannel1()
+            VisionChannel = new VisionChannel1(true)
             {
                 AttentionLevel = AttentionLevel.deepDetail,
                 DisplayFilterMinLevel = AttentionLevel.deepDetail,
                 DisplayedLogMessagesMaxCount = 1000,
                 ClearLog_RamSizeMB = 100,
-                ClearLog_MessagesCount = 1000,
+                ClearLog_MessagesCount = 10000,
             };
             VisionChannel.SevereMessageEmitted += (msg) => Console.WriteLine(msg.Message);
             

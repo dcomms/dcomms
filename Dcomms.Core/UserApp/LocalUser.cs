@@ -261,7 +261,7 @@ namespace Dcomms.UserApp
                     var msg = new MessageForUI { Text = messageText, IsOutgoing = false, LocalCreationTimeUTC = _userAppEngine.Engine.DateTimeNowUtc_SystemClock };
                     contact.Messages.Add(msg);
                                       
-                    _userAppEngine.WriteToLog_higherLevelDetail($"{msg} is being sent to {contact}. calling InvokeOnMessagesUpdated()");
+                    _userAppEngine.WriteToLog_higherLevelDetail($"{msg} is received from {contact}. calling InvokeOnMessagesUpdated()");
 
                     _userAppEngine.InvokeOnMessagesUpdated(contact);
                 }

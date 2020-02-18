@@ -34,6 +34,8 @@
                 <script type="text/javascript">   
                     var selectedContactId, selectedLocalUserId; 
                     function loadMessages(contactId, localUserId) {
+                        console.log("loadMessages  " + localUserId + ", " + contactId + '     00002 ' + Date.now());
+
                         $('#messagesPleaseSelectContact').css('display', 'none');
                         $('#messagesLoading').css('display', 'none');
                         $('#messagesPanel').css('display', 'none');
@@ -86,6 +88,7 @@
                     (function () { // set up signalR
                         var connection = new signalR.HubConnectionBuilder().withUrl("/hub1").build();                    
                         connection.on("OnMessagesUpdated", function (localUserId, contactId) {
+                            console.log("signalR OnMessagesUpdated " + localUserId + ", " + contactId + '     00001 ' + Date.now());
                             if (localUserId == selectedLocalUserId && contactId == selectedContactId)
                                 loadMessages(selectedContactId, selectedLocalUserId);
                         });
@@ -119,9 +122,9 @@
                             }
                         });         
 
-                        setInterval(function () { // reload messages every 20 secs   in case of signalR failure
-                            loadMessages(selectedContactId, selectedLocalUserId);
-                        }, 20000);
+                        //setInterval(function () { // reload messages every 20 secs   in case of signalR failure
+                        //    loadMessages(selectedContactId, selectedLocalUserId);
+                        //}, 20000);
 
                         $.getJSON('/XHR/LocalUsersAndContacts', function (r) {
                             $.each(r, function (i0, localUser) {

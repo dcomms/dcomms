@@ -41,7 +41,7 @@ namespace Dcomms.MessengerA.Droid
         }
 
         static UserAppEngine _userAppEngine;
-        static VisionChannel1 _visionChannel = new VisionChannel1
+        static VisionChannel1 _visionChannel = new VisionChannel1(true)
         {
             AttentionLevel = AttentionLevel.deepDetail,
             DisplayFilterMinLevel = AttentionLevel.deepDetail,

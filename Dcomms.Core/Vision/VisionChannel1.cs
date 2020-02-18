@@ -483,11 +483,17 @@ _retry:
                 return MiscProcedures.EqualFloatArrays(this.VectorValues, ((ClonedVisiblePeer)obj).VectorValues);
             }
         }
-                     
-        public VisionChannel1()
+
+        public VisionChannel1() // for MVC, messenger T web UI
         {
-            AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
-            System.Threading.Tasks.TaskScheduler.UnobservedTaskException += TaskSchedulerOnUnobservedTaskException;
+        }
+        public VisionChannel1(bool handleGlobalExceptions)
+        {
+            if (handleGlobalExceptions)
+            {
+                AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
+                System.Threading.Tasks.TaskScheduler.UnobservedTaskException += TaskSchedulerOnUnobservedTaskException;
+            }
         }
 
         private void TaskSchedulerOnUnobservedTaskException(object sender, System.Threading.Tasks.UnobservedTaskExceptionEventArgs ea)

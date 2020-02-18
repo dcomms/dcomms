@@ -1,4 +1,4 @@
-﻿
+﻿@model Dcomms.Vision.VisionChannel1
 @{
     ViewData["Title"] = "System Log";
     Layout = "~/Views/Shared/_Layout.cshtml"; 
@@ -6,9 +6,17 @@
 
 <h1>System Log</h1>
 
+<form asp-action="Index">
+    <div class="input-group" style="margin-bottom: 10px">
+        <b>Display:</b>
+        &emsp;<input asp-for="DisplayedLogMessagesMaxCount" /> max messages |
+        &emsp;Modules: <input asp-for="DisplayFilterModuleContainsStrings" />
+        &emsp;Max messages in RAM: <input asp-for="ClearLog_MessagesCount" />
+        <input type="submit" value="Apply" class="btn btn-primary">
+    </div>       
+</form>
 <table class="table1">
-
-    @foreach (var msg in Program.VisionChannel.DisplayedLogMessages)
+    @foreach (var msg in Model.DisplayedLogMessages)
     {
     <tr>
         <td style="white-space: nowrap">@msg.TimeStr</td>

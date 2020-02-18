@@ -8,7 +8,7 @@ namespace Dcomms.PocTest1
 {
     public class Poc1Model : IDisposable
     {
-        public VisionChannel1 VisionChannel { get; set; } = new VisionChannel1();
+        public VisionChannel1 VisionChannel { get; set; } = new VisionChannel1(true);
         public DrpTester5 DrpTester5 { get; set; }
         public Poc1Model(bool drpTester5_InitializeUser1EchoResponder = false)
         {

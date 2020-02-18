@@ -23,7 +23,7 @@ namespace Dcomms.SandboxTester
 {
     public partial class SandboxTesterMainWindow : Window
     {
-        VisionChannel1 VisionChannel { get; set; } = new VisionChannel1();
+        VisionChannel1 VisionChannel { get; set; } = new VisionChannel1(true);
 
         readonly SandboxTester1 _tester;
 
