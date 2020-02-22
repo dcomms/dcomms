@@ -55,15 +55,15 @@ namespace Dcomms.MessengerT
                 endpoints.MapHub<Hub1>("/hub1");
             });
 
-            app.Use(async (context, next) =>
-            {
-                var hub1Context = context.RequestServices
-                                        .GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<Hub1>>();
-                Program.UserAppEngine.OnMessagesUpdated += (contact) =>
-                {
-                    _ = hub1Context.Clients.All.SendCoreAsync("OnMessagesUpdated", new object[] { contact.OwnerLocalUserId, contact.ContactId });
-                };
-            });
+            //app.Use(async (context, next) =>
+            //{
+            //    var hub1Context = context.RequestServices
+            //                            .GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<Hub1>>();
+            //    Program.UserAppEngine.OnMessagesUpdated += (contact) =>
+            //    {
+            //        _ = hub1Context.Clients.All.SendCoreAsync("OnMessagesUpdated", new object[] { contact.OwnerLocalUserId, contact.ContactId });
+            //    };
+            //});
         }
     }
 
@@ -99,8 +99,16 @@ namespace Dcomms.MessengerT
                         context.Request.QueryString.ToUriComponent());
             Program.UserAppEngine.WriteToLog_higherLevelDetail($"processing HTTP request {absoluteUri}");
             var sw = Stopwatch.StartNew();
-            await _next.Invoke(context);
-            Program.UserAppEngine.WriteToLog_higherLevelDetail($"processed HTTP request {absoluteUri} in {sw.Elapsed.TotalMilliseconds}ms");
+            try
+            {
+                await _next.Invoke(context);
+                Program.UserAppEngine.WriteToLog_higherLevelDetail($"processed HTTP request {absoluteUri} in {sw.Elapsed.TotalMilliseconds}ms");
+            }
+            catch (Exception exc)
+            {
+                Program.UserAppEngine.WriteToLog_mediumPain($"error when processing HTTP request {absoluteUri}: {exc}");
+                throw;
+            }
         }
     }
 }

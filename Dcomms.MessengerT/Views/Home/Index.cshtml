@@ -32,9 +32,9 @@
         <tr>
             <td valign="top">
                 <script type="text/javascript">   
-                    var selectedContactId, selectedLocalUserId; 
+                    var selectedContactId, selectedLocalUserId, latestMessagesVersion; 
                     function loadMessages(contactId, localUserId) {
-                        console.log("loadMessages  " + localUserId + ", " + contactId + '     00002 ' + Date.now());
+                       // console.log("loadMessages  " + localUserId + ", " + contactId + '     00002 ' + Date.now());
 
                         $('#messagesPleaseSelectContact').css('display', 'none');
                         $('#messagesLoading').css('display', 'none');
@@ -50,7 +50,8 @@
                             $.getJSON('/XHR/Messages?contactId=' + contactId + '&localUserId=' + localUserId, function (r) {
                                 var messagesTable = $('#messagesTable').find('tbody');
                                 messagesTable.html('');// todo race condition check 1684
-                                $.each(r, function (i0, msg) {
+                                latestMessagesVersion = r.messagesVersion;
+                                $.each(r.messages, function (i0, msg) {
                                     var msgDiv = $("<div/>");
                                     msgDiv.html(msg.Text);
                                     if (msg.IsOutgoing == true) {
@@ -93,20 +94,20 @@
                         }
                     }    
 
-                    (function () { // set up signalR
-                        var connection = new signalR.HubConnectionBuilder().withUrl("/hub1").build();                    
-                        connection.on("OnMessagesUpdated", function (localUserId, contactId) {
-                            console.log("signalR OnMessagesUpdated " + localUserId + ", " + contactId + '     00001 ' + Date.now());
-                            if (localUserId == selectedLocalUserId && contactId == selectedContactId)
-                                loadMessages(selectedContactId, selectedLocalUserId);
-                        });
+                    //(function () { // set up signalR
+                    //    var connection = new signalR.HubConnectionBuilder().withUrl("/hub1").build();                    
+                    //    connection.on("OnMessagesUpdated", function (localUserId, contactId) {
+                    //        console.log("signalR OnMessagesUpdated " + localUserId + ", " + contactId + '     00001 ' + Date.now());
+                    //        if (localUserId == selectedLocalUserId && contactId == selectedContactId)
+                    //            loadMessages(selectedContactId, selectedLocalUserId);
+                    //    });
 
-                        connection.start().then(function () {
-                            /// signalR initialized
-                        }).catch(function (err) {
-                            return console.error("signalR error 1236d: " + err.toString());
-                        });                        
-                    })();
+                    //    connection.start().then(function () {
+                    //        /// signalR initialized
+                    //    }).catch(function (err) {
+                    //        return console.error("signalR error 1236d: " + err.toString());
+                    //    });                        
+                    //})();
 
                     function sendMessage() {
                         var message = $('#message').val();
@@ -130,9 +131,16 @@
                             }
                         });         
 
-                        //setInterval(function () { // reload messages every 20 secs   in case of signalR failure
-                        //    loadMessages(selectedContactId, selectedLocalUserId);
-                        //}, 20000);
+                        setInterval(function () { // check for new messages
+                            if (selectedContactId >= 0 && selectedLocalUserId >= 0) // if some contact is selected
+                            {
+                                $.getJSON('/XHR/MessagesVersion?contactId=' + selectedContactId + '&localUserId=' + selectedLocalUserId, function (r) {
+                                    if (r.messagesVersion != latestMessagesVersion) {
+                                        loadMessages(selectedContactId, selectedLocalUserId);
+                                    }
+                                });
+                            }
+                        }, 1000);
 
                         $.getJSON('/XHR/LocalUsersAndContacts', function (r) {
                             $.each(r, function (i0, localUser) {

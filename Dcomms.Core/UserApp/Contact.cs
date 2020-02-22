@@ -40,6 +40,7 @@ namespace Dcomms.UserApp
         public Ike1Invitation RemotelyInitiatedIke1Invitation { get; set; }
                 
         public List<MessageForUI> Messages { get; set; } = new List<MessageForUI>();
+        public int MessagesVersion { get; set; }
 
         public override string ToString()
         {

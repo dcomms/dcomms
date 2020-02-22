@@ -58,7 +58,21 @@ namespace Dcomms.MessengerT.Controllers
 
             var r = contact.Messages.ToArray();
             Program.UserAppEngine.WriteToLog_higherLevelDetail($"XHR/Messages returns {String.Join(';', r.Select(x => x.ToString()))}");
-            return Json(r, new JsonSerializerOptions
+            return Json(new { messages = r, messagesVersion = contact.MessagesVersion }, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            }
+            );
+        }
+        public IActionResult MessagesVersion(int localUserId, int contactId)
+        {
+            if (!Program.UserAppEngine.LocalUsers.TryGetValue(localUserId, out var localUser))
+                return NotFound();
+            if (!localUser.Contacts.TryGetValue(contactId, out var contact))
+                return NotFound();
+
+            Program.UserAppEngine.WriteToLog_higherLevelDetail($"XHR/MessagesVersion returns {contact.MessagesVersion}");
+            return Json(new { messagesVersion = contact.MessagesVersion }, new JsonSerializerOptions
             {
                 WriteIndented = true
             }

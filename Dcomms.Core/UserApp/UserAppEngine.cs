@@ -195,8 +195,12 @@ namespace Dcomms.UserApp
         /// new message received; status changed
         /// invokes a "refresh" event in GUI (passed via SignalR in Messenger "T")
         /// </summary>
-        public event Action<Contact> OnMessagesUpdated = null;
-        internal void InvokeOnMessagesUpdated(Contact contact) => OnMessagesUpdated?.Invoke(contact);
+     //   public event Action<Contact> OnMessagesUpdated = null;
+        internal void InvokeOnMessagesUpdated(Contact contact)
+        {
+            //  OnMessagesUpdated?.Invoke(contact);
+            contact.MessagesVersion++;
+        }
         #endregion
 
         #region vision
@@ -225,7 +229,7 @@ namespace Dcomms.UserApp
         {
             _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.lightPain, msg);
         }
-        void WriteToLog_mediumPain(string msg)
+        public void WriteToLog_mediumPain(string msg)
         {
             _visionChannel?.Emit(VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.mediumPain, msg);
         }
