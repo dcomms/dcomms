@@ -230,7 +230,7 @@ namespace Dcomms.SUBT.GUI
                 {
                     try
                     {
-                        if (DeveloperMode == false)
+                        if (DeveloperMode == false && EasyGuiViewModel.TestWithCustomServer == false)
                             PredefinedReleaseMode.Execute(null);
 
                         User.ConfigureFirewallIfNotConfigured();

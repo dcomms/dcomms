@@ -40,7 +40,7 @@ namespace Dcomms.Sandbox
 
 
         public InviteRequestPacket LatestReceivedTextMessage_req;
-        public void OnReceivedShortSingleMessage(string message, InviteRequestPacket req)
+        public void OnReceivedShortSingleMessage(string message, InviteRequestPacket req, IPEndPoint remoteDcEndpoint)
         {
             _receivedMessages++;
             DrpPeerEngine.Configuration.VisionChannel.Emit(DrpPeerEngine.Configuration.VisionChannelSourceId, VisionChannelModuleName, AttentionLevel.guiActivity,
@@ -59,7 +59,7 @@ namespace Dcomms.Sandbox
                     _echoedMessages_attempts++;
                     LocalDrpPeer.BeginSendShortSingleMessage(userCertificate1, req.RequesterRegistrationId,
                         ContactBookUsersByRegId[req.RequesterRegistrationId], message, TimeSpan.FromSeconds(60),
-                        (exc) =>
+                        (exc,ep) =>
                         {
                             if (exc == null)
                             {

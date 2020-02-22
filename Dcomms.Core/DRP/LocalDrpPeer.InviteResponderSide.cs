@@ -213,7 +213,7 @@ namespace Dcomms.DRP
             }
 
             // call app
-            _drpPeerApp.OnReceivedShortSingleMessage(receivedMessage, req);
+            _drpPeerApp.OnReceivedShortSingleMessage(receivedMessage, req, session.RemoteSessionDescription?.DirectChannelEndPoint);
         }
 
         async Task Ike1Async_AtInviteResponder(InviteSession session, InviteRequestPacket req)

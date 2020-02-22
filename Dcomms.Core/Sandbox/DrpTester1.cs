@@ -138,7 +138,7 @@ namespace Dcomms.Sandbox
                 $"sending message: {message}");
 
             _aLocalDrpPeer.BeginSendShortSingleMessage(aUserCertificate, _xLocalDrpPeer.Configuration.LocalPeerRegistrationId, _xUser.UserId, message, null,
-                (exc) =>
+                (exc,ep) =>
                 {
                     if (exc == null) _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity,
                         $"message was sent successfully");

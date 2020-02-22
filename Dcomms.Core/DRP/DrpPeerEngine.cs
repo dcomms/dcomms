@@ -607,7 +607,7 @@ namespace Dcomms.DRP
 
     public interface IDrpRegisteredPeerApp 
     {
-        void OnReceivedShortSingleMessage(string messageText, InviteRequestPacket req);
+        void OnReceivedShortSingleMessage(string messageText, InviteRequestPacket req, IPEndPoint remoteDcEndpoint);
         /// <summary>
         /// searches for a known user in local contact book
         /// </summary>

@@ -12,7 +12,7 @@ namespace Dcomms.DRP
     partial class LocalDrpPeer
     {
         public void BeginSendShortSingleMessage(UserCertificate requesterUserCertificate, RegistrationId responderRegistrationId, UserId responderUserId,            
-            string messageText, TimeSpan? retryOnFailureUntilThisTimeout, Action<Exception> cb)
+            string messageText, TimeSpan? retryOnFailureUntilThisTimeout, Action<Exception,IPEndPoint> cb)
         {
             requesterUserCertificate.AssertHasPrivateKey();
             Engine.EngineThreadQueue.Enqueue(async () =>
@@ -43,7 +43,7 @@ _retry:
                         session.Dispose();
                     }
 
-                    cb?.Invoke(null);
+                    cb?.Invoke(null, session.RemoteSessionDescription?.DirectChannelEndPoint);
                 }
                 catch (Exception exc)
                 {
@@ -55,7 +55,7 @@ _retry:
                         logger?.WriteToLog_higherLevelDetail($"trying again to send message: sw1={sw1.Elapsed.TotalSeconds}s < retryOnFailureUntilThisTimeout={retryOnFailureUntilThisTimeout.Value.TotalSeconds}s");
                         goto _retry;
                     }
-                    cb?.Invoke(exc);
+                    cb?.Invoke(exc, null);
                 }
             }, "BeginSendShortSingleMessage6342");
         }

@@ -251,14 +251,14 @@ namespace Dcomms.UserApp
         }
         #endregion
         
-        void IDrpRegisteredPeerApp.OnReceivedShortSingleMessage(string messageText, InviteRequestPacket req)
+        void IDrpRegisteredPeerApp.OnReceivedShortSingleMessage(string messageText, InviteRequestPacket req, IPEndPoint remoteDcEndpoint)
         {
             try
             {
                 var contact = Contacts.Values.FirstOrDefault(x => x.RegistrationIDs.Any(rid => rid.RegistrationId.Equals(req.RequesterRegistrationId)));
                 if (contact != null)
                 {
-                    var msg = new MessageForUI { Text = messageText, IsOutgoing = false, LocalCreationTimeUTC = _userAppEngine.Engine.DateTimeNowUtc_SystemClock };
+                    var msg = new MessageForUI { Text = messageText, IsOutgoing = false, LocalCreationTimeUTC = _userAppEngine.Engine.DateTimeNowUtc_SystemClock, RemoteEP = remoteDcEndpoint.ToString() };
                     contact.Messages.Add(msg);
                                       
                     _userAppEngine.WriteToLog_higherLevelDetail($"{msg} is received from {contact}. calling InvokeOnMessagesUpdated()");
@@ -281,10 +281,11 @@ namespace Dcomms.UserApp
             localDrpPeer.BeginSendShortSingleMessage(this.User.LocalUserCertificate,
                 contact.RegistrationIDs.Select(x => x.RegistrationId).First(), 
                 contact.User.UserID, message,
-                TimeSpan.FromSeconds(60), (exc) =>
+                TimeSpan.FromSeconds(60), (exc,remoteEP) =>
             {
                 if (exc == null)
                 {
+                    msg.RemoteEP = remoteEP.ToString();
                     msg.IsDelivered = true;
                     _userAppEngine.WriteToLog_higherLevelDetail($"{msg} is delivered to {contact}. calling InvokeOnMessagesUpdated()");
                     _userAppEngine.InvokeOnMessagesUpdated(contact);

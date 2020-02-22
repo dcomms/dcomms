@@ -65,7 +65,15 @@
                                     msgTR.append(msgTD1);
                                     var dt = new Date(msg.LocalCreationTimeUTC);
                                     var time = dt.toLocaleTimeString();
-                                    var msgTD2 = $('<td />'); msgTD2.append("<div style='color: #888;'>" + time + "</div>");
+                                    var msgTD2 = $('<td  style="color: #888;"/>');
+                                    var msgDetailsE = $("<span style='color: #888; display: none'><br/>" + dt + "&emsp;" + msg.RemoteEP + "</span>");
+                                    msgTD2.append(time);
+                                    var msgDetailsExpander = $('<a title="Show/hide details" style="cursor: pointer; margin-left: 5px"><img src="/svg/details.svg" style="height: 16px; opacity: 0.5" /></a>');
+                                    msgDetailsExpander.click(function () {
+                                        msgDetailsE.css('display', msgDetailsE.css('display') == 'none' ? '' : 'none');
+                                    });
+                                    msgTD2.append(msgDetailsExpander);
+                                    msgTD2.append(msgDetailsE);
                                     msgTR.append(msgTD2);
                                                                     
                                     messagesTable.append(msgTR);
@@ -152,7 +160,7 @@
                                     contactDiv.append('<span><img style="margin-right: 3px; height: 18px" src="/svg/contact.svg" />' + contact.UserAliasID + '</span>');
 
                                     var contactButtonsSpan = $('<span/>'); contactButtonsSpan.attr('class', 'itemButtons');
-                                    var detailsButton = $('<a title="Details"><img src="/svg/details.svg" style="height: 18px" /></a>');
+                                    var detailsButton = $('<a title="Details"><img src="/svg/details.svg" style="height: 16px; opacity: 0.5" /></a>');
                                     detailsButton.attr('href', '/Contacts/Details?userId=' + localUser.Id + '&contactId=' + contact.Id);
                                     contactButtonsSpan.append(detailsButton);
                                     var deleteContactButton = $('<a style="margin-left: 5px" title="Delete contact"><img src="/svg/delete.svg" style="height: 15px" /></a>');
