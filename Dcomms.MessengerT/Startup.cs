@@ -52,18 +52,7 @@ namespace Dcomms.MessengerT
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
-                endpoints.MapHub<Hub1>("/hub1");
             });
-
-            //app.Use(async (context, next) =>
-            //{
-            //    var hub1Context = context.RequestServices
-            //                            .GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<Hub1>>();
-            //    Program.UserAppEngine.OnMessagesUpdated += (contact) =>
-            //    {
-            //        _ = hub1Context.Clients.All.SendCoreAsync("OnMessagesUpdated", new object[] { contact.OwnerLocalUserId, contact.ContactId });
-            //    };
-            //});
         }
     }
 

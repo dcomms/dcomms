@@ -9,9 +9,20 @@
 <form asp-action="Index">
     <div class="input-group" style="margin-bottom: 10px">
         <b>Display:</b>
-        &emsp;<input asp-for="DisplayedLogMessagesMaxCount" /> max messages |
+        &emsp;<input asp-for="DisplayedLogMessagesMaxCount" /> max messages
         &emsp;Modules: <input asp-for="DisplayFilterModuleContainsStrings" />
         &emsp;Max messages in RAM: <input asp-for="ClearLog_MessagesCount" />
+
+        &emsp;Attention:
+        <select asp-for="AttentionLevel" asp-items="Html.GetEnumSelectList<Dcomms.Vision.AttentionLevel>()">
+            <option selected="selected" value="">Please select</option>
+        </select>
+        &emsp;Display min level:
+        <select asp-for="DisplayFilterMinLevel" asp-items="Html.GetEnumSelectList<Dcomms.Vision.AttentionLevel>()">
+            <option selected="selected" value="">Please select</option>
+        </select>
+
+        &emsp;
         <input type="submit" value="Apply" class="btn btn-primary">
     </div>       
 </form>

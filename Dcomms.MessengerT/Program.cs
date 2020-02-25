@@ -23,8 +23,8 @@ namespace Dcomms.MessengerT
                 AttentionLevel = AttentionLevel.deepDetail,
                 DisplayFilterMinLevel = AttentionLevel.deepDetail,
                 DisplayedLogMessagesMaxCount = 1000,
-                ClearLog_RamSizeMB = 100,
-                ClearLog_MessagesCount = 10000,
+                ClearLog_RamSizeMB = 1000,
+                ClearLog_MessagesCount = 1000000,
             };
             VisionChannel.SevereMessageEmitted += (msg) => Console.WriteLine(msg.Message);
             

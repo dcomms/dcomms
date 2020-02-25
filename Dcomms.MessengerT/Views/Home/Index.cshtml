@@ -93,22 +93,7 @@
                             });
                         }
                     }    
-
-                    //(function () { // set up signalR
-                    //    var connection = new signalR.HubConnectionBuilder().withUrl("/hub1").build();                    
-                    //    connection.on("OnMessagesUpdated", function (localUserId, contactId) {
-                    //        console.log("signalR OnMessagesUpdated " + localUserId + ", " + contactId + '     00001 ' + Date.now());
-                    //        if (localUserId == selectedLocalUserId && contactId == selectedContactId)
-                    //            loadMessages(selectedContactId, selectedLocalUserId);
-                    //    });
-
-                    //    connection.start().then(function () {
-                    //        /// signalR initialized
-                    //    }).catch(function (err) {
-                    //        return console.error("signalR error 1236d: " + err.toString());
-                    //    });                        
-                    //})();
-
+                    
                     function sendMessage() {
                         var message = $('#message').val();
                         $.getJSON('/XHR/SendMessage?contactId=' + selectedContactId + '&localUserId=' + selectedLocalUserId + '&message=' + encodeURI(message), function (r) {
