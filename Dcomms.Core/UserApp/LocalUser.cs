@@ -67,8 +67,7 @@ namespace Dcomms.UserApp
         }
         Contact GetContactByRegistrationId(RegistrationId remoteRegistrationId)
         {
-            return Contacts.Values.FirstOrDefault(x => x.RegistrationIDs.Any(rid => rid.RegistrationId.Equals(remoteRegistrationId)));
-
+            return Contacts.Values.FirstOrDefault(x => x.RegistrationIDs != null && x.RegistrationIDs.Any(rid => rid.RegistrationId != null && rid.RegistrationId.Equals(remoteRegistrationId)));
         }
 
         void IDrpRegisteredPeerApp.OnReceivedInvite(RegistrationId remoteRegistrationId, byte[] contactInvitationToken, out UserId remoteUserIdNullable, out UserCertificate localUserCertificateWithPrivateKey, out bool autoReply)
