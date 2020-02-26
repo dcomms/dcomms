@@ -26,5 +26,7 @@ namespace Dcomms.UserApp
         /// </summary>
         public DateTime LocalCreationTimeUTC { get; set; }
         public string RemoteEP { get; set; }
+
+        public bool IsUnread { get; set; }
     }
 }

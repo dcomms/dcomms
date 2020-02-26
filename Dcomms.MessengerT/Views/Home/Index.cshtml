@@ -19,9 +19,62 @@
     .contactDivSelected {
         background-color: #f8db69;
     }
-</style>
-<script src="~/js/signalr/dist/browser/signalr.js"></script>
 
+    /* Firefox old*/
+    @@-moz-keyframes blink {
+        0% {
+            opacity:1;
+        }
+        50% {
+            opacity:0;
+        }
+        100% {
+            opacity:1;
+        }
+    } 
+
+    @@-webkit-keyframes blink {
+        0% {
+            opacity:1;
+        }
+        50% {
+            opacity:0;
+        }
+        100% {
+            opacity:1;
+        }
+    }
+    /* IE */
+    @@-ms-keyframes blink {
+        0% {
+            opacity:1;
+        }
+        50% {
+            opacity:0;
+        }
+        100% {
+            opacity:1;
+        }
+    } 
+    /* Opera and prob css3 final iteration */
+    @@keyframes blink {
+        0% {
+            opacity:1;
+        }
+        50% {
+            opacity:0;
+        }
+        100% {
+            opacity:1;
+        }
+    } 
+    .blink-image {
+        -moz-animation: blink normal 2s infinite ease-in-out; /* Firefox */
+        -webkit-animation: blink normal 2s infinite ease-in-out; /* Webkit */
+        -ms-animation: blink normal 2s infinite ease-in-out; /* IE */
+        animation: blink normal 2s infinite ease-in-out; /* Opera and prob css3 final iteration */
+    }
+</style>
 
 @{
     ViewData["Title"] = "Dcomms Messenger T";
@@ -105,7 +158,70 @@
                             }
                         });
                         $('#message').val('');
-                    }                   
+                    }     
+
+                    function loadLocalUsersAndContacts() {
+                         $.getJSON('/XHR/LocalUsersAndContacts', function (r) {
+                            $('#leftPanel').html('');
+                            $.each(r, function (i0, localUser) {
+                                var userDiv = $("<div/>");
+                                var userSpan = $('<span/>'); userSpan.attr('class', 'itemTitle');
+                                var userA = $('<a/>');
+                                userA.html(localUser.UserAliasID);
+
+                                userA.attr('href', '/LocalUsers/Details/' + localUser.Id);
+                                userA.attr('title', 'Your own account "' + localUser.UserAliasID + '"');
+
+                                if (localUser.ContainsUnreadMessages)
+                                    userSpan.append($("<img src='/svg/unread.svg' style='height: 16px; margin-right: 4px' title='There are unread messages' class='blink-image' />"));                                    
+                                userSpan.append(userA);
+
+                                var userButtonsSpan = $('<span/>'); userButtonsSpan.attr('class', 'itemButtons');
+                                var addNewContactButton = $('<a title="Add new contact"><img src="/svg/add-contact.svg" style="height: 18px" /></a>');
+                                addNewContactButton.attr('href', '/Contacts/Add/' + localUser.Id);
+                                userButtonsSpan.append(addNewContactButton);
+                                var deleteButton = $('<a style="margin-left: 5px" title="Delete"><img src="/svg/delete.svg" style="height: 15px" /></a>');
+                                deleteButton.attr('href', '/LocalUsers/Delete/' + localUser.Id);
+                                userButtonsSpan.append(deleteButton);
+                                userSpan.append(userButtonsSpan);
+                                userDiv.append(userSpan);
+
+                                var contactsDiv = $("<div></div>");
+                                $.each(localUser.Contacts, function (i1, contact) {
+                                    var contactDiv = $('<div title="Select the contact to send/receive messages" style="padding-left: 20px" class="itemTitle contactDiv" />');
+                                    var contactSpan = $('<span></span>');                                  
+                                    if (contact.ContainsUnreadMessages)
+                                        contactSpan.append("<img src='/svg/unread.svg' style='height: 16px; margin-right: 4px' title='There are unread messages' class='blink-image' />");  
+                                    contactSpan.append('<img style="margin-right: 3px; height: 18px" src="/svg/contact.svg" />' + contact.UserAliasID);
+                                    contactDiv.append(contactSpan);       
+
+                                    var contactButtonsSpan = $('<span/>'); contactButtonsSpan.attr('class', 'itemButtons');
+                                    var detailsButton = $('<a title="Details"><img src="/svg/details.svg" style="height: 16px; opacity: 0.5" /></a>');
+                                    detailsButton.attr('href', '/Contacts/Details?userId=' + localUser.Id + '&contactId=' + contact.Id);
+                                    contactButtonsSpan.append(detailsButton);
+                                    var deleteContactButton = $('<a style="margin-left: 5px" title="Delete contact"><img src="/svg/delete.svg" style="height: 15px" /></a>');
+                                    deleteContactButton.attr('href', '/Contacts/Delete/' + contact.Id);
+                                    contactButtonsSpan.append(deleteContactButton);
+                                    contactDiv.append(contactButtonsSpan);
+
+                                    contactDiv.click(function () {
+                                        $('.contactDivSelected').attr('class', 'itemTitle contactDiv');
+                                        contactDiv.attr('class', 'itemTitle contactDivSelected');
+                                        loadMessages(contact.Id, localUser.Id);
+                                    });
+                                    if (contact.Id == selectedContactId && localUser.Id == selectedLocalUserId) {
+                                        contactDiv.attr('class', 'itemTitle contactDivSelected');
+                                    }
+
+                                    contactsDiv.append(contactDiv);
+                                });
+
+                                userDiv.append(contactsDiv);
+
+                                $('#leftPanel').append(userDiv);
+                            });
+                        });
+                    }
 
                     $(document).ready(function () {
                         $("#message").keypress(function (e) {
@@ -127,54 +243,10 @@
                             }
                         }, 1000);
 
-                        $.getJSON('/XHR/LocalUsersAndContacts', function (r) {
-                            $.each(r, function (i0, localUser) {
-                                var userDiv = $("<div/>");
-                                var userSpan = $('<span/>'); userSpan.attr('class', 'itemTitle');
-                                var userA = $('<a/>');
-                                userA.html(localUser.UserAliasID);
-                                userA.attr('href', '/LocalUsers/Details/' + localUser.Id);
-                                userA.attr('title', 'Your own account "' + localUser.UserAliasID + '"');
-                                userSpan.append(userA);
-
-                                var userButtonsSpan = $('<span/>'); userButtonsSpan.attr('class', 'itemButtons');
-                                var addNewContactButton = $('<a title="Add new contact"><img src="/svg/add-contact.svg" style="height: 18px" /></a>');
-                                addNewContactButton.attr('href', '/Contacts/Add/' + localUser.Id);
-                                userButtonsSpan.append(addNewContactButton);
-                                var deleteButton = $('<a style="margin-left: 5px" title="Delete"><img src="/svg/delete.svg" style="height: 15px" /></a>');
-                                deleteButton.attr('href', '/LocalUsers/Delete/' + localUser.Id);
-                                userButtonsSpan.append(deleteButton);
-                                userSpan.append(userButtonsSpan);
-                                userDiv.append(userSpan);
-
-                                var contactsDiv = $("<div></div>");
-                                $.each(localUser.Contacts, function (i1, contact) {
-                                    var contactDiv = $('<div title="Select the contact to send/receive messages" style="padding-left: 20px" class="itemTitle contactDiv" />');
-                                    contactDiv.append('<span><img style="margin-right: 3px; height: 18px" src="/svg/contact.svg" />' + contact.UserAliasID + '</span>');
-
-                                    var contactButtonsSpan = $('<span/>'); contactButtonsSpan.attr('class', 'itemButtons');
-                                    var detailsButton = $('<a title="Details"><img src="/svg/details.svg" style="height: 16px; opacity: 0.5" /></a>');
-                                    detailsButton.attr('href', '/Contacts/Details?userId=' + localUser.Id + '&contactId=' + contact.Id);
-                                    contactButtonsSpan.append(detailsButton);
-                                    var deleteContactButton = $('<a style="margin-left: 5px" title="Delete contact"><img src="/svg/delete.svg" style="height: 15px" /></a>');
-                                    deleteContactButton.attr('href', '/Contacts/Delete/' + contact.Id);
-                                    contactButtonsSpan.append(deleteContactButton);
-                                    contactDiv.append(contactButtonsSpan);
-
-                                    contactDiv.click(function () {
-                                        $('.contactDivSelected').attr('class', 'itemTitle contactDiv');
-                                        contactDiv.attr('class', 'itemTitle contactDivSelected');
-                                        loadMessages(contact.Id, localUser.Id);
-                                    });
-
-                                    contactsDiv.append(contactDiv);
-                                });
-
-                                userDiv.append(contactsDiv);
-
-                                $('#leftPanel').append(userDiv);
-                            });
-                        });
+                        loadLocalUsersAndContacts();
+                        setInterval(function () { // check for new messages
+                            loadLocalUsersAndContacts();
+                        }, 5000);
                     });
                 </script>
                 <div style="min-width: 150px;  min-height: 470px; text-align: left; background-color: #FFF; padding: 10px; border-right: 1px solid #DDD">
@@ -184,7 +256,7 @@
             </td>
             <td valign="top" style="min-width: 300px">
                 <div id="messagesPleaseSelectContact">
-                    <span style="vertical-align: central; text-align: center">please select contact</span>
+                    <span style="vertical-align: central; text-align: center">please select contact on the left panel</span>
                 </div>
                 <div id="messagesContactIsUnconfirmed" style="display: none">
                     <span style="vertical-align: central; text-align: center">contact is not confirmed by remote side</span>
@@ -203,7 +275,11 @@
                             <td valign="center"><a href="javascript:sendMessage()" title="Send message" style="margin-left: 5px"><img src="/svg/send.svg" style="height: 24px" /></a></td>
                         </tr>
                     </table>
+                    <div style="color: #999; font-size: 0.8em; text-align: left; margin-left: 4px">
+                        The messages are not saved to any database, and they are erased when you restart the software
+                    </div>
                 </div>
+
             </td>
         </tr>
     </table>

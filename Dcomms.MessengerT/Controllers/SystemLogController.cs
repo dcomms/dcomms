@@ -14,11 +14,13 @@ namespace Dcomms.MessengerT.Controllers
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Index([Bind("DisplayedLogMessagesMaxCount,DisplayFilterModuleContainsStrings,ClearLog_MessagesCount,AttentionLevel,DisplayFilterMinLevel")] Vision.VisionChannel1 model)
+        public IActionResult Index([Bind("DisplayedLogMessagesMaxCount,DisplayFilterModuleContainsStrings,ClearLog_MessagesCount,AttentionLevel,DisplayFilterMinLevel,DisplayFilterMessageContainsString")] Vision.VisionChannel1 model)
         {
             Program.VisionChannel.DisplayedLogMessagesMaxCount = model.DisplayedLogMessagesMaxCount;
             Program.VisionChannel.DisplayFilterModuleContainsStrings = model.DisplayFilterModuleContainsStrings;
             Program.VisionChannel.ClearLog_MessagesCount = model.ClearLog_MessagesCount;
+            Program.VisionChannel.DisplayFilterMessageContainsString = model.DisplayFilterMessageContainsString;
+                       
 
             Program.VisionChannel.AttentionLevel = model.AttentionLevel;
             Program.VisionChannel.DisplayFilterMinLevel = model.DisplayFilterMinLevel;

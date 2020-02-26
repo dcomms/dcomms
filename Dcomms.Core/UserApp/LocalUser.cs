@@ -257,7 +257,12 @@ namespace Dcomms.UserApp
                 var contact = Contacts.Values.FirstOrDefault(x => x.RegistrationIDs.Any(rid => rid.RegistrationId.Equals(req.RequesterRegistrationId)));
                 if (contact != null)
                 {
-                    var msg = new MessageForUI { Text = messageText, IsOutgoing = false, LocalCreationTimeUTC = _userAppEngine.Engine.DateTimeNowUtc_SystemClock, RemoteEP = remoteDcEndpoint.ToString() };
+                    var msg = new MessageForUI {
+                        Text = messageText, 
+                        IsOutgoing = false, 
+                        IsUnread = true,
+                        LocalCreationTimeUTC = _userAppEngine.Engine.DateTimeNowUtc_SystemClock,
+                        RemoteEP = remoteDcEndpoint.ToString() };
                     contact.Messages.Add(msg);
                                       
                     _userAppEngine.WriteToLog_higherLevelDetail($"{msg} is received from {contact}. calling InvokeOnMessagesUpdated()");

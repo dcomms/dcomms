@@ -25,7 +25,6 @@ namespace Dcomms.UserApp.DataModels
 
             if (ContactCreatedAtUTC.HasValue) writer.Write(ContactCreatedAtUTC.Value.ToBinary());
             if (ContactCreatedWithRemoteEndpoint != null) BinaryProcedures.EncodeIPEndPoint(writer, ContactCreatedWithRemoteEndpoint);
-
         }
         public byte[] Encode()
         {
@@ -45,7 +44,7 @@ namespace Dcomms.UserApp.DataModels
 
             if ((flags & FlagsMask_ContactCreatedAtUTC) != 0) r.ContactCreatedAtUTC = DateTime.FromBinary(reader.ReadInt64());
             if ((flags & FlagsMask_ContactCreatedWithRemoteEndpoint) != 0) r.ContactCreatedWithRemoteEndpoint = BinaryProcedures.DecodeIPEndPoint(reader);
-           
+
             return r;
         }
         public static UserMetadata Decode(byte[] data)

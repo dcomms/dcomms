@@ -6,11 +6,12 @@
 
 <h1>System Log</h1>
 
-<form asp-action="Index">
+<form asp-action="Index" style="border: 1px solid #999; margin-bottom: 4px; padding: 4px">
     <div class="input-group" style="margin-bottom: 10px">
-        <b>Display:</b>
-        &emsp;<input asp-for="DisplayedLogMessagesMaxCount" /> max messages
+        Display max
+        &nbsp;<input asp-for="DisplayedLogMessagesMaxCount" /> messages
         &emsp;Modules: <input asp-for="DisplayFilterModuleContainsStrings" />
+        &emsp;Msg contains: <input asp-for="DisplayFilterMessageContainsString" />        
         &emsp;Max messages in RAM: <input asp-for="ClearLog_MessagesCount" />
 
         &emsp;Attention:
@@ -26,6 +27,11 @@
         <input type="submit" value="Apply" class="btn btn-primary">
     </div>       
 </form>
+
+<div style="border: 1px solid #999; margin-bottom: 10px; padding: 4px">
+    @Model.MaxEmittedAttentionLevelLogMessage
+</div>
+
 <table class="table1">
     @foreach (var msg in Model.DisplayedLogMessages)
     {

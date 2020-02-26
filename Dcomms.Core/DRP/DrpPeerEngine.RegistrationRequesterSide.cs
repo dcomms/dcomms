@@ -345,6 +345,7 @@ namespace Dcomms.DRP
                 result = await response.Content.ReadAsStringAsync();
                 result = result.Trim();
                 var ipAddress = IPAddress.Parse(result);
+                WriteToLog_drpGeneral_detail($"<< SendPublicIpAddressApiRequestAsync({url}) returns {ipAddress}");
                 return ipAddress.GetAddressBytes();
             }
             catch (Exception exc)

@@ -17,13 +17,13 @@ namespace Dcomms.MessengerT.Controllers
         {
             public int Id { get; set; }
             public string UserAliasID { get; set; }
-          //  public int OwnerLocalUserId { get; set; }
+            public bool ContainsUnreadMessages { get; set; }
 
             public ContactForWebUI(Contact contact)
             {
                 Id = contact.ContactId;
                 UserAliasID = contact.UserAliasID;
-            //    OwnerLocalUserId = contact.OwnerLocalUserId;
+                ContainsUnreadMessages = contact.Messages.Any(x => x.IsUnread);
             }
         }
         public class LocalUserForWebUI
@@ -31,17 +31,19 @@ namespace Dcomms.MessengerT.Controllers
             public int Id { get; set; }
             public string UserAliasID { get; set; }
             public ContactForWebUI[] Contacts { get; set; }
+            public bool ContainsUnreadMessages { get; set; }
             public LocalUserForWebUI(LocalUser localUser)
             {
                 Id = localUser.User.Id;
                 UserAliasID = localUser.UserAliasID;
-                Contacts = localUser.Contacts.Values.Select(x => new ContactForWebUI(x)).ToArray();
+                Contacts = localUser.Contacts.Values.Select(x => new ContactForWebUI(x)).OrderBy(x => x.ContainsUnreadMessages ? 0 : 1).ThenBy(x => x.UserAliasID).ToArray();
+                ContainsUnreadMessages = Contacts.Any(x => x.ContainsUnreadMessages);
             }
         }
 
         public IActionResult LocalUsersAndContacts()
         {
-            return Json(Program.UserAppEngine.LocalUsers.Values.Select(x => new LocalUserForWebUI(x)).ToArray(), new JsonSerializerOptions
+            return Json(Program.UserAppEngine.LocalUsers.Values.Select(x => new LocalUserForWebUI(x)).OrderBy(x => x.ContainsUnreadMessages ? 0 : 1).ThenBy(x => x.UserAliasID).ToArray(), new JsonSerializerOptions
             {
                 WriteIndented = true
             });
@@ -57,6 +59,7 @@ namespace Dcomms.MessengerT.Controllers
                 return NotFound();
 
             var r = contact.Messages.ToArray();
+            foreach (var msg in r) msg.IsUnread = false;
             Program.UserAppEngine.WriteToLog_higherLevelDetail($"XHR/Messages returns {String.Join(';', r.Select(x => x.ToString()))}");
             return Json(new { messages = r, messagesVersion = contact.MessagesVersion }, new JsonSerializerOptions
             {
