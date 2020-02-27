@@ -52,6 +52,31 @@ namespace Dcomms.MessengerT.Controllers
             if (!localUser.Contacts.TryGetValue(contactId, out var contact)) return NotFound();        
             return View(contact);
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Details(int userId, int contactId, [Bind("UserAliasID")] Contact newFieldsContact)
+        {
+            if (!Program.UserAppEngine.LocalUsers.TryGetValue(userId, out var localUser)) return NotFound();
+            if (!localUser.Contacts.TryGetValue(contactId, out var contact)) return NotFound();
+
+            if (String.IsNullOrEmpty(newFieldsContact.UserAliasID))
+                ModelState.AddModelError("UserAliasID", "Please enter contact ID");
+
+            if (ModelState.IsValid)
+            {
+                Program.UserAppEngine.UpdateContact(contact, newFieldsContact);
+                return RedirectToAction(nameof(HomeController.Index), "Home");
+            }
+
+            newFieldsContact.RegistrationIDs = contact.RegistrationIDs;
+            newFieldsContact.User = contact.User;
+            return View(newFieldsContact);
+        }
+
+
+
+
         public IActionResult Delete(int userId, int contactId)
         {
             if (!Program.UserAppEngine.LocalUsers.TryGetValue(userId, out var localUser)) return NotFound();

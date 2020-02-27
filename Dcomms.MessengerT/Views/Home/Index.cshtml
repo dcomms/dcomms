@@ -165,19 +165,17 @@
                             $('#leftPanel').html('');
                             $.each(r, function (i0, localUser) {
                                 var userDiv = $("<div/>");
-                                var userSpan = $('<span/>'); userSpan.attr('class', 'itemTitle');
-                                var userA = $('<a/>');
-                                userA.html(localUser.UserAliasID);
-
-                                userA.attr('href', '/LocalUsers/Details/' + localUser.Id);
-                                userA.attr('title', 'Your own account "' + localUser.UserAliasID + '"');
+                                var userSpan = $('<span/>'); userSpan.attr('class', 'itemTitle');                              
 
                                 if (localUser.ContainsUnreadMessages)
                                     userSpan.append($("<img src='/svg/unread.svg' style='height: 16px; margin-right: 4px' title='There are unread messages' class='blink-image' />"));                                    
-                                userSpan.append(userA);
+                                userSpan.append(localUser.UserAliasID);
 
-                                var userButtonsSpan = $('<span/>'); userButtonsSpan.attr('class', 'itemButtons');
-                                var addNewContactButton = $('<a title="Add new contact"><img src="/svg/add-contact.svg" style="height: 18px" /></a>');
+                                var userButtonsSpan = $('<span/>'); userButtonsSpan.attr('class', 'itemButtons');                                
+                                var detailsButton = $('<a title="Details"><img src="/svg/details.svg" style="height: 16px; opacity: 0.5" /></a>');
+                                detailsButton.attr('href', '/LocalUsers/Details/' + localUser.Id);
+                                userButtonsSpan.append(detailsButton);
+                                var addNewContactButton = $('<a title="Add new contact"><img src="/svg/add-contact.svg" style="margin-left: 3px; height: 18px" /></a>');
                                 addNewContactButton.attr('href', '/Contacts/Add/' + localUser.Id);
                                 userButtonsSpan.append(addNewContactButton);
                                 var deleteButton = $('<a style="margin-left: 5px" title="Delete"><img src="/svg/delete.svg" style="height: 15px" /></a>');

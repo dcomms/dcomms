@@ -191,6 +191,19 @@ namespace Dcomms.UserApp
             _db.DeleteUser(contact.User.Id);
         }
 
+        public void UpdateContact(Contact contact, Contact newFieldsContact)
+        {
+            try
+            {
+                contact.User.AliasID = newFieldsContact.UserAliasID;
+                _db.UpdateUser(contact.User);
+            }
+            catch (Exception exc)
+            {
+                HandleException("error when updating contact: ", exc);
+            }
+        }
+
         /// <summary>
         /// new message received; status changed
         /// invokes a "refresh" event in GUI (passed via SignalR in Messenger "T")
