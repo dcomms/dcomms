@@ -32,12 +32,15 @@ namespace Dcomms.MessengerT.Controllers
             public string UserAliasID { get; set; }
             public ContactForWebUI[] Contacts { get; set; }
             public bool ContainsUnreadMessages { get; set; }
+            public bool IsConnected { get; set; }
             public LocalUserForWebUI(LocalUser localUser)
             {
                 Id = localUser.User.Id;
                 UserAliasID = localUser.UserAliasID;
                 Contacts = localUser.Contacts.Values.Select(x => new ContactForWebUI(x)).OrderBy(x => x.ContainsUnreadMessages ? 0 : 1).ThenBy(x => x.UserAliasID).ToArray();
                 ContainsUnreadMessages = Contacts.Any(x => x.ContainsUnreadMessages);
+                if (localUser.UserRegistrationIDs != null)
+                    IsConnected = localUser.UserRegistrationIDs.Any(rid => rid.LocalDrpPeer != null && rid.LocalDrpPeer.IsConnected);
             }
         }
 

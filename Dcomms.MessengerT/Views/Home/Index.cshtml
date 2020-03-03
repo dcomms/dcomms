@@ -166,9 +166,14 @@
                             $.each(r, function (i0, localUser) {
                                 var userDiv = $("<div/>");
                                 var userSpan = $('<span/>'); userSpan.attr('class', 'itemTitle');                              
-
+                                
                                 if (localUser.ContainsUnreadMessages)
-                                    userSpan.append($("<img src='/svg/unread.svg' style='height: 16px; margin-right: 4px' title='There are unread messages' class='blink-image' />"));                                    
+                                    userSpan.append($("<img src='/svg/unread.svg' style='height: 16px; margin-right: 4px' title='There are unread messages' class='blink-image' />"));  
+                                if (localUser.IsConnected)
+                                    userSpan.append($("<img src='/svg/tick.svg' style='height: 16px; margin-right: 4px' title='Conected to P2P network' />"));  
+                                else
+                                    userSpan.append($("<img src='/svg/hourglass.svg' style='height: 16px; margin-right: 4px' title='Connecting to P2P network...' />")); 
+
                                 userSpan.append(localUser.UserAliasID);
 
                                 var userButtonsSpan = $('<span/>'); userButtonsSpan.attr('class', 'itemButtons');                                
