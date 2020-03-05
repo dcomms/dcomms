@@ -32,7 +32,7 @@ namespace Dcomms.MessengerT.Controllers
             public string UserAliasID { get; set; }
             public ContactForWebUI[] Contacts { get; set; }
             public bool ContainsUnreadMessages { get; set; }
-            public bool IsConnected { get; set; }
+            public bool IsConnected { get; set; } 
             public LocalUserForWebUI(LocalUser localUser)
             {
                 Id = localUser.User.Id;

@@ -85,13 +85,33 @@
         <tr>
             <td valign="top">
                 <script type="text/javascript">   
-                    var selectedContactId, selectedLocalUserId, latestMessagesVersion; 
+                    var selectedContactId, selectedLocalUserId, latestMessagesVersion, localUsersAndContactsApiResponse; 
+                    function getLocalUser(localUserId) {
+                        var r = null;
+                        $.each(localUsersAndContactsApiResponse, function (i0, localUser) {
+                            if (localUser.Id == localUserId)
+                                r = localUser;
+                        });
+                        return r;
+                    }
+                    function updateSendMessagePanelVisibility() {                        
+                        $('#sendMessagePanel').css('display', 'none');
+                        $('#cantSendMessagePanel').css('display', 'none');   
+                        var localUser = getLocalUser(selectedLocalUserId);
+                        if (localUser && localUser.IsConnected) {   
+                             $('#sendMessagePanel').css('display', '');  
+                        }
+                        else {
+                            $('#cantSendMessagePanel').css('display', ''); 
+                            $('#cantSendMessagePanel').html('connecting to P2P network... <a href="/LocalUsers/Details/' + selectedLocalUserId + '">see details</a>'); 
+                        }                        
+                    }
                     function loadMessages(contactId, localUserId) {
                        // console.log("loadMessages  " + localUserId + ", " + contactId + '     00002 ' + Date.now());
 
                         $('#messagesPleaseSelectContact').css('display', 'none');
                         $('#messagesLoading').css('display', 'none');
-                        $('#messagesPanel').css('display', 'none');
+                        $('#messagesPanel').css('display', 'none');          
                         $('#messagesContactIsUnconfirmed').css('display', 'none');
 
                         if (contactId < 0) // if "temporary" contact
@@ -139,10 +159,16 @@
                                 $('#messagesTableDiv').scrollTop(
                                     $('#messagesTableDiv')[0].scrollHeight - $('#messagesTableDiv')[0].clientHeight
                                 );
-                                $('#message').focus();
+
+                                var localUser = getLocalUser(localUserId);
+                                if (localUser && localUser.IsConnected) {                                
+                                    $('#message').focus();
+                                }
                             
                                 selectedContactId = contactId;
                                 selectedLocalUserId = localUserId;
+
+                                updateSendMessagePanelVisibility();
                             });
                         }
                     }    
@@ -161,7 +187,9 @@
                     }     
 
                     function loadLocalUsersAndContacts() {
-                         $.getJSON('/XHR/LocalUsersAndContacts', function (r) {
+                        $.getJSON('/XHR/LocalUsersAndContacts', function (r) {
+                            localUsersAndContactsApiResponse = r;
+                            updateSendMessagePanelVisibility();
                             $('#leftPanel').html('');
                             $.each(r, function (i0, localUser) {
                                 var userDiv = $("<div/>");
@@ -272,12 +300,13 @@
                     <div style="height: 400px; overflow-y: auto; width: 100%" id="messagesTableDiv">
                         <table id="messagesTable" style="width: 100%"><tbody /></table>
                     </div>
-                    <table>
+                    <table id="sendMessagePanel" >
                         <tr>
                             <td><textarea rows="2" cols="50" placeholder="Enter your message here" id="message"></textarea></td>
                             <td valign="center"><a href="javascript:sendMessage()" title="Send message" style="margin-left: 5px"><img src="/svg/send.svg" style="height: 24px" /></a></td>
                         </tr>
                     </table>
+                    <div id="cantSendMessagePanel"></div>
                     <div style="color: #999; font-size: 0.8em; text-align: left; margin-left: 4px">
                         The messages are not saved to any database, and they are erased when you restart the software
                     </div>

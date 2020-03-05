@@ -45,7 +45,7 @@ namespace Dcomms.DRP
         internal ICryptoLibrary CryptoLibrary => Engine.CryptoLibrary;
 
         public string Status => $"connected neighbors: {ConnectedNeighbors.Count}/{_configuration.MinDesiredNumberOfNeighbors}. {CurrentRegistrationOperationsCount} pending reg.";
-        public bool IsConnected => ConnectedNeighbors.Count > 2;// _configuration.MinDesiredNumberOfNeighbors;
+        public bool IsConnected => ConnectedNeighbors.Count > 2;
 
         public LocalDrpPeer(DrpPeerEngine engine, LocalDrpPeerConfiguration configuration, IDrpRegisteredPeerApp drpPeerApp)
         {
