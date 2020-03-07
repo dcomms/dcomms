@@ -63,7 +63,7 @@ namespace Dcomms.MessengerT.Controllers
 
             var r = contact.Messages.ToArray();
             foreach (var msg in r) msg.IsUnread = false;
-            Program.UserAppEngine.WriteToLog_higherLevelDetail($"XHR/Messages returns {String.Join(';', r.Select(x => x.ToString()))}");
+            Program.UserAppEngine.WriteToLog_higherLevelDetail($"XHR/Messages(localUserId={localUserId}, contactId={contactId}) returns {String.Join(';', r.Select(x => x.ToString()))}; MessagesVersion={contact.MessagesVersion}");
             return Json(new { messages = r, messagesVersion = contact.MessagesVersion }, new JsonSerializerOptions
             {
                 WriteIndented = true
@@ -77,7 +77,7 @@ namespace Dcomms.MessengerT.Controllers
             if (!localUser.Contacts.TryGetValue(contactId, out var contact))
                 return NotFound();
 
-            Program.UserAppEngine.WriteToLog_higherLevelDetail($"XHR/MessagesVersion returns {contact.MessagesVersion}");
+            Program.UserAppEngine.WriteToLog_higherLevelDetail($"XHR/MessagesVersion(localUserId={localUserId}, contactId={contactId})  returns {contact.MessagesVersion}");
             return Json(new { messagesVersion = contact.MessagesVersion }, new JsonSerializerOptions
             {
                 WriteIndented = true

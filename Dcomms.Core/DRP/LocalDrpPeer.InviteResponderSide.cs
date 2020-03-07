@@ -202,6 +202,7 @@ namespace Dcomms.DRP
 
         async Task ReceiveShortSingleMessageAsync(InviteSession session, InviteRequestPacket req)
         {
+            session.WriteToLog_detail(">> LocalDrpPeer.ReceiveShortSingleMessageAsync()");
             string receivedMessage;
             try
             {
@@ -213,6 +214,7 @@ namespace Dcomms.DRP
             }
 
             // call app
+            session.WriteToLog_detail("invoking OnReceivedShortSingleMessage()");
             _drpPeerApp.OnReceivedShortSingleMessage(receivedMessage, req, session.RemoteSessionDescription?.DirectChannelEndPoint);
         }
 

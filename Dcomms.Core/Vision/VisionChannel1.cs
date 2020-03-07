@@ -71,12 +71,13 @@ namespace Dcomms.Vision
                 }
             }
         }
-        public List<LogMessage> GetLogMessages_newestFirst(object routingPathReq)
+        public List<LogMessage> GetLogMessages_newestFirst(object routedPathReq)
         {          
             lock (_logMessagesNewestFirst)
             {
                 IEnumerable<LogMessage> r = _logMessagesNewestFirst;
-                r = r.Where(x => routingPathReq.Equals(x.RoutedPathReq));
+                if (routedPathReq != null)
+                    r = r.Where(x => routedPathReq.Equals(x.RoutedPathReq));
               //  r = r.Where(x => x.AttentionLevel >= DisplayFilterMinLevel);
                 return r.ToList();
             }            

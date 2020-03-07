@@ -38,7 +38,7 @@
             </tr>
             <tr>
                 <td>&emsp;status</td>
-                <td>@regId.LocalDrpPeer?.Status</td>
+                <td style="color: @(regId.LocalDrpPeer?.IsConnected == true ? "green" : "red")">@regId.LocalDrpPeer?.Status</td>
             </tr>
         }
     </table>

@@ -265,7 +265,7 @@ namespace Dcomms.UserApp
                         RemoteEP = remoteDcEndpoint.ToString() };
                     contact.Messages.Add(msg);
                                       
-                    _userAppEngine.WriteToLog_higherLevelDetail($"{msg} is received from {contact}. calling InvokeOnMessagesUpdated()");
+                    _userAppEngine.WriteToLog_higherLevelDetail($"{msg} is received from {contact}. calling InvokeOnMessagesUpdated(). MessagesVersion={contact.MessagesVersion}");
 
                     _userAppEngine.InvokeOnMessagesUpdated(contact);
                 }

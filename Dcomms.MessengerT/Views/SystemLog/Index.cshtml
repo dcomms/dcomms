@@ -32,6 +32,10 @@
     @Model.MaxEmittedAttentionLevelLogMessage
 </div>
 
+<div>
+    <a asp-controller="SystemLog" asp-action="Download" class="btn btn-primary">Download logs in ZIP</a>
+</div>
+
 <table class="table1">
     @foreach (var msg in Model.DisplayedLogMessages)
     {
