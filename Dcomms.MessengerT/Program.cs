@@ -18,6 +18,7 @@ namespace Dcomms.MessengerT
         public static UserAppEngine UserAppEngine;
         public static void Main(string[] args)
         {
+            Dcomms.MiscProcedures.Initialize(CompilationInfo.CompilationDateTimeUtc);
             VisionChannel = new VisionChannel1(true)
             {
                 AttentionLevel = AttentionLevel.deepDetail,

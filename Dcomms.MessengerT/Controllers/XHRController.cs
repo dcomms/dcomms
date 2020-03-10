@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Dcomms.UserApp;
 using Microsoft.AspNetCore.Mvc;
@@ -19,10 +20,13 @@ namespace Dcomms.MessengerT.Controllers
             public string UserAliasID { get; set; }
             public bool ContainsUnreadMessages { get; set; }
 
+            [JsonIgnore]
+            public DateTime? LatestMessageLocalTimeUTC { get; set; }
             public ContactForWebUI(Contact contact)
             {
                 Id = contact.ContactId;
                 UserAliasID = contact.UserAliasID;
+                LatestMessageLocalTimeUTC = contact.LatestMessageLocalTimeUTC;
                 ContainsUnreadMessages = contact.Messages.Any(x => x.IsUnread);
             }
         }
@@ -37,7 +41,7 @@ namespace Dcomms.MessengerT.Controllers
             {
                 Id = localUser.User.Id;
                 UserAliasID = localUser.UserAliasID;
-                Contacts = localUser.Contacts.Values.Select(x => new ContactForWebUI(x)).OrderBy(x => x.ContainsUnreadMessages ? 0 : 1).ThenBy(x => x.UserAliasID).ToArray();
+                Contacts = localUser.Contacts.Values.Select(x => new ContactForWebUI(x)).OrderByDescending(x => x.LatestMessageLocalTimeUTC ?? DateTime.MinValue).ThenBy(x => x.UserAliasID).ToArray();
                 ContainsUnreadMessages = Contacts.Any(x => x.ContainsUnreadMessages);
                 if (localUser.UserRegistrationIDs != null)
                     IsConnected = localUser.UserRegistrationIDs.Any(rid => rid.LocalDrpPeer != null && rid.LocalDrpPeer.IsConnected);

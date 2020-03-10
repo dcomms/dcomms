@@ -264,6 +264,7 @@ namespace Dcomms.UserApp
                         LocalCreationTimeUTC = _userAppEngine.Engine.DateTimeNowUtc_SystemClock,
                         RemoteEP = remoteDcEndpoint.ToString() };
                     contact.Messages.Add(msg);
+                    contact.LatestMessageLocalTimeUTC = msg.LocalCreationTimeUTC;
                                       
                     _userAppEngine.WriteToLog_higherLevelDetail($"{msg} is received from {contact}. calling InvokeOnMessagesUpdated(). MessagesVersion={contact.MessagesVersion}");
 
@@ -297,6 +298,7 @@ namespace Dcomms.UserApp
                 //else   TODO168719
             });
             contact.Messages.Add(msg);
+            contact.LatestMessageLocalTimeUTC = msg.LocalCreationTimeUTC;
         }
     }
 }

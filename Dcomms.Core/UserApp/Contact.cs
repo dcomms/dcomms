@@ -41,6 +41,7 @@ namespace Dcomms.UserApp
                 
         public List<MessageForUI> Messages { get; set; } = new List<MessageForUI>();
         public int MessagesVersion { get; set; }
+        public DateTime? LatestMessageLocalTimeUTC { get; set; }
 
         public override string ToString()
         {
