@@ -24,7 +24,7 @@ namespace Dcomms.P2PTP.LocalLogic
 #endif
             try
             {
-                SendHttpRequestsAsync();
+                _ = SendHttpRequestsAsync();
             }
             catch (Exception exc)
             {

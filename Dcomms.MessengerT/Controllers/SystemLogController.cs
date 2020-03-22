@@ -37,76 +37,23 @@ namespace Dcomms.MessengerT.Controllers
         public IActionResult Download()
         {
             var messages = Program.VisionChannel.GetLogMessages_newestFirst(null);
-
             byte[] zipData;
-
+            var dateTimeStr = DateTime.UtcNow.ToString("yy-MM-dd-HH-mm-ss");
             using (var memoryStream = new MemoryStream())
             {
                 using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
                 {
-                    using (var entryStream = archive.CreateEntry("logs.txt").Open())
+                    using (var entryStream = archive.CreateEntry($"logs_{dateTimeStr}_{CompilationInfo.CompilationDateTimeUtcStr.Replace(':', '-')}.txt").Open())
                     using (var streamWriter = new StreamWriter(entryStream))
                     {
+                        streamWriter.Write($"software version: {CompilationInfo.CompilationDateTimeUtcStr}\r\n");
                         foreach (var msg in messages)
                             streamWriter.Write($"{msg.TimeStr}\t{msg.ModuleName}\t{msg.AttentionLevelStr}\t{msg.SourceId}\t{msg.Message}\r\n");
                     }
                 }
-
                 zipData = memoryStream.ToArray();
-
-                //using (var fileStream = new FileStream(@"C:\Temp\test.zip", FileMode.Create))
-                //{
-                //    memoryStream.Seek(0, SeekOrigin.Begin);
-                //    memoryStream.CopyTo(fileStream);
-                //}
             }
-
-
-
-            //var zipMS = new MemoryStream();
-            //byte[] zipData;
-            //using (var zipArchive = new ZipArchive(zipMS, ZipArchiveMode.Create))
-            //{
-            //    var zipEntry = zipArchive.CreateEntry("log.txt");
-            //    using (var zipStream = zipEntry.Open())
-            //    {
-            //        using (var writer = new StreamWriter(zipStream))
-            //        {
-            //            foreach (var msg in messages)
-            //                writer.Write($"{msg.TimeStr}\t{msg.ModuleName}\t{msg.AttentionLevelStr}\t{msg.SourceId}\t{msg.Message}\r\n");
-            //            writer.Flush();
-            //            zipStream.Flush();
-            //        }
-            //    }
-            //    zipData = zipMS.ToArray();
-            //}
-
-
-            return File(new MemoryStream(zipData), "application/zip", "Dcomms_logs.zip");
-
-            //return new FileCallbackResult(new MediaTypeHeaderValue("application/zip"), async (outputStream, _) =>
-            //{
-            //    var zipMS = new MemoryStream();
-            //    using (var zipArchive = new ZipArchive(//new WriteOnlyStreamWrapper(
-            //        zipMS//)
-            //        , ZipArchiveMode.Create))
-            //    {
-
-            //        var zipEntry = zipArchive.CreateEntry("log.txt");
-            //        using (var zipStream = zipEntry.Open())
-            //        {
-            //            using (var writer = new StreamWriter(zipStream))
-            //            {
-            //                foreach (var msg in messages)
-            //                    writer.Write($"{msg.TimeStr}\t{msg.ModuleName}\t{msg.AttentionLevelStr}\t{msg.SourceId}\t{msg.Message}\r\n");                         
-            //            }
-            //        }
-            //        await zipMS.CopyToAsync(outputStream);            
-            //    }
-            //})
-            //{
-            //    FileDownloadName = "Dcomms_logs.zip"
-            //};
+            return File(new MemoryStream(zipData), "application/zip", $"Dcomms_logs_{dateTimeStr}.zip");
         }
 
         public class FileCallbackResult : FileResult

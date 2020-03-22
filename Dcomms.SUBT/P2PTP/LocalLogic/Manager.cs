@@ -191,6 +191,11 @@ namespace Dcomms.P2PTP.LocalLogic
                     _localPeer.IpLocationScraper = new IpLocationScraper(helloPacket.RequestedFromIp, _localPeer);
                 }
 
+                //if (_localPeer.NatTester == null)
+                //{
+                //    xxxx
+                //}
+
                 if (helloPacket.ToPeerId == null)
                 {
                     if (helloPacket.Status.IsSetupOrPing())
@@ -361,7 +366,9 @@ namespace Dcomms.P2PTP.LocalLogic
                 case PeerHelloRequestStatus.setup:
                 case PeerHelloRequestStatus.ping:
                     var responseCpuDelayMs = (ushort)Math.Round(TimeSpan.FromTicks(unchecked(_localPeer.Time32 - packetReceivedTimestamp32)).TotalMilliseconds);
-                    PeerHelloPacket.Respond(helloPacket, PeerHelloRequestStatus.accepted, null, socket, remoteEndpoint, responseCpuDelayMs, _localPeer.Configuration.RoleAsUser, _localPeer.IpLocationScraper?.IpLocationData);
+                    PeerHelloPacket.Respond(helloPacket, PeerHelloRequestStatus.accepted, null, socket, remoteEndpoint, responseCpuDelayMs, _localPeer.Configuration.RoleAsUser,
+                        _localPeer.IpLocationScraper?.IpLocationData//, _localPeer.NatTester?.NatTestResult
+                        );
                     break;
                 case PeerHelloRequestStatus.accepted:
                     ProcessReceivedAcceptedHello_UpdateHelloLevelFields(connectedPeer, stream, helloPacket, packetReceivedTimestamp32);

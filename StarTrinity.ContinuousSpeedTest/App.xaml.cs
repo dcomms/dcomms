@@ -85,7 +85,7 @@ namespace StarTrinity.ContinuousSpeedTest
             {
                 var excString = exc.ToString();
                 if (excString.Contains("netstandard,"))
-                    MessageBox.Show("Error: .NET core is not installed. Please install latest .NET Framework.\r\n\r\n" + excString);
+                    MessageBox.Show("Error: .NET core 3.1 is not installed. Please install the .NET Core:\r\nhttps://dotnet.microsoft.com/download/dotnet-core/thank-you/runtime-desktop-3.1.2-windows-x64-installer\r\n" + excString);
                 else MessageBox.Show("Error: " + excString);
             }
         }
