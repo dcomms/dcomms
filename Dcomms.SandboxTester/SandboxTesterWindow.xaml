@@ -42,8 +42,10 @@
                 <Button Command="{Binding CreateDrpTester5}" Content="CreateDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
                 <Button Command="{Binding DestroyDrpTester5}" Content="DestroyDrpTester5" Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityConverter}}"  />
 
-                <Button Command="{Binding CreateUserAppEngine}" Content="CreateUserAppEngine" Visibility="{Binding UserAppEngineIsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}"  />                               
-                
+                <Button Command="{Binding CreateUserAppEngine}" Content="CreateUserAppEngine" Visibility="{Binding UserAppEngineIsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}"  />
+
+                <Button Command="{Binding CreateNatTester}" Content="CreateNatTester" Visibility="{Binding NatTesterIsCreated, Converter={StaticResource BoolToVisibilityOppositeConverter}}"  />
+
             </StackPanel>
         </StackPanel>
 
@@ -178,7 +180,6 @@
                 </StackPanel>
             </Grid>
 
-
             <Grid Visibility="{Binding DrpTester5IsCreated, Converter={StaticResource BoolToVisibilityConverter}}" Margin="0 10 0 0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -216,6 +217,16 @@
                     <TextBlock Text="remote EPs:" />
                     <TextBox Text="{Binding DrpTester5.Nat1TestRemoteEPs, Mode=TwoWay}" Height="100" Width="200"/>
                 </StackPanel>
+            </Grid>
+
+            <Grid Visibility="{Binding NatTesterIsCreated, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="100"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Height="150" MinWidth="200" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" Text="{Binding NatTester.RemoteEndpointsString, Mode=TwoWay}" />
+
+                <Button Grid.Column="1" Command="{Binding NatTester.Test}" Content="Test" VerticalAlignment="Bottom" />
             </Grid>
 
             <TabControl Grid.Row="1" x:Name="visionGui">               

@@ -257,6 +257,18 @@ namespace Dcomms.Sandbox
         });
 
 
+        public bool NatTesterIsCreated => NatTester != null;
+        public NatTester NatTester { get; set; }
+        public DelegateCommand CreateNatTester => new DelegateCommand(() =>
+        {
+            NatTester = new NatTester(_visionChannel, "SandboxTester1");
+            RaisePropertyChanged(() => NatTester);
+            RaisePropertyChanged(() => NatTesterIsCreated);
+        });
+
+        
+        
+
         public void Dispose()
         {
             _drpTester1?.Dispose();

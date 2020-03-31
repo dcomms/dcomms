@@ -10,6 +10,7 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{Binding SubtLocalPeer.ConnectedPeers.Count}" />
                 <TextBlock Text="connected peers" />
+                <Button Content="copy remote endpoints" Click="CopyRemoteEndpoints_Click" />
             </StackPanel>
             <ItemsControl ItemsSource="{Binding SubtLocalPeer.ConnectedPeersForGui}" >
                 <ItemsControl.ItemTemplate>

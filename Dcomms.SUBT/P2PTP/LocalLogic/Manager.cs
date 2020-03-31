@@ -710,11 +710,18 @@ namespace Dcomms.P2PTP.LocalLogic
 
         internal void ProcessReceivedNat1TestRequest(SocketWithReceiver socket, byte[] udpData, IPEndPoint remoteEndpoint) // receiver thread
         {
-            // todo put some limits here per endpoint? or we don't care?
-            var request = NatTest1RequestPacket.Decode(udpData);
-            var response = new NatTest1ResponsePacket { RequesterEndpoint = remoteEndpoint, Token32 = request.Token32 };
-            var responseData = response.Encode();
-            socket.UdpSocket.Send(responseData, responseData.Length, remoteEndpoint);
+            try
+            {
+                // todo put some limits here per endpoint? or we don't care?
+                var request = NatTest1RequestPacket.Decode(udpData);
+                var response = new NatTest1ResponsePacket { RequesterEndpoint = remoteEndpoint, Token32 = request.Token32 };
+                var responseData = response.Encode();
+                socket.UdpSocket.Send(responseData, responseData.Length, remoteEndpoint);
+            }
+            catch (Exception exc)
+            {
+                _localPeer.HandleException(LogModules.Nat, exc);
+            }
         }
     }
 }

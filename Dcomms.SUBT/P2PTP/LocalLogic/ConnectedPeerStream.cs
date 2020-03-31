@@ -75,6 +75,7 @@ namespace Dcomms.P2PTP.LocalLogic
         StreamId IConnectedPeerStream.StreamId => StreamId;
 
         public string LocalRemoteEndPointString => $"{Socket.LocalEndPointString}-{RemoteEndPoint.ToString()}";
+        public string RemoteEndPointString => $"{RemoteEndPoint?.ToString()}";
 
         internal int TotalHelloAcceptedPacketsReceived;
         public bool RemotePeerRoleIsUser { get; internal set; }

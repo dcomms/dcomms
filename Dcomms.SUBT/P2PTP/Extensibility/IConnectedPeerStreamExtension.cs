@@ -13,6 +13,7 @@ namespace Dcomms.P2PTP.Extensibility
     public interface IConnectedPeerStream
     {
         string LocalRemoteEndPointString { get; } // used for GUI only
+        string RemoteEndPointString { get; } // used for GUI only
         void SendPacket(byte[] data, int length); // called by multiple SUBT TX streams, by manager stream (measurements)
         IDictionary<ILocalPeerExtension, IConnectedPeerStreamExtension> Extensions { get; } 
         StreamId StreamId { get; }

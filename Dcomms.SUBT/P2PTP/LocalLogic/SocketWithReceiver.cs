@@ -93,36 +93,38 @@ namespace Dcomms.P2PTP.LocalLogic
                         if (udpData[0] == (byte)PacketTypes.NatTest1Request)
                         {
                             manager.ProcessReceivedNat1TestRequest(this, udpData, remoteEndpoint);
-                            return;
-                        }
-
-                        var packetType = P2ptpCommon.DecodeHeader(udpData);
-                        if (packetType.HasValue)
-                        {
-                            switch (packetType.Value)
-                            {
-                                case PacketTypes.hello:
-                                    manager.ProcessReceivedHello(udpData, remoteEndpoint, this, timestamp32);
-                                    break;
-                                case PacketTypes.peersListIpv4:
-                                    manager.ProcessReceivedSharedPeers(udpData, remoteEndpoint);
-                                    break;
-                                case PacketTypes.extensionSignaling:
-                                    manager.ProcessReceivedExtensionSignalingPacket(BinaryProcedures.CreateBinaryReader(udpData, P2ptpCommon.HeaderSize), remoteEndpoint);
-                                    break;
-                            }
                         }
                         else
                         {
-                            (var extension, var streamId, var index) = ExtensionProcedures.ParseReceivedExtensionPayloadPacket(udpData, _localPeer.Configuration.Extensions);
-                            if (extension != null)
+
+                            var packetType = P2ptpCommon.DecodeHeader(udpData);
+                            if (packetType.HasValue)
                             {
-                                if (_streams.TryGetValue(streamId, out var stream))
+                                switch (packetType.Value)
                                 {
-                                    stream.Extensions.TryGetValue(extension, out var streamExtension);
-                                    streamExtension.OnReceivedPayloadPacket(udpData, index);
+                                    case PacketTypes.hello:
+                                        manager.ProcessReceivedHello(udpData, remoteEndpoint, this, timestamp32);
+                                        break;
+                                    case PacketTypes.peersListIpv4:
+                                        manager.ProcessReceivedSharedPeers(udpData, remoteEndpoint);
+                                        break;
+                                    case PacketTypes.extensionSignaling:
+                                        manager.ProcessReceivedExtensionSignalingPacket(BinaryProcedures.CreateBinaryReader(udpData, P2ptpCommon.HeaderSize), remoteEndpoint);
+                                        break;
                                 }
-                                //else _localPeer.WriteToLog(LogModules.Receiver, $"receiver {SocketInfo} got packet from bad stream id {streamId}");
+                            }
+                            else
+                            {
+                                (var extension, var streamId, var index) = ExtensionProcedures.ParseReceivedExtensionPayloadPacket(udpData, _localPeer.Configuration.Extensions);
+                                if (extension != null)
+                                {
+                                    if (_streams.TryGetValue(streamId, out var stream))
+                                    {
+                                        stream.Extensions.TryGetValue(extension, out var streamExtension);
+                                        streamExtension.OnReceivedPayloadPacket(udpData, index);
+                                    }
+                                    //else _localPeer.WriteToLog(LogModules.Receiver, $"receiver {SocketInfo} got packet from bad stream id {streamId}");
+                                }
                             }
                         }
                     }

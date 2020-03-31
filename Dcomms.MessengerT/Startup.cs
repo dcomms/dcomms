@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -41,7 +42,21 @@ namespace Dcomms.MessengerT
                 app.UseExceptionHandler("/Home/Error");
             }
             app.UseMiddleware<Middleware1>();
-            app.UseStaticFiles();
+
+            if (File.Exists(Path.Combine(env.ContentRootPath, "wwwroot", "logo.png")))
+            {
+                // regular case 
+                app.UseStaticFiles();
+            }
+            else
+            {
+                var path = Path.Combine(env.ContentRootPath, $"..{Path.DirectorySeparatorChar}..{Path.DirectorySeparatorChar}..{Path.DirectorySeparatorChar}wwwroot");             
+                app.UseStaticFiles(new StaticFileOptions
+                {
+                    RequestPath = "",
+                    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(path)
+                });
+            }
 
             app.UseRouting();
 
