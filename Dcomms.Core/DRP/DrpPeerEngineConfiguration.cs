@@ -9,7 +9,10 @@ namespace Dcomms.DRP
     public class DrpPeerEngineConfiguration
     {
         public int? InsecureRandomSeed;
-        public ushort? LocalPort;
+        /// <summary>
+        /// first the DrpPeerEngine tries to open socket at this port; if fails it tries to open socket at random local UDP port
+        /// </summary>
+        public ushort? LocalPreferredPort;
         /// <summary>
         /// is used instead of public IP API provider response; in case of localhost-localhost tests 
         /// </summary>

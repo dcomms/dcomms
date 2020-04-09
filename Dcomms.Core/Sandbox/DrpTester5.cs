@@ -418,7 +418,7 @@ namespace Dcomms.Sandbox
                         VisionChannel = _visionChannel,
                         VisionChannelSourceId = VisionChannelSourceId,
                         SandboxModeOnly_NumberOfDimensions = NumberOfDimensions,
-                        LocalPort = LocalUdpPortString.ToUShortNullable(),
+                        LocalPreferredPort = LocalUdpPortString.ToUShortNullable(),
                     });
 
                     //var user4DrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);

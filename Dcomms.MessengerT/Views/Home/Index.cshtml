@@ -117,6 +117,8 @@
                         if (contactId < 0) // if "temporary" contact
                         {
                             $('#messagesContactIsUnconfirmed').css('display', '');
+                            selectedContactId = contactId;
+                            selectedLocalUserId = localUserId;
                         }
                         else {
                             $('#messagesLoading').css('display', '');

@@ -146,7 +146,16 @@ namespace Dcomms.DRP
             EngineThreadQueue = new ActionsQueue(exc => HandleExceptionInEngineThread(exc), ETSC);
             PowThreadQueue = new ActionsQueue(exc => HandleGeneralException("error in PoW thread:", exc), null);
 
-            _socket = new UdpClient(configuration.LocalPort ?? 0);
+            try
+            {
+                _socket = new UdpClient(configuration.LocalPreferredPort ?? 0);
+            }
+            catch
+            {
+                _socket = new UdpClient(0);
+            }
+            WriteToLog_drpGeneral_higherLevelDetail($"opened UDP socket at {_socket.Client.LocalEndPoint}");
+
             try
             {
                 _socket.AllowNatTraversal(true);

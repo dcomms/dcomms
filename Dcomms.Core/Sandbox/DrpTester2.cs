@@ -140,7 +140,7 @@ namespace Dcomms.Sandbox
             for (int i = epIndex+1; i < _epList.Count; i++)
             {
                 endpoints.Add(
-                        new IPEndPoint(IPAddress.Loopback, _epList[i].DrpPeerEngine.Configuration.LocalPort.Value)
+                        new IPEndPoint(IPAddress.Loopback, _epList[i].DrpPeerEngine.Configuration.LocalPreferredPort.Value)
                         );
             }
 
@@ -202,7 +202,7 @@ namespace Dcomms.Sandbox
                 var ep = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
                     InsecureRandomSeed = _insecureRandom.Next(),
-                    LocalPort = (ushort)(EpLocalPort + i),
+                    LocalPreferredPort = (ushort)(EpLocalPort + i),
                     VisionChannel = visionChannel,
                     VisionChannelSourceId = $"EP{i}",
                     ForcedPublicIpApiProviderResponse = IPAddress.Loopback,

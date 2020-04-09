@@ -32,7 +32,7 @@ namespace Dcomms.Sandbox
             _ep = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 InsecureRandomSeed = _insecureRandom.Next(),
-                LocalPort = EpLocalPort,
+                LocalPreferredPort = EpLocalPort,
                 VisionChannel = visionChannel,
                 VisionChannelSourceId = "EP",
                 ForcedPublicIpApiProviderResponse = IPAddress.Loopback,

@@ -127,7 +127,7 @@ namespace Dcomms.SUBT.GUI
         public ICommand StartTest => new DelegateCommand(() =>
         {
             _cstApp.SubtLocalPeerConfigurationBandwidthTarget = CstApp.InitialBandwidthTarget;
-            
+
             if (TestWithCustomServer)
             {
                 if (RunThisInstanceAsClient)
@@ -154,12 +154,15 @@ namespace Dcomms.SUBT.GUI
                     _cstApp.LocalPeerConfiguration.RoleAsSharedPassive = true;
                     _cstApp.LocalPeerConfiguration.RoleAsUser = false;
                     _cstApp.LocalPeerConfiguration.LocalUdpPortRangeStart = CustomServerUdpPort;
-                    _cstApp.LocalPeerConfiguration.SocketsCount = 1;  
+                    _cstApp.LocalPeerConfiguration.SocketsCount = 1;
                 }
                 else throw new ArgumentException();
             }
             else
+            {
+                _cstApp.LocalPeerConfiguration.DesiredLocalUdpPortRangeStart = 34987;
                 _cstApp.PredefinedReleaseMode.Execute(null);
+            }
                        
 
             _cstApp.Initialize.Execute(null);

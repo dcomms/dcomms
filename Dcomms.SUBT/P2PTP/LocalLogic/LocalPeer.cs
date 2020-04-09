@@ -70,7 +70,6 @@ namespace Dcomms.P2PTP.LocalLogic
             }
             else if (configuration.RoleAsSharedPassive)
             {
-
             }
             else throw new Exception("no roles");
 
@@ -89,7 +88,22 @@ namespace Dcomms.P2PTP.LocalLogic
             Receivers = new List<SocketWithReceiver>(Configuration.SocketsCount);
             for (int socketIndex = 0; socketIndex < Configuration.SocketsCount; socketIndex++)
             {
-                var socket = new UdpClient(Configuration.LocalUdpPortRangeStart.HasValue ? (Configuration.LocalUdpPortRangeStart.Value + socketIndex) : 0);
+                UdpClient socket;
+                if (Configuration.DesiredLocalUdpPortRangeStart.HasValue)
+                {
+                    try
+                    {
+                        socket = new UdpClient(Configuration.DesiredLocalUdpPortRangeStart.Value + socketIndex);
+                    }
+                    catch
+                    {
+                        socket = new UdpClient(0);
+                    }
+                }
+                else
+                {
+                    socket = new UdpClient(Configuration.LocalUdpPortRangeStart.HasValue ? (Configuration.LocalUdpPortRangeStart.Value + socketIndex) : 0);
+                }
                 Receivers.Add(new SocketWithReceiver(this, socket));
             }
                         

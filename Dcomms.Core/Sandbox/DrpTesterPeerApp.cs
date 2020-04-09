@@ -21,7 +21,7 @@ namespace Dcomms.Sandbox
         public readonly LocalDrpPeerConfiguration DrpPeerRegistrationConfiguration;
         public LocalDrpPeer LocalDrpPeer;
         public IPEndPoint LocalDrpPeerEndpoint => new IPEndPoint(LocalDrpPeer.PublicIpApiProviderResponse,
-                                    DrpPeerEngine.Configuration.LocalPort.Value);
+                                    DrpPeerEngine.Configuration.LocalPreferredPort.Value);
         public bool EchoMessages;
         public DrpTesterPeerApp(DrpPeerEngine drpPeerEngine, LocalDrpPeerConfiguration drpPeerRegistrationConfiguration, UserRootPrivateKeys userRootPrivateKeys = null, UserId userId = null)
         {

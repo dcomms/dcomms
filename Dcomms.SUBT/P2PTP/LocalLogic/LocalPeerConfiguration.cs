@@ -16,6 +16,8 @@ namespace Dcomms.P2PTP.LocalLogic
         /// if null - opens random local UDP port
         /// </summary>
         public ushort? LocalUdpPortRangeStart { get; set; }
+
+        public ushort? DesiredLocalUdpPortRangeStart { get; set; }
         /// <summary>
         /// number of UDP sockets and receiver threads to create. is used to scale receivers across CPU cores
         /// </summary>

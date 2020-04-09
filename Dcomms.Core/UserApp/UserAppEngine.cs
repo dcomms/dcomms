@@ -29,7 +29,8 @@ namespace Dcomms.UserApp
             _drpPeerEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 VisionChannel = _visionChannel,
-                VisionChannelSourceId = VisionChannelSourceId  
+                VisionChannelSourceId = VisionChannelSourceId,
+                LocalPreferredPort = 42777
             });
 
             _db = new UserAppDatabase(_drpPeerEngine.CryptoLibrary, configuration.DatabaseKeyProvider, _visionChannel, VisionChannelSourceId, configuration.DatabaseBasePathNullable);

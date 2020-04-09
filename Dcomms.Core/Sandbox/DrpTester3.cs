@@ -140,7 +140,7 @@ namespace Dcomms.Sandbox
             var epEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 InsecureRandomSeed = _insecureRandom.Next(),
-                LocalPort = (ushort)(LocalInterconnectedEpEnginesBasePort + localEpIndex),
+                LocalPreferredPort = (ushort)(LocalInterconnectedEpEnginesBasePort + localEpIndex),
                 VisionChannel = _visionChannel,
                 VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}EP{localEpIndex}",
                 SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
@@ -199,7 +199,7 @@ namespace Dcomms.Sandbox
 
             var epEndpoints = new List<IPEndPoint>();
             if (RemoteEpEndPoints != null) epEndpoints.AddRange(RemoteEpEndPoints);
-            epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPort.Value)));
+            epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPreferredPort.Value)));
             localDrpPeerConfiguration.EntryPeerEndpoints = epEndpoints.ToArray();
 
             var userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration);
@@ -414,7 +414,7 @@ _retry:
                 var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(tempPeerEngine.CryptoLibrary, NumberOfDimensions);
 
                 var epEndpoints = RemoteEpEndPoints.ToList();
-                epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPort.Value)));
+                epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPreferredPort.Value)));
                 localDrpPeerConfiguration.EntryPeerEndpoints = epEndpoints.ToArray();
 
                 var tempPeerApp = new DrpTesterPeerApp(tempPeerEngine, localDrpPeerConfiguration);
