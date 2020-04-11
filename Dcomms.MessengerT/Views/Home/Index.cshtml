@@ -233,7 +233,7 @@
                                     detailsButton.attr('href', '/Contacts/Details?userId=' + localUser.Id + '&contactId=' + contact.Id);
                                     contactButtonsSpan.append(detailsButton);
                                     var deleteContactButton = $('<a style="margin-left: 5px" title="Delete contact"><img src="/svg/delete.svg" style="height: 15px" /></a>');
-                                    deleteContactButton.attr('href', '/Contacts/Delete/' + contact.Id);
+                                    deleteContactButton.attr('href', '/Contacts/Delete?userId=' + localUser.Id + '&contactId=' + contact.Id);
                                     contactButtonsSpan.append(deleteContactButton);
                                     contactDiv.append(contactButtonsSpan);
 
