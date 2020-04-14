@@ -26,48 +26,54 @@ namespace Dcomms.UserApp
          
             _visionChannel.RegisterVisibleModule(VisionChannelSourceId, "UA", this);
 
+            WriteToLog_deepDetail($"initializing DRP engine...");
             _drpPeerEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 VisionChannel = _visionChannel,
                 VisionChannelSourceId = VisionChannelSourceId,
-                LocalPreferredPort = 42777
+                LocalPreferredPort = 42777,
+                NatTestEndpoints = configuration.EpEndPoints
+            }, (_) =>
+            {
+                WriteToLog_deepDetail($"initialized DRP engine");
+                _db = new UserAppDatabase(_drpPeerEngine.CryptoLibrary, configuration.DatabaseKeyProvider, _visionChannel, VisionChannelSourceId, configuration.DatabaseBasePathNullable);
+            
+                LocalUsers = new Dictionary<int, LocalUser>();
+                var userRegistrationIDs = _db.GetUserRegistrationIDs();
+                foreach (var u in _db.GetUsers(true))
+                {
+                    var rootUserKeys = _db.GetRootUserKeys(u.Id);
+                    if (rootUserKeys != null)
+                    {
+                        var localUser = new LocalUser
+                        {
+                            User = u,
+                            RootUserKeys = rootUserKeys,
+                        };
+                        if (!userRegistrationIDs.TryGetValue(u.Id, out localUser.UserRegistrationIDs))
+                            localUser.UserRegistrationIDs = new List<UserRegistrationID>();
+                        LocalUsers.Add(u.Id, localUser);
+                        localUser.CreateLocalDrpPeers(this);
+                    }
+                }
+                WriteToLog_deepDetail($"loaded {LocalUsers.Count} local users");
+
+                foreach (var contactUser in _db.GetUsers(false))
+                    if (LocalUsers.TryGetValue(contactUser.OwnerLocalUserId, out var localUser))
+                    {
+                        var contact = new Contact
+                        {
+                            User = contactUser
+                        };
+                        if (!userRegistrationIDs.TryGetValue(contact.User.Id, out contact.RegistrationIDs))
+                            contact.RegistrationIDs = new List<UserRegistrationID>();
+                        localUser.Contacts.Add(contact.User.Id, contact);
+                    }
             });
 
-            _db = new UserAppDatabase(_drpPeerEngine.CryptoLibrary, configuration.DatabaseKeyProvider, _visionChannel, VisionChannelSourceId, configuration.DatabaseBasePathNullable);
-            
-            LocalUsers = new Dictionary<int, LocalUser>();
-            var userRegistrationIDs = _db.GetUserRegistrationIDs();
-            foreach (var u in _db.GetUsers(true))
-            {
-                var rootUserKeys = _db.GetRootUserKeys(u.Id);
-                if (rootUserKeys != null)
-                {
-                    var localUser = new LocalUser
-                    {
-                        User = u,
-                        RootUserKeys = rootUserKeys,
-                    };
-                    if (!userRegistrationIDs.TryGetValue(u.Id, out localUser.UserRegistrationIDs))
-                        localUser.UserRegistrationIDs = new List<UserRegistrationID>();
-                    LocalUsers.Add(u.Id, localUser);
-                    localUser.CreateLocalDrpPeers(this);
-                }
-            }
-            WriteToLog_deepDetail($"loaded {LocalUsers.Count} local users");
-
-
-            foreach (var contactUser in _db.GetUsers(false))
-                if (LocalUsers.TryGetValue(contactUser.OwnerLocalUserId, out var localUser))
-                {
-                    var contact = new Contact
-                    {
-                        User = contactUser
-                    };
-                    if (!userRegistrationIDs.TryGetValue(contact.User.Id, out contact.RegistrationIDs))
-                        contact.RegistrationIDs = new List<UserRegistrationID>();
-                    localUser.Contacts.Add(contact.User.Id, contact);
-                }
         }
+
+       
         public void Dispose()
         {
             WriteToLog_deepDetail(">> UserAppEngine.Dispose()");

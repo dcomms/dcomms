@@ -26,9 +26,12 @@ namespace Dcomms
     }
     public class NatTest: IDisposable
     {
+        const int TimeoutMs = 5000;
+
         bool _disposing;
         Thread _receiverThread;
         UdpClient _socket;
+        bool _ownSocket;
         Dictionary<IPEndPoint, Result> _results; // locked
 
         NatTest1RequestPacket _requestPacket;
@@ -36,13 +39,16 @@ namespace Dcomms
         VisionChannel _visionChannelNullable;
         string _visionChannelSourceId;
 
-        private NatTest(IPEndPoint[] remoteEndpoints, string visionChannelSourceId, VisionChannel visionChannelNullable)
+        private NatTest(IPEndPoint[] remoteEndpoints, string visionChannelSourceId, VisionChannel visionChannelNullable, UdpClient customSocketNullable)
         {
             _visionChannelSourceId = visionChannelSourceId;
             _visionChannelNullable = visionChannelNullable;
             _results = remoteEndpoints.Distinct().ToDictionary(x => x, x => new Result());
             if (remoteEndpoints.Length < 2) throw new ArgumentException("not enough unique remote endpoints");
-            _socket = new UdpClient(0);
+
+            _socket = customSocketNullable ?? new UdpClient(0);
+            if (customSocketNullable == null) _ownSocket = true;
+            _socket.Client.ReceiveTimeout = TimeoutMs;
 
             // generate token
             _requestPacket = new NatTest1RequestPacket
@@ -62,6 +68,7 @@ namespace Dcomms
             {
                 try
                 {
+                    
                     var data = _socket.Receive(ref receivedFromEP);
                     if (data[0] == (byte)PacketTypes.NatTest1Response)
                         if (_results.TryGetValue(receivedFromEP, out var result))
@@ -90,8 +97,11 @@ namespace Dcomms
         public void Dispose()
         {
             _disposing = true;
-            _socket.Close();
-            _socket.Dispose();
+            if (_ownSocket)
+            {
+                _socket.Close();
+                _socket.Dispose();
+            }
             _receiverThread.Join();
         }
 
@@ -102,10 +112,10 @@ namespace Dcomms
             public NatTest1ResponsePacket Response;
         }
 
-        public static async Task<NatTestResult> Test(IPEndPoint[] remoteEndpoints, string visionChannelSourceId, VisionChannel visionChannelNullable, int maxResponsesCount = 2)
+        public static async Task<NatTestResult> Test(IPEndPoint[] remoteEndpoints, string visionChannelSourceId, VisionChannel visionChannelNullable, int maxResponsesCount = 2, UdpClient customSocketNullable = null)
         {
             // todo special GUI
-            using var tester = new NatTest(remoteEndpoints, visionChannelSourceId, visionChannelNullable);
+            using var tester = new NatTest(remoteEndpoints, visionChannelSourceId, visionChannelNullable, customSocketNullable);
                      
 
             var swStart = Stopwatch.StartNew();
@@ -133,7 +143,7 @@ _retransmit:
                 var responsesCount = tester._results.Count(x => x.Value.Response != null);
                 if (responsesCount == remoteEndpoints.Length) break;
                 else if (responsesCount >= maxResponsesCount) break;
-                else if (swStart.Elapsed.TotalSeconds > 5)
+                else if (swStart.Elapsed.TotalMilliseconds > TimeoutMs)
                 {
                     if (responsesCount < 2) throw new NatTestException($"NAT test failed: no response from remote endpoints in {swStart.Elapsed.TotalSeconds} seconds");
                     else break;

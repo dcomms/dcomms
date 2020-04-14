@@ -27,6 +27,7 @@ namespace Dcomms.Vision
         needsAttention = 4,
         /// <summary>
         /// (possible) problem expressed by user: closed app with no clicks, sent a bad feedback "app is not clear" "app does not work"
+        /// problem that is displayed in GUI with user-readable message
         /// </summary>
         guiPain = 5,
         /// <summary>

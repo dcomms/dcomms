@@ -412,58 +412,62 @@ namespace Dcomms.Sandbox
                     this.VisionChannelSourceId = $"U{LocalUser.Name}{(LocalUser.SendOrEcho ? "S" : "E")}";
                     _visionChannel.RegisterVisibleModule(VisionChannelSourceId, "DrpTester5", this);
 
-                    var userEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
+                    new DrpPeerEngine(new DrpPeerEngineConfiguration
                     {
                         InsecureRandomSeed = _insecureRandom.Next(),
                         VisionChannel = _visionChannel,
                         VisionChannelSourceId = VisionChannelSourceId,
                         SandboxModeOnly_NumberOfDimensions = NumberOfDimensions,
                         LocalPreferredPort = LocalUdpPortString.ToUShortNullable(),
-                    });
-
-                    //var user4DrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
-                    //UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), userEngine.CryptoLibrary, out var userRootPrivateKeys4, out var userId4);
-
-                    //var user5DrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
-                    //UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), userEngine.CryptoLibrary, out var userRootPrivateKeys5, out var userId5);
-
-                    var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions,
-                        LocalUser.RegistrationId_ed25519privateKey, LocalUser.RegistrationId);
-
-                    if (int.TryParse(MaxNeighborsCountString, out var maxNeighborsCount))
+                    }, (userEngine) =>
                     {
-                        localDrpPeerConfiguration.AbsoluteMaxNumberOfNeighbors = maxNeighborsCount;
-                        localDrpPeerConfiguration.MinDesiredNumberOfNeighbors = Math.Max(1, maxNeighborsCount - 4);
-                        localDrpPeerConfiguration.SoftMaxNumberOfNeighbors = Math.Max(1, maxNeighborsCount - 2);
-                    }
 
-                    var epEndpoints = RemoteEpEndPoints.ToList();
-                    localDrpPeerConfiguration.EntryPeerEndpoints = RemoteEpEndPoints;
+                        //var user4DrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
+                        //UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), userEngine.CryptoLibrary, out var userRootPrivateKeys4, out var userId4);
 
-                    _userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration, LocalUser.UserRootPrivateKeys, LocalUser.UserId) { EchoMessages = LocalUser.SendOrEcho == false };
-                    _visionChannel.RegisterVisibleModule(VisionChannelSourceId, "DrpTester5/userApp", _userApp);
+                        //var user5DrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
+                        //UserRootPrivateKeys.CreateUserId(3, 2, TimeSpan.FromDays(367), userEngine.CryptoLibrary, out var userRootPrivateKeys5, out var userId5);
 
-                    var contactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
-                    foreach (var u in PredefinedUsers)
-                        contactBookUsersByRegId.Add(u.RegistrationId, u.UserId);
-                    _userApp.ContactBookUsersByRegId = contactBookUsersByRegId;
+                        var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions,
+                            LocalUser.RegistrationId_ed25519privateKey, LocalUser.RegistrationId);
 
-                    if (epEndpoints.Count == 0) throw new Exception("no endpoints for users to register");
-
-                    var sw = Stopwatch.StartNew();
-                    _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registering (adding first neighbor)... via {epEndpoints.Count} EPs");
-                    userEngine.BeginRegister(localDrpPeerConfiguration, _userApp, (localDrpPeer) =>
-                    {
-                        _userApp.LocalDrpPeer = localDrpPeer;
-                        _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration is complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
-                        var waitForNeighborsSw = Stopwatch.StartNew();
-
-                    // wait until number of neighbors reaches minimum
-                    userEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromMilliseconds(300), () =>
+                        if (int.TryParse(MaxNeighborsCountString, out var maxNeighborsCount))
                         {
-                            AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(waitForNeighborsSw);
-                        }, "waiting for connection with neighbors 324155");
+                            localDrpPeerConfiguration.AbsoluteMaxNumberOfNeighbors = maxNeighborsCount;
+                            localDrpPeerConfiguration.MinDesiredNumberOfNeighbors = Math.Max(1, maxNeighborsCount - 4);
+                            localDrpPeerConfiguration.SoftMaxNumberOfNeighbors = Math.Max(1, maxNeighborsCount - 2);
+                        }
+
+                        var epEndpoints = RemoteEpEndPoints.ToList();
+                        localDrpPeerConfiguration.EntryPeerEndpoints = RemoteEpEndPoints;
+
+                        _userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration, LocalUser.UserRootPrivateKeys, LocalUser.UserId) { EchoMessages = LocalUser.SendOrEcho == false };
+                        _visionChannel.RegisterVisibleModule(VisionChannelSourceId, "DrpTester5/userApp", _userApp);
+
+                        var contactBookUsersByRegId = new Dictionary<RegistrationId, UserId>();
+                        foreach (var u in PredefinedUsers)
+                            contactBookUsersByRegId.Add(u.RegistrationId, u.UserId);
+                        _userApp.ContactBookUsersByRegId = contactBookUsersByRegId;
+
+                        if (epEndpoints.Count == 0) throw new Exception("no endpoints for users to register");
+
+                        var sw = Stopwatch.StartNew();
+                        _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registering (adding first neighbor)... via {epEndpoints.Count} EPs");
+                        userEngine.BeginRegister(localDrpPeerConfiguration, _userApp, (localDrpPeer, exc) =>
+                        {
+                            _userApp.LocalDrpPeer = localDrpPeer;
+                            _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration is complete in {(int)sw.Elapsed.TotalMilliseconds}ms");
+                            var waitForNeighborsSw = Stopwatch.StartNew();
+
+                            // wait until number of neighbors reaches minimum
+                            userEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromMilliseconds(300), () =>
+                            {
+                                AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(waitForNeighborsSw);
+                            }, "waiting for connection with neighbors 324155");
+                        });
+
                     });
+
                 }
                 catch (Exception exc)
                 {

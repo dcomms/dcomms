@@ -137,46 +137,49 @@ namespace Dcomms.Sandbox
             }
 
 
-            var epEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
+            new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
                 InsecureRandomSeed = _insecureRandom.Next(),
                 LocalPreferredPort = (ushort)(LocalInterconnectedEpEnginesBasePort + localEpIndex),
                 VisionChannel = _visionChannel,
                 VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}EP{localEpIndex}",
                 SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
-            }); ;
-            var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.Create(epEngine.CryptoLibrary, NumberOfDimensions);
-            epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
-            epLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = null;
-            epLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = null;
-            epLocalDrpPeerConfig.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = null;
-            var epApp = new DrpTesterPeerApp(epEngine, epLocalDrpPeerConfig);
-
-            epEngine.BeginCreateLocalPeer(epLocalDrpPeerConfig, epApp, (localDrpPeer) =>
+            }, (epEngine) =>
             {
-                var connectToEpsList = _localEpApps.Select(x => x.LocalDrpPeerEndpoint).ToList(); // make a list of EPs   WITHOUT this new EP
-                epApp.LocalDrpPeer = localDrpPeer;
-                _localEpApps.Add(epApp);
-                _visionChannel.Emit(epEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                    AttentionLevel.guiActivity, $"created local EP #{localEpIndex}/{NumberOfLocalInterconnectedEpEngines}");
-                
-                if (RemoteEpEndPoints != null)
-                    connectToEpsList.AddRange(RemoteEpEndPoints.Where(x => !connectToEpsList.Contains(x) && !x.Equals(epApp.LocalDrpPeerEndpoint)));
-                if (connectToEpsList.Count != 0)
+                var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.Create(epEngine.CryptoLibrary, NumberOfDimensions);
+                epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
+                epLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = null;
+                epLocalDrpPeerConfig.SoftMaxNumberOfNeighbors = null;
+                epLocalDrpPeerConfig.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = null;
+                var epApp = new DrpTesterPeerApp(epEngine, epLocalDrpPeerConfig);
+
+                epEngine.BeginCreateLocalPeer(epLocalDrpPeerConfig, epApp, (localDrpPeer) =>
                 {
+                    var connectToEpsList = _localEpApps.Select(x => x.LocalDrpPeerEndpoint).ToList(); // make a list of EPs   WITHOUT this new EP
+                    epApp.LocalDrpPeer = localDrpPeer;
+                    _localEpApps.Add(epApp);
                     _visionChannel.Emit(epEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
-                        AttentionLevel.guiActivity, $"connecting with {connectToEpsList.Count} other EPs...");
-                    epApp.LocalDrpPeer.BeginConnectToEPs(connectToEpsList.ToArray(), () =>
+                        AttentionLevel.guiActivity, $"created local EP #{localEpIndex}/{NumberOfLocalInterconnectedEpEngines}");
+                
+                    if (RemoteEpEndPoints != null)
+                        connectToEpsList.AddRange(RemoteEpEndPoints.Where(x => !connectToEpsList.Contains(x) && !x.Equals(epApp.LocalDrpPeerEndpoint)));
+                    if (connectToEpsList.Count != 0)
+                    {
+                        _visionChannel.Emit(epEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
+                            AttentionLevel.guiActivity, $"connecting with {connectToEpsList.Count} other EPs...");
+                        epApp.LocalDrpPeer.BeginConnectToEPs(connectToEpsList.ToArray(), () =>
+                        {
+                            BeginCreateLocalEpOrContinue(localEpIndex + 1);
+                        });
+                    }
+                    else
                     {
                         BeginCreateLocalEpOrContinue(localEpIndex + 1);
-                    });
-                }
-                else
-                {
-                    BeginCreateLocalEpOrContinue(localEpIndex + 1);
-                }
-            });
+                    }
+                });
 
+            });
+            
         }
 
         void BeginCreateUserAppOrContinue(int userIndex)
@@ -188,38 +191,45 @@ namespace Dcomms.Sandbox
                 return;
             }
 
-            var userEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
+            new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
+                EnableNatRouterConfiguration = false,
                 InsecureRandomSeed = _insecureRandom.Next(),
                 VisionChannel = _visionChannel,
                 VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}U{userIndex}",
                 SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
-            });
-            var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
-
-            var epEndpoints = new List<IPEndPoint>();
-            if (RemoteEpEndPoints != null) epEndpoints.AddRange(RemoteEpEndPoints);
-            epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPreferredPort.Value)));
-            localDrpPeerConfiguration.EntryPeerEndpoints = epEndpoints.ToArray();
-
-            var userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration);
-            _userApps.Add(userApp);
-            if (epEndpoints.Count == 0) throw new Exception("no endpoints for users to register");
-           
-            var sw = Stopwatch.StartNew();
-            _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registering (adding first neighbor)... via {epEndpoints.Count} EPs");
-            userEngine.BeginRegister(localDrpPeerConfiguration, userApp, (localDrpPeer) =>
+            }, (userEngine) =>
             {
-                userApp.LocalDrpPeer = localDrpPeer;
-                _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration completed in {(int)sw.Elapsed.TotalMilliseconds}ms");
-                var waitForNeighborsSw = Stopwatch.StartNew();
+                var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(userEngine.CryptoLibrary, NumberOfDimensions);
 
-                // wait until number of neighbors reaches minimum
-                userEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromMilliseconds(300), () =>
+                var epEndpoints = new List<IPEndPoint>();
+                if (RemoteEpEndPoints != null) epEndpoints.AddRange(RemoteEpEndPoints);
+                epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPreferredPort.Value)));
+                localDrpPeerConfiguration.EntryPeerEndpoints = epEndpoints.ToArray();
+
+                var userApp = new DrpTesterPeerApp(userEngine, localDrpPeerConfiguration);
+                _userApps.Add(userApp);
+                if (epEndpoints.Count == 0) throw new Exception("no endpoints for users to register");
+           
+                var sw = Stopwatch.StartNew();
+                _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registering (adding first neighbor)... via {epEndpoints.Count} EPs");
+                userEngine.BeginRegister(localDrpPeerConfiguration, userApp, (localDrpPeer,exc) =>
                 {
-                    userEngine_AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(userApp, userIndex, waitForNeighborsSw);
-                }, "waiting for connection with neighbors 324155");
-            });           
+                    userApp.LocalDrpPeer = localDrpPeer;
+                    _visionChannel.Emit(userEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, $"registration completed in {(int)sw.Elapsed.TotalMilliseconds}ms");
+                    var waitForNeighborsSw = Stopwatch.StartNew();
+
+                    // wait until number of neighbors reaches minimum
+                    userEngine.EngineThreadQueue.EnqueueDelayed(TimeSpan.FromMilliseconds(300), () =>
+                    {
+                        userEngine_AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(userApp, userIndex, waitForNeighborsSw);
+                    }, "waiting for connection with neighbors 324155");
+                });  
+
+
+                }            
+            );
+                     
         }
         void userEngine_AfterEpRegistration_ContinueIfConnectedToEnoughNeighbors(DrpTesterPeerApp userApp, int userIndex, Stopwatch waitForNeighborsSw)
         {
@@ -404,33 +414,35 @@ _retry:
         {
             if (_tempApps.Count < NumberOfTempPeers)
             {
-                var tempPeerEngine = new DrpPeerEngine(new DrpPeerEngineConfiguration
+                new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
                     InsecureRandomSeed = _insecureRandom.Next(),
                     VisionChannel = _visionChannel,
                     VisionChannelSourceId = $"{VisionChannelSourceIdPrefix}T{_createdTempPeersCount++}",
                     SandboxModeOnly_NumberOfDimensions = NumberOfDimensions,
-                });
-                var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(tempPeerEngine.CryptoLibrary, NumberOfDimensions);
-
-                var epEndpoints = RemoteEpEndPoints.ToList();
-                epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPreferredPort.Value)));
-                localDrpPeerConfiguration.EntryPeerEndpoints = epEndpoints.ToArray();
-
-                var tempPeerApp = new DrpTesterPeerApp(tempPeerEngine, localDrpPeerConfiguration);
-                _tempApps.Add(tempPeerApp);
-                if (epEndpoints.Count == 0) throw new Exception("no endpoints for users to register");
-
-                var sw = Stopwatch.StartNew();
-                _visionChannel.Emit(tempPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, 
-                    $"registering (adding first neighbor)... via {epEndpoints.Count} EPs");
-                tempPeerEngine.BeginRegister(localDrpPeerConfiguration, tempPeerApp, (localDrpPeer) =>
+                }, (tempPeerEngine) =>
                 {
-                    tempPeerApp.LocalDrpPeer = localDrpPeer;
+                    var localDrpPeerConfiguration = LocalDrpPeerConfiguration.Create(tempPeerEngine.CryptoLibrary, NumberOfDimensions);
+
+                    var epEndpoints = RemoteEpEndPoints.ToList();
+                    epEndpoints.AddRange(_localEpApps.Select(x => new IPEndPoint(x.LocalDrpPeer.PublicIpApiProviderResponse, x.DrpPeerEngine.Configuration.LocalPreferredPort.Value)));
+                    localDrpPeerConfiguration.EntryPeerEndpoints = epEndpoints.ToArray();
+
+                    var tempPeerApp = new DrpTesterPeerApp(tempPeerEngine, localDrpPeerConfiguration);
+                    _tempApps.Add(tempPeerApp);
+                    if (epEndpoints.Count == 0) throw new Exception("no endpoints for users to register");
+
+                    var sw = Stopwatch.StartNew();
                     _visionChannel.Emit(tempPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, 
-                        $"registration completed in {(int)sw.Elapsed.TotalMilliseconds}ms");
-                    TestTemporaryPeers_WaitUntilEnoughNeighbors(tempPeerApp, Stopwatch.StartNew());
-                    TestTemporaryPeers_Wait();                  
+                        $"registering (adding first neighbor)... via {epEndpoints.Count} EPs");
+                    tempPeerEngine.BeginRegister(localDrpPeerConfiguration, tempPeerApp, (localDrpPeer, exc) =>
+                    {
+                        tempPeerApp.LocalDrpPeer = localDrpPeer;
+                        _visionChannel.Emit(tempPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName, AttentionLevel.guiActivity, 
+                            $"registration completed in {(int)sw.Elapsed.TotalMilliseconds}ms");
+                        TestTemporaryPeers_WaitUntilEnoughNeighbors(tempPeerApp, Stopwatch.StartNew());
+                        TestTemporaryPeers_Wait();                  
+                    });
                 });
             }
             else if (_tempApps.Count > 0)

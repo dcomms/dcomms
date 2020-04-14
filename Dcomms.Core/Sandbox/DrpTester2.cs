@@ -77,15 +77,16 @@ namespace Dcomms.Sandbox
 
             var x = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
+                EnableNatRouterConfiguration = false,
                 InsecureRandomSeed = _insecureRandom.Next(),
                 VisionChannel = _visionChannel,
-                ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
+                ForcedPublicIpApiProviderResponse_SandboxOnly = IPAddress.Loopback,
                 VisionChannelSourceId = visionChannelSourceId,
                 SandboxModeOnly_DisablePoW = true,
                 SandboxModeOnly_EnableInsecureLogs = true,
                 SandboxModeOnly_NumberOfDimensions = NumberOfDimensions,
                 NeighborhoodExtensionMinIntervalS = NeighborhoodExtensionMinIntervalS
-            });
+            }, null);
 
             EmitAllPeers(AttentionLevel.guiActivity, $"creating peer index {index} (copyRegIdFromIndex={copyRegIdFromIndexNullable})...");
 
@@ -104,7 +105,7 @@ namespace Dcomms.Sandbox
             xLocalDrpPeerConfig.MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS = MinDesiredNumberOfNeighborsSatisfied_WorstNeighborDestroyIntervalS;
             var xDrpTesterPeerApp = new DrpTesterPeerApp(x, xLocalDrpPeerConfig);
             _xList.Add(xDrpTesterPeerApp);
-            x.BeginRegister(xLocalDrpPeerConfig, xDrpTesterPeerApp, (localDrpPeer) =>
+            x.BeginRegister(xLocalDrpPeerConfig, xDrpTesterPeerApp, (localDrpPeer,exc) =>
             {
                 xDrpTesterPeerApp.LocalDrpPeer = localDrpPeer;
                 _visionChannel.Emit(x.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
@@ -201,15 +202,16 @@ namespace Dcomms.Sandbox
             {
                 var ep = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
+                    EnableNatRouterConfiguration = false,
                     InsecureRandomSeed = _insecureRandom.Next(),
                     LocalPreferredPort = (ushort)(EpLocalPort + i),
                     VisionChannel = visionChannel,
                     VisionChannelSourceId = $"EP{i}",
-                    ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
+                    ForcedPublicIpApiProviderResponse_SandboxOnly = IPAddress.Loopback,
                     SandboxModeOnly_DisablePoW = true,
                     SandboxModeOnly_EnableInsecureLogs = true,
                     SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
-                }); ;
+                }, null);
                 var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.Create(ep.CryptoLibrary, NumberOfDimensions);
                 epLocalDrpPeerConfig.MinDesiredNumberOfNeighbors = null;
                 epLocalDrpPeerConfig.AbsoluteMaxNumberOfNeighbors = null;

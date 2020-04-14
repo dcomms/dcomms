@@ -17,69 +17,43 @@ namespace Dcomms.DRP
         /// <summary>
         /// returns control only when LocalDrpPeer is registered and ready for operation ("local user logged in")
         /// </summary>
-        public void BeginRegister(LocalDrpPeerConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp, Action<LocalDrpPeer> cb = null)
+        public void BeginRegister(LocalDrpPeerConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp, Action<LocalDrpPeer,Exception> cb = null)
         {
             WriteToLog_reg_requesterSide_detail($">> BeginRegister()", null, null);
             if (registrationConfiguration.LocalPeerRegistrationId == null) throw new ArgumentNullException();
 
             EngineThreadQueue.Enqueue(async () =>
-            {               
-                var r = await BeginRegister2(registrationConfiguration, drpPeerApp);
-                cb?.Invoke(r);
+            {
+                LocalDrpPeer r = null;
+                Exception exc = null;
+                try
+                {
+                    r = await BeginRegister2(registrationConfiguration, drpPeerApp);
+                }
+                catch (Exception exc2)
+                {
+                    exc = exc2;
+                }
+                if (exc == null) WriteToLog_reg_requesterSide_detail($"<< BeginRegister() r={r}", null, null);
+                else WriteToLog_reg_requesterSide_mediumPain($"<< BeginRegister() exc={exc}", null, null);
+                cb?.Invoke(r, exc);
             }, "BeginRegister792");            
         }
 
         public void BeginCreateLocalPeer(LocalDrpPeerConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp, Action<LocalDrpPeer> cb = null)
         {
-            EngineThreadQueue.Enqueue(async () =>
+            EngineThreadQueue.Enqueue(() =>
             {
-                var r = await CreateLocalPeerAsync(registrationConfiguration, drpPeerApp);
-                if (cb != null) cb(r);
+                var r = CreateLocalPeer(registrationConfiguration, drpPeerApp);
+                cb?.Invoke(r);
             }, "CreateLocalPeerAsync24807");
-
         }
 
-        static DateTime? _latestPublicIpAddressResponseTimeUTC;
-        static IPAddress _latestPublicIpAddressResponse;
-
-        async Task<LocalDrpPeer> CreateLocalPeerAsync(LocalDrpPeerConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp)
+        LocalDrpPeer CreateLocalPeer(LocalDrpPeerConfiguration registrationConfiguration, IDrpRegisteredPeerApp drpPeerApp)
         {
             if (registrationConfiguration.LocalPeerRegistrationId == null) throw new ArgumentNullException();
             var localDrpPeer = new LocalDrpPeer(this, registrationConfiguration, drpPeerApp);
-
-            if (Configuration.ForcedPublicIpApiProviderResponse == null)
-            {
-                var nowUTC = DateTimeNowUtc;
-                if (_latestPublicIpAddressResponseTimeUTC == null || nowUTC - _latestPublicIpAddressResponseTimeUTC.Value > TimeSpan.FromSeconds(60))
-                {
-                    WriteToLog_drpGeneral_detail($"resolving local public IP...");
-                    var sw = Stopwatch.StartNew();
-                    var localPublicIp = await SendPublicIpAddressApiRequestAsync("http://ip.seeip.org/");
-                    if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://api.ipify.org/");
-                    if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://bot.whatismyipaddress.com");
-                    if (localPublicIp == null) localPublicIp = _latestPublicIpAddressResponse.GetAddressBytes();
-                    if (localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
-
-                    localDrpPeer.PublicIpApiProviderResponse = new IPAddress(localPublicIp);
-                    _latestPublicIpAddressResponse = localDrpPeer.PublicIpApiProviderResponse;
-                    _latestPublicIpAddressResponseTimeUTC = nowUTC;
-                    var elapsedMs = (int)sw.Elapsed.TotalMilliseconds;
-                    if (elapsedMs > 20000) WriteToLog_drpGeneral_mediumPain($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse} ({elapsedMs}ms) - too long");
-                    else if (elapsedMs > 10000) WriteToLog_drpGeneral_lightPain($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse} ({elapsedMs}ms) - too long");
-                    else WriteToLog_drpGeneral_detail($"resolved local public IP = {localDrpPeer.PublicIpApiProviderResponse} ({elapsedMs}ms)");
-                    await EngineThreadQueue.EnqueueAsync("resolved local public IP 3518");
-                    WriteToLog_drpGeneral_detail($"@engine thread");
-                }
-                else
-                {
-                    WriteToLog_drpGeneral_detail($"using cached local public IP address {_latestPublicIpAddressResponse}");
-                    localDrpPeer.PublicIpApiProviderResponse = _latestPublicIpAddressResponse;
-                }
-            }
-            else
-                localDrpPeer.PublicIpApiProviderResponse = Configuration.ForcedPublicIpApiProviderResponse;
-                       
-
+            localDrpPeer.PublicIpApiProviderResponse = LocalPublicIp;
             LocalPeers.Add(registrationConfiguration.LocalPeerRegistrationId, localDrpPeer);
             return localDrpPeer;
         }
@@ -87,10 +61,10 @@ namespace Dcomms.DRP
         {
             WriteToLog_reg_requesterSide_detail($"@BeginRegister2() engine thread", null, null);
 
-            var localDrpPeer = await CreateLocalPeerAsync(registrationConfiguration, user);
+            var localDrpPeer = CreateLocalPeer(registrationConfiguration, user);
             if (registrationConfiguration.EntryPeerEndpoints.Length != 0)
             {
-                for (; ;)
+                for (; ;) // try forever
                 {
                     var epIndex = _insecureRandom.Next(registrationConfiguration.EntryPeerEndpoints.Length);
                     var epEndpoint = registrationConfiguration.EntryPeerEndpoints[epIndex];

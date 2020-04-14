@@ -201,9 +201,10 @@ namespace Dcomms.UserApp
 
                     _userAppEngine.Engine.BeginRegister(localDrpPeerConfiguration,
                         this,
-                        (localDrpPeer) =>
+                        (localDrpPeer,exc) =>
                         {
-                            regId.LocalDrpPeer = localDrpPeer;
+                            if (exc != null) WriteToLog_guiPain($"Can not register in P2P network: {exc.Message}");
+                            else regId.LocalDrpPeer = localDrpPeer;
                         }
                         );
                 }
@@ -248,8 +249,12 @@ namespace Dcomms.UserApp
         {
             VisionChannel?.Emit(VisionChannelSourceId, UserAppEngine.VisionChannelModuleName, AttentionLevel.mediumPain, msg);
         }
+        void WriteToLog_guiPain(string msg)
+        {
+            VisionChannel?.Emit(VisionChannelSourceId, UserAppEngine.VisionChannelModuleName, AttentionLevel.guiPain, msg);
+        }
         #endregion
-        
+
         void IDrpRegisteredPeerApp.OnReceivedShortSingleMessage(string messageText, InviteRequestPacket req, IPEndPoint remoteDcEndpoint)
         {
             try

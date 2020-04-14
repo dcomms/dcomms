@@ -347,8 +347,7 @@ namespace Dcomms.DRP
                 }, "estroying worst P2P connection 2146");
             }
         }
-
-
+        
         async Task TestDirections(DateTime timeNowUtc)
         {
             if (ConnectedNeighborsCanBeUsedForNewRequests.Count() >= _configuration.MinDesiredNumberOfNeighbors 
@@ -368,7 +367,6 @@ namespace Dcomms.DRP
                 }
             }
         }
-
 
         internal void EngineThreadOnTimer100ms(DateTime timeNowUtc)
         {

@@ -12,13 +12,14 @@
         cursor: pointer;
     }
 
-        .contactDiv:hover {
-            background-color: #f8e493;
-        }
+    .contactDiv:hover {
+        background-color: #f8e493;
+    }
 
     .contactDivSelected {
         background-color: #f8db69;
     }
+
 
     /* Firefox old*/
     @@-moz-keyframes blink {
@@ -81,6 +82,7 @@
 }
 
 <div class="text-center">
+    <div id="recentGuiPainLogMessages" style="color: red; font-weight: bold; text-align: left; overflow: auto; max-height: 200px"></div>
     <table style="width: 100%">
         <tr>
             <td valign="top">
@@ -255,6 +257,17 @@
                             });
                         });
                     }
+                    
+                    function loadRecentGuiPainLogMessages() {
+                        $.getJSON('/XHR/RecentGuiPainLogMessages', function (r) {                           
+                            $('#recentGuiPainLogMessages').html('');
+                            $.each(r, function (i0, message) {
+                                var messageDiv = $("<div/>");                                
+                                messageDiv.append(message.Message);
+                                $('#recentGuiPainLogMessages').append(messageDiv);
+                            });
+                        });
+                    }
 
                     $(document).ready(function () {
                         $("#message").keypress(function (e) {
@@ -280,6 +293,12 @@
                         setInterval(function () { // check for new messages
                             loadLocalUsersAndContacts();
                         }, 5000);
+
+                        loadRecentGuiPainLogMessages();
+                        setInterval(function () { // check for GUI pain log messages
+                            loadRecentGuiPainLogMessages();
+                        }, 2300);
+
                     });
                 </script>
                 <div style="min-width: 150px;  min-height: 470px; text-align: left; background-color: #FFF; padding: 10px; border-right: 1px solid #DDD">

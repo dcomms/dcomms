@@ -16,7 +16,10 @@ namespace Dcomms.DRP
         /// <summary>
         /// is used instead of public IP API provider response; in case of localhost-localhost tests 
         /// </summary>
-        public IPAddress ForcedPublicIpApiProviderResponse;
+        public IPAddress ForcedPublicIpApiProviderResponse_SandboxOnly;
+        public IPEndPoint[] NatTestEndpoints; // if null (for DRP testers), the DrpEngine uses IP location services to get local public IP
+        public bool EnableNatRouterConfiguration = true; // = false for DRP testers // if ForcedPublicIpApiProviderResponse is set, router is not configured
+
         public TimeSpan PingRequestsInterval = TimeSpan.FromSeconds(5);
         public double PingRetransmissionInterval_RttRatio = 2.0; // "how much time to wait until sending another ping request?" - coefficient, relative to previously measured RTT
         public TimeSpan ConnectedPeersRemovalTimeout => PingRequestsInterval + TimeSpan.FromSeconds(7);

@@ -119,6 +119,7 @@ namespace Dcomms.DRP
         ushort _seq16Counter_AtoEP; // accessed only by engine thread
         internal RequestP2pSequenceNumber16 GetNewNpaSeq16_AtoEP() => new RequestP2pSequenceNumber16 { Seq16 = _seq16Counter_AtoEP++ };
         public DrpPeerEngineConfiguration Configuration { get; private set; }
+        public IPAddress LocalPublicIp; // gets initialized in constructor
 
         #region unique data filters
         /// <summary>
@@ -133,7 +134,7 @@ namespace Dcomms.DRP
 
         public readonly VectorSectorIndexCalculator VSIC;
         public int NumberOfDimensions => Configuration.SandboxModeOnly_NumberOfDimensions;
-        public DrpPeerEngine(DrpPeerEngineConfiguration configuration)
+        public DrpPeerEngine(DrpPeerEngineConfiguration configuration, Action<DrpPeerEngine> cbNullable)
         {
             ETSC = new ExecutionTimeStatsCollector(() => configuration.VisionChannel.TimeNow);
             configuration.VisionChannel?.RegisterVisibleModule(configuration.VisionChannelSourceId, "DrpPeerEngine", this);
@@ -165,21 +166,93 @@ namespace Dcomms.DRP
                 WriteToLog_drpGeneral_higherLevelDetail($"AllowNatTraversal() failed: {exc.Message}");
             }
 
-            _receiverThread = new Thread(ReceiverThreadEntry);
-            _receiverThread.Name = "DRP receiver";
-            _receiverThread.Priority = ThreadPriority.Highest;
-            _receiverThread.Start();
+            _ = ctorAsync(cbNullable);
 
-            _engineThread = new Thread(EngineThreadEntry);
-            _engineThread.Name = "DRP engine";
-            _engineThread.Start();
+        }
 
-            _powThread = new Thread(PowThreadEntry);
-            _powThread.Priority = ThreadPriority.Lowest;
-            _powThread.Name = "PoW";
-            _powThread.Start();
+        static DateTime? _latestPublicIpAddressResponseTimeUTC;
+        static IPAddress _latestPublicIpAddressResponse;
+        async Task ctorAsync(Action<DrpPeerEngine> cbNullable)
+        {
+            if (Configuration.ForcedPublicIpApiProviderResponse_SandboxOnly != null) 
+                LocalPublicIp = Configuration.ForcedPublicIpApiProviderResponse_SandboxOnly;
+            else
+            {
+                if (Configuration.EnableNatRouterConfiguration)
+                {
+                    await ConfigureRouterNatIfNeeded(DateTimeNowUtc);
+                }
 
-            WriteToLog_drpGeneral_higherLevelDetail("created DRP engine");
+                if (Configuration.NatTestEndpoints != null)
+                {
+                    try
+                    {                        
+                        var natTestResult = await NatTest.Test(Configuration.NatTestEndpoints, Configuration.VisionChannelSourceId, Configuration.VisionChannel,
+                            2, _socket);
+                        if (natTestResult.NatBehaviour.PortsMappingIsStatic_ShortTerm == false) throw new NatTestException("NAT type is symmetric. Please use internet provider with 'open cone' NAT type");
+                        LocalPublicIp = natTestResult.LocalPublicIpAddress;                        
+                    }
+                    catch (NatTestException exc)
+                    {
+                        WriteToLog_drpGeneral_guiPain(exc.Message);
+                    }
+                }
+
+
+                if (_disposing) return;
+           
+                _receiverThread = new Thread(ReceiverThreadEntry);
+                _receiverThread.Name = "DRP receiver";
+                _receiverThread.Priority = ThreadPriority.Highest;
+                _receiverThread.Start();
+
+                _engineThread = new Thread(EngineThreadEntry);
+                _engineThread.Name = "DRP engine";
+                _engineThread.Start();
+
+                _powThread = new Thread(PowThreadEntry);
+                _powThread.Priority = ThreadPriority.Lowest;
+                _powThread.Name = "PoW";
+                _powThread.Start();
+         
+
+                if (LocalPublicIp == null)
+                {
+                    var nowUTC = DateTimeNowUtc;
+                    if (_latestPublicIpAddressResponseTimeUTC == null || nowUTC - _latestPublicIpAddressResponseTimeUTC.Value > TimeSpan.FromSeconds(60))
+                    {
+                        WriteToLog_drpGeneral_detail($"resolving local public IP...");
+
+                        var sw = Stopwatch.StartNew();
+                        var localPublicIp = await SendPublicIpAddressApiRequestAsync("http://ip.seeip.org/");
+                        if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://api.ipify.org/");
+                        if (localPublicIp == null) localPublicIp = await SendPublicIpAddressApiRequestAsync("http://bot.whatismyipaddress.com");
+                        if (localPublicIp == null) localPublicIp = _latestPublicIpAddressResponse.GetAddressBytes();
+                        if (localPublicIp == null) throw new Exception("Failed to resolve public IP address. Please check your internet connection");
+                        LocalPublicIp = new IPAddress(localPublicIp);
+
+                        _latestPublicIpAddressResponse = LocalPublicIp;
+                        _latestPublicIpAddressResponseTimeUTC = nowUTC;
+                        var elapsedMs = (int)sw.Elapsed.TotalMilliseconds;
+                        if (elapsedMs > 20000) WriteToLog_drpGeneral_mediumPain($"resolved local public IP = {LocalPublicIp} ({elapsedMs}ms) - too long");
+                        else if (elapsedMs > 10000) WriteToLog_drpGeneral_lightPain($"resolved local public IP = {LocalPublicIp} ({elapsedMs}ms) - too long");
+                        else WriteToLog_drpGeneral_detail($"resolved local public IP = {LocalPublicIp} ({elapsedMs}ms)");
+                        await EngineThreadQueue.EnqueueAsync("resolved local public IP 3518");
+                        WriteToLog_drpGeneral_detail($"@engine thread");
+                    }
+                    else
+                    {
+                        WriteToLog_drpGeneral_detail($"using cached local public IP address {_latestPublicIpAddressResponse}");
+                        LocalPublicIp = _latestPublicIpAddressResponse;
+                    }
+                }
+
+                WriteToLog_drpGeneral_higherLevelDetail("created DRP engine");  
+                cbNullable?.Invoke(this);
+
+
+            }
+
         }
         partial void Initialize(DrpPeerEngineConfiguration configuration);
         public bool IsDisposed => _disposing;
@@ -190,12 +263,12 @@ namespace Dcomms.DRP
             if (_disposing) return;
             _disposing = true;
             EngineThreadQueue.Dispose();
-            _engineThread.Join();
+            _engineThread?.Join();
             PowThreadQueue.Dispose();
-            _powThread.Join();
+            _powThread?.Join();
             _socket.Close();
             _socket.Dispose();
-            _receiverThread.Join();
+            _receiverThread?.Join();
 
             // free memory (against memory leak in DRP tester #3)
             _cryptoLibrary = null;
@@ -211,7 +284,6 @@ namespace Dcomms.DRP
             LocalPeers = null; 
             ConnectedPeersByToken16 = null;
             InviteSessionsByToken16 = null;
-
         }
         public void DisposeDrpPeers()
         {
@@ -513,30 +585,31 @@ namespace Dcomms.DRP
         DateTime? _lastTimeConfiguredRouterNat = null;
         async Task ConfigureRouterNatIfNeeded(DateTime timeNowUTC)
         {
-            if (_lastTimeConfiguredRouterNat == null || (timeNowUTC - _lastTimeConfiguredRouterNat.Value).TotalSeconds > Configuration.NatConfigurationIntervalS)
-            {
-                try
+            if (Configuration.EnableNatRouterConfiguration)
+                if (_lastTimeConfiguredRouterNat == null || (timeNowUTC - _lastTimeConfiguredRouterNat.Value).TotalSeconds > Configuration.NatConfigurationIntervalS)
                 {
-                    _lastTimeConfiguredRouterNat = timeNowUTC;
-                    var sw = Stopwatch.StartNew();
-                    WriteToLog_drpGeneral_higherLevelDetail($"configuring NAT...");
-                    var nu = new Dcomms.NAT.NatUtility(Configuration.VisionChannel, Configuration.VisionChannelSourceId);
                     try
                     {
-                        var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
-                        var succeeded = await nu.SearchAndConfigure(new[] { localEP.Port });
-                        WriteToLog_drpGeneral_higherLevelDetail($"NAT configuration is complete in {(int)sw.Elapsed.TotalMilliseconds}ms, succeeded={succeeded}");
+                        _lastTimeConfiguredRouterNat = timeNowUTC;
+                        var sw = Stopwatch.StartNew();
+                        WriteToLog_drpGeneral_higherLevelDetail($"configuring NAT...");
+                        var nu = new Dcomms.NAT.NatUtility(Configuration.VisionChannel, Configuration.VisionChannelSourceId);
+                        try
+                        {
+                            var localEP = (IPEndPoint)_socket.Client.LocalEndPoint;
+                            var succeeded = await nu.SearchAndConfigure(new[] { localEP.Port });
+                            WriteToLog_drpGeneral_higherLevelDetail($"NAT configuration is complete in {(int)sw.Elapsed.TotalMilliseconds}ms, succeeded={succeeded}");
+                        }
+                        finally
+                        {
+                            nu.Dispose();
+                        }
                     }
-                    finally
+                    catch (Exception exc)
                     {
-                        nu.Dispose();
+                        HandleGeneralException("error when configuring NAT", exc);
                     }
                 }
-                catch (Exception exc)
-                {
-                    HandleGeneralException("error when configuring NAT", exc);
-                }
-            }
         }
         public void TestUPnPdec10()
         {

@@ -71,16 +71,25 @@ namespace Dcomms.Vision
                 }
             }
         }
-        public List<LogMessage> GetLogMessages_newestFirst(object routedPathReq)
-        {          
+        public List<LogMessage> GetLogMessages_newestFirst(object routedPathReqNullable)
+        {
             lock (_logMessagesNewestFirst)
             {
                 IEnumerable<LogMessage> r = _logMessagesNewestFirst;
-                if (routedPathReq != null)
-                    r = r.Where(x => routedPathReq.Equals(x.RoutedPathReq));
-              //  r = r.Where(x => x.AttentionLevel >= DisplayFilterMinLevel);
+                if (routedPathReqNullable != null)
+                    r = r.Where(x => routedPathReqNullable.Equals(x.RoutedPathReq));
+                //  r = r.Where(x => x.AttentionLevel >= DisplayFilterMinLevel);
                 return r.ToList();
-            }            
+            }
+        }
+        public List<LogMessage> GetGuiPainLogMessages_newestFirst(int maxCount)
+        {
+            lock (_logMessagesNewestFirst)
+            {
+                IEnumerable<LogMessage> r = _logMessagesNewestFirst;
+                r = r.Where(x => x.AttentionLevel == AttentionLevel.guiPain);
+                return r.Take(maxCount).ToList();
+            }
         }
 
         public ICommand RefreshDisplayedSelectedLogMessages => new DelegateCommand(() =>

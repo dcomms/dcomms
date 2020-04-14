@@ -47,15 +47,35 @@ namespace Dcomms.MessengerT.Controllers
                     IsConnected = localUser.UserRegistrationIDs.Any(rid => rid.LocalDrpPeer != null && rid.LocalDrpPeer.IsConnected);
             }
         }
+        public class ErrorMessageForWebUI
+        {
+            public string Message { get; set; } // as html
+            public ErrorMessageForWebUI(Vision.VisionChannel1.LogMessage logMessage)
+            {
+                Message = logMessage.Message.Replace("\r\n", "<br/>");
+            }
+        }
+
 
         public IActionResult LocalUsersAndContacts()
         {
-            return Json(Program.UserAppEngine.LocalUsers.Values.Select(x => new LocalUserForWebUI(x)).OrderBy(x => x.ContainsUnreadMessages ? 0 : 1).ThenBy(x => x.UserAliasID).ToArray(), new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            return Json(
+                Program.UserAppEngine.LocalUsers?.Values?.Select(x => new LocalUserForWebUI(x))?.OrderBy(x => x.ContainsUnreadMessages ? 0 : 1)?.ThenBy(x => x.UserAliasID)?.ToArray(),
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
         }
 
+        public IActionResult RecentGuiPainLogMessages()
+        {
+            return Json(
+                Program.VisionChannel.GetGuiPainLogMessages_newestFirst(3).Select(x => new ErrorMessageForWebUI(x)).ToArray(),
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+        }
 
 
         public IActionResult Messages(int localUserId, int contactId)

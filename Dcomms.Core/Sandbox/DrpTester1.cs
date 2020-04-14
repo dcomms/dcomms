@@ -31,36 +31,39 @@ namespace Dcomms.Sandbox
             _visionChannel = visionChannel;
             _ep = new DrpPeerEngine(new DrpPeerEngineConfiguration
             {
+                EnableNatRouterConfiguration = false,
                 InsecureRandomSeed = _insecureRandom.Next(),
                 LocalPreferredPort = EpLocalPort,
                 VisionChannel = visionChannel,
                 VisionChannelSourceId = "EP",
-                ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
+                ForcedPublicIpApiProviderResponse_SandboxOnly = IPAddress.Loopback,
                 SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
-            });
+            }, null);
             var epLocalDrpPeerConfig = LocalDrpPeerConfiguration.Create(_ep.CryptoLibrary, NumberOfDimensions);
           
             _ep.BeginCreateLocalPeer(epLocalDrpPeerConfig, new DrpTesterPeerApp(_ep, epLocalDrpPeerConfig), (rpLocalPeer) =>
             {   
                 _a = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
+                    EnableNatRouterConfiguration = false,
                     InsecureRandomSeed = _insecureRandom.Next(),
                     VisionChannel = visionChannel,
-                    ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
+                    ForcedPublicIpApiProviderResponse_SandboxOnly = IPAddress.Loopback,
                     VisionChannelSourceId = "A",
                     SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
-                });
+                }, null);
                 var aLocalDrpPeerConfig = LocalDrpPeerConfiguration.Create(_a.CryptoLibrary, NumberOfDimensions);
                 aLocalDrpPeerConfig.EntryPeerEndpoints = new[] { new IPEndPoint(IPAddress.Loopback, EpLocalPort) };
                               
                 _x = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
+                    EnableNatRouterConfiguration = false,
                     InsecureRandomSeed = _insecureRandom.Next(),
                     VisionChannel = visionChannel,
-                    ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
+                    ForcedPublicIpApiProviderResponse_SandboxOnly = IPAddress.Loopback,
                     VisionChannelSourceId = "X",
                     SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
-                });
+                }, null);
 
             _retryx:
                 var xLocalDrpPeerConfig = LocalDrpPeerConfiguration.Create(_x.CryptoLibrary, NumberOfDimensions);
@@ -71,12 +74,13 @@ namespace Dcomms.Sandbox
                 
                 _n = new DrpPeerEngine(new DrpPeerEngineConfiguration
                 {
+                    EnableNatRouterConfiguration = false,
                     InsecureRandomSeed = _insecureRandom.Next(),
                     VisionChannel = visionChannel,
-                    ForcedPublicIpApiProviderResponse = IPAddress.Loopback,
+                    ForcedPublicIpApiProviderResponse_SandboxOnly = IPAddress.Loopback,
                     VisionChannelSourceId = "N",
                     SandboxModeOnly_NumberOfDimensions = NumberOfDimensions
-                });
+                }, null);
 
 
             _retryn:
@@ -91,26 +95,26 @@ namespace Dcomms.Sandbox
 
                 _xUser = new DrpTesterPeerApp(_x, xLocalDrpPeerConfig);
                 var swX = Stopwatch.StartNew();
-                _x.BeginRegister(xLocalDrpPeerConfig, _xUser, (xLocalPeer) =>
+                _x.BeginRegister(xLocalDrpPeerConfig, _xUser, (xLocalPeer, exc) =>
                 {
                     _visionChannel.Emit(_x.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                         AttentionLevel.guiActivity, $"registration completed in {(int)swX.Elapsed.TotalMilliseconds}ms");
                   
                     _xLocalDrpPeer = xLocalPeer;
                     var swN = Stopwatch.StartNew();
-                    _n.BeginRegister(nLocalDrpPeerConfig, new DrpTesterPeerApp(_n, nLocalDrpPeerConfig), (nLocalPeer) =>
+                    _n.BeginRegister(nLocalDrpPeerConfig, new DrpTesterPeerApp(_n, nLocalDrpPeerConfig), (nLocalPeer, exc) =>
                     {
                         _visionChannel.Emit(_n.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                             AttentionLevel.guiActivity, $"registration completed in {(int)swN.Elapsed.TotalMilliseconds}ms");
                         _nLocalDrpPeer = nLocalPeer;
                         _aUser = new DrpTesterPeerApp(_a, aLocalDrpPeerConfig);
                         var swA = Stopwatch.StartNew();
-                        _a.BeginRegister(aLocalDrpPeerConfig, _aUser, (aLocalPeer) =>
+                        _a.BeginRegister(aLocalDrpPeerConfig, _aUser, (aLocalPeer, exc) =>
                         {
                             _visionChannel.Emit(_a.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                                 AttentionLevel.guiActivity, $"registration completed in {(int)swA.Elapsed.TotalMilliseconds}ms");
                             _aLocalDrpPeer = aLocalPeer;
-                            if (cb != null) cb();
+                            cb?.Invoke();
                         });
                     });
                 });               
