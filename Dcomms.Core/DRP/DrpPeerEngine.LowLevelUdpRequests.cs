@@ -28,7 +28,7 @@ namespace Dcomms.DRP
             var nextHopResponsePacketData = await SendUdpRequestAsync_Retransmit(
                      new PendingLowLevelUdpRequest(completionActionVisibleId, responderEndpoint,
                          npaScanner, 
-                         DateTimeNowUtc, Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
+                         PreciseDateTimeNowUtc, Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
                          requestPacketDataNullable,                      
                          Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
                      ));
@@ -55,7 +55,7 @@ namespace Dcomms.DRP
         {
             var timeoutS = expirationTimeoutS ?? Configuration.UdpLowLevelRequests_ExpirationTimeoutS;
             var pendingLowLevelUdpRequest = new PendingLowLevelUdpRequest(completionActionVisibleId, responderEndpoint,
-                         responseScanner, DateTimeNowUtc, timeoutS,
+                         responseScanner, PreciseDateTimeNowUtc, timeoutS,
                          requestPacketDataNullable,
                          Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
                      );
@@ -78,7 +78,7 @@ namespace Dcomms.DRP
         /// </summary>
         internal async Task<byte[]> SendUdpRequestAsync_Retransmit(PendingLowLevelUdpRequest request)
         {
-            request.InitialTxTimeUTC = DateTimeNowUtc;
+            request.InitialTxTimeUTC = PreciseDateTimeNowUtc;
             if (request.RequestPacketDataNullable != null)
             {
                 short previousTTL = 0;
@@ -230,7 +230,7 @@ namespace Dcomms.DRP
             var responder = new ResponderToRetransmittedRequests
             {
                 RequestKey = key,
-                ExpirationTimeUTC = DateTimeNowUtc + Configuration.ResponderToRetransmittedRequestsTimeout,
+                ExpirationTimeUTC = PreciseDateTimeNowUtc + Configuration.ResponderToRetransmittedRequestsTimeout,
                 ResponseUdpPayloadData = responseUdpPayloadData
             };
 

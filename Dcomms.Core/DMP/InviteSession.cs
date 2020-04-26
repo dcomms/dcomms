@@ -227,7 +227,7 @@ namespace Dcomms.DMP
             var timeoutS = _localDrpPeer.Engine.Configuration.UdpLowLevelRequests_ExpirationTimeoutS;
             InitialPendingPingRequest = new PendingLowLevelUdpRequest("dmp pong 3186", RemoteSessionDescription.DirectChannelEndPoint,
                          DmpPongPacket.GetScanner(LocalDirectChannelToken32, ping.PingRequestId32, this), // scanner also verifies HMAC 
-                         _localDrpPeer.Engine.DateTimeNowUtc, timeoutS,
+                         _localDrpPeer.Engine.PreciseDateTimeNowUtc, timeoutS,
                          pingData,
                          _localDrpPeer.Engine.Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS, _localDrpPeer.Engine.Configuration.UdpLowLevelRequests_RetransmissionTimeoutIncrement
                      );

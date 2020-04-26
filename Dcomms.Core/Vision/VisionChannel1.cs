@@ -112,7 +112,7 @@ namespace Dcomms.Vision
             {
                 AttentionLevel = level,
                 ManagedThreadId = Thread.CurrentThread.ManagedThreadId,
-                Time = TimeNow,
+                Time = PreciseTimeNow,
                 SourceId = sourceId,
                 ModuleName = moduleName,
                 Message = message
@@ -146,7 +146,7 @@ namespace Dcomms.Vision
             {
                 AttentionLevel = level,
                 ManagedThreadId = Thread.CurrentThread.ManagedThreadId,
-                Time = TimeNow,
+                Time = PreciseTimeNow,
                 SourceId = sourceId,
                 ModuleName = moduleName,
                 Message = message,                
@@ -179,7 +179,7 @@ namespace Dcomms.Vision
             {
                 AttentionLevel = level,
                 ManagedThreadId = Thread.CurrentThread.ManagedThreadId,
-                Time = TimeNow,
+                Time = PreciseTimeNow,
                 SourceId = visionChannelSourceId,
                 ModuleName = moduleName,
                 Message = message,             

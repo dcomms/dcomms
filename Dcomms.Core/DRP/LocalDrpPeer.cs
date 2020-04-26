@@ -59,7 +59,7 @@ namespace Dcomms.DRP
         {
             get
             {
-                var now = Engine.DateTimeNowUtc;
+                var now = Engine.PreciseDateTimeNowUtc;
                 return ConnectedNeighbors.Where(x => x.CanBeUsedForNewRequests(now));
             }
         }
@@ -180,7 +180,7 @@ namespace Dcomms.DRP
                         logger.WriteToLog_higherLevelDetail_EmitListOfPeers($"no neighbors to destination {MiscProcedures.VectorToString(vectorFromThisToDestination)}, sending REGISTER request... iteration={iteration}", this);
                         
                         // try to fix the pain: connect to neighbors at empty direction
-                        await ConnectToNewNeighborAsync(Engine.DateTimeNowUtc, true, vectorFromThisToDestination);
+                        await ConnectToNewNeighborAsync(Engine.PreciseDateTimeNowUtc, true, vectorFromThisToDestination);
                         if (iteration >= 2)
                             await Engine.EngineThreadQueue.WaitAsync(TimeSpan.FromSeconds(10), "fixing empty direction 1237");
 
@@ -328,7 +328,7 @@ namespace Dcomms.DRP
                 var ping = worstNeighbor.CreatePing(false, true, 0, false);
 
                 var pendingPingRequest = new PendingLowLevelUdpRequest("pendingPingRequest 351", worstNeighbor.RemoteEndpoint,
-                                PongPacket.GetScanner(worstNeighbor.LocalNeighborToken32, ping.PingRequestId32), Engine.DateTimeNowUtc,
+                                PongPacket.GetScanner(worstNeighbor.LocalNeighborToken32, ping.PingRequestId32), Engine.PreciseDateTimeNowUtc,
                                 Engine.Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
                                 ping.Encode(),
                                 Engine.Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS,

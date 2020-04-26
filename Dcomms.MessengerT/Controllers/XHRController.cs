@@ -59,8 +59,10 @@ namespace Dcomms.MessengerT.Controllers
 
         public IActionResult LocalUsersAndContacts()
         {
+            var lu = Program.UserAppEngine.LocalUsers;
+            if (lu == null) return NotFound();
             return Json(
-                Program.UserAppEngine.LocalUsers?.Values?.Select(x => new LocalUserForWebUI(x))?.OrderBy(x => x.ContainsUnreadMessages ? 0 : 1)?.ThenBy(x => x.UserAliasID)?.ToArray(),
+                lu.Values.Select(x => new LocalUserForWebUI(x)).OrderBy(x => x.ContainsUnreadMessages ? 0 : 1).ThenBy(x => x.UserAliasID).ToArray(),
                 new JsonSerializerOptions
                 {
                     WriteIndented = true
@@ -80,7 +82,9 @@ namespace Dcomms.MessengerT.Controllers
 
         public IActionResult Messages(int localUserId, int contactId)
         {
-            if (!Program.UserAppEngine.LocalUsers.TryGetValue(localUserId, out var localUser))
+            var lu = Program.UserAppEngine.LocalUsers;
+            if (lu == null) return NotFound();
+            if (!lu.TryGetValue(localUserId, out var localUser))
                 return NotFound();
             if (!localUser.Contacts.TryGetValue(contactId, out var contact))
                 return NotFound();
@@ -96,7 +100,9 @@ namespace Dcomms.MessengerT.Controllers
         }
         public IActionResult MessagesVersion(int localUserId, int contactId)
         {
-            if (!Program.UserAppEngine.LocalUsers.TryGetValue(localUserId, out var localUser))
+            var lu = Program.UserAppEngine.LocalUsers;
+            if (lu == null) return NotFound();
+            if (!lu.TryGetValue(localUserId, out var localUser))
                 return NotFound();
             if (!localUser.Contacts.TryGetValue(contactId, out var contact))
                 return NotFound();

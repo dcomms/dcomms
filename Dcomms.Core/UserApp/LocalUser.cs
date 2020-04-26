@@ -47,7 +47,7 @@ namespace Dcomms.UserApp
                 throw new ArgumentNullException(nameof(locallyInitiatedIke1Invitation));
 
             this.User.LocalUserCertificate.AssertHasPrivateKey();
-            this.User.LocalUserCertificate.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.DateTimeNowUtc);
+            this.User.LocalUserCertificate.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.PreciseDateTimeNowUtc);
             
             var unconfirmedContactId = _unconfirmedContactIdCounter--;
             var locallyInitiatedInvitation = Ike1Invitation.DecodeFromUI(locallyInitiatedIke1Invitation);
@@ -82,7 +82,7 @@ namespace Dcomms.UserApp
                 remoteUserIdNullable = contact.User.UserID;
                 localUserCertificateWithPrivateKey = User.LocalUserCertificate;
                 localUserCertificateWithPrivateKey.AssertHasPrivateKey();
-                localUserCertificateWithPrivateKey.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.DateTimeNowUtc);
+                localUserCertificateWithPrivateKey.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.PreciseDateTimeNowUtc);
             }
             else
             {
@@ -99,7 +99,7 @@ namespace Dcomms.UserApp
                     autoReply = true;
                     localUserCertificateWithPrivateKey = User.LocalUserCertificate;
                     localUserCertificateWithPrivateKey.AssertHasPrivateKey();
-                    localUserCertificateWithPrivateKey.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.DateTimeNowUtc);
+                    localUserCertificateWithPrivateKey.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.PreciseDateTimeNowUtc);
                 }
             }
         }
@@ -119,7 +119,7 @@ namespace Dcomms.UserApp
                 OwnerLocalUserId = this.User.Id,
                 AliasID = contact.UserAliasID, 
                 UserID = remoteIke1Data.UserId,
-                Metadata = new UserMetadata { ContactCreatedAtUTC = _userAppEngine.Engine.DateTimeNowUtc, ContactCreatedWithRemoteEndpoint = remoteIke1Data.RemoteEndPoint }
+                Metadata = new UserMetadata { ContactCreatedAtUTC = _userAppEngine.Engine.PreciseDateTimeNowUtc, ContactCreatedWithRemoteEndpoint = remoteIke1Data.RemoteEndPoint }
             };
             contact.RegistrationIDs = remoteIke1Data.RegistrationIds.Select(x => new UserRegistrationID { RegistrationId = x }).ToList();
             _userAppEngine.ConfirmContact(contact); // insert new records into database
@@ -133,7 +133,7 @@ namespace Dcomms.UserApp
             if (localDrpPeer == null) throw new InvalidOperationException("no local DRP peers found to send INVITE with contact invitation");
 
             this.User.LocalUserCertificate.AssertHasPrivateKey();
-            this.User.LocalUserCertificate.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.DateTimeNowUtc);
+            this.User.LocalUserCertificate.AssertIsValidNow(_userAppEngine.Engine.CryptoLibrary, User.UserID, _userAppEngine.Engine.PreciseDateTimeNowUtc);
 
 
             var unconfirmedContactId = _unconfirmedContactIdCounter--;
@@ -164,7 +164,7 @@ namespace Dcomms.UserApp
                         OwnerLocalUserId = this.User.Id,
                         AliasID = newContact.UserAliasID, 
                         UserID = remoteIke1Data.UserId,
-                        Metadata = new UserMetadata { ContactCreatedAtUTC = _userAppEngine.Engine.DateTimeNowUtc, ContactCreatedWithRemoteEndpoint = remoteIke1Data.RemoteEndPoint }
+                        Metadata = new UserMetadata { ContactCreatedAtUTC = _userAppEngine.Engine.PreciseDateTimeNowUtc, ContactCreatedWithRemoteEndpoint = remoteIke1Data.RemoteEndPoint }
                     };
                     newContact.RegistrationIDs = remoteIke1Data.RegistrationIds.Select(x => new UserRegistrationID { RegistrationId = x }).ToList();
                     _userAppEngine.ConfirmContact(newContact); // insert new records into database

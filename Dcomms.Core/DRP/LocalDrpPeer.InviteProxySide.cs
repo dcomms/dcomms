@@ -152,7 +152,7 @@ namespace Dcomms.DRP
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"waiting for CFM from responder");
                 var cfmUdpData = await Engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest("cfm 12358", destinationPeer.RemoteEndpoint,
                                 InviteConfirmationPacket.GetScanner(logger, req, destinationPeer),
-                                    Engine.DateTimeNowUtc, Engine.Configuration.CfmTimoutS
+                                    Engine.PreciseDateTimeNowUtc, Engine.Configuration.CfmTimoutS
                                 ));
                 if (cfmUdpData == null) throw new DrpTimeoutException($"inv. proxy CFM response from destination peer {destinationPeer} (timeout={Engine.Configuration.CfmTimoutS}s)");
                 var cfm = InviteConfirmationPacket.Decode(cfmUdpData);

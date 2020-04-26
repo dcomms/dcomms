@@ -123,7 +123,7 @@ namespace Dcomms.DRP
                     // decrypt, verify SD remote user's certificate and signature
                     session.RemoteSessionDescription = InviteSessionDescription.Decrypt_Verify(Engine.CryptoLibrary,
                         ack2.ToRequesterSessionDescriptionEncrypted,
-                        req, ack1, true, session, remoteRequesterUserIdFromLocalContactBookNullable, Engine.DateTimeNowUtc);
+                        req, ack1, true, session, remoteRequesterUserIdFromLocalContactBookNullable, Engine.PreciseDateTimeNowUtc);
                     session.LocalSessionDescription.SessionType = session.RemoteSessionDescription.SessionType;
 
                     switch (session.RemoteSessionDescription.SessionType)

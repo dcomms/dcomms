@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
@@ -30,6 +31,56 @@ namespace StarTrinity.ContinuousSpeedTest
 
         readonly CstApp _cstApp;
         bool _exitMenuItemClicked;
+
+        #region show running instance
+        public static void ShowRunningInstance()
+        {
+            try
+            {
+                File.WriteAllText(ShowRunningInstanceSignalFileName, DateTime.Now.ToString());
+            }
+            catch
+            {
+
+            }
+        }
+        static string _baseDirectoryCached;
+        public static string BaseDirectory
+        {
+            get
+            {
+                if (_baseDirectoryCached == null)
+                {
+                    Uri dllURI = new Uri(Assembly.GetCallingAssembly().CodeBase);
+                    _baseDirectoryCached = System.IO.Path.GetDirectoryName(dllURI.LocalPath);
+                }
+                return _baseDirectoryCached;
+            }
+        }
+        static string ShowRunningInstanceSignalFileName => Path.Combine(BaseDirectory, "showrunninginstancesignal.txt");
+        string ReadShowRunningInstanceSignal()
+        {
+            try 
+            {
+                return File.ReadAllText(ShowRunningInstanceSignalFileName);
+            }
+            catch
+            {
+                return "";
+            }
+        }
+        string LatestShowRunningInstanceSignal;
+        void ShowThisRunningInstanceIfNeeded()
+        {
+            var newSignal = ReadShowRunningInstanceSignal();
+            if (LatestShowRunningInstanceSignal != newSignal)
+            {
+                LatestShowRunningInstanceSignal = newSignal;
+                NotifyIcon_MouseDoubleClick(null, null);
+            }
+        }
+        #endregion
+
 
         public MainWindow()
         {
@@ -60,6 +111,14 @@ namespace StarTrinity.ContinuousSpeedTest
                 _notifyIcon.Visible = true;
                 this.ShowInTaskbar = false;
             }
+
+
+            LatestShowRunningInstanceSignal = ReadShowRunningInstanceSignal();
+            var timer = new DispatcherTimer(DispatcherPriority.SystemIdle);
+            timer.Interval = TimeSpan.FromMilliseconds(300);
+            timer.Tick += (s, e) => ShowThisRunningInstanceIfNeeded();
+            timer.Start();
+            _timers.Add(timer);
         }
 
         private void Window_Closed(object sender, EventArgs e)
@@ -81,7 +140,7 @@ namespace StarTrinity.ContinuousSpeedTest
             this.WindowState = WindowState.Normal;
             this.Show();
             this.Activate();
-            this.ShowInTaskbar = true;
+            if (_cstApp.AutoStartedInTrayMode) this.ShowInTaskbar = true;
         }
 
         private void Window_StateChanged(object sender, EventArgs e)
@@ -123,207 +182,11 @@ namespace StarTrinity.ContinuousSpeedTest
         void ICstAppUser.AddStaticResource(string name, object value)
         {
             if (Application.Current != null) Application.Current.Resources.Add(name, value);
-        }
-        #region installation
-        const string AppNameInRegistry = "StarTrinity CST";
-        //public bool InstalledOnThisPc_AutostartInTrayMode
-        //{
-        //    get
-        //    {
-        //        try
-        //        {
-        //            var rk = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", false);
-        //            var v = rk.GetValue(AppNameInRegistry);
-        //            return v != null;
-        //        }
-        //        catch (Exception exc)
-        //        {
-        //            HandleException(exc);
-        //            return false;
-        //        }
-        //    }
-        //}
-
-        string CurrentProcessDirectory => Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
-        string LocalPcInstallationFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "StarTrinity CST");
-        public bool RunningInstalledOnThisPC
-        {
-            get
-            {
-                return CurrentProcessDirectory == LocalPcInstallationFolder;
-            }
-        }
-        string DesktopShortcutFileName => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "StarTrinity CST.lnk");
-        string StartMenuShortcutFileName => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs", "StarTrinity CST.lnk");
-        
-        string ICstAppUser.CsvDelimiter => System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
-        CultureInfo ICstAppUser.CsvCultureInfo => System.Globalization.CultureInfo.CurrentCulture;
-
-        [ComImport]
-        [Guid("00021401-0000-0000-C000-000000000046")]
-        internal class ShellLink
-        {
-        }
-
-        [ComImport]
-        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        [Guid("000214F9-0000-0000-C000-000000000046")]
-        internal interface IShellLink
-        {
-            void GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszFile, int cchMaxPath, out IntPtr pfd, int fFlags);
-            void GetIDList(out IntPtr ppidl);
-            void SetIDList(IntPtr pidl);
-            void GetDescription([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszName, int cchMaxName);
-            void SetDescription([MarshalAs(UnmanagedType.LPWStr)] string pszName);
-            void GetWorkingDirectory([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszDir, int cchMaxPath);
-            void SetWorkingDirectory([MarshalAs(UnmanagedType.LPWStr)] string pszDir);
-            void GetArguments([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszArgs, int cchMaxPath);
-            void SetArguments([MarshalAs(UnmanagedType.LPWStr)] string pszArgs);
-            void GetHotkey(out short pwHotkey);
-            void SetHotkey(short wHotkey);
-            void GetShowCmd(out int piShowCmd);
-            void SetShowCmd(int iShowCmd);
-            void GetIconLocation([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszIconPath, int cchIconPath, out int piIcon);
-            void SetIconLocation([MarshalAs(UnmanagedType.LPWStr)] string pszIconPath, int iIcon);
-            void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string pszPathRel, int dwReserved);
-            void Resolve(IntPtr hwnd, int fFlags);
-            void SetPath([MarshalAs(UnmanagedType.LPWStr)] string pszFile);
-        }
-        /// <summary>
-        /// copies files from current folder to "app data" folder, if not 
-        /// </summary>
-        void ICstAppUser.InstallOnThisPC()
-        {
-            try
-            {
-                string mainExeFileName;
-                bool closeThisProcess = false;
-                // copy files to LocalPcInstallationFolder
-                if (!RunningInstalledOnThisPC)
-                {
-                    var localPcInstallationFolder = LocalPcInstallationFolder;
-                    if (!Directory.Exists(localPcInstallationFolder)) Directory.CreateDirectory(localPcInstallationFolder);
-                    var currentProcessDirectory = CurrentProcessDirectory;
-                    foreach (var dllFileName in Directory.GetFiles(currentProcessDirectory, "*.*")
-                        .Select(x => x.ToLower())
-                        .Where(s => s.EndsWith(".config") || s.EndsWith(".dll") || s.EndsWith(".exe") || s.EndsWith(".json")))
-                        File.Copy(dllFileName, Path.Combine(localPcInstallationFolder, Path.GetFileName(dllFileName)), true);
-
-                    mainExeFileName = Path.Combine(localPcInstallationFolder, Path.GetFileName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName));
-                    File.Copy(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName, mainExeFileName, true);
-
-                    // create shortcut on desktop
-                    var link = (IShellLink)new ShellLink();
-                    link.SetDescription("StarTrinity Continuous Speed Test");
-                    link.SetPath(mainExeFileName);
-                    var linkFile = (IPersistFile)link;
-                    linkFile.Save(DesktopShortcutFileName, false);
-
-                    // create icon in start menu
-                    linkFile.Save(StartMenuShortcutFileName, false);
-
-                    // show message box
-                    MessageBox.Show($"Installation succeeded.\r\nPress OK to start the new installed program.\r\n\r\nCreated shortcut on desktop and in Start menu\r\nInstallation folder: {localPcInstallationFolder}");
-
-                    // start new process
-                    Process.Start(mainExeFileName);
-
-                    closeThisProcess = true;
-                }
-                else
-                    mainExeFileName = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
-
-                if (_cstApp.InstallOnThisPC_AddToAutoStart)
-                {
-                    var rk = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-                    rk.SetValue(AppNameInRegistry, mainExeFileName + " " + CstApp.TrayCliParameter);
-                }
-
-                if (closeThisProcess)
-                    System.Windows.Application.Current.Shutdown();
-                // RaisePropertyChanged(() => InstalledOnThisPcAndAutostartInTrayMode);
-            }
-            catch (Exception exc)
-            {
-                CstApp.HandleException(exc);
-            }
-        }
-        void ICstAppUser.UninstallOnThisPC()
-        {
-
-            if (MessageBox.Show($"Do you really want to uninstall the software and all files in directory {CurrentProcessDirectory}?",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.No) == MessageBoxResult.Yes)
-            {
-
-                try
-                {
-                    var rk = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-                    rk.DeleteValue(AppNameInRegistry, false);
-                }
-                catch (Exception exc)
-                {
-                    CstApp.HandleException(exc);
-                }
-
-                // delete shortcut on desktop
-                try
-                {
-                    if (File.Exists(DesktopShortcutFileName))
-                        File.Delete(DesktopShortcutFileName);
-                }
-                catch (Exception exc)
-                {
-                    CstApp.HandleException(exc);
-                }
-
-                // delete folder in start menu
-                try
-                {
-                    if (File.Exists(StartMenuShortcutFileName))
-                        File.Delete(StartMenuShortcutFileName);
-                }
-                catch (Exception exc)
-                {
-                    CstApp.HandleException(exc);
-                }
-
-                // create bat               
-                // remove files from current folder
-                var batFileName = Path.Combine(Path.GetTempPath(), "startrinity_cst_uninstall.bat");
-                if (File.Exists(batFileName)) File.Delete(batFileName);
-
-                var batScript = new StringBuilder();
-                batScript.Append("echo off\r\n");
-                batScript.Append("echo uninstalling software...\r\n");
-
-                batScript.AppendFormat(":retry\r\n");
-                batScript.AppendFormat("del /S /Q /F \"{0}\\*\"\r\n", CurrentProcessDirectory);
-                batScript.AppendFormat("rmdir \"{0}\"\r\n", CurrentProcessDirectory);
-                //    batScript.AppendFormat("echo result: %ERRORLEVEL%\r\n");
-                batScript.AppendFormat("@if exist \"{0}\" (\r\n", CurrentProcessDirectory);
-                batScript.AppendFormat("  echo failed to remove files in '{0}'. trying again..\r\n", CurrentProcessDirectory);
-                batScript.Append("  timeout /t 2\r\n"); //   wait 2 sec, retry
-                batScript.AppendFormat("  goto retry\r\n");
-                batScript.Append(")\r\n");
-
-
-                File.WriteAllText(batFileName, batScript.ToString());
-
-                // run bat
-                System.Diagnostics.Process.Start(batFileName);
-
-                // close this process
-                System.Windows.Application.Current.Shutdown();
-
-                // RaisePropertyChanged(() => InstalledOnThisPcAndAutostartInTrayMode);
-            }
-
-        }
-        #endregion
-
-
+        }      
         void ICstAppUser.ShowMessageToUser(string msg) => MessageBox.Show(msg);
 
+        string ICstAppUser.CsvDelimiter => System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
+        CultureInfo ICstAppUser.CsvCultureInfo => System.Globalization.CultureInfo.CurrentCulture;
         bool ICstAppUser.ShowSaveFileDialog(string fileExtension, out string fileName, out Action optionalFileWrittenCallback)
         {
             optionalFileWrittenCallback = null;

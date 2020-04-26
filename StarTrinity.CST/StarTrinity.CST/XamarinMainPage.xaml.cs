@@ -35,7 +35,7 @@ namespace StarTrinity.CST
             this.Children.Remove(cryptographyTesterPage);
 #endif
         }
-        bool ICstAppUser.RunningInstalledOnThisPC => true;
+      
         void ICstAppUser.AddStaticResource(string name, object value)
         {
             Application.Current.Resources.Add(name, value);
@@ -48,9 +48,7 @@ namespace StarTrinity.CST
                 return true; // True = Repeat again, False = Stop the timer
             });
         }
-        void ICstAppUser.InstallOnThisPC()
-        {
-        }
+
         void ICstAppUser.ShowMessageToUser(string msg)
         {
             DisplayAlert("Continuous Speed Test", msg, "OK");
@@ -59,9 +57,7 @@ namespace StarTrinity.CST
         {
             return _host.ShowSaveFileDialog(fileExtension, out fileName, out optionalFileWrittenCallback);
         }
-        void ICstAppUser.UninstallOnThisPC()
-        {
-        }
+      
 
         private void GotoMeasurement_Clicked(object sender, EventArgs e)
         {

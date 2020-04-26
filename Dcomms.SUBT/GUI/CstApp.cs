@@ -37,9 +37,7 @@ namespace Dcomms.SUBT.GUI
         #region installation, run mode
         public bool AutoStartedInTrayMode { get; set; }
         public const string TrayCliParameter = "/tray";
-        public bool RunningInstalledOnThisPC => User.RunningInstalledOnThisPC;
-        public ICommand InstallOnThisPC => new DelegateCommand(User.InstallOnThisPC);     
-        public ICommand UninstallOnThisPc => new DelegateCommand(User.UninstallOnThisPC);
+
         public bool InstallOnThisPC_AddToAutoStart { get; set; } = true;
         #endregion
 

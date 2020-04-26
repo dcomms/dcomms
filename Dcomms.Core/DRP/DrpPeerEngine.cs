@@ -25,24 +25,33 @@ namespace Dcomms.DRP
         ICryptoLibrary _cryptoLibrary = CryptoLibraries.Library;
         internal ICryptoLibrary CryptoLibrary => _cryptoLibrary;
 
-        (DateTime, Stopwatch) _startTimeUtc = (DateTime.UtcNow, Stopwatch.StartNew());
+        (DateTime, Stopwatch) _preciseTimeCounter = (DateTime.UtcNow, Stopwatch.StartNew());
       
         readonly Stopwatch _uptimeSW = Stopwatch.StartNew();
         TimeSpan Uptime => _uptimeSW.Elapsed; // stopwatch elapsed
         /// <summary>
         /// is interrupted (makes a gap) on some (android) devices when OS puts this app into idle mode
         /// </summary>
-        public DateTime DateTimeNowUtc { get { return _startTimeUtc.Item1 + _startTimeUtc.Item2.Elapsed; } }
+        public DateTime PreciseDateTimeNowUtc { get { return _preciseTimeCounter.Item1 + _preciseTimeCounter.Item2.Elapsed; } }
+        /// <summary>
+        /// is used for fastest operations. is set by engine thread
+        /// </summary>
+        public DateTime InaccurateDateTimeNowUtc = DateTime.UtcNow;
         public DateTime DateTimeNowUtc_SystemClock => DateTime.UtcNow; // not very accurate
 
-        void SyncDateTimeNowUtc() // engine thread
+        /// <summary>
+        /// makes sense for android - Stopwatch makes clock skew
+        /// engine thread
+        /// </summary>
+        void SyncPreciseTimeCounter()
         {
-            _startTimeUtc = (DateTime.UtcNow, Stopwatch.StartNew());
-            Configuration.VisionChannel?.SyncStartedTime();
+            InaccurateDateTimeNowUtc = DateTime.UtcNow;
+            _preciseTimeCounter = (InaccurateDateTimeNowUtc, Stopwatch.StartNew());
+            Configuration.VisionChannel?.SyncPreciseTimeCounter();
         }
 
-        public uint Timestamp32S => MiscProcedures.DateTimeToUint32seconds(DateTimeNowUtc);
-        public Int64 Timestamp64 => MiscProcedures.DateTimeToInt64ticks(DateTimeNowUtc);
+        public uint Timestamp32S => MiscProcedures.DateTimeToUint32seconds(PreciseDateTimeNowUtc);
+        public Int64 Timestamp64 => MiscProcedures.DateTimeToInt64ticks(PreciseDateTimeNowUtc);
         bool _disposing;
         Thread _engineThread;
         Thread _powThread;
@@ -108,7 +117,7 @@ namespace Dcomms.DRP
                 }
 
 
-                var r = $"RAM: {ramMB}MB, uptime: {Uptime}, now: {DateTimeNowUtc}UTC, socket: {_socket?.Client?.LocalEndPoint}, local peers: {LocalPeers.Count}," +
+                var r = $"RAM: {ramMB}MB, uptime: {Uptime}, now: {PreciseDateTimeNowUtc}UTC, socket: {_socket?.Client?.LocalEndPoint}, local peers: {LocalPeers.Count}," +
                     $" ConnectedPeer tokens: {ConnectedPeersByToken16.Count(x => x != null)}," +
                     $" InviteSession tokens: {InviteSessionsByToken16.Count(x => x != null)}," +
                     $" queue count: {EngineThreadQueue.Count}. delays:\r\n{ETSC.PeakExecutionTimeStats}";
@@ -136,7 +145,7 @@ namespace Dcomms.DRP
         public int NumberOfDimensions => Configuration.SandboxModeOnly_NumberOfDimensions;
         public DrpPeerEngine(DrpPeerEngineConfiguration configuration, Action<DrpPeerEngine> cbNullable)
         {
-            ETSC = new ExecutionTimeStatsCollector(() => configuration.VisionChannel.TimeNow);
+            ETSC = new ExecutionTimeStatsCollector(() => configuration.VisionChannel.PreciseTimeNow);
             configuration.VisionChannel?.RegisterVisibleModule(configuration.VisionChannelSourceId, "DrpPeerEngine", this);
 
             _insecureRandom = configuration.InsecureRandomSeed.HasValue ? new Random(configuration.InsecureRandomSeed.Value) : new Random();
@@ -180,7 +189,7 @@ namespace Dcomms.DRP
             {
                 if (Configuration.EnableNatRouterConfiguration)
                 {
-                    await ConfigureRouterNatIfNeeded(DateTimeNowUtc);
+                    await ConfigureRouterNatIfNeeded(PreciseDateTimeNowUtc);
                 }
 
                 if (Configuration.NatTestEndpoints != null)
@@ -218,7 +227,7 @@ namespace Dcomms.DRP
 
                 if (LocalPublicIp == null)
                 {
-                    var nowUTC = DateTimeNowUtc;
+                    var nowUTC = PreciseDateTimeNowUtc;
                     if (_latestPublicIpAddressResponseTimeUTC == null || nowUTC - _latestPublicIpAddressResponseTimeUTC.Value > TimeSpan.FromSeconds(60))
                     {
                         WriteToLog_drpGeneral_detail($"resolving local public IP...");
@@ -296,6 +305,8 @@ namespace Dcomms.DRP
         public override string ToString() => Configuration.VisionChannelSourceId;
 
         #region receiver thread
+        public Firewall Firewall => _firewall;
+        readonly Firewall _firewall = new Firewall();
         void ReceiverThreadEntry()
         {
             IPEndPoint remoteEndpoint = default(IPEndPoint);
@@ -321,6 +332,7 @@ namespace Dcomms.DRP
         }
         void ProcessReceivedUdpPacket(IPEndPoint remoteEndpoint, byte[] udpData) // receiver thread
         {
+            if (!_firewall.PassReceivedPacket(InaccurateDateTimeNowUtc, remoteEndpoint)) return;
             var packetType = (PacketTypes)udpData[0];
             if (WriteToLog_receiver_detail_enabled) 
                 WriteToLog_receiver_detail($"received packet {packetType} from {remoteEndpoint} ({udpData.Length} bytes, hash={MiscProcedures.GetArrayHashCodeString(udpData)})");
@@ -349,7 +361,7 @@ namespace Dcomms.DRP
                 var delay = receivedAtSW.Elapsed;
                 var delayMs = delay.TotalMilliseconds;
 
-                var receivedAtUtc = DateTimeNowUtc - delay;
+                var receivedAtUtc = PreciseDateTimeNowUtc - delay;
                 OnMeasuredEngineThreadQueueDelay(receivedAtUtc, delayMs);
                 if (RespondersToRetransmittedRequests_ProcessPacket(remoteEndpoint, udpData)) return;
                 if (PendingUdpRequests_ProcessPacket(remoteEndpoint, udpData, receivedAtUtc)) return;
@@ -451,15 +463,15 @@ namespace Dcomms.DRP
         #region engine thread
         void EngineThreadEntry()
         {
-            DateTime nextTimeToCallOnTimer100ms = DateTimeNowUtc.AddMilliseconds(100);
+            DateTime nextTimeToCallOnTimer100ms = PreciseDateTimeNowUtc.AddMilliseconds(100);
             while (!_disposing)
             {
                 try
                 {
-                    SyncDateTimeNowUtc();
+                    SyncPreciseTimeCounter();
                     EngineThreadQueue.ExecuteQueued();
 
-                    var timeNowUTC = DateTimeNowUtc;
+                    var timeNowUTC = PreciseDateTimeNowUtc;
                     if (timeNowUTC > nextTimeToCallOnTimer100ms)
                     {
                         nextTimeToCallOnTimer100ms = nextTimeToCallOnTimer100ms.AddMilliseconds(100);

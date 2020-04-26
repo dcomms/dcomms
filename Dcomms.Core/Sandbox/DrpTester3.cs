@@ -58,6 +58,25 @@ namespace Dcomms.Sandbox
         readonly List<DrpTesterPeerApp> _userApps = new List<DrpTesterPeerApp>();
         readonly List<DrpTesterPeerApp> _tempApps = new List<DrpTesterPeerApp>();
 
+        IEnumerable<DrpPeerEngine> DrpPeerEngines
+        {
+            get
+            {
+                var r = new List<DrpPeerEngine>();
+                try
+                {
+                    foreach (var ep in _localEpApps) r.Add(ep.DrpPeerEngine);
+                    foreach (var u in _userApps) r.Add(u.DrpPeerEngine);
+                    foreach (var t in _tempApps) r.Add(t.DrpPeerEngine);
+                }
+                catch (Exception exc)
+                {
+                    _visionChannel.Emit("", DrpTesterVisionChannelModuleName,
+                            AttentionLevel.mediumPain, $"error when getting DRP peer engine: {exc}");
+                }
+                return r;
+            }
+        }
         IEnumerable<IVisiblePeer> VisiblePeers
         {
             get
@@ -100,6 +119,7 @@ namespace Dcomms.Sandbox
         {
             _visionChannel = visionChannel;
             _visionChannel.VisiblePeersDelegate = () => { return VisiblePeers.ToList(); };
+            
             RemoteEpEndPointsString = "192.99.160.225:12000;195.154.173.208:12000";
         }
 
@@ -114,6 +134,26 @@ namespace Dcomms.Sandbox
             // create user apps one by one
             //    connect user app to remote EP (if address specified)
             BeginCreateLocalEpOrContinue(0);         
+
+        });
+        /// <summary>
+        /// writes to log
+        /// </summary>
+        public ICommand GetFirewallSenders => new DelegateCommand(() =>
+        {
+            var aggregateSenders = new Dictionary<IPAddress, Firewall.SenderInfo>();
+            foreach (var engine in DrpPeerEngines)                       
+                foreach (var sender in engine.Firewall.Senders)
+                {
+                    if (!aggregateSenders.TryGetValue(sender.IpAddress, out var existingAggregateSender))
+                        aggregateSenders.Add(sender.IpAddress, new Firewall.SenderInfo(sender));
+                    else
+                        existingAggregateSender.AggregateWith(sender);
+                }
+                
+            foreach (var aggregateSender in aggregateSenders.Values.OrderBy(x => x.LastPacketTimeUtc))
+                _visionChannel.Emit("", DrpTesterVisionChannelModuleName,
+                    AttentionLevel.guiActivity, $"IP {aggregateSender.IpAddress}: from {aggregateSender.FirstPacketTimeUtc}UTC till {aggregateSender.LastPacketTimeUtc}UTC");
 
         });
 
@@ -374,7 +414,7 @@ _retry:
             if (peer2.LatestReceivedTextMessage == sentText)
             {
                 sw.Stop();
-                test.OnSuccessfullyDelivered(sw.Elapsed.TotalMilliseconds, _visionChannel.TimeNow, peer2.LatestReceivedTextMessage_req);
+                test.OnSuccessfullyDelivered(sw.Elapsed.TotalMilliseconds, _visionChannel.PreciseTimeNow, peer2.LatestReceivedTextMessage_req);
                 _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                     AttentionLevel.guiActivity, $"successfully tested message from {peer1} to {peer2} in {sw.Elapsed.TotalMilliseconds}ms. {test.Report}");
             }
@@ -393,7 +433,7 @@ _retry:
                    AttentionLevel.mediumPain,
                    $"test message failed from {peer1} to {peer2}: received '{peer2.LatestReceivedTextMessage}', expected '{sentText}. {test.Report}");
              
-                var failedCount = test.OnFailed(_visionChannel.TimeNow);
+                var failedCount = test.OnFailed(_visionChannel.PreciseTimeNow);
                 if (failedCount >= 100)
                 {
                     _visionChannel.EmitListOfPeers(peer1.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,

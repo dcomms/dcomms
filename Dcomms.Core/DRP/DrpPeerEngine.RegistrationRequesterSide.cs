@@ -120,7 +120,7 @@ namespace Dcomms.DRP
                     var rpPow1ResponsePacketData = await SendUdpRequestAsync_Retransmit(
                                 new PendingLowLevelUdpRequest("rpPow1 469",  epEndpoint,
                                     RegisterPow1ResponsePacket.GetScanner(registerPow1RequestPacket.Pow1RequestId),
-                                    DateTimeNowUtc,
+                                    PreciseDateTimeNowUtc,
                                     Configuration.UdpLowLevelRequests_ExpirationTimeoutS,
                                     registerPow1RequestPacket.Encode(),
                                     Configuration.UdpLowLevelRequests_InitialRetransmissionTimeoutS,
@@ -242,7 +242,7 @@ namespace Dcomms.DRP
                     var pingRequest = newConnectionToNeighbor.CreatePing(true, false, localDrpPeer.ConnectedNeighborsBusySectorIds, localDrpPeer.AnotherNeighborToSameSectorExists(newConnectionToNeighbor));
                     newConnectionToNeighbor.InitialPendingPingRequest = new PendingLowLevelUdpRequest("pingRequest 3850", newConnectionToNeighbor.RemoteEndpoint,
                                     PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, pingRequest.PingRequestId32),
-                                    DateTimeNowUtc,
+                                    PreciseDateTimeNowUtc,
                                     Configuration.InitialPingRequests_ExpirationTimeoutS,
                                     pingRequest.Encode(),
                                     Configuration.InitialPingRequests_InitialRetransmissionTimeoutS,

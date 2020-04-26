@@ -54,12 +54,12 @@ namespace Dcomms.Vision
     /// </summary>
     public abstract class VisionChannel
     {
-        (DateTime,Stopwatch) _started = (DateTime.Now, Stopwatch.StartNew());
-        public void SyncStartedTime()
+        (DateTime,Stopwatch) _preciseTimeCounter = (DateTime.Now, Stopwatch.StartNew());
+        public void SyncPreciseTimeCounter()
         {
-            _started = (DateTime.Now, Stopwatch.StartNew());
+            _preciseTimeCounter = (DateTime.Now, Stopwatch.StartNew());
         }
-        public DateTime TimeNow => _started.Item1 + _started.Item2.Elapsed;
+        public DateTime PreciseTimeNow => _preciseTimeCounter.Item1 + _preciseTimeCounter.Item2.Elapsed;
 
         public virtual AttentionLevel GetAttentionTo(string visionChannelSourceId, string moduleName) => AttentionLevel.deepDetail;
         public abstract void Emit(string visionChannelSourceId, string moduleName, AttentionLevel level, string message);

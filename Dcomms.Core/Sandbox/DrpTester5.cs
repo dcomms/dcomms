@@ -109,7 +109,7 @@ namespace Dcomms.Sandbox
                     var nateTest1responseData = await drpPeerEngine.SendUdpRequestAsync_Retransmit(new PendingLowLevelUdpRequest("nattest1 23",
                         responderEp
                         , NatTest1ResponsePacket.GetScanner(req.Token32),
-                        drpPeerEngine.DateTimeNowUtc,
+                        drpPeerEngine.PreciseDateTimeNowUtc,
                         1.0,
                         req.Encode(),
                         0.3,
@@ -533,7 +533,7 @@ namespace Dcomms.Sandbox
             if (_userApp.LatestReceivedTextMessage == sentText)
             {
                 sw.Stop();
-                OnSuccessfullyDelivered(sw.Elapsed.TotalMilliseconds, _visionChannel.TimeNow, _userApp.LatestReceivedTextMessage_req);
+                OnSuccessfullyDelivered(sw.Elapsed.TotalMilliseconds, _visionChannel.PreciseTimeNow, _userApp.LatestReceivedTextMessage_req);
                 _visionChannel.EmitListOfPeers(_userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,
                     AttentionLevel.guiActivity, $"successfully received echoed message in {sw.Elapsed.TotalMilliseconds}ms. {TestReport}");
             }
@@ -559,7 +559,7 @@ namespace Dcomms.Sandbox
         }
         bool ContinueOnFailed()
         {
-            var failedCount = OnFailed(_visionChannel.TimeNow);
+            var failedCount = OnFailed(_visionChannel.PreciseTimeNow);
            // if (failedCount >= 10000000)
             {
               //  _visionChannel.EmitListOfPeers(_userApp.DrpPeerEngine.Configuration.VisionChannelSourceId, DrpTesterVisionChannelModuleName,

@@ -2,7 +2,7 @@ If you have any problems/suggestions with the tutorial, please contact me:
 
 Aleshin Sergei Vladimirovich support@dcomms.org asv@startrinity.com
 
-# Dcomms.org - secure telecommunication - open protocols and implementation
+# Dcomms.org -  encrypted decentralized serverless telecommunications; continuous internet speed test
 
 License: MIT
 

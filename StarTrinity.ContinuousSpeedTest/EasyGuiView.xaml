@@ -8,7 +8,6 @@
     <Grid Visibility="{Binding CstApp.LocalPeerConfigurationRoleAsUser, Converter={StaticResource BoolToVisibilityConverter}}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -106,18 +105,8 @@
             <Button Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding PauseTest}" Content="Pause" FontSize="25" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityOppositeConverter}}" />
             <Button Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding ResumeTest}" Content="Resume" FontSize="25" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}" />
         </Grid>
-        <Grid Grid.Row="1">
-            <StackPanel Orientation="Horizontal" Visibility="{Binding CstApp.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
-                <Button Content="Install" Command="{Binding CstApp.InstallOnThisPC}" FontSize="20" />
-                <CheckBox IsChecked="{Binding CstApp.InstallOnThisPC_AddToAutoStart}" FontSize="15" VerticalAlignment="Center" />
-                <TextBlock Text="start with windows" />
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Visibility="{Binding CstApp.RunningInstalledOnThisPC, Converter={StaticResource BoolToVisibilityConverter}}">
-                <Button Content="Uninstall" Command="{Binding CstApp.UninstallOnThisPc}" FontSize="15" />
-            </StackPanel>         
-        </Grid>
-
-        <TabControl Grid.Row="2" >
+       
+        <TabControl Grid.Row="1" >
             <TabItem IsSelected="{Binding MeasurementsTabIsSelected}">
                 <TabItem.HeaderTemplate>
                     <DataTemplate>

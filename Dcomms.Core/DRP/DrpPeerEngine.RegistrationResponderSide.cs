@@ -177,7 +177,7 @@ namespace Dcomms.DRP
                     var ping = newConnectionToNeighbor.CreatePing(true, false, acceptAt.ConnectedNeighborsBusySectorIds, acceptAt.AnotherNeighborToSameSectorExists(newConnectionToNeighbor));
 
                     newConnectionToNeighbor.InitialPendingPingRequest = new PendingLowLevelUdpRequest("pendingPingRequest 693", newConnectionToNeighbor.RemoteEndpoint,
-                                    PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, ping.PingRequestId32), DateTimeNowUtc,
+                                    PongPacket.GetScanner(newConnectionToNeighbor.LocalNeighborToken32, ping.PingRequestId32), PreciseDateTimeNowUtc,
                                     Configuration.InitialPingRequests_ExpirationTimeoutS,
                                     ping.Encode(),
                                     Configuration.InitialPingRequests_InitialRetransmissionTimeoutS,

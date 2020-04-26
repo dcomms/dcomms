@@ -26,20 +26,34 @@ namespace StarTrinity.ContinuousSpeedTest
                         {
                             if (runningProcess.MainModule.FileName == currentProcessFileName)
                             {
-                                if (MessageBox.Show($"The application is already running from {currentProcessFileName}.\r\n\r\n" +
-                                    $"Please open the running application in Windows tray bar.\r\n" +
-                                    $"Do you want to run new instance instead of currently running instance?",
-                                    "StarTrinity CST", MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.No) == MessageBoxResult.No)
+                                if (true)
                                 {
+                                    StarTrinity.ContinuousSpeedTest.MainWindow.ShowRunningInstance();
+
                                     // terminate this instance
                                     Environment.Exit(0);
                                     return;
                                 }
                                 else
                                 {
-                                    // terminate another instance
-                                    runningProcess.Kill();
-                                    goto _start;
+
+
+
+                                    if (MessageBox.Show($"The application is already running from {currentProcessFileName}.\r\n\r\n" +
+                                        $"Please open the running application in Windows tray bar.\r\n" +
+                                        $"Do you want to run new instance instead of currently running instance?",
+                                        "StarTrinity CST", MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.No) == MessageBoxResult.No)
+                                    {
+                                        // terminate this instance
+                                        Environment.Exit(0);
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        // terminate another instance
+                                        runningProcess.Kill();
+                                        goto _start;
+                                    }
                                 }
                             }
                         }

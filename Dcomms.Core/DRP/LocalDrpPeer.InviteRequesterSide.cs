@@ -90,7 +90,7 @@ _retry:
                         var remoteIke1Data = await session.Ike1Async_AtInviteRequester(localUserCertificate, localIke1Data, session.RemoteSessionDescription.UserCertificate);
 
                         // authenticate certificate in remote SessionDescription, now we know remote UserID from IKE1 data
-                        session.RemoteSessionDescription.UserCertificate.AssertIsValidNow(Engine.CryptoLibrary, remoteIke1Data.UserId, Engine.DateTimeNowUtc);
+                        session.RemoteSessionDescription.UserCertificate.AssertIsValidNow(Engine.CryptoLibrary, remoteIke1Data.UserId, Engine.PreciseDateTimeNowUtc);
 
                         remoteIke1Data.RemoteEndPoint = session.RemoteSessionDescription.DirectChannelEndPoint;
                         remoteIke1DataCb?.Invoke(null, remoteIke1Data);
@@ -218,7 +218,7 @@ _retry:
                 session.RemoteSessionDescription = InviteSessionDescription.Decrypt_Verify(Engine.CryptoLibrary,
                     ack1.ToResponderSessionDescriptionEncrypted,
                     req, ack1, false, session,
-                    responderUserIdNullable, Engine.DateTimeNowUtc);
+                    responderUserIdNullable, Engine.PreciseDateTimeNowUtc);
 
                 // sign and encode local SD
                 session.LocalSessionDescription = new InviteSessionDescription
@@ -266,7 +266,7 @@ _retry:
                 if (logger.WriteToLog_detail_enabled) logger.WriteToLog_detail($"waiting for CFM");
                 var cfmUdpData = await Engine.WaitForUdpResponseAsync(new PendingLowLevelUdpRequest("cfm 1235695", destinationPeer.RemoteEndpoint,
                                 InviteConfirmationPacket.GetScanner(logger, req, destinationPeer),
-                                Engine.DateTimeNowUtc, Engine.Configuration.CfmTimoutS
+                                Engine.PreciseDateTimeNowUtc, Engine.Configuration.CfmTimoutS
                                 ));
                 if (cfmUdpData == null) throw new DrpTimeoutException($"did not get CFM at invite requester from destination peer {destinationPeer} (timeout={Engine.Configuration.CfmTimoutS}s)");
 

@@ -1,4 +1,4 @@
-﻿<Window x:Class="Dcomms.SandboxTester.SandboxTesterMainWindow"
+﻿ <Window x:Class="Dcomms.SandboxTester.SandboxTesterMainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -112,7 +112,9 @@
                 <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding DrpTester3.NumberOfDimensions, Mode=TwoWay}" />
 
                 <CheckBox Grid.Row="0" Grid.Column="4"  IsChecked="{Binding DrpTester3.EnableMessagesTest, Mode=TwoWay}" Content="enable msgs test" />
-
+                <Button Grid.Row="1" Grid.Column="4" Command="{Binding DrpTester3.GetFirewallSenders}" 
+                        Visibility="{Binding DrpTester3.Initialized, Converter={StaticResource BoolToVisibilityConverter}}"
+                        Content="get senders" />
 
                 <StackPanel Orientation="Horizontal" Grid.Row="5" Visibility="{Binding DrpTester3.Initialized, Converter={StaticResource BoolToVisibilityOppositeConverter}}">
                     <Button Content="Initialize" Margin="3" Command="{Binding DrpTester3.Initialize}" />

@@ -188,7 +188,7 @@ namespace Dcomms.DRP
             if (exc is BadSignatureException) { WriteToLog_attacks_strongPain($"exception while connection to EP: {exc}"); return; }
             if (Configuration.VisionChannel?.GetAttentionTo(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide) <= AttentionLevel.mediumPain)
                 Configuration.VisionChannel?.Emit(Configuration.VisionChannelSourceId, VisionChannelModuleName_reg_requesterSide, AttentionLevel.detail,
-                    $"exception while connecting to EP {epEndpoint} (SystemClock={DateTimeNowUtc}UTC make sure that it is valid): {exc}");
+                    $"exception while connecting to EP {epEndpoint} (SystemClock={PreciseDateTimeNowUtc}UTC make sure that it is valid): {exc}");
 
             // todo: analyse if it is malformed packet received from attacker's EP
 

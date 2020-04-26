@@ -340,7 +340,7 @@ namespace Dcomms.DRP
         DateTime _created; 
         internal void OnP2pInitialized()
         {
-            _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket = _engine.DateTimeNowUtc;
+            _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket = _engine.PreciseDateTimeNowUtc;
         }
         readonly DrpPeerEngine _engine;
         internal DrpPeerEngine Engine => _engine;
@@ -358,7 +358,7 @@ namespace Dcomms.DRP
             _seq16Counter_P2P = (ushort)_insecureRandom.Next(ushort.MaxValue);
             _localDrpPeer = localDrpPeer;
             _engine = engine;
-            _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket = _created = _engine.DateTimeNowUtc;
+            _lastTimeP2pInitializedOrReceivedVerifiedResponsePacket = _created = _engine.PreciseDateTimeNowUtc;
             RemoteRegistrationId = remoteRegistrationId;
                        
             InitiatedBy = initiatedBy;
@@ -467,7 +467,7 @@ namespace Dcomms.DRP
             var pingRequestPacket = CreatePing(false, false, _localDrpPeer.ConnectedNeighborsBusySectorIds, _localDrpPeer.AnotherNeighborToSameSectorExists(this));
             SendPacket(pingRequestPacket.Encode());
             _latestPingSentUnreplied = pingRequestPacket;
-            _latestPingSentTimeUTC = _engine.DateTimeNowUtc;
+            _latestPingSentTimeUTC = _engine.PreciseDateTimeNowUtc;
         }
         internal void OnReceivedVerifiedPong(PongPacket pong, DateTime responseReceivedAtUTC, TimeSpan? requestResponseDelay)
         {

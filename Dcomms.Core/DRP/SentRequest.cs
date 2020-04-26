@@ -117,7 +117,7 @@ namespace Dcomms.DRP
             var tr1 = _engine.CreateTracker("WaitForAck1Async");
             _logger.WriteToLog_detail($"waiting for ACK1");
             _pendingAck1Request = new PendingLowLevelUdpRequest(completionActionVisibleId, _destinationEndpoint,
-                            _ack1Scanner, _engine.DateTimeNowUtc, _engine.Configuration.Ack1TimoutS
+                            _ack1Scanner, _engine.PreciseDateTimeNowUtc, _engine.Configuration.Ack1TimoutS
                             );
             tr1.Dispose();
             Ack1UdpData = await _engine.WaitForUdpResponseAsync(_pendingAck1Request);
@@ -133,7 +133,7 @@ namespace Dcomms.DRP
             var failureScanner = FailurePacket.GetScanner(_logger, _sentReqP2pSeq16, _destinationNeighborNullable); // the scanner verifies neighborHMAC
             _logger.WriteToLog_detail($"waiting for FAILURE");
             _pendingFailureRequest = new PendingLowLevelUdpRequest(completionActionVisibleId, _destinationEndpoint,
-                            failureScanner, _engine.DateTimeNowUtc, _engine.Configuration.Ack1TimoutS
+                            failureScanner, _engine.PreciseDateTimeNowUtc, _engine.Configuration.Ack1TimoutS
                             );
             tr1.Dispose();
             _failureUdpData = await _engine.WaitForUdpResponseAsync(_pendingFailureRequest);

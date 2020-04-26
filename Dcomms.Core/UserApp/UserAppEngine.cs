@@ -119,7 +119,7 @@ namespace Dcomms.UserApp
                 UserRootPrivateKeys.CreateUserId(1, 1, TimeSpan.FromDays(365*3+10), _drpPeerEngine.CryptoLibrary, out var userRootPrivateKeys, out var userId);
                 var userCertificateWithPrivateKey = UserCertificate.GenerateKeyPairsAndSignAtSingleDevice(_drpPeerEngine.CryptoLibrary, userId, userRootPrivateKeys, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddYears(3));
                 userCertificateWithPrivateKey.AssertHasPrivateKey();
-                userCertificateWithPrivateKey.AssertIsValidNow(_drpPeerEngine.CryptoLibrary, userId, _drpPeerEngine.DateTimeNowUtc);
+                userCertificateWithPrivateKey.AssertIsValidNow(_drpPeerEngine.CryptoLibrary, userId, _drpPeerEngine.PreciseDateTimeNowUtc);
 
                 var u = new User
                 {
