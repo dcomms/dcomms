@@ -137,8 +137,16 @@ namespace Dcomms.SUBT
                 _jitterBuffer.AddAfter(insertAfter, jbe);
             }
 
-          //  if (_stream.Stream.Debug)
-        //        CheckJitterBuffer();
+            //  if (_stream.Stream.Debug)
+            //        CheckJitterBuffer();
+
+            if (_jitterBuffer.Count > 5000)
+                _subtLocalPeer.WriteToLog_mediumPain($"<< TryInsertIntoJitterBuffer strm{_stream.StreamId} count={_jitterBuffer.Count} ts={jbe.timestamp32} seq={jbe.sequence} last (newest) TS={_jitterBuffer.Last?.Value?.timestamp32}");
+            else if (_jitterBuffer.Count > 1000)
+                _subtLocalPeer.WriteToLog_lightPain($"<< TryInsertIntoJitterBuffer strm{_stream.StreamId} count={_jitterBuffer.Count} ts={jbe.timestamp32} seq={jbe.sequence} last (newest) TS={_jitterBuffer.Last?.Value?.timestamp32}");
+            else if (_jitterBuffer.Count > 100)
+                _subtLocalPeer.WriteToLog_deepDetail($"<< TryInsertIntoJitterBuffer strm{_stream.StreamId} count={_jitterBuffer.Count} ts={jbe.timestamp32} seq={jbe.sequence} last (newest) TS={_jitterBuffer.Last?.Value?.timestamp32}");
+
 
             return true;
         }
@@ -175,7 +183,20 @@ namespace Dcomms.SUBT
           //  if (_stream.Stream.Debug) _subtLocalPeer.WriteToLog($">> PlaybackFromJitter count={_jitterBuffer.Count}");
             if (_jitterBuffer.Count != 0)
             {
-                // simulate playback from JB		
+                // simulate playback from JB	
+                while (_jitterBuffer.Count > SubtLogicConfiguration.JitterBufferMaxElementsCount)
+                {
+                    var oldestItem = _jitterBuffer.First;
+                    if (oldestItem == null)
+                        break;  
+
+                    _subtLocalPeer.WriteToLog_deepDetail(
+                              $"<< PlaybackFromJitter count={_jitterBuffer.Count} oldestTS={oldestItem.Value.timestamp32}, timeNow32={timeNow32}");
+                         
+                    OnPlayed(oldestItem.Value, timeNow32);
+                    _jitterBuffer.RemoveFirst();
+                }
+	
                 var newestTimestampInSimulatedJitterBuffer = _jitterBuffer.Last.Value.timestamp32;
 
                 // determine TS value of currently played frame

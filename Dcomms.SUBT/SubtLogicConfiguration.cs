@@ -8,6 +8,8 @@ namespace Dcomms.SUBT
     internal static class SubtLogicConfiguration
     {
         internal const uint JitterBufferLengthTicks = (uint)(TimeSpan.TicksPerMillisecond * 200);
+        internal const uint JitterBufferMaxElementsCount = 200;
+
         internal const double RecentPacketLossDecayTimeTicks = TimeSpan.TicksPerMillisecond * 700; // is feed back to sender with delay = RTT + JB length
         internal const double RecenRxBandwidthDecayTimeTicks = TimeSpan.TicksPerMillisecond * 700; // is feed back to sender with delay = RTT + JB length
         internal const double RecentTxBandwidthDecayTimeTicks = TimeSpan.TicksPerMillisecond * 700; // self-test at sender side

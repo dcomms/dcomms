@@ -55,6 +55,7 @@ namespace Dcomms.P2PTP.Extensibility
         void HandleException(ILocalPeerExtension extension, Exception exception);
         void WriteToLog_deepDetail(ILocalPeerExtension extension, string message);
         void WriteToLog_lightPain(ILocalPeerExtension extension, string message);
+        void WriteToLog_mediumPain(ILocalPeerExtension extension, string message);
         /// <summary>
         /// is used for timestamp fields
         /// TimeSpan ticks

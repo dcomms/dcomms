@@ -41,6 +41,10 @@ namespace Dcomms.SUBT
         {
             LocalPeer.WriteToLog_lightPain(this, message);
         }
+        internal void WriteToLog_mediumPain(string message)
+        {
+            LocalPeer.WriteToLog_mediumPain(this, message);
+        }
 
         public string ExtensionId => ExtensionIdPrefixes.SUBT;
         public byte[] PayloadPacketHeader => PacketHeaders.SubtPayload;

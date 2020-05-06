@@ -15,9 +15,6 @@ using System.Windows.Shapes;
 
 namespace StarTrinity.ContinuousSpeedTest
 {
-    /// <summary>
-    /// Interaction logic for LogView.xaml
-    /// </summary>
     public partial class LogView : UserControl
     {
         public LogView()

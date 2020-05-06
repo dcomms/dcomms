@@ -194,9 +194,9 @@ namespace Dcomms.SUBT.GUI
         public Vision.VisionChannel1 VisionChannel { get; set; } = new Vision.VisionChannel1() 
         {
             DisplayedLogMessagesMaxCount = 100,
-            AttentionLevel = Vision.AttentionLevel.deepDetail, 
-            DisplayFilterMinLevel = Vision.AttentionLevel.deepDetail, 
-            ClearLog_MessagesCount = 10000
+            AttentionLevel = Vision.AttentionLevel.needsAttention, 
+            DisplayFilterMinLevel = Vision.AttentionLevel.needsAttention, 
+            ClearLog_MessagesCount = 1000
         };
         public CstApp(ICstAppUser user)
         {

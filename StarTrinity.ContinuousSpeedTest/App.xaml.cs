@@ -36,9 +36,6 @@ namespace StarTrinity.ContinuousSpeedTest
                                 }
                                 else
                                 {
-
-
-
                                     if (MessageBox.Show($"The application is already running from {currentProcessFileName}.\r\n\r\n" +
                                         $"Please open the running application in Windows tray bar.\r\n" +
                                         $"Do you want to run new instance instead of currently running instance?",

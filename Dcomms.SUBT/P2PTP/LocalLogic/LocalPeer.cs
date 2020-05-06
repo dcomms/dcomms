@@ -188,6 +188,10 @@ namespace Dcomms.P2PTP.LocalLogic
         {
             WriteToLog_lightPain(extension.ExtensionId, message);
         }
+        void ILocalPeer.WriteToLog_mediumPain(ILocalPeerExtension extension, string message)
+        {
+            WriteToLog_mediumPain(extension.ExtensionId, message);
+        }
         void ILocalPeer.InvokeInManagerThread(Action a) => Manager?.InvokeInManagerThread(a, "ILocalPeer.InvokeInManagerThread23423");
     }
 

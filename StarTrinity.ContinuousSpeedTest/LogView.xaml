@@ -11,7 +11,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <StackPanel Orientation="Horizontal">
+        <WrapPanel Orientation="Horizontal">
             <TextBlock Text="local peer id:" />
             <TextBlock Text="{Binding LocalPeer.LocalPeerId}" />
 
@@ -31,7 +31,7 @@
             <ComboBox SelectedItem="{Binding VisionChannel.DisplayFilterMinLevel, Mode=TwoWay}" ItemsSource="{Binding VisionChannel.DisplayFilterMinLevels}" VerticalAlignment="Center"/>
             <TextBlock Text="attention:" />
             <ComboBox SelectedItem="{Binding VisionChannel.AttentionLevel, Mode=TwoWay}" ItemsSource="{Binding VisionChannel.DisplayFilterMinLevels}" VerticalAlignment="Center"/>
-        </StackPanel>
+        </WrapPanel>
         <DataGrid Grid.Row="1" Name="logMessagesGrid" ItemsSource="{Binding VisionChannel.DisplayedLogMessages}"  >
             <DataGrid.Columns>
                 <DataGridTemplateColumn Header="Level" >
