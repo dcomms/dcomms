@@ -7,7 +7,7 @@ namespace StarTrinity.CST
 			{
 				get
 				{
-					return 42799331;
+					return 42816990;
 				}
 			}
 			public static System.DateTime CompilationDateTimeUtc

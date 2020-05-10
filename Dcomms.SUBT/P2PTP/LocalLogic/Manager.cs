@@ -640,9 +640,9 @@ namespace Dcomms.P2PTP.LocalLogic
             
             foreach (var receivedSharedPeer in peersListPacket.SharedPeers)
             {
-                if (receivedSharedPeer.ToPeerId.Equals(_localPeer.LocalPeerId)) continue; // dont connect to this peer
+                if (receivedSharedPeer.ToPeerId.Equals(_localPeer.LocalPeerId)) continue; // don't connect to this (same) peer
 
-                if (!_connectedPeers.TryGetValue(receivedSharedPeer.ToPeerId, out var localConnectedPeer))
+                if (_connectedPeers.TryGetValue(receivedSharedPeer.ToPeerId, out var localConnectedPeer)) continue; // don't connect to this (same) peer
                 {
                     _localPeer.WriteToLog_deepDetail(LogModules.PeerSharing, $"received shared peer {receivedSharedPeer}) from {connectedPeer}");
                     localConnectedPeer = new ConnectedPeer(_localPeer, receivedSharedPeer.ToPeerId, ConnectedPeerType.toPeerShared, receivedSharedPeer.ToEndPoint.Address);

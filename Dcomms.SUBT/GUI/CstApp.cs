@@ -33,13 +33,9 @@ namespace Dcomms.SUBT.GUI
                 RaisePropertyChanged(() => DeveloperMode);
             }
         }
-
-        #region installation, run mode
+        
         public bool AutoStartedInTrayMode { get; set; }
         public const string TrayCliParameter = "/tray";
-
-        public bool InstallOnThisPC_AddToAutoStart { get; set; } = true;
-        #endregion
 
         #region configuration
         public DelegateCommand PredefinedAsvServer => new DelegateCommand(() =>
