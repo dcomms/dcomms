@@ -246,12 +246,8 @@ namespace Dcomms.SUBT
             ;
 
         internal bool TxIsEnabled => (Stream.RemotePeerRoleIsUser || SubtLocalPeer.LocalPeer.Configuration.RoleAsUser);
-        internal void SendPacketsIfNeeded_10ms() // sender thread
+        internal void SendPacketsIfNeeded_10ms(uint timeNow32) // sender thread
         {
-            var timeNow32 = SubtLocalPeer.LocalPeer.Time32;
-            SendStatusIfNeeded(timeNow32);
-            RetransmitBandwidthAdjustmentRequestIfNeeded(timeNow32);
-
             lock (_rxBwBeforeJB)
                 _rxBwBeforeJB.OnTimeObserved(timeNow32);
 
@@ -264,8 +260,11 @@ namespace Dcomms.SUBT
                     SendPayloadPacket(_txConfiguration.UdpBytesPerPacket10ms);
             }
         }
-        internal void SendPayloadPacketsIfNeeded_100ms() // sender thread
+        internal void SendPayloadPacketsIfNeeded_100ms(uint timeNow32) // sender thread
         {
+            SendStatusIfNeeded(timeNow32);
+            RetransmitBandwidthAdjustmentRequestIfNeeded(timeNow32);
+
             if (!TxIsEnabled) return;
             if (SubtConnectedPeer.RemotePeerId != null && _txConfiguration != null) // check if handshaking is complete
             {
@@ -316,7 +315,7 @@ namespace Dcomms.SUBT
         SubtRemoteStatusPacket _lastSentSubtStatusPacket;
         void SendStatusIfNeeded(uint timestamp32) // sender thread
         {
-            if (_lastTimeSentStatus == null ||
+            if (_lastTimeSentStatus == null || 
                 MiscProcedures.TimeStamp1IsLess(_lastTimeSentStatus.Value + SubtLogicConfiguration.SubtRemoteStatusPacketTransmissionIntervalTicks, timestamp32)
                 )
             {

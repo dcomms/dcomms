@@ -3,6 +3,7 @@ using Dcomms.P2PTP.LocalLogic;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -51,20 +52,21 @@ namespace Dcomms.SUBT
                 {
                     _actionsQueue.ExecuteQueued();
 
-                    var timeNow32 = _localPeer.LocalPeer.Time32;
-
-                    while (MiscProcedures.TimeStamp1IsLess(previousTs32, timeNow32) && !_disposing)
+                    var timeNow32a = _localPeer.LocalPeer.Time32;
+                    while (MiscProcedures.TimeStamp1IsLess(previousTs32, timeNow32a) && !_disposing)
                     {
                         if (_debug)
                             Debugger.Break();
 
                         previousTs32 = unchecked(previousTs32 + period32);
-                        foreach (var stream in _streams.Values) stream.SendPacketsIfNeeded_10ms();
+                        var streamsA = _streams.Values.ToArray();
+                        var timeNow32b = _localPeer.LocalPeer.Time32;
+                        foreach (var stream in streamsA) stream.SendPacketsIfNeeded_10ms(timeNow32b);
                         counter++;
                         if (counter % 10 == 0)
-                            foreach (var stream in _streams.Values) stream.SendPayloadPacketsIfNeeded_100ms();
+                            foreach (var stream in streamsA) stream.SendPayloadPacketsIfNeeded_100ms(timeNow32b);
                         if (counter % 100 == 0)
-                            foreach (var stream in _streams.Values) stream.SendPayloadPacketsIfNeeded_1s();
+                            foreach (var stream in streamsA) stream.SendPayloadPacketsIfNeeded_1s();
                     }
                 }
                 catch (Exception exc)
