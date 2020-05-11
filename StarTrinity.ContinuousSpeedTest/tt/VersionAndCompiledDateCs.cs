@@ -7,7 +7,7 @@ namespace StarTrinity.ContinuousSpeedTest
 			{
 				get
 				{
-					return 42449540;
+					return 42823820;
 				}
 			}
 			public static System.DateTime CompilationDateTimeUtc

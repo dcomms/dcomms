@@ -12,7 +12,7 @@ namespace Dcomms
         bool _isDisposing;
         readonly Action<Exception> _onException;
         readonly ExecutionTimeStatsCollector _etscNullable;
-        public ActionsQueue(Action<Exception> onException, ExecutionTimeStatsCollector etscNullable)
+        public ActionsQueue(Action<Exception> onException, ExecutionTimeStatsCollector etscNullable = null)
         {
             if (onException == null) throw new ArgumentNullException(nameof(onException));
             _onException = onException;
@@ -52,6 +52,7 @@ namespace Dcomms
         public void ExecuteQueued()
         {
             var x = Thread.CurrentThread.ManagedThreadId;
+            var sw = Stopwatch.StartNew();
             for (; ; )
             {
                 QueuedAction a;
@@ -64,10 +65,16 @@ namespace Dcomms
 
                 try
                 {
-                    var sw = Stopwatch.StartNew();
-                    a.A();
-                    sw.Stop();
-                    _etscNullable?.OnMeasuredExecutionTime(a.ActionVisibleId, sw.Elapsed.TotalMilliseconds);
+                    if (_etscNullable != null)
+                    {
+                        var startMs = sw.Elapsed.TotalMilliseconds;
+                        a.A();
+                        var stopMs = sw.Elapsed.TotalMilliseconds;
+
+                        _etscNullable.OnMeasuredExecutionTime(a.ActionVisibleId, stopMs - startMs);
+                    }
+                    else
+                        a.A();
                 }
                 catch (Exception exc)
                 {
@@ -174,10 +181,15 @@ namespace Dcomms
                     // execute item
                     try
                     {
-                        var sw = Stopwatch.StartNew();
-                        e.EventHandler();
-                        sw.Stop();
-                        _etscNullable?.OnMeasuredExecutionTime(e.ActionVisibleId, sw.Elapsed.TotalMilliseconds);
+                        if (_etscNullable != null)
+                        {
+                            var sw = Stopwatch.StartNew();
+                            e.EventHandler();
+                            sw.Stop();
+                            _etscNullable?.OnMeasuredExecutionTime(e.ActionVisibleId, sw.Elapsed.TotalMilliseconds);
+                        }
+                        else
+                            e.EventHandler();
                     }
                     catch (Exception exc)
                     {

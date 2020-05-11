@@ -56,7 +56,19 @@ namespace Dcomms.P2PTP.LocalLogic
                 if (createdOrDestroyed)
                 {
                     if (!_streams.ContainsKey(stream.StreamId))
+                    {
                         _streams.Add(stream.StreamId, stream); // todo can be exception of duplicate key in rare cases?
+
+
+                        if (_localPeer.Configuration.RoleAsUser)
+                        {
+                            if (_streams.Count > 150) _localPeer.WriteToLog_lightPain(LogModules.Receiver, $"receiver streams leak, count = {_streams.Count}");
+                        }
+                        else
+                        {
+                            if (_streams.Count > 1500) _localPeer.WriteToLog_lightPain(LogModules.Receiver, $"receiver streams leak, count = {_streams.Count}");
+                        }
+                    }
                 }
                 else
                     _streams.Remove(stream.StreamId);

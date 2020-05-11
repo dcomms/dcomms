@@ -32,7 +32,7 @@ namespace Dcomms.SUBT
         {
             _threadName = threadName;
             _localPeer = localPeer;
-            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(exc), null);
+            _actionsQueue = new ActionsQueue(exc => _localPeer.HandleException(exc));
             _thread = new Thread(ThreadEntry);
             _thread.Name = threadName;
             _thread.Start();
@@ -42,7 +42,6 @@ namespace Dcomms.SUBT
         public override string ToString() => _threadName;
         void ThreadEntry()
         {
-            var sw = Stopwatch.StartNew();
             var previousTs32 = _localPeer.LocalPeer.Time32;
             const uint period32 = (uint)TimeSpan.TicksPerMillisecond * 10;
             int counter = 0;
@@ -92,7 +91,17 @@ namespace Dcomms.SUBT
                 if (createdOrDestroyed)
                 {
                     if (!_streams.ContainsKey(stream.StreamId))
+                    {
                         _streams.Add(stream.StreamId, stream); // todo why does it insert duplicate keys sometimes?
+                        if (_localPeer.LocalPeer.Configuration.RoleAsUser)
+                        {
+                            if (_streams.Count > 150) _localPeer.WriteToLog_lightPain($"SUBT sender thread streams leak, count = {_streams.Count}");
+                        }
+                        else
+                        {
+                            if (_streams.Count > 1500) _localPeer.WriteToLog_lightPain($"SUBT sender thread streams leak, count = {_streams.Count}");
+                        }
+                    }
                 }
                 else _streams.Remove(stream.StreamId);
             }, "subtsender2462");
