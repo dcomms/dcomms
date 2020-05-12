@@ -25,7 +25,7 @@ namespace Dcomms.P2PTP.LocalLogic
 
         internal const int CoordinatorPeer_MaxConnectedPeersToAccept = 10000;
         internal const int SharedPeer_MaxConnectedPeersToAccept = 10000;
-        internal const int UserPeer_MaxConnectedPeersToAccept = 100;
+        internal const int UserPeer_MaxConnectedPeersToAccept = 60;
         internal const int ConnectedPeerMaxStreamsCount = 30; // 10 + 20 for re-initialization
 
     }

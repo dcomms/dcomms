@@ -21,7 +21,7 @@ namespace Dcomms.SUBT.GUI
         {
             _cstApp = cstApp;
             _cstApp.User.AddStaticResource("EasyGuiViewModel", this);
-            _cstApp.User.CreateIdleGuiTimer(TimeSpan.FromMilliseconds(100), Timer_Tick);
+            _cstApp.User.CreateIdleGuiTimer(TimeSpan.FromMilliseconds(300), Timer_Tick);
         }
         internal void OnInitialized()
         {

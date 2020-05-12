@@ -644,6 +644,8 @@ namespace Dcomms.P2PTP.LocalLogic
 
                 if (_connectedPeers.TryGetValue(receivedSharedPeer.ToPeerId, out var localConnectedPeer)) continue; // don't connect to this (same) peer
                 {
+                    if (_localPeer.Configuration.RoleAsUser && _connectedPeers.Count >= LocalLogicConfiguration.UserPeer_MaxConnectedPeersToAccept) continue; // too many peers
+                  
                     _localPeer.WriteToLog_deepDetail(LogModules.PeerSharing, $"received shared peer {receivedSharedPeer}) from {connectedPeer}");
                     localConnectedPeer = new ConnectedPeer(_localPeer, receivedSharedPeer.ToPeerId, ConnectedPeerType.toPeerShared, receivedSharedPeer.ToEndPoint.Address);
                     lock (_connectedPeers)

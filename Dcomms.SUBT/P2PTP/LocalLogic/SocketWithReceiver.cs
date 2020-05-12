@@ -62,7 +62,7 @@ namespace Dcomms.P2PTP.LocalLogic
 
                         if (_localPeer.Configuration.RoleAsUser)
                         {
-                            if (_streams.Count > 150) _localPeer.WriteToLog_lightPain(LogModules.Receiver, $"receiver streams leak, count = {_streams.Count}");
+                            if (_streams.Count > 400) _localPeer.WriteToLog_lightPain(LogModules.Receiver, $"receiver streams leak, count = {_streams.Count}");
                         }
                         else
                         {
